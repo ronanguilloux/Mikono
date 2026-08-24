@@ -33,3 +33,4 @@ agent that drafts these.
 | --- | --- | --- |
 | [01](01-symfony-php-skills-context.md) | Staging Symfony/PHP Agent Skills | [0002](../adr/0002-stage-symfony-php-skills-in-agents-skills.md) |
 | [02](02-volunteer-manager-v0.1-context.md) | UCESCO Volunteer Manager (VM) v0.1 | [0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md), [0004](../adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md) |
+| [03](03-test-hardening-and-next-steps.md) | Test Hardening Decisions (phase 11) | [0004](../adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md) |
