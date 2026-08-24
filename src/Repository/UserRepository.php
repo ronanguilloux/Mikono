@@ -40,6 +40,12 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
     public function countReferencingActivities(User $user): int
     {
+        // TODO(phase 9): drop this guard once App\Entity\Activity exists —
+        // until then nothing can reference a User, so 0 is correct.
+        if (!class_exists(\App\Entity\Activity::class)) {
+            return 0;
+        }
+
         return (int) $this->getEntityManager()
             ->createQuery('SELECT COUNT(a.id) FROM App\Entity\Activity a WHERE a.loggedBy = :user')
             ->setParameter('user', $user)

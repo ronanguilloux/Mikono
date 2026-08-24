@@ -1,0 +1,44 @@
+<div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50">
+            <tr>
+                {% for column in columns %}
+                    <th class="px-4 py-2 text-left font-medium text-slate-600">{{ column.label }}</th>
+                {% endfor %}
+                <th class="px-4 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {% for row in rows %}
+                <tr>
+                    {% for column in columns %}
+                        <td class="px-4 py-2 align-top">{{ row.cells[column.key]|default('') }}</td>
+                    {% endfor %}
+                    <td class="px-4 py-2 text-right align-top whitespace-nowrap">
+                        {% for action in row.actions %}
+                            {% if action.method|default('get') == 'get' %}
+                                <a href="{{ action.url }}" class="text-slate-700 hover:underline">{{ action.label }}</a>
+                            {% else %}
+                                <form
+                                    method="post"
+                                    action="{{ action.url }}"
+                                    class="inline"
+                                    {% if action.confirm is defined %}data-turbo-confirm="{{ action.confirm }}"{% endif %}
+                                >
+                                    <input type="hidden" name="_token" value="{{ action.csrfToken }}">
+                                    <button type="submit" class="text-red-700 hover:underline">{{ action.label }}</button>
+                                </form>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="{{ columns|length + 1 }}" class="px-4 py-6 text-center text-slate-500">
+                        {{ emptyMessage }}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

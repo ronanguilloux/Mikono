@@ -14,12 +14,19 @@
     </head>
     <body class="min-h-screen bg-slate-50 text-slate-900">
         {% if app.user %}
+            {% set nav_items = [
+                {label: 'Volunteers', route: 'volunteer_index'},
+            ] %}
             <header class="bg-slate-900 text-white" data-controller="nav">
                 <div class="mx-auto max-w-5xl px-4">
                     <div class="flex h-14 items-center justify-between">
                         <a href="{{ path('app_home') }}" class="font-semibold">UCESCO Volunteer Manager</a>
 
                         <div class="hidden items-center gap-4 text-sm sm:flex">
+                            {% for item in nav_items %}
+                                <a href="{{ path(item.route) }}" class="hover:underline">{{ item.label }}</a>
+                            {% endfor %}
+                            <span class="text-slate-400">|</span>
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
                             <a href="{{ path('app_logout') }}" class="hover:underline">Sign out</a>
                         </div>
@@ -31,6 +38,9 @@
 
                     <div class="hidden pb-3 sm:hidden" data-nav-target="menu">
                         <div class="flex flex-col gap-2 text-sm">
+                            {% for item in nav_items %}
+                                <a href="{{ path(item.route) }}" class="hover:underline">{{ item.label }}</a>
+                            {% endfor %}
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
                             <a href="{{ path('app_logout') }}" class="hover:underline">Sign out</a>
                         </div>

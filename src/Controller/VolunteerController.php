@@ -1,0 +1,139 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Entity\Volunteer;
+use App\Form\VolunteerFormType;
+use App\Repository\VolunteerRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+
+#[Route('/volunteers', name: 'volunteer_')]
+final class VolunteerController extends AbstractController
+{
+    public function __construct(
+        private readonly VolunteerRepository $volunteers,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly CsrfTokenManagerInterface $csrfTokenManager,
+    ) {
+    }
+
+    #[Route('', name: 'index', methods: ['GET'])]
+    public function index(): Response
+    {
+        $rows = [];
+        foreach ($this->volunteers->findAllOrderedByName() as $volunteer) {
+            $rows[] = [
+                'cells' => [
+                    'name' => $volunteer->getFullName(),
+                    'email' => $volunteer->getEmail() ?? '—',
+                    'phone' => $volunteer->getPhone() ?? '—',
+                    'status' => $volunteer->isActive() ? 'Active' : 'Inactive',
+                ],
+                'actions' => [
+                    ['label' => 'Edit', 'url' => $this->generateUrl('volunteer_edit', ['id' => $volunteer->getId()])],
+                    [
+                        'label' => 'Delete',
+                        'url' => $this->generateUrl('volunteer_delete', ['id' => $volunteer->getId()]),
+                        'method' => 'post',
+                        'confirm' => sprintf('Delete %s?', $volunteer->getFullName()),
+                        'csrfToken' => $this->csrfToken($volunteer),
+                    ],
+                ],
+            ];
+        }
+
+        return $this->render('volunteer/index.html.twig', [
+            'columns' => [
+                ['key' => 'name', 'label' => 'Name'],
+                ['key' => 'email', 'label' => 'Email'],
+                ['key' => 'phone', 'label' => 'Phone'],
+                ['key' => 'status', 'label' => 'Status'],
+            ],
+            'rows' => $rows,
+        ]);
+    }
+
+    #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
+    public function new(Request $request): Response
+    {
+        $volunteer = new Volunteer();
+        $form = $this->createForm(VolunteerFormType::class, $volunteer);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->entityManager->persist($volunteer);
+            $this->entityManager->flush();
+
+            $this->addFlash('success', sprintf('%s was added.', $volunteer->getFullName()));
+
+            return $this->redirectToRoute('volunteer_index');
+        }
+
+        return $this->render('volunteer/new.html.twig', ['form' => $form]);
+    }
+
+    #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
+    public function edit(Request $request, Volunteer $volunteer): Response
+    {
+        $form = $this->createForm(VolunteerFormType::class, $volunteer);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $volunteer->touch();
+            $this->entityManager->flush();
+
+            $this->addFlash('success', sprintf('%s was updated.', $volunteer->getFullName()));
+
+            return $this->redirectToRoute('volunteer_index');
+        }
+
+        return $this->render('volunteer/edit.html.twig', ['form' => $form, 'volunteer' => $volunteer]);
+    }
+
+    #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+    public function delete(Request $request, Volunteer $volunteer): Response
+    {
+        if (!$this->isCsrfTokenValid($this->csrfTokenId($volunteer), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Invalid security token — please try again.');
+
+            return $this->redirectToRoute('volunteer_index');
+        }
+
+        $referencingCount = $this->volunteers->countReferencingActivities($volunteer);
+        if ($referencingCount > 0) {
+            $this->addFlash('error', sprintf(
+                'Cannot delete %s — %d activit%s reference%s them. Mark them inactive instead.',
+                $volunteer->getFullName(),
+                $referencingCount,
+                1 === $referencingCount ? 'y' : 'ies',
+                1 === $referencingCount ? 's' : '',
+            ));
+
+            return $this->redirectToRoute('volunteer_index');
+        }
+
+        $this->entityManager->remove($volunteer);
+        $this->entityManager->flush();
+
+        $this->addFlash('success', sprintf('%s was deleted.', $volunteer->getFullName()));
+
+        return $this->redirectToRoute('volunteer_index');
+    }
+
+    private function csrfTokenId(Volunteer $volunteer): string
+    {
+        return 'delete-volunteer-'.$volunteer->getId();
+    }
+
+    private function csrfToken(Volunteer $volunteer): string
+    {
+        return $this->csrfTokenManager->getToken($this->csrfTokenId($volunteer))->getValue();
+    }
+}
