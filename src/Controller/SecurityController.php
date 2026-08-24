@@ -15,8 +15,7 @@ class SecurityController extends AbstractController
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
         if ($this->getUser()) {
-            // TODO(phase 10): retarget to report_index once ReportController exists.
-            return $this->redirectToRoute('app_home');
+            return $this->redirectToRoute('report_index');
         }
 
         return $this->render('security/login.html.twig', [

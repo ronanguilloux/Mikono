@@ -15,6 +15,7 @@
     <body class="min-h-screen bg-slate-50 text-slate-900">
         {% if app.user %}
             {% set nav_items = [
+                {label: 'Reports', route: 'report_index'},
                 {label: 'Activities', route: 'activity_index'},
                 {label: 'Volunteers', route: 'volunteer_index'},
                 {label: 'Projects', route: 'project_index'},

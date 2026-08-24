@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reports — UCESCO Volunteer Manager{% endblock %}
+
+{% macro summary_table(rows, first_column_label) %}
+    <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-2 text-left font-medium text-slate-600">{{ first_column_label }}</th>
+                    <th class="px-4 py-2 text-left font-medium text-slate-600">Activities</th>
+                    <th class="px-4 py-2 text-left font-medium text-slate-600">Total days</th>
+                    <th class="px-4 py-2 text-left font-medium text-slate-600">Most recent</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for row in rows %}
+                    <tr>
+                        <td class="px-4 py-2">{{ row.label }}</td>
+                        <td class="px-4 py-2">{{ row.count }}</td>
+                        <td class="px-4 py-2">{{ row.totalDays }}</td>
+                        <td class="px-4 py-2">{{ row.mostRecent ? row.mostRecent|date('j M Y') : '—' }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="px-4 py-6 text-center text-slate-500">No activities logged yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
+{% import _self as report %}
+
+{% block body %}
+    <h1 class="mb-4 text-xl font-semibold">Reports</h1>
+
+    <div class="mb-8">
+        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By volunteer</h2>
+        {{ report.summary_table(byVolunteer, 'Volunteer') }}
+    </div>
+
+    <div>
+        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By project</h2>
+        {{ report.summary_table(byProject, 'Project') }}
+    </div>
+{% endblock %}
