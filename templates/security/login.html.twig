@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in — UCESCO Volunteer Manager</title>
+</head>
+<body>
+    <h1>UCESCO Volunteer Manager</h1>
+
+    {% if error %}
+        <p style="color: red;">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+    {% endif %}
+
+    <form method="post">
+        <label for="username">Email</label>
+        <input type="email" value="{{ last_username }}" name="_username" id="username" autocomplete="email" required autofocus>
+
+        <label for="password">Password</label>
+        <input type="password" name="_password" id="password" autocomplete="current-password" required>
+
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+        <button type="submit">Sign in</button>
+    </form>
+</body>
+</html>

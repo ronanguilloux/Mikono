@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>UCESCO Volunteer Manager</title>
+</head>
+<body>
+    <p>Signed in as {{ app.user.fullName }} ({{ app.user.userIdentifier }})</p>
+    <p><a href="{{ path('app_logout') }}">Sign out</a></p>
+</body>
+</html>
