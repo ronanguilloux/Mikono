@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Activities — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mb-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold">Activities</h1>
+        <a
+            href="{{ path('activity_new') }}"
+            class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+            Log activity
+        </a>
+    </div>
+
+    <twig:DataTable :columns="columns" :rows="rows" emptyMessage="No activities logged yet — log the first one above." />
+{% endblock %}

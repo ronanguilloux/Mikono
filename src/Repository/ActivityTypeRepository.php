@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Activity;
 use App\Entity\ActivityType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -29,14 +30,8 @@ class ActivityTypeRepository extends ServiceEntityRepository
 
     public function countReferencingActivities(ActivityType $activityType): int
     {
-        // TODO(phase 9): drop this guard once App\Entity\Activity exists —
-        // until then nothing can reference an ActivityType, so 0 is correct.
-        if (!class_exists(\App\Entity\Activity::class)) {
-            return 0;
-        }
-
         return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(a.id) FROM App\Entity\Activity a WHERE a.activityType = :activityType')
+            ->createQuery('SELECT COUNT(a.id) FROM '.Activity::class.' a WHERE a.activityType = :activityType')
             ->setParameter('activityType', $activityType)
             ->getSingleScalarResult();
     }
