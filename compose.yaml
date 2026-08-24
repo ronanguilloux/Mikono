@@ -1,0 +1,40 @@
+---
+services:
+  php:
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ${SERVER_NAME:-localhost}, php:80
+      # SQLite: one file, no separate database service needed.
+      # See docs/adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md
+      DATABASE_URL: sqlite:///%kernel.project_dir%/var/data/data.db
+      ###> dunglas/symfony-docker ###
+      # Next lines are only used during initial installation
+      # This block will remove itself after the installation
+      SYMFONY_VERSION: ${SYMFONY_VERSION:-}
+      STABILITY: ${STABILITY:-stable}
+      ###< dunglas/symfony-docker ###
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      # Named volume for the SQLite file only — survives `down`/`up`/rebuild,
+      # unlike the anonymous volume compose.override.yaml uses to exclude the
+      # rest of var/ (cache/log) from the dev bind-mount for performance.
+      - db_data:/app/var/data
+    ports:
+      - name: http
+        target: 80
+        published: ${HTTP_PORT:-80}
+        protocol: tcp
+      - name: https
+        target: 443
+        published: ${HTTPS_PORT:-443}
+        protocol: tcp
+      - name: http3
+        target: 443
+        published: ${HTTP3_PORT:-443}
+        protocol: udp
+
+volumes:
+  caddy_data:
+  caddy_config:
+  db_data:
