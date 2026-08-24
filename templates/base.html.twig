@@ -16,6 +16,8 @@
         {% if app.user %}
             {% set nav_items = [
                 {label: 'Volunteers', route: 'volunteer_index'},
+                {label: 'Projects', route: 'project_index'},
+                {label: 'Activity Types', route: 'activity_type_index'},
             ] %}
             <header class="bg-slate-900 text-white" data-controller="nav">
                 <div class="mx-auto max-w-5xl px-4">

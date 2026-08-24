@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit {{ activity_type.name }} — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <h1 class="mb-4 text-xl font-semibold">Edit {{ activity_type.name }}</h1>
+    {% include 'activity_type/_form.html.twig' %}
+{% endblock %}
