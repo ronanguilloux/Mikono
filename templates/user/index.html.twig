@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Users — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mb-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold">Users</h1>
+        <a
+            href="{{ path('user_new') }}"
+            class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+            Add user
+        </a>
+    </div>
+
+    <twig:DataTable :columns="columns" :rows="rows" emptyMessage="No users yet." />
+{% endblock %}

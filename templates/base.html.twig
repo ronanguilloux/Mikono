@@ -19,6 +19,9 @@
                 {label: 'Projects', route: 'project_index'},
                 {label: 'Activity Types', route: 'activity_type_index'},
             ] %}
+            {% if is_granted('ROLE_ADMIN') %}
+                {% set nav_items = nav_items|merge([{label: 'Users', route: 'user_index'}]) %}
+            {% endif %}
             <header class="bg-slate-900 text-white" data-controller="nav">
                 <div class="mx-auto max-w-5xl px-4">
                     <div class="flex h-14 items-center justify-between">
