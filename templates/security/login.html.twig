@@ -1,27 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sign in — UCESCO Volunteer Manager</title>
-</head>
-<body>
-    <h1>UCESCO Volunteer Manager</h1>
+{% extends 'base.html.twig' %}
 
-    {% if error %}
-        <p style="color: red;">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
-    {% endif %}
+{% block title %}Sign in — UCESCO Volunteer Manager{% endblock %}
 
-    <form method="post">
-        <label for="username">Email</label>
-        <input type="email" value="{{ last_username }}" name="_username" id="username" autocomplete="email" required autofocus>
+{% block body %}
+    <div class="mx-auto mt-12 max-w-sm">
+        <h1 class="mb-6 text-center text-xl font-semibold">UCESCO Volunteer Manager</h1>
 
-        <label for="password">Password</label>
-        <input type="password" name="_password" id="password" autocomplete="current-password" required>
+        <form method="post" class="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            {% if error %}
+                <p class="rounded-md bg-red-50 p-3 text-sm text-red-700">
+                    {{ error.messageKey|trans(error.messageData, 'security') }}
+                </p>
+            {% endif %}
 
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+            <div>
+                <label for="username" class="block text-sm font-medium text-slate-700">Email</label>
+                <input
+                    type="email" value="{{ last_username }}" name="_username" id="username"
+                    autocomplete="email" required autofocus
+                    class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                >
+            </div>
 
-        <button type="submit">Sign in</button>
-    </form>
-</body>
-</html>
+            <div>
+                <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+                <input
+                    type="password" name="_password" id="password"
+                    autocomplete="current-password" required
+                    class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                >
+            </div>
+
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+            <button
+                type="submit"
+                class="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+                Sign in
+            </button>
+        </form>
+    </div>
+{% endblock %}

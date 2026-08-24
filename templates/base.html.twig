@@ -1,23 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}UCESCO Volunteer Manager{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>🌍</text></svg>">
         {% block stylesheets %}
         {% endblock %}
 
         {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
         {% endblock %}
-
-        {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphp_hot_reload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
     </head>
-    <body>
-        {% block body %}{% endblock %}
+    <body class="min-h-screen bg-slate-50 text-slate-900">
+        {% if app.user %}
+            <header class="bg-slate-900 text-white" data-controller="nav">
+                <div class="mx-auto max-w-5xl px-4">
+                    <div class="flex h-14 items-center justify-between">
+                        <a href="{{ path('app_home') }}" class="font-semibold">UCESCO Volunteer Manager</a>
+
+                        <div class="hidden items-center gap-4 text-sm sm:flex">
+                            <span class="text-slate-300">{{ app.user.fullName }}</span>
+                            <a href="{{ path('app_logout') }}" class="hover:underline">Sign out</a>
+                        </div>
+
+                        <button type="button" class="rounded p-2 hover:bg-slate-800 sm:hidden" data-action="nav#toggle" aria-label="Toggle menu">
+                            ☰
+                        </button>
+                    </div>
+
+                    <div class="hidden pb-3 sm:hidden" data-nav-target="menu">
+                        <div class="flex flex-col gap-2 text-sm">
+                            <span class="text-slate-300">{{ app.user.fullName }}</span>
+                            <a href="{{ path('app_logout') }}" class="hover:underline">Sign out</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        {% endif %}
+
+        <main class="mx-auto max-w-5xl px-4 py-6">
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="mb-4 rounded-md p-3 text-sm {{ label == 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            {% block body %}{% endblock %}
+        </main>
     </body>
 </html>
