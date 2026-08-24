@@ -21,8 +21,8 @@ final class UserFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('fullName', TextType::class)
-            ->add('email', EmailType::class)
+            ->add('fullName', TextType::class, ['empty_data' => ''])
+            ->add('email', EmailType::class, ['empty_data' => ''])
             ->add('roles', ChoiceType::class, [
                 'choices' => ['Volunteer Manager (standard access)' => 'ROLE_USER', 'Admin (can also manage user accounts)' => 'ROLE_ADMIN'],
                 'multiple' => false,

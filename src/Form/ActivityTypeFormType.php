@@ -16,7 +16,7 @@ final class ActivityTypeFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('name', TextType::class)
+            ->add('name', TextType::class, ['empty_data' => ''])
             ->add('description', TextareaType::class, ['required' => false]);
     }
 

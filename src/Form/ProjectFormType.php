@@ -20,7 +20,7 @@ final class ProjectFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('name', TextType::class)
+            ->add('name', TextType::class, ['empty_data' => ''])
             ->add('location', EnumType::class, [
                 'class' => ProjectLocation::class,
                 'choice_label' => static fn (ProjectLocation $location) => $location->label(),

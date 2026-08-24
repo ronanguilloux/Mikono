@@ -19,8 +19,8 @@ final class VolunteerFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('firstName', TextType::class)
-            ->add('lastName', TextType::class)
+            ->add('firstName', TextType::class, ['empty_data' => ''])
+            ->add('lastName', TextType::class, ['empty_data' => ''])
             ->add('email', EmailType::class, ['required' => false])
             ->add('phone', TelType::class, ['required' => false])
             ->add('notes', TextareaType::class, ['required' => false])
