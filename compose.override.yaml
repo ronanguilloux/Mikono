@@ -19,7 +19,10 @@ services:
       #- /app/vendor
     environment:
       FRANKENPHP_WORKER_CONFIG: watch
-      FRANKENPHP_SITE_CONFIG: hot_reload
+      # hot_reload (browser auto-refresh on save) needs a Mercure hub,
+      # deliberately not configured here (unused elsewhere in this app —
+      # see docs/adr/0003-...md). Worker watch mode above still restarts
+      # the PHP process on file change; refresh the browser tab by hand.
       # See https://xdebug.org/docs/all_settings#mode
       XDEBUG_MODE: "${XDEBUG_MODE:-develop}"
       APP_ENV: "${APP_ENV:-dev}"
