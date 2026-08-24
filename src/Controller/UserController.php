@@ -25,8 +25,7 @@ final class UserController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
-    ) {
-    }
+    ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
@@ -142,7 +141,7 @@ final class UserController extends AbstractController
 
     private function csrfTokenId(User $user): string
     {
-        return 'delete-user-'.$user->getId();
+        return 'delete-user-' . $user->getId();
     }
 
     private function csrfToken(User $user): string

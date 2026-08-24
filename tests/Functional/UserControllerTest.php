@@ -13,7 +13,7 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 final class UserControllerTest extends WebTestCase
 {
     #[Test]
-    public function a_regular_role_user_is_forbidden_from_the_users_area(): void
+    public function aRegularRoleUserIsForbiddenFromTheUsersArea(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne(['roles' => ['ROLE_USER']]));
@@ -24,7 +24,7 @@ final class UserControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function an_admin_can_access_the_users_area(): void
+    public function anAdminCanAccessTheUsersArea(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::new()->admin()->create());
@@ -35,7 +35,7 @@ final class UserControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function creating_a_user_hashes_the_password_and_the_new_account_can_log_in(): void
+    public function creatingAUserHashesThePasswordAndTheNewAccountCanLogIn(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::new()->admin()->create());
@@ -66,7 +66,7 @@ final class UserControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function deactivating_a_user_blocks_their_next_login(): void
+    public function deactivatingAUserBlocksTheirNextLogin(): void
     {
         $client = static::createClient();
         $target = UserFactory::createOne(['email' => 'grace@example.org']);
@@ -96,7 +96,7 @@ final class UserControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function an_admin_cannot_delete_their_own_account(): void
+    public function anAdminCannotDeleteTheirOwnAccount(): void
     {
         $client = static::createClient();
         $admin = UserFactory::new()->admin()->create();

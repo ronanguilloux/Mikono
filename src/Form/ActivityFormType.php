@@ -25,26 +25,26 @@ final class ActivityFormType extends AbstractType
             ->add('date', DateType::class, ['widget' => 'single_text'])
             ->add('volunteer', EntityType::class, [
                 'class' => Volunteer::class,
-                'choice_label' => static fn (Volunteer $volunteer) => $volunteer->getFullName().($volunteer->isActive() ? '' : ' (inactive)'),
-                'query_builder' => static fn ($repo) => $repo->createQueryBuilder('v')->orderBy('v.lastName', 'ASC')->addOrderBy('v.firstName', 'ASC'),
+                'choice_label' => static fn(Volunteer $volunteer) => $volunteer->getFullName() . ($volunteer->isActive() ? '' : ' (inactive)'),
+                'query_builder' => static fn($repo) => $repo->createQueryBuilder('v')->orderBy('v.lastName', 'ASC')->addOrderBy('v.firstName', 'ASC'),
                 'placeholder' => 'Choose a volunteer',
             ])
             ->add('project', EntityType::class, [
                 'class' => Project::class,
-                'choice_label' => static fn (Project $project) => $project->getName().($project->isActive() ? '' : ' (inactive)'),
-                'query_builder' => static fn ($repo) => $repo->createQueryBuilder('p')->orderBy('p.name', 'ASC'),
+                'choice_label' => static fn(Project $project) => $project->getName() . ($project->isActive() ? '' : ' (inactive)'),
+                'query_builder' => static fn($repo) => $repo->createQueryBuilder('p')->orderBy('p.name', 'ASC'),
                 'placeholder' => 'Choose a project',
             ])
             ->add('activityType', EntityType::class, [
                 'class' => ActivityType::class,
                 'choice_label' => 'name',
-                'query_builder' => static fn ($repo) => $repo->createQueryBuilder('t')->orderBy('t.name', 'ASC'),
+                'query_builder' => static fn($repo) => $repo->createQueryBuilder('t')->orderBy('t.name', 'ASC'),
                 'placeholder' => 'Choose an activity type',
                 'label' => 'Activity type',
             ])
             ->add('duration', EnumType::class, [
                 'class' => ActivityDuration::class,
-                'choice_label' => static fn (ActivityDuration $duration) => $duration->label(),
+                'choice_label' => static fn(ActivityDuration $duration) => $duration->label(),
                 'expanded' => true,
                 'label' => 'Duration',
             ])

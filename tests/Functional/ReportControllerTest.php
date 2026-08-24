@@ -18,7 +18,7 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 final class ReportControllerTest extends WebTestCase
 {
     #[Test]
-    public function aggregates_total_days_correctly_across_multiple_activities(): void
+    public function aggregatesTotalDaysCorrectlyAcrossMultipleActivities(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
@@ -50,7 +50,7 @@ final class ReportControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function shows_a_placeholder_message_when_no_activities_exist(): void
+    public function showsAPlaceholderMessageWhenNoActivitiesExist(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());

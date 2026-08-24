@@ -15,7 +15,7 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 final class VolunteerControllerTest extends WebTestCase
 {
     #[Test]
-    public function index_lists_seeded_volunteers(): void
+    public function indexListsSeededVolunteers(): void
     {
         $client = static::createClient();
         VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
@@ -27,7 +27,7 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function new_with_valid_data_persists_and_redirects(): void
+    public function newWithValidDataPersistsAndRedirects(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
@@ -46,7 +46,7 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function new_with_invalid_data_is_unprocessable_and_reshows_errors(): void
+    public function newWithInvalidDataIsUnprocessableAndReshowsErrors(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
@@ -62,7 +62,7 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function edit_updates_the_volunteer(): void
+    public function editUpdatesTheVolunteer(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge', 'phone' => '+254700000000']);
@@ -82,7 +82,7 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function delete_removes_a_volunteer_with_no_activities(): void
+    public function deleteRemovesAVolunteerWithNoActivities(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
@@ -96,7 +96,7 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function delete_is_blocked_when_an_activity_references_the_volunteer(): void
+    public function deleteIsBlockedWhenAnActivityReferencesTheVolunteer(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);

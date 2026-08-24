@@ -15,7 +15,7 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 final class ProjectControllerTest extends WebTestCase
 {
     #[Test]
-    public function new_partner_project_without_an_organization_name_is_unprocessable(): void
+    public function newPartnerProjectWithoutAnOrganizationNameIsUnprocessable(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
@@ -34,7 +34,7 @@ final class ProjectControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function new_with_valid_partner_data_persists(): void
+    public function newWithValidPartnerDataPersists(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
@@ -55,7 +55,7 @@ final class ProjectControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function delete_is_blocked_when_an_activity_references_the_project(): void
+    public function deleteIsBlockedWhenAnActivityReferencesTheProject(): void
     {
         $client = static::createClient();
         $project = ProjectFactory::createOne(['name' => 'Bright Achievers']);

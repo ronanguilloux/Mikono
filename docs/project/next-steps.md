@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-08-24, mid-phase-11 of the original 12-phase
 build plan (`docs/brainstorm/02-volunteer-manager-v0.1-context.md`,
-ADRs [0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)/[0004](../adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md)).
+ADRs [0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)/[0004](../adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md)/[0005](../adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md)).
 This file gets overwritten as work completes — it's a snapshot, not a
 history. For history, read `git log` or `docs/adr`/`docs/brainstorm`.
 
@@ -46,14 +46,27 @@ for Reports; the full auth lifecycle for Security. Run:
 
 ## Remaining work
 
-**Rest of phase 11 (test/quality tooling — none of this is installed
-yet):**
+**Rest of phase 11:**
 
-- [ ] PHPStan — greenfield, no baseline needed, start at a high level
-      (per the `php-modernization` skill's guidance).
-- [ ] PHPat — one rule per ADR 0004: `src/Entity/*` must not depend on
-      `src/Controller/*` or `src/Twig/*`. Informational, not a merge
-      gate, at this app's size.
+- [x] PHPStan — installed at level `max`, analysing `src/` and
+      `tests/`, pre-existing findings absorbed in
+      `phpstan-baseline.neon`. See
+      [ADR 0005](../adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md).
+- [x] PHPat — the one rule from ADR 0004 (`src/Entity/*` must not
+      depend on `src/Controller/*` or `src/Twig/*`) lives in
+      `tests/Architecture/ArchTest.php`, run via `composer phpat`.
+      Deptrac considered and rejected as redundant — see ADR 0005.
+- [x] `rector` and `friendsofphp/php-cs-fixer` — installed and
+      configured (`rector.php`, `.php-cs-fixer.dist.php`). Rector stays
+      dry-run only (`composer rector`), never auto-applied — it has
+      already shown it can produce wrong refactors that need human
+      review.
+- [x] `composer audit` — wired as `composer security-audit`, part of
+      the aggregate `composer quality` script.
+- [x] A local git pre-commit hook (`.githooks/pre-commit`, enabled via
+      `git config core.hooksPath .githooks`) runs `composer quality`
+      before every commit — see ADR 0005 for why a hook instead of CI
+      (no git remote/CI pipeline exists yet).
 - [ ] One Panther E2E smoke test — login, create Volunteer, create
       Activity, see it in the list and `/reports`, including a
       narrow-viewport check for the mobile nav. Deliberately not one
@@ -63,8 +76,6 @@ yet):**
       and the delete-guard methods in the five repositories — not the
       whole app, since most of the codebase is Symfony/Doctrine/Form
       boilerplate with little conditional logic worth mutating.
-- [ ] `rector` and `friendsofphp/php-cs-fixer` — planned in the
-      original package list, not yet `composer require`d.
 
 **Phase 12 (not started):**
 

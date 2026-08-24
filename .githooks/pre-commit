@@ -1,0 +1,10 @@
+#!/bin/sh
+# Runs the quality toolchain (PHP-CS-Fixer, PHPStan, PHPat, composer audit)
+# before every commit. Enable once with:
+#   git config core.hooksPath .githooks
+# Bypass deliberately with `git commit --no-verify`.
+
+set -e
+
+echo "Running quality checks (docker compose exec php composer quality)..."
+docker compose exec -T php composer quality

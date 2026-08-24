@@ -21,8 +21,7 @@ final class ProjectController extends AbstractController
         private readonly ProjectRepository $projects,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
-    ) {
-    }
+    ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
@@ -129,7 +128,7 @@ final class ProjectController extends AbstractController
 
     private function csrfTokenId(Project $project): string
     {
-        return 'delete-project-'.$project->getId();
+        return 'delete-project-' . $project->getId();
     }
 
     private function csrfToken(Project $project): string

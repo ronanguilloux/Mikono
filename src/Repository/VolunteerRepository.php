@@ -32,7 +32,7 @@ class VolunteerRepository extends ServiceEntityRepository
     public function countReferencingActivities(Volunteer $volunteer): int
     {
         return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(a.id) FROM '.Activity::class.' a WHERE a.volunteer = :volunteer')
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.volunteer = :volunteer')
             ->setParameter('volunteer', $volunteer)
             ->getSingleScalarResult();
     }

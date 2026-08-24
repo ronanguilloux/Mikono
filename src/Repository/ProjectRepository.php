@@ -31,7 +31,7 @@ class ProjectRepository extends ServiceEntityRepository
     public function countReferencingActivities(Project $project): int
     {
         return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(a.id) FROM '.Activity::class.' a WHERE a.project = :project')
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.project = :project')
             ->setParameter('project', $project)
             ->getSingleScalarResult();
     }

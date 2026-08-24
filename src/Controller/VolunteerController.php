@@ -21,8 +21,7 @@ final class VolunteerController extends AbstractController
         private readonly VolunteerRepository $volunteers,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
-    ) {
-    }
+    ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
@@ -129,7 +128,7 @@ final class VolunteerController extends AbstractController
 
     private function csrfTokenId(Volunteer $volunteer): string
     {
-        return 'delete-volunteer-'.$volunteer->getId();
+        return 'delete-volunteer-' . $volunteer->getId();
     }
 
     private function csrfToken(Volunteer $volunteer): string

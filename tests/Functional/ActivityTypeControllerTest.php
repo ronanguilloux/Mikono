@@ -15,7 +15,7 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 final class ActivityTypeControllerTest extends WebTestCase
 {
     #[Test]
-    public function new_with_valid_data_persists(): void
+    public function newWithValidDataPersists(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
@@ -33,7 +33,7 @@ final class ActivityTypeControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function delete_is_blocked_when_an_activity_references_the_type(): void
+    public function deleteIsBlockedWhenAnActivityReferencesTheType(): void
     {
         $client = static::createClient();
         $activityType = ActivityTypeFactory::createOne(['name' => 'Computer lessons']);

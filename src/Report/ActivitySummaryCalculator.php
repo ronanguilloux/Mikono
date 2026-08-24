@@ -15,20 +15,18 @@ use App\Repository\ActivityRepository;
  */
 final class ActivitySummaryCalculator
 {
-    public function __construct(private readonly ActivityRepository $activities)
-    {
-    }
+    public function __construct(private readonly ActivityRepository $activities) {}
 
     /** @return list<array{label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}> */
     public function summarizeByVolunteer(): array
     {
-        return $this->summarize(static fn (Activity $a) => $a->getVolunteer()?->getFullName() ?? 'Unknown');
+        return $this->summarize(static fn(Activity $a) => $a->getVolunteer()?->getFullName() ?? 'Unknown');
     }
 
     /** @return list<array{label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}> */
     public function summarizeByProject(): array
     {
-        return $this->summarize(static fn (Activity $a) => $a->getProject()?->getName() ?? 'Unknown');
+        return $this->summarize(static fn(Activity $a) => $a->getProject()?->getName() ?? 'Unknown');
     }
 
     /**
@@ -53,7 +51,7 @@ final class ActivitySummaryCalculator
         }
 
         $result = array_values($buckets);
-        usort($result, static fn (array $a, array $b) => $b['totalDays'] <=> $a['totalDays']);
+        usort($result, static fn(array $a, array $b) => $b['totalDays'] <=> $a['totalDays']);
 
         return $result;
     }

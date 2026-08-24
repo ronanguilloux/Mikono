@@ -1,0 +1,235 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\Console\\Helper\\HelperInterface\:\:ask\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Only booleans are allowed in a ternary operator condition, mixed given\.$#'
+			identifier: ternary.condNotBoolean
+			count: 1
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Parameter \#1 \$email of method App\\Entity\\User\:\:setEmail\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Parameter \#1 \$email of method App\\Repository\\UserRepository\:\:findOneByEmail\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Parameter \#1 \$fullName of method App\\Entity\\User\:\:setFullName\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Parameter \#1 \$message of method Symfony\\Component\\Console\\Style\\SymfonyStyle\:\:error\(\) expects array\|string, string\|Stringable given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Parameter \#2 \$plainPassword of method Symfony\\Component\\PasswordHasher\\Hasher\\UserPasswordHasherInterface\:\:hashPassword\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Parameter \#2 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Command/CreateUserCommand.php
+
+		-
+			message: '#^Parameter \#1 \$loggedBy of method App\\Entity\\Activity\:\:setLoggedBy\(\) expects App\\Entity\\User\|null, Symfony\\Component\\Security\\Core\\User\\UserInterface\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Controller/ActivityController.php
+
+		-
+			message: '#^Parameter \#2 \$token of method Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController\:\:isCsrfTokenValid\(\) expects string\|null, bool\|float\|int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Controller/ActivityController.php
+
+		-
+			message: '#^Parameter \#2 \$token of method Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController\:\:isCsrfTokenValid\(\) expects string\|null, bool\|float\|int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Controller/ActivityTypeController.php
+
+		-
+			message: '#^Parameter \#2 \$token of method Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController\:\:isCsrfTokenValid\(\) expects string\|null, bool\|float\|int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Controller/ProjectController.php
+
+		-
+			message: '#^Only booleans are allowed in an if condition, Symfony\\Component\\Security\\Core\\User\\UserInterface\|null given\.$#'
+			identifier: if.condNotBoolean
+			count: 1
+			path: src/Controller/SecurityController.php
+
+		-
+			message: '#^Only booleans are allowed in an if condition, mixed given\.$#'
+			identifier: if.condNotBoolean
+			count: 1
+			path: src/Controller/UserController.php
+
+		-
+			message: '#^Parameter \#2 \$plainPassword of method Symfony\\Component\\PasswordHasher\\Hasher\\UserPasswordHasherInterface\:\:hashPassword\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Controller/UserController.php
+
+		-
+			message: '#^Parameter \#2 \$token of method Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController\:\:isCsrfTokenValid\(\) expects string\|null, bool\|float\|int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Controller/UserController.php
+
+		-
+			message: '#^Parameter \#2 \$token of method Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController\:\:isCsrfTokenValid\(\) expects string\|null, bool\|float\|int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Controller/VolunteerController.php
+
+		-
+			message: '#^Only booleans are allowed in a negated boolean, string\|null given\.$#'
+			identifier: booleanNot.exprNotBoolean
+			count: 1
+			path: src/Entity/Project.php
+
+		-
+			message: '#^Method App\\Entity\\User\:\:getUserIdentifier\(\) should return non\-empty\-string but returns string\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Entity/User.php
+
+		-
+			message: '#^Cannot call method addOrderBy\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: src/Form/ActivityFormType.php
+
+		-
+			message: '#^Cannot call method createQueryBuilder\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: src/Form/ActivityFormType.php
+
+		-
+			message: '#^Cannot call method orderBy\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: src/Form/ActivityFormType.php
+
+		-
+			message: '#^Class App\\Form\\ActivityFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Form/ActivityFormType.php
+
+		-
+			message: '#^Class App\\Form\\ActivityTypeFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Form/ActivityTypeFormType.php
+
+		-
+			message: '#^Class App\\Form\\ProjectFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Form/ProjectFormType.php
+
+		-
+			message: '#^Class App\\Form\\UserFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Form/UserFormType.php
+
+		-
+			message: '#^Only booleans are allowed in a ternary operator condition, mixed given\.$#'
+			identifier: ternary.condNotBoolean
+			count: 2
+			path: src/Form/UserFormType.php
+
+		-
+			message: '#^Class App\\Form\\VolunteerFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Form/VolunteerFormType.php
+
+		-
+			message: '#^Method App\\Kernel\:\:getAllowedEnvs\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: src/Kernel.php
+
+		-
+			message: '#^Method App\\Repository\\ActivityRepository\:\:findAllOrderedByDateDesc\(\) should return array\<App\\Entity\\Activity\> but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Repository/ActivityRepository.php
+
+		-
+			message: '#^Method App\\Repository\\ActivityTypeRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\ActivityType\> but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Repository/ActivityTypeRepository.php
+
+		-
+			message: '#^Method App\\Repository\\ProjectRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\Project\> but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Repository/ProjectRepository.php
+
+		-
+			message: '#^Method App\\Repository\\VolunteerRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\Volunteer\> but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Repository/VolunteerRepository.php
+
+		-
+			message: '#^Cannot call method getFullName\(\) on App\\Entity\\User\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Functional/ActivityControllerTest.php
+
+		-
+			message: '#^Cannot call method getId\(\) on App\\Entity\\Activity\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Functional/ActivityControllerTest.php
+
+		-
+			message: '#^Cannot call method getLoggedBy\(\) on App\\Entity\\Activity\|null\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Functional/ActivityControllerTest.php
+
+		-
+			message: '#^Cannot call method untick\(\) on array\<array\<Symfony\\Component\\DomCrawler\\Field\\FormField\>\|Symfony\\Component\\DomCrawler\\Field\\FormField\>\|Symfony\\Component\\DomCrawler\\Field\\FormField\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Functional/UserControllerTest.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Symfony\\\\Component\\\\Dotenv\\\\Dotenv'' and ''bootEnv'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: tests/bootstrap.php
+
+		-
+			message: '#^Only booleans are allowed in an if condition, mixed given\.$#'
+			identifier: if.condNotBoolean
+			count: 1
+			path: tests/bootstrap.php

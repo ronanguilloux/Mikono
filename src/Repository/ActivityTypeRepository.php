@@ -31,7 +31,7 @@ class ActivityTypeRepository extends ServiceEntityRepository
     public function countReferencingActivities(ActivityType $activityType): int
     {
         return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(a.id) FROM '.Activity::class.' a WHERE a.activityType = :activityType')
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.activityType = :activityType')
             ->setParameter('activityType', $activityType)
             ->getSingleScalarResult();
     }

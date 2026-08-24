@@ -17,7 +17,7 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 final class ActivityControllerTest extends WebTestCase
 {
     #[Test]
-    public function the_bright_achievers_worked_example_can_be_logged_end_to_end(): void
+    public function theBrightAchieversWorkedExampleCanBeLoggedEndToEnd(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
@@ -53,7 +53,7 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function loggedBy_is_set_from_the_authenticated_user_and_untouched_on_edit(): void
+    public function loggedByIsSetFromTheAuthenticatedUserAndUntouchedOnEdit(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne();

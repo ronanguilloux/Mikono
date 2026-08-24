@@ -124,7 +124,36 @@ for dev specifically — leave that override in place.
   instead of showing a validation error. Already applied to every
   existing form; apply it to any new required text field too.
 
+**Quality checks** (see
+[ADR 0005](docs/adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md)
+for the full decision):
+
+```bash
+docker compose exec php composer quality    # cs-check + phpstan + phpat + security-audit
+docker compose exec php composer cs-fix     # auto-fix style (Symfony + PER-CS2.0)
+docker compose exec php composer rector     # preview refactors — dry-run only, review before applying
+```
+
+- PHPStan runs at level `max` against `src/` and `tests/`
+  (`phpstan.dist.neon`), with pre-existing findings absorbed in
+  `phpstan-baseline.neon` — shrink it over time, never delete it to
+  hide errors. Never raise the level without regenerating and
+  committing the baseline.
+- The one architecture rule from ADR 0004 (`Entity` must not depend on
+  `Controller`/`Twig`) lives in `tests/Architecture/ArchTest.php`, run
+  via `composer phpat` — PHPat, not Deptrac (see ADR 0005).
+- **Never apply Rector output without reviewing the diff first** —
+  it can produce technically-valid but wrong refactors (e.g. it once
+  turned `User::eraseCredentials()` into a broken `serialize()` stub
+  instead of removing it cleanly). `composer rector` is dry-run only by
+  design; there is no `rector-fix` script. This matches the
+  `php-modernization` skill's existing hard guardrail.
+- A local pre-commit hook (`.githooks/pre-commit`) runs `composer
+  quality` before every commit — enable it once per checkout with
+  `git config core.hooksPath .githooks`. Bypass deliberately with
+  `git commit --no-verify`, not by disabling the hook.
+
 **Current build status and what's left:** see
 [`docs/project/next-steps.md`](docs/project/next-steps.md) — kept up to
-date as work completes, unlike this file. Don't assume PHPStan, PHPat,
-Panther, Infection, or dev fixtures are wired until that file says so.
+date as work completes, unlike this file. Don't assume Panther,
+Infection, or dev fixtures are wired until that file says so.

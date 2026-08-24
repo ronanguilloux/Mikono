@@ -13,7 +13,7 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 final class SecurityControllerTest extends WebTestCase
 {
     #[Test]
-    public function unauthenticated_request_redirects_to_login(): void
+    public function unauthenticatedRequestRedirectsToLogin(): void
     {
         $client = static::createClient();
         $client->request('GET', '/');
@@ -22,7 +22,7 @@ final class SecurityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function wrong_password_shows_an_error_and_does_not_authenticate(): void
+    public function wrongPasswordShowsAnErrorAndDoesNotAuthenticate(): void
     {
         $client = static::createClient();
         UserFactory::createOne(['email' => 'vm@example.org']);
@@ -41,7 +41,7 @@ final class SecurityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function correct_credentials_authenticate_and_land_on_reports(): void
+    public function correctCredentialsAuthenticateAndLandOnReports(): void
     {
         $client = static::createClient();
         UserFactory::createOne(['email' => 'vm@example.org']);
@@ -58,7 +58,7 @@ final class SecurityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function deactivated_account_is_blocked_at_login(): void
+    public function deactivatedAccountIsBlockedAtLogin(): void
     {
         $client = static::createClient();
         UserFactory::new()->inactive()->create(['email' => 'gone@example.org']);
@@ -77,7 +77,7 @@ final class SecurityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function logout_ends_the_session(): void
+    public function logoutEndsTheSession(): void
     {
         $client = static::createClient();
         $user = UserFactory::createOne();

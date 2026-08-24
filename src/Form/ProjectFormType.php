@@ -23,12 +23,12 @@ final class ProjectFormType extends AbstractType
             ->add('name', TextType::class, ['empty_data' => ''])
             ->add('location', EnumType::class, [
                 'class' => ProjectLocation::class,
-                'choice_label' => static fn (ProjectLocation $location) => $location->label(),
+                'choice_label' => static fn(ProjectLocation $location) => $location->label(),
                 'placeholder' => 'Choose a location',
             ])
             ->add('ownership', EnumType::class, [
                 'class' => ProjectOwnership::class,
-                'choice_label' => static fn (ProjectOwnership $ownership) => $ownership->label(),
+                'choice_label' => static fn(ProjectOwnership $ownership) => $ownership->label(),
                 'placeholder' => 'Choose an ownership type',
             ])
             ->add('partnerOrganizationName', TextType::class, [

@@ -1,0 +1,15 @@
+includes:
+    - vendor/phpat/phpat/extension.neon
+
+parameters:
+    tmpDir: var/cache/phpstan
+    paths:
+        - src
+        - tests/Architecture
+    level: 0
+
+services:
+    -
+        class: App\Tests\Architecture\ArchTest
+        tags:
+            - phpat.test

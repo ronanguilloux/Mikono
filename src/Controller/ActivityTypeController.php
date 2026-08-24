@@ -21,8 +21,7 @@ final class ActivityTypeController extends AbstractController
         private readonly ActivityTypeRepository $activityTypes,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
-    ) {
-    }
+    ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
@@ -124,7 +123,7 @@ final class ActivityTypeController extends AbstractController
 
     private function csrfTokenId(ActivityType $activityType): string
     {
-        return 'delete-activity-type-'.$activityType->getId();
+        return 'delete-activity-type-' . $activityType->getId();
     }
 
     private function csrfToken(ActivityType $activityType): string

@@ -12,9 +12,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/reports', name: 'report_')]
 final class ReportController extends AbstractController
 {
-    public function __construct(private readonly ActivitySummaryCalculator $calculator)
-    {
-    }
+    public function __construct(private readonly ActivitySummaryCalculator $calculator) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
