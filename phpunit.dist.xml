@@ -9,12 +9,15 @@
          failOnWarning="true"
          bootstrap="tests/bootstrap.php"
          cacheDirectory=".phpunit.cache"
+         defaultTestSuite="Project Test Suite"
 >
     <php>
         <ini name="display_errors" value="1" />
         <ini name="error_reporting" value="-1" />
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
+        <!-- PANTHER_NO_SANDBOX / PANTHER_CHROME_ARGUMENTS come from the Dockerfile's symfony/panther recipe block -->
+        <env name="PANTHER_APP_ENV" value="test" force="true" />
     </php>
 
     <testsuites>
@@ -22,6 +25,11 @@
             <directory>tests</directory>
             <!-- PHPat rule classes, not PHPUnit tests -->
             <exclude>tests/Architecture</exclude>
+            <!-- Real-browser smoke test, opt-in via the End-to-End Test Suite below -->
+            <exclude>tests/E2E</exclude>
+        </testsuite>
+        <testsuite name="End-to-End Test Suite">
+            <directory>tests/E2E</directory>
         </testsuite>
     </testsuites>
 
@@ -44,5 +52,6 @@
     <extensions>
         <bootstrap class="Zenstruck\Foundry\PHPUnit\FoundryExtension" />
         <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension" />
+        <bootstrap class="Symfony\Component\Panther\ServerExtension" />
     </extensions>
 </phpunit>

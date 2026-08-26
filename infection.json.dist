@@ -1,0 +1,17 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "src/Report",
+            "src/Repository"
+        ],
+        "excludes": [
+            "src/Repository/ActivityRepository.php"
+        ]
+    },
+    "mutators": {
+        "@default": true
+    },
+    "testFramework": "phpunit",
+    "tmpDir": "var/infection"
+}

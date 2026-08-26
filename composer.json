@@ -10,7 +10,7 @@
         "ext-ctype": "*",
         "ext-iconv": "*",
         "doctrine/doctrine-bundle": "^3.3",
-        "doctrine/doctrine-migrations-bundle": "^4.0",
+        "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.6",
         "symfony/asset-mapper": "8.1.*",
         "symfony/console": "8.1.*",
@@ -31,6 +31,7 @@
     },
     "config": {
         "allow-plugins": {
+            "infection/extension-installer": true,
             "php-http/discovery": true,
             "symfony/flex": true,
             "symfony/runtime": true
@@ -78,6 +79,11 @@
         "cs-fix": "php-cs-fixer fix",
         "rector": "rector process --dry-run",
         "security-audit": "composer audit",
+        "infection-coverage": "XDEBUG_MODE=coverage php bin/phpunit --coverage-xml=var/infection/infection/coverage-xml --log-junit=var/infection/infection/junit.xml",
+        "infection": [
+            "@infection-coverage",
+            "infection --threads=max --skip-initial-tests --coverage=var/infection/infection"
+        ],
         "quality": [
             "@cs-check",
             "@phpstan",
@@ -98,6 +104,7 @@
     "require-dev": {
         "dama/doctrine-test-bundle": "^8.6",
         "friendsofphp/php-cs-fixer": "^3.95",
+        "infection/infection": "^0.35.2",
         "phpat/phpat": "^0.12.4",
         "phpstan/phpstan": "^2.2",
         "phpstan/phpstan-doctrine": "^2.0",
@@ -108,6 +115,7 @@
         "symfony/browser-kit": "8.1.*",
         "symfony/css-selector": "8.1.*",
         "symfony/maker-bundle": "^1.67",
-        "zenstruck/foundry": "^2.12"
+        "symfony/panther": "^2.4",
+        "zenstruck/foundry": "^2.12.1"
     }
 }
