@@ -3,8 +3,22 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{% block title %}UCESCO Volunteer Manager{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>🌍</text></svg>">
+        <title>{% block title %}UCESCO Volunteers Manager App{% endblock %}</title>
+        <link rel="icon" type="image/svg+xml" href="/brand/ucesco-mark.svg">
+        <link rel="alternate icon" href="/favicon.ico">
+        <link rel="apple-touch-icon" href="/brand/ucesco-mark.svg">
+        <meta name="theme-color" content="#00aed9">
+
+        <meta name="description" content="UCESCO Volunteers Manager App" />
+        <link rel="author" href="https://github.com/ronanguilloux" />
+        <meta name="developer-url" content="https://github.com/ronanguilloux" />
+        <meta name="author" content="Ronan Guilloux" />
+        <meta name="creator" content="Ronan Guilloux" />
+        <meta name="developer" content="Ronan Guilloux" />
+        <meta name="publisher" content="UCESCO Africa" />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="googlebot" content="noindex" />
+
         {% block stylesheets %}
         {% endblock %}
 
@@ -24,21 +38,24 @@
             {% if is_granted('ROLE_ADMIN') %}
                 {% set nav_items = nav_items|merge([{label: 'Users', route: 'user_index'}]) %}
             {% endif %}
-            <header class="bg-slate-900 text-white" data-controller="nav">
+            <header class="bg-brand-900 text-white" data-controller="nav">
                 <div class="mx-auto max-w-5xl px-4">
                     <div class="flex h-14 items-center justify-between">
-                        <a href="{{ path('app_home') }}" class="font-semibold">UCESCO Volunteers Manager App</a>
+                        <a href="{{ path('app_home') }}" class="flex items-center gap-2 font-semibold">
+                            <img src="/brand/ucesco-mark-white.svg" alt="" class="h-8 w-8" aria-hidden="true">
+                            UCESCO Volunteers Manager App
+                        </a>
 
                         <div class="hidden items-center gap-4 text-sm sm:flex">
                             {% for item in nav_items %}
-                                <a href="{{ path(item.route) }}" class="hover:underline">{{ item.label }}</a>
+                                <a href="{{ path(item.route) }}" class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
                             <span class="text-slate-400">|</span>
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
-                            <a href="{{ path('app_logout') }}" class="hover:underline">Sign out</a>
+                            <a href="{{ path('app_logout') }}" class="hover:text-brand-300 hover:underline">Sign out</a>
                         </div>
 
-                        <button type="button" class="rounded p-2 hover:bg-slate-800 sm:hidden" data-action="nav#toggle" aria-label="Toggle menu">
+                        <button type="button" class="rounded p-2 hover:bg-brand-800 sm:hidden" data-action="nav#toggle" aria-label="Toggle menu">
                             ☰
                         </button>
                     </div>
@@ -46,10 +63,10 @@
                     <div class="hidden pb-3 sm:hidden" data-nav-target="menu">
                         <div class="flex flex-col gap-2 text-sm">
                             {% for item in nav_items %}
-                                <a href="{{ path(item.route) }}" class="hover:underline">{{ item.label }}</a>
+                                <a href="{{ path(item.route) }}" class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
-                            <a href="{{ path('app_logout') }}" class="hover:underline">Sign out</a>
+                            <a href="{{ path('app_logout') }}" class="hover:text-brand-300 hover:underline">Sign out</a>
                         </div>
                     </div>
                 </div>

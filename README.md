@@ -18,6 +18,8 @@ You can interact with Symfony CLI and the SQLite DB:
 ```bash
 docker compose exec php bin/console
 docker compose exec php bin/console dbal:run-sql "SELECT * FROM user"
+docker compose exec php bin/console app:user:create \
+  --email=SOMEONE@gmail.com --full-name="Some One" --password=<your-new-password> --admin
 ```
 
 App: `https://localhost` (self-signed cert — accept the browser

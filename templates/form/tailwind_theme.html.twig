@@ -30,17 +30,17 @@
 {% endblock %}
 
 {% block form_widget_simple %}
-    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none')|trim}) %}
+    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none')|trim}) %}
     {{ parent() }}
 {% endblock %}
 
 {% block textarea_widget %}
-    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none')|trim}) %}
+    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none')|trim}) %}
     {{ parent() }}
 {% endblock %}
 
 {% block choice_widget_collapsed %}
-    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none')|trim}) %}
+    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none')|trim}) %}
     {{ parent() }}
 {% endblock %}
 

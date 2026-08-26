@@ -33,3 +33,4 @@ drafts and maintains these.
 | [0003](0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md) | Adopt Docker+FrankenPHP, Symfony 8.1, SQLite, and Tailwind+Symfony UX for the Volunteer Manager app | Accepted |
 | [0004](0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md) | Adopt PHPUnit, PHPat, Infection, and Panther for the Volunteer Manager app's test suite | Accepted |
 | [0005](0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md) | Adopt PHPStan, PHP-CS-Fixer, Rector, and composer audit for the Volunteer Manager app | Accepted |
+| [0006](0006-adopt-ucesco-theme-for-brand-identity.md) | Adopt "ucesco-theme" for the Volunteer Manager's brand identity | Accepted |

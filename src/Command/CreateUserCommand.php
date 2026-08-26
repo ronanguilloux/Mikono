@@ -34,7 +34,11 @@ final class CreateUserCommand extends Command
 
     protected function configure(): void
     {
-        $this->addOption('admin', null, InputOption::VALUE_NONE, 'Grant ROLE_ADMIN (can manage other Users)');
+        $this
+            ->addOption('admin', null, InputOption::VALUE_NONE, 'Grant ROLE_ADMIN (can manage other Users)')
+            ->addOption('email', null, InputOption::VALUE_REQUIRED, 'Account email (prompted interactively if omitted)')
+            ->addOption('full-name', null, InputOption::VALUE_REQUIRED, 'Full name (prompted interactively if omitted)')
+            ->addOption('password', null, InputOption::VALUE_REQUIRED, 'Plaintext password (prompted interactively if omitted — dev/local use only, visible in shell history)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -44,7 +48,7 @@ final class CreateUserCommand extends Command
 
         $helper = $this->getHelper('question');
 
-        $email = $helper->ask($input, $output, new Question('Email: '));
+        $email = $input->getOption('email') ?? $helper->ask($input, $output, new Question('Email: '));
         if (null !== $existing = $this->users->findOneByEmail($email)) {
             $io->warning(sprintf('A user with email "%s" already exists — updating instead of creating a duplicate.', $email));
             $user = $existing;
@@ -53,13 +57,13 @@ final class CreateUserCommand extends Command
             $user->setEmail($email);
         }
 
-        $fullName = $helper->ask($input, $output, new Question('Full name: '));
+        $fullName = $input->getOption('full-name') ?? $helper->ask($input, $output, new Question('Full name: '));
         $user->setFullName($fullName);
 
         $passwordQuestion = new Question('Password: ');
         $passwordQuestion->setHidden(true);
         $passwordQuestion->setHiddenFallback(false);
-        $plainPassword = $helper->ask($input, $output, $passwordQuestion);
+        $plainPassword = $input->getOption('password') ?? $helper->ask($input, $output, $passwordQuestion);
 
         $user->setRoles($input->getOption('admin') ? ['ROLE_ADMIN'] : ['ROLE_USER']);
         $user->setPassword($this->passwordHasher->hashPassword($user, $plainPassword));

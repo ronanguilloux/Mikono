@@ -81,7 +81,15 @@ docker compose exec php php bin/phpunit
 App: `https://localhost` (self-signed cert — accept the browser warning).
 Seeded VM login: `ronan.guilloux@gmail.com` / a temporary dev password
 set via `app:user:create` — change it by re-running that command (it's
-idempotent) rather than looking it up here.
+idempotent) rather than looking it up here. `--email`/`--full-name`/
+`--password` (plus the existing `--admin` flag) make it a one-liner
+instead of interactive prompts — dev/local convenience only, since the
+password then lands in plaintext in shell history:
+
+```bash
+docker compose exec php bin/console app:user:create \
+  --email=ronan.guilloux@gmail.com --full-name="Ronan Guilloux" --password=<new-password> --admin
+```
 
 Seed realistic dev data (the Bright Achievers worked example, plus a
 handful of extra volunteers/activities):
