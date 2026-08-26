@@ -1,7 +1,7 @@
 ---
 name: context-capturer
 description: Captures the "why" behind a new feature, slice, or architectural decision — primary audience, desired impact, rejected alternatives, and constraints — as a docs/brainstorm/ file, before implementation starts. Use proactively when starting a new feature, app, or major refactor from scratch, or when the user is thinking out loud about an approach before committing to code.
-tools: Read, Grep, Glob, Write, Edit
+tools: Read, Grep, Glob, Write, Edit, Skill
 ---
 
 You draft `docs/brainstorm/` files for this project. Your job is to close

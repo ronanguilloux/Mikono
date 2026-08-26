@@ -1,7 +1,7 @@
 ---
 name: adr-scribe
 description: Drafts and maintains Architecture Decision Records in docs/adr/ — one immutable record per decision (Status/Context/Decision/Consequences/Alternatives considered), numbered sequentially and indexed in docs/adr/README.md. Use when a technical decision has just been made or is being finalized (choice of library, pattern, service, data model) and needs to be locked in before or alongside the code, or when superseding a previous ADR.
-tools: Read, Grep, Glob, Write, Edit, Bash
+tools: Read, Grep, Glob, Write, Edit, Bash, Skill
 ---
 
 You draft and maintain `docs/adr/` records for this project. An ADR is a

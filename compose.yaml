@@ -2,6 +2,11 @@
 services:
   php:
     restart: unless-stopped
+    # Docker's built-in tini as PID 1, so orphaned child processes (e.g.
+    # Chromium subprocesses left behind by Panther/chromedriver, see
+    # docs/adr/0007-adopt-panther-for-adhoc-visual-verification.md) get
+    # reaped instead of accumulating as zombies.
+    init: true
     environment:
       SERVER_NAME: ${SERVER_NAME:-localhost}, php:80
       # SQLite: one file, no separate database service needed.

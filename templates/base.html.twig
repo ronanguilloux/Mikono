@@ -29,16 +29,18 @@
     <body class="min-h-screen bg-slate-50 text-slate-900">
         {% if app.user %}
             {% set nav_items = [
-                {label: 'Reports', route: 'report_index'},
                 {label: 'Activities', route: 'activity_index'},
                 {label: 'Volunteers', route: 'volunteer_index'},
+                {label: 'Reports', route: 'report_index'},
+            ] %}
+            {% set settings_items = [
                 {label: 'Projects', route: 'project_index'},
                 {label: 'Activity Types', route: 'activity_type_index'},
             ] %}
             {% if is_granted('ROLE_ADMIN') %}
-                {% set nav_items = nav_items|merge([{label: 'Users', route: 'user_index'}]) %}
+                {% set settings_items = settings_items|merge([{label: 'Users', route: 'user_index'}]) %}
             {% endif %}
-            <header class="bg-brand-900 text-white" data-controller="nav">
+            <header class="bg-brand-900 text-white" data-controller="nav" data-action="click@window->nav#closeSettings">
                 <div class="mx-auto max-w-5xl px-4">
                     <div class="flex h-14 items-center justify-between">
                         <a href="{{ path('app_home') }}" class="flex items-center gap-2 font-semibold">
@@ -50,6 +52,17 @@
                             {% for item in nav_items %}
                                 <a href="{{ path(item.route) }}" class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
+                            <div class="relative">
+                                <button type="button" class="flex items-center gap-1 hover:text-brand-300 hover:underline" data-action="nav#toggleSettings">
+                                    Settings
+                                    <span aria-hidden="true">▾</span>
+                                </button>
+                                <div class="absolute right-0 z-10 mt-2 hidden w-44 rounded-md bg-white py-1 text-slate-900 shadow-lg" data-nav-target="settingsMenu">
+                                    {% for item in settings_items %}
+                                        <a href="{{ path(item.route) }}" class="block px-4 py-2 hover:bg-slate-100">{{ item.label }}</a>
+                                    {% endfor %}
+                                </div>
+                            </div>
                             <span class="text-slate-400">|</span>
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
                             <a href="{{ path('app_logout') }}" class="hover:text-brand-300 hover:underline">Sign out</a>
@@ -64,6 +77,10 @@
                         <div class="flex flex-col gap-2 text-sm">
                             {% for item in nav_items %}
                                 <a href="{{ path(item.route) }}" class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
+                            {% endfor %}
+                            <span class="mt-1 border-t border-brand-800 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Settings</span>
+                            {% for item in settings_items %}
+                                <a href="{{ path(item.route) }}" class="pl-2 hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
                             <a href="{{ path('app_logout') }}" class="hover:text-brand-300 hover:underline">Sign out</a>

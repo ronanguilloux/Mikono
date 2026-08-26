@@ -153,6 +153,26 @@ for dev specifically — leave that override in place.
   invisible to that other process) — and because this app uses Turbo
   Drive, every form submission is asynchronous, so assert on the
   resulting page only after an explicit `$client->wait()->until(...)`.
+- For **ad-hoc visual verification** during active UI work (a one-off
+  "does this render correctly" check, not a regression test) — don't
+  install Playwright/Node. Use `scripts/panther-screenshot.php`, a
+  standalone script built on Panther's `Client::createChromeClient()`
+  (not `PantherTestCase`) that points directly at the already-running
+  dev app at `https://localhost` and saves a screenshot to
+  `var/screenshots/` (already covered by the blanket `/var/` gitignore
+  entry — pull it to the host with `docker compose cp`, since `var/`
+  is excluded from the dev bind-mount). See
+  [ADR 0007](docs/adr/0007-adopt-panther-for-adhoc-visual-verification.md).
+  Example:
+
+  ```bash
+  docker compose exec php php scripts/panther-screenshot.php \
+    --login --email=ronan.guilloux@gmail.com --password=<dev-password> \
+    --path=/reports --width=375 --height=812 \
+    --wait-selector='header' --out=mobile-nav.png
+  docker compose cp php:/app/var/screenshots/mobile-nav.png ./mobile-nav.png
+  ```
+
 - `composer infection` runs Infection, mutation-testing scoped to
   `src/Report/ActivitySummaryCalculator.php` and the delete-guard methods
   in the four repositories that have one (`infection.json.dist`) — not
