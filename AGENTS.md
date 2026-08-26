@@ -32,9 +32,11 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
   decision.
 - `docs/brainstorm/` — narrative context behind a feature or slice,
   written before the decision it leads to is locked in.
-- `docs/project/` — living status docs (current build progress, what's
-  left) — mutable, unlike the two above. Start here for "where does
-  this build actually stand right now": `docs/project/next-steps.md`.
+- `docs/project/` — living status docs, mutable unlike the two above:
+  `next-steps.md` (forward-only — what's next, nothing already done)
+  and `done.md` (growing log of completed work that isn't itself an
+  ADR). See `docs/project/README.md` for the rule on which one a
+  finished item goes to.
 - `.agents/skills/` — Agent Skills, source of truth, shared across
   Claude Code, Gemini CLI, and Codex. See `.agents/skills/README.md`.
 - `.claude/agents/` — Claude Code-specific subagents (`adr-scribe`,
@@ -181,7 +183,8 @@ docker compose exec php composer rector     # preview refactors — dry-run only
   `git config core.hooksPath .githooks`. Bypass deliberately with
   `git commit --no-verify`, not by disabling the hook.
 
-**Current build status and what's left:** see
-[`docs/project/next-steps.md`](docs/project/next-steps.md) — kept up to
-date as work completes, unlike this file. Panther, Infection, and dev
-fixtures are all wired as described above.
+**What's next:** see
+[`docs/project/next-steps.md`](docs/project/next-steps.md) (forward-only).
+**What's already been done:** see
+[`docs/project/done.md`](docs/project/done.md). Panther, Infection, and
+dev fixtures are all wired as described above.

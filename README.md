@@ -13,6 +13,13 @@ docker compose up -d --wait   # start (first run auto-bootstraps the app)
 docker compose down           # stop — the SQLite data survives (named volume)
 ```
 
+You can interact with Symfony CLI and the SQLite DB:
+
+```bash
+docker compose exec php bin/console
+docker compose exec php bin/console dbal:run-sql "SELECT * FROM user"
+```
+
 App: `https://localhost` (self-signed cert — accept the browser
 warning). No host PHP/Composer install is needed — everything runs
 through Docker + FrankenPHP. A seeded login is created via
@@ -69,5 +76,6 @@ for the full rationale behind this toolchain.
 both human contributors and AI coding agents working in this repo):
 directory map, migrations workflow, testing conventions, and known
 gotchas. [`docs/project/next-steps.md`](docs/project/next-steps.md)
-tracks current build status. [`docs/adr/`](docs/adr/) records every
+tracks what's next; [`docs/project/done.md`](docs/project/done.md)
+logs completed work. [`docs/adr/`](docs/adr/) records every
 architectural decision.

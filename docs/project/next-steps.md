@@ -1,109 +1,20 @@
 # Next steps
 
-**Last updated:** 2026-08-26, phase 11 fully closed, phase 12 closing
-(`docs/brainstorm/02-volunteer-manager-v0.1-context.md`,
-ADRs [0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)/[0004](../adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md)/[0005](../adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md)).
-This file gets overwritten as work completes — it's a snapshot, not a
-history. For history, read `git log` or `docs/adr`/`docs/brainstorm`.
+**Last updated:** 2026-08-26
 
-## App status: feature-complete and usable
+Only what's next goes here — forward-looking exclusively. Completed
+work moves out: to an ADR in `docs/adr/` if it was an architectural
+decision, otherwise to [`done.md`](done.md). See
+[`docs/project/README.md`](README.md) for the full rule. For status —
+what's already built and how it got there — read `done.md`, `git log`,
+or `docs/adr`/`docs/brainstorm`.
 
-All five CRUD areas (Volunteers, Projects, Activity Types, Users,
-Activities), auth, and the Reports view work end to end, verified via
-curl throughout the build and now also by 25 passing automated tests.
-Run it: `docker compose up -d --wait`, then `https://localhost` (see
-`AGENTS.md` for login and full command reference).
+## Open work
 
-12 commits so far, most recent first:
-
-```
-1ff9748 Add the functional test suite (25 tests, all green)
-a32e6fa Add the reporting view — v0.1's last product feature
-50df711 Add Activities CRUD — the core feature
-428d86b Add Users CRUD (admin-only)
-814bd1c Add Projects and Activity Types CRUD
-5c6cde6 Add Volunteers CRUD and the reusable DataTable component
-528dd5a Add Tailwind CSS + Symfony UX, responsive base layout
-593aba2 Add authentication: User entity, login/logout, deactivation guard
-62e5598 Wire Doctrine ORM + SQLite
-0b67194 Scaffold Symfony 8.1 skeleton via Docker auto-bootstrap
-f735c2d Add Docker + FrankenPHP scaffolding for the Volunteer Manager app
-53f2a88 Bootstrap decision-capture workflow and cross-agent Agent Skills
-```
-
-## Test suite: 25/25 passing, plus one E2E smoke test
-
-PHPUnit 13.3.1, `symfony/test-pack`, Zenstruck Foundry v2 (factories
-per entity under `src/Factory/`), `dama/doctrine-test-bundle`. Seven
-files under `tests/Functional/`: full CRUD lifecycle for Volunteers
-(the representative case); lighter create+delete-guard tests for
-Projects and Activity Types; the Bright Achievers worked example
-end-to-end plus a `loggedBy`-immutability test for Activities; role
-enforcement, password hashing via a real login round-trip,
-deactivation, and self-delete-guard for Users; aggregate correctness
-for Reports; the full auth lifecycle for Security. Run:
-`docker compose exec php php bin/phpunit`.
-
-`tests/E2E/VolunteerManagerSmokeTest.php` adds one real-browser Symfony
-Panther test (login, create a Volunteer, create an Activity, see it in
-the list and `/reports`, plus a narrow-viewport mobile-nav check), kept
-out of the default 25-test run since it drives an actual headless
-Chromium instance — run it separately with
-`docker compose exec php php bin/phpunit --testsuite="End-to-End Test Suite"`.
-
-## Remaining work
-
-**Rest of phase 11:**
-
-- [x] PHPStan — installed at level `max`, analysing `src/` and
-      `tests/`, pre-existing findings absorbed in
-      `phpstan-baseline.neon`. See
-      [ADR 0005](../adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md).
-- [x] PHPat — the one rule from ADR 0004 (`src/Entity/*` must not
-      depend on `src/Controller/*` or `src/Twig/*`) lives in
-      `tests/Architecture/ArchTest.php`, run via `composer phpat`.
-      Deptrac considered and rejected as redundant — see ADR 0005.
-- [x] `rector` and `friendsofphp/php-cs-fixer` — installed and
-      configured (`rector.php`, `.php-cs-fixer.dist.php`). Rector stays
-      dry-run only (`composer rector`), never auto-applied — it has
-      already shown it can produce wrong refactors that need human
-      review.
-- [x] `composer audit` — wired as `composer security-audit`, part of
-      the aggregate `composer quality` script.
-- [x] A local git pre-commit hook (`.githooks/pre-commit`, enabled via
-      `git config core.hooksPath .githooks`) runs `composer quality`
-      before every commit — see ADR 0005 for why a hook instead of CI
-      (no git remote/CI pipeline exists yet).
-- [x] One Panther E2E smoke test — login, create Volunteer, create
-      Activity, see it in the list and `/reports`, including a
-      narrow-viewport check for the mobile nav. Deliberately not one
-      Panther test per CRUD screen (redundant with the functional
-      suite, per ADR 0004). Runs Panther's own built-in webserver
-      against `public/`, not a second Docker service — see
-      `tests/E2E/VolunteerManagerSmokeTest.php` and the Dockerfile's
-      `symfony/panther` recipe block.
-- [x] Infection, scoped only to `src/Report/ActivitySummaryCalculator.php`
-      and the delete-guard methods in the **four** repositories that have
-      one — `ActivityTypeRepository`, `ProjectRepository`,
-      `UserRepository`, `VolunteerRepository` (`ActivityRepository` has
-      no such guard by design: `Activity` is the referencing entity, not
-      a guarded one) — not the whole app, since most of the codebase is
-      Symfony/Doctrine/Form boilerplate with little conditional logic
-      worth mutating. Baseline: 100% Mutation Code Coverage, 100%
-      Covered Code MSI (59/59 mutants killed). Run via
-      `docker compose exec php composer infection`.
-
-**Phase 12:**
-
-- [x] Foundry dev fixtures — a `DemoDataStory` seeding realistic data,
-      including the literal Bright Achievers example, plus a second
-      project and a handful of extra volunteers/activities for a
-      realistic-looking list. `src/Story/AppStory.php` — load with
-      `docker compose exec php bin/console foundry:load-fixtures --no-interaction`.
-- [x] Final sanity pass: `AGENTS.md` re-read and corrected — the
-      "Not yet wired" line is gone, `src/Factory/` no longer says
-      "(eventually)", and the Testing conventions section documents
-      `tests/E2E/` and `composer infection`.
+v0.1 is feature-complete (all five CRUD areas, auth, Reports view,
+functional tests, one Panther E2E smoke test, scoped Infection, and dev
+fixtures — see [`done.md`](done.md)). Nothing further is currently
+scoped or planned. Add items here as new work is identified.
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 
