@@ -13,8 +13,159 @@ or `docs/adr`/`docs/brainstorm`.
 
 v0.1 is feature-complete (all five CRUD areas, auth, Reports view,
 functional tests, one Panther E2E smoke test, scoped Infection, and dev
-fixtures — see [`done.md`](done.md)). Nothing further is currently
-scoped or planned. Add items here as new work is identified.
+fixtures — see [`done.md`](done.md)). A full UX review of the Tailwind
+templates has since identified the work below — nothing in it is
+started yet.
+
+### UX review findings (2026-08-26)
+
+Reviewed against the app's actual user — a single non-technical
+Volunteer Manager logging activities day-to-day from Kibera/Mombasa,
+who needs to adopt the app fast with no developer on hand (see
+[`docs/brainstorm/02-volunteer-manager-v0.1-context.md`](../brainstorm/02-volunteer-manager-v0.1-context.md)).
+Findings are grouped by priority; each item names the template(s) it
+touches. Two things already work well and should be kept as-is:
+server-rendered Twig + Turbo Drive + native `confirm()` for deletes
+(no SPA/modal payload — well-matched to low-bandwidth field
+conditions), and plain `<select>` (not JS-searchable) for the Activity
+form's three `EntityType` fields at today's data volumes.
+
+**P0 — quick, low-risk, do anytime:**
+
+- Add a required-field indicator (e.g. `*`) to
+  `templates/form/tailwind_theme.html.twig`'s `form_label` block, driven
+  off the existing `required` form-view var — right now no form
+  distinguishes required from optional fields before submit.
+- Add `role="alert"` and `aria-live="polite"` to the flash-message block
+  in `templates/base.html.twig`, and replace its binary
+  `label == 'error'` color check with an explicit allow-list (a
+  hypothetical `'warning'` flash currently renders as green/success).
+- Restore visible focus styling in `tailwind_theme.html.twig` — inputs
+  use `focus:outline-none` with only a border-color swap, weak both for
+  keyboard users and for outdoor/bright-sunlight phone use in the field.
+- Align copy that's inconsistent across the 5 CRUD areas:
+  `user/index.html.twig`'s empty state (no call-to-action, unlike the
+  other 4), Activity's edit-page title (generic "Edit activity" vs.
+  named entities elsewhere), and Activity's delete-confirm string
+  (generic "Delete this activity entry?" — should include date/volunteer
+  to avoid a wrong-day accidental delete, since the native `confirm()`
+  dialog is the only guard).
+- Add `aria-expanded` (both nav toggles), `aria-current="page"` (active
+  nav link), and Escape-to-close on the Settings dropdown in
+  `assets/controllers/nav_controller.js` / `templates/base.html.twig`.
+- Remove the dead, redundant `sm:hidden` on the mobile nav panel in
+  `templates/base.html.twig` (already always-`hidden`, toggled by JS).
+
+**P1 — moderate, before adoption scales past one user:**
+
+- Proactively surface the volunteer/project delete-guard message (today
+  only shown as a flash *after* a blocked delete attempt) — an inline
+  note near volunteers/projects with activity history, before delete is
+  attempted, in `templates/volunteer/index.html.twig` and
+  `templates/project/index.html.twig`.
+- Visually de-emphasize inactive volunteers/projects in the Activity
+  form's selects (`templates/activity/_form.html.twig`) — currently only
+  a `" (inactive)"` text suffix, easy to mis-pick during fast repetitive
+  logging.
+- Add a "Save and add another" option to the Activity form — the
+  worked example this app is built around is logging several activities
+  in one sitting; this is the single highest-leverage speed win for the
+  daily task.
+- Reuse the `<twig:DataTable>` component in
+  `templates/report/index.html.twig` instead of its current
+  hand-duplicated table macro.
+
+**P2 — larger/structural, wants a mockup reaction first:**
+
+- A responsive strategy for wide tables on mobile (Activity's index has
+  5 data columns + actions; today it's horizontal-scroll only) — likely
+  a card-based layout below a breakpoint.
+- Pagination on index pages once data volume grows — every index
+  currently loads the full result set; fine today, will slow down over
+  a weak mobile connection as activity history accumulates.
+- Enforce/highlight Project's conditional `partnerOrganizationName`
+  requirement (currently static help text only) — needs light JS or a
+  LiveComponent, more than a template tweak.
+- A Reports/dashboard redesign (stat tiles/KPIs vs. the current two
+  plain tables), if richer reporting is wanted.
+
+### System of Work initiatives (2026-08-26)
+
+v0.1 built a System of Record — CRUD plus a historical report. The real
+goal is a System of Work: the app should actively help the VM do their
+job, not just archive data about it. Full reasoning (audience, desired
+impact, rejected alternatives) is captured in
+[`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md);
+this is the resulting action list. These are additive to, not a
+replacement for, the UX-review tiers above.
+
+**Buildable now, no new infrastructure:**
+
+- A work-focused home screen replacing the current plain Reports landing
+  (`DashboardController` redirects `app_home` → `report_index` today) —
+  surfaces volunteers/projects whose most-recent-activity date (already
+  computed by `ActivitySummaryCalculator::summarize()`) is stale beyond
+  a threshold, as an actionable "needs a check-in" list. Historical
+  breakdown moves to a secondary view, not removed.
+- Batch/group activity logging — a form variant matching how the work
+  actually happens (one session: one date/project/activity
+  type/duration, several volunteers at once) instead of one
+  single-volunteer submission per person. Needs only a multi-select
+  `Volunteer` field plus a controller loop — no LiveComponent or new JS.
+- A volunteer detail/timeline "show" page — none of the 5 CRUD areas has
+  one today (only index/new/edit); surfaces activity history and notes
+  at a glance, turning `Volunteer` into an actual lightweight CRM
+  record.
+- Surfacing the `notes` field (already on `Volunteer` and `Project`)
+  somewhere it's seen again after entry — today it's captured once and
+  then invisible.
+- Opportunistic data-completeness nudges — flag volunteers missing
+  phone/email inline, without turning these legitimately-optional
+  fields into blocking validation errors.
+- A "top volunteers this period" recognition view, built from data
+  `summarizeByVolunteer()` already produces — supports actively
+  thanking/retaining volunteers, not just recording their hours.
+- Print-friendly report styling (`@media print` CSS only, no new
+  dependency) so the existing Reports view can go straight to a donor
+  or UCESCO leadership without a separate export step.
+
+**Flagged for a future ADR (needs new infrastructure, not buildable as-is):**
+
+- Automated stale-volunteer check-in reminders — the natural next step
+  after the home screen above, but needs an outbound channel. Given the
+  Kibera/Mombasa context, SMS via a regional gateway (e.g. Africa's
+  Talking) may be more reliable than email — worth an ADR comparing SMS
+  vs. email vs. staying purely in-app before committing any infra.
+- Task/assignment hand-offs once a second `User` account actually exists
+  (the entity is already scoped to grow beyond one user) — e.g.
+  assigning a follow-up to a colleague. Nothing to build until then.
+- Scheduled/automated donor digest emails — needs a mailer/scheduler
+  decision; the print-friendly view above covers the on-demand handoff
+  case without one.
+
+### Next step: mock up key screens as an Artifact before touching Twig
+
+Before implementing any of the above, mock up the following as
+interactive HTML Artifacts (not code) so they can be reacted to
+visually first, in priority order — the System of Work items now lead,
+since they carry the bigger impact:
+
+1. **The work-focused home screen** — mock the "needs a check-in" list
+   (stale volunteers/projects) alongside the existing historical
+   report, since this is the screen the VM would see first every day.
+2. **Batch activity logging form** — mock the group-session flow
+   (one date/project/type/duration, multi-select volunteers), together
+   with the "Save and add another" idea and the de-emphasized-inactive
+   select treatment from the UX review, since all three target this one
+   screen.
+3. **Volunteer detail/timeline page** — mock the missing "show" view:
+   notes, activity history, and total days at a glance.
+4. **Mobile index + nav** — mock a card-based alternative to the wide
+   Activity table at a phone viewport, side-by-side with the current
+   horizontal-scroll behavior.
+5. **Reports/dashboard** (optional) — mock a stat-tile/KPI alternative
+   to the current two-plain-tables layout, plus the "top volunteers"
+   recognition view, only if richer reporting is wanted.
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 
