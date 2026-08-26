@@ -41,7 +41,38 @@ app should feel like it is doing some of the VM's thinking for them —
 surfacing stale volunteers or projects, recognizing top contributors —
 rather than sitting there waiting to be queried.
 
-Seven concrete initiatives would deliver this, and all of them are
+This also means the app has to serve two temporal directions, not one.
+Most of what follows below looks backward — surfacing what already
+happened so the VM can act on it. But the VM's actual daily rhythm
+leans just as heavily on looking forward: almost every day, they decide
+tomorrow morning's handful of activities — who is doing what, at which
+project — and manually type that up as a roster message sent to
+volunteers over WhatsApp. Nothing in the app today has any notion of a
+*planned* activity; `Activity` (`src/Entity/Activity.php`) is
+implicitly a past-tense log entry, and the one query that reads it,
+`ActivityRepository::findAllOrderedByDateDesc()`, only ever looks
+backward. A System of Work for this VM has to hold both halves of that
+rhythm: the long history behind them and the short, high-stakes plan
+just ahead of them.
+
+The good news is that the forward-looking half doesn't need a new
+entity or a lifecycle/status field to exist alongside the backward-looking
+half. `Activity.date` is already a plain, unconstrained date column —
+nothing stops it from being set to tomorrow today. So "tomorrow's
+roster" is just the same `Activity` rows, the same batch/group logging
+form (initiative 2 below) used with a future date instead of today's,
+and a new view that filters to the next day (or next few days) and
+groups by project instead of by volunteer or by date-descending
+history. If a volunteer doesn't show up or a plan changes, the VM edits
+or deletes that row — the exact same correction path that already
+exists for a logging mistake, not a new workflow. The one trade-off
+worth naming rather than quietly accepting: a future-dated row briefly
+counts toward `totalDays` and `mostRecent` in the historical summary
+before the day it describes has actually happened. Given the lookahead
+is short — next-day, at most a few days — this is a minor,
+self-correcting inaccuracy, not a reason to introduce a status field.
+
+Nine concrete initiatives would deliver this, and all of them are
 buildable within the app's current architecture, with no new mailer,
 scheduler, or async infrastructure required:
 
@@ -82,6 +113,57 @@ scheduler, or async infrastructure required:
 7. **Print-friendly report styling** — `@media print` CSS only, no new
    dependency — so the existing Reports view can go straight to a donor
    or UCESCO leadership without a separate export step.
+8. **Tomorrow's roster.** A view filtered to `Activity` rows dated
+   tomorrow (or the next few days), grouped by project, alongside a
+   one-click "copy as text" block formatted for pasting straight into a
+   WhatsApp message — built entirely on the batch/group logging form
+   (initiative 2) and a new query method, no schema change and no
+   messaging infrastructure.
+9. **Escort/chaperone capture.** Every real roster message groups
+   volunteers by project with one line naming the staff member who
+   accompanied them that day ("Accompanied by Mr Maeba"). Nothing today
+   captures this. It's modeled as a new `Escort` lookup entity —
+   id/name/`isActive`, the same shape as `ActivityType` — giving the
+   app a 6th CRUD area (list/new/edit, managed from the Settings nav
+   next to Activity Types), plus a new optional
+   `Activity::$accompaniedBy` (`ManyToOne` → `Escort`, nullable) set
+   once per submitted batch (initiative 2) and applied to every row the
+   batch creates. Initiative 8's copy-as-text block then renders it
+   back out as the "Accompanied by ..." line per project group, closing
+   the loop with the real message format. This needs a migration and a
+   new CRUD area, but reuses the app's already-established 5-area CRUD
+   pattern rather than any new infrastructure.
+
+## Evidence from real roster messages (2026-08-27)
+
+Edna's actual nightly WhatsApp messages — the ones she manually types
+up every evening for tomorrow's volunteers — were reviewed directly
+(not a hypothetical reconstruction) and confirm several assumptions
+above, plus surface the one gap initiative 9 addresses:
+
+- **Project-grouping matches the real format.** Every message lists
+  activities grouped by project/site ("Beyond Zero clinic", "Peggy
+  Lucas school", "MVETI", ...), each with the volunteers attending
+  underneath — exactly the shape initiative 8's "Tomorrow's roster"
+  view already proposes.
+- **A volunteer can hit multiple projects in one day**, e.g. "Rahel —
+  later MVETI" moving from one site to another same day. This needs no
+  schema change: it's already just multiple `Activity` rows for the
+  same volunteer and date, at different projects — a confirmation, not
+  a gap.
+- **The opening line is the VM's own voice, not schedule data.** Every
+  message opens with a personal motivational quote or greeting
+  unrelated to the roster itself. Initiative 8's "copy as text" block
+  should generate the schedule body only and leave room for Edna to
+  prepend her own greeting before sending — not attempt to auto-generate
+  it.
+- **The escort/chaperone line is real and recurring** — see initiative
+  9 above.
+- Dev fixtures (`src/Story/AppStory.php`) were expanded to seed the real
+  breadth of UCESCO's projects and activity types (clinics, schools,
+  MVETI, orphanage, beach clean-ups, home visits, orientation, etc.)
+  observed in these messages, so the app's worked examples stop looking
+  like a two-project toy dataset.
 
 ## The "Options Not Taken"
 
@@ -128,6 +210,16 @@ recurring, automated donor-facing email would need the same
 mailer/scheduler groundwork this app doesn't have yet. The print-friendly
 report view (initiative 7) covers the actual need — an on-demand handoff
 to a donor or to leadership — without requiring a mailer at all.
+
+### 5. WhatsApp Business API / automated roster sending
+
+**Rejected.** Tomorrow's roster (initiative 8) could, in principle, be
+sent automatically via the WhatsApp Business API instead of being
+copy-pasted by the VM. That's real added complexity — API costs,
+volunteer opt-in/consent handling, message-template approval — for a
+step that today takes the VM well under a minute by hand. There's no
+evidence that manual copy-paste is actually a bottleneck; build the
+integration only if it demonstrably becomes one, not preemptively.
 
 ## Constraints
 

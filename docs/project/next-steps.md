@@ -93,8 +93,14 @@ form's three `EntityType` fields at today's data volumes.
 
 v0.1 built a System of Record — CRUD plus a historical report. The real
 goal is a System of Work: the app should actively help the VM do their
-job, not just archive data about it. Full reasoning (audience, desired
-impact, rejected alternatives) is captured in
+job, not just archive data about it. That means serving two temporal
+directions: **looking back** at a long history of already-logged
+activity (stale volunteers/projects, recognition), and **looking
+forward** at a short, high-stakes plan — the VM almost always plans at
+least the next morning's handful of activities ahead of time, then
+manually types that up as a roster message sent to volunteers over
+WhatsApp. Full reasoning (audience, desired impact, rejected
+alternatives) is captured in
 [`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md);
 this is the resulting action list. These are additive to, not a
 replacement for, the UX-review tiers above.
@@ -128,6 +134,39 @@ replacement for, the UX-review tiers above.
 - Print-friendly report styling (`@media print` CSS only, no new
   dependency) so the existing Reports view can go straight to a donor
   or UCESCO leadership without a separate export step.
+- **Tomorrow's roster** — a view filtered to `Activity` rows dated
+  tomorrow (or the next few days), grouped by project, with a one-click
+  "copy as text" block formatted for pasting straight into WhatsApp.
+  Needs zero schema change: `Activity.date` is already unconstrained,
+  so planning tomorrow is just the batch/group logging form above used
+  with a future date, plus a new query method and the copy-to-clipboard
+  affordance (a small Stimulus controller). Corrections (no-show, plan
+  changed) reuse the existing edit/delete flow, same as fixing a past
+  logging mistake — no new "confirm/cancel" workflow needed. One
+  accepted trade-off worth documenting rather than silently living
+  with: a future-dated row briefly counts toward `totalDays`/
+  `mostRecent` in the historical summary before that day actually
+  happens — minor and self-correcting given the short lookahead, not
+  worth a status field.
+- **Escort/chaperone capture** — confirmed by Edna's real nightly
+  roster messages (2026-08-27), which each name one staff member who
+  accompanied volunteers per project per day ("Accompanied by Mr
+  Maeba") — nothing today captures this. Add a new `Escort` lookup
+  entity (id/name/`isActive`, same shape as `ActivityType`) as a 6th
+  CRUD area under Settings; add a nullable `Activity::$accompaniedBy`
+  (`ManyToOne` → `Escort`) set once per batch-logged session (the
+  batch/group logging form above) and applied to every row it creates;
+  surface it back out as the "Accompanied by ..." line in Tomorrow's
+  roster's copy-as-text block. Needs a migration and a new CRUD area,
+  but no new infrastructure — full reasoning in
+  [`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md#evidence-from-real-roster-messages-2026-08-27).
+
+Also confirmed by those same messages: dev fixtures
+(`src/Story/AppStory.php`) were expanded to seed the real breadth of
+UCESCO's projects and activity types (clinics, schools, MVETI,
+orphanage, beach clean-ups, home visits, orientation, etc.), so the
+mockups below can draw on realistic project names instead of just
+"Bright Achievers" / "Mombasa Youth Centre".
 
 **Flagged for a future ADR (needs new infrastructure, not buildable as-is):**
 
@@ -142,6 +181,11 @@ replacement for, the UX-review tiers above.
 - Scheduled/automated donor digest emails — needs a mailer/scheduler
   decision; the print-friendly view above covers the on-demand handoff
   case without one.
+- WhatsApp Business API / automated roster sending — the manual
+  copy-paste in "Tomorrow's roster" above takes well under a minute
+  today; only worth an ADR if that manual step demonstrably becomes a
+  bottleneck, not preemptively (API costs, volunteer opt-in/consent,
+  message-template approval all apply).
 
 ### Next step: mock up key screens as an Artifact before touching Twig
 
@@ -150,14 +194,18 @@ interactive HTML Artifacts (not code) so they can be reacted to
 visually first, in priority order — the System of Work items now lead,
 since they carry the bigger impact:
 
-1. **The work-focused home screen** — mock the "needs a check-in" list
-   (stale volunteers/projects) alongside the existing historical
-   report, since this is the screen the VM would see first every day.
-2. **Batch activity logging form** — mock the group-session flow
-   (one date/project/type/duration, multi-select volunteers), together
-   with the "Save and add another" idea and the de-emphasized-inactive
-   select treatment from the UX review, since all three target this one
-   screen.
+1. **The work-focused home screen** — mock both temporal directions
+   together: **Tomorrow's roster** (grouped by project, with the
+   copy-as-WhatsApp-text affordance) front and center as the
+   highest-frequency daily action, alongside the "needs a check-in"
+   list (stale volunteers/projects) — since this is the screen the VM
+   would see first every day.
+2. **Batch activity/roster logging form** — mock the shared
+   group-session flow (one date/project/type/duration, multi-select
+   volunteers) used for both planning tomorrow and logging a past
+   session, together with the "Save and add another" idea and the
+   de-emphasized-inactive select treatment from the UX review, since
+   all three target this one screen.
 3. **Volunteer detail/timeline page** — mock the missing "show" view:
    notes, activity history, and total days at a glance.
 4. **Mobile index + nav** — mock a card-based alternative to the wide
