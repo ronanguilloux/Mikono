@@ -1,7 +1,7 @@
 # Next steps
 
-**Last updated:** 2026-08-24, mid-phase-11 of the original 12-phase
-build plan (`docs/brainstorm/02-volunteer-manager-v0.1-context.md`,
+**Last updated:** 2026-08-26, phase 11 fully closed, phase 12 closing
+(`docs/brainstorm/02-volunteer-manager-v0.1-context.md`,
 ADRs [0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)/[0004](../adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md)/[0005](../adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md)).
 This file gets overwritten as work completes — it's a snapshot, not a
 history. For history, read `git log` or `docs/adr`/`docs/brainstorm`.
@@ -31,7 +31,7 @@ f735c2d Add Docker + FrankenPHP scaffolding for the Volunteer Manager app
 53f2a88 Bootstrap decision-capture workflow and cross-agent Agent Skills
 ```
 
-## Test suite: 25/25 passing
+## Test suite: 25/25 passing, plus one E2E smoke test
 
 PHPUnit 13.3.1, `symfony/test-pack`, Zenstruck Foundry v2 (factories
 per entity under `src/Factory/`), `dama/doctrine-test-bundle`. Seven
@@ -43,6 +43,13 @@ enforcement, password hashing via a real login round-trip,
 deactivation, and self-delete-guard for Users; aggregate correctness
 for Reports; the full auth lifecycle for Security. Run:
 `docker compose exec php php bin/phpunit`.
+
+`tests/E2E/VolunteerManagerSmokeTest.php` adds one real-browser Symfony
+Panther test (login, create a Volunteer, create an Activity, see it in
+the list and `/reports`, plus a narrow-viewport mobile-nav check), kept
+out of the default 25-test run since it drives an actual headless
+Chromium instance — run it separately with
+`docker compose exec php php bin/phpunit --testsuite="End-to-End Test Suite"`.
 
 ## Remaining work
 
@@ -67,25 +74,36 @@ for Reports; the full auth lifecycle for Security. Run:
       `git config core.hooksPath .githooks`) runs `composer quality`
       before every commit — see ADR 0005 for why a hook instead of CI
       (no git remote/CI pipeline exists yet).
-- [ ] One Panther E2E smoke test — login, create Volunteer, create
+- [x] One Panther E2E smoke test — login, create Volunteer, create
       Activity, see it in the list and `/reports`, including a
       narrow-viewport check for the mobile nav. Deliberately not one
       Panther test per CRUD screen (redundant with the functional
-      suite, per ADR 0004).
-- [ ] Infection, scoped only to `src/Report/ActivitySummaryCalculator.php`
-      and the delete-guard methods in the five repositories — not the
-      whole app, since most of the codebase is Symfony/Doctrine/Form
-      boilerplate with little conditional logic worth mutating.
+      suite, per ADR 0004). Runs Panther's own built-in webserver
+      against `public/`, not a second Docker service — see
+      `tests/E2E/VolunteerManagerSmokeTest.php` and the Dockerfile's
+      `symfony/panther` recipe block.
+- [x] Infection, scoped only to `src/Report/ActivitySummaryCalculator.php`
+      and the delete-guard methods in the **four** repositories that have
+      one — `ActivityTypeRepository`, `ProjectRepository`,
+      `UserRepository`, `VolunteerRepository` (`ActivityRepository` has
+      no such guard by design: `Activity` is the referencing entity, not
+      a guarded one) — not the whole app, since most of the codebase is
+      Symfony/Doctrine/Form boilerplate with little conditional logic
+      worth mutating. Baseline: 100% Mutation Code Coverage, 100%
+      Covered Code MSI (59/59 mutants killed). Run via
+      `docker compose exec php composer infection`.
 
-**Phase 12 (not started):**
+**Phase 12:**
 
-- [ ] Foundry dev fixtures — a `DemoDataStory` seeding realistic data,
-      including the literal Bright Achievers example. A stub
-      `src/Story/AppStory.php` already exists (auto-generated empty by
-      the Foundry Flex recipe) — fill it in or replace it.
-- [ ] Final sanity pass: re-read `AGENTS.md` once everything above
-      lands and confirm it's still accurate; delete the "Not yet
-      wired" line there once nothing is left unwired.
+- [x] Foundry dev fixtures — a `DemoDataStory` seeding realistic data,
+      including the literal Bright Achievers example, plus a second
+      project and a handful of extra volunteers/activities for a
+      realistic-looking list. `src/Story/AppStory.php` — load with
+      `docker compose exec php bin/console foundry:load-fixtures --no-interaction`.
+- [x] Final sanity pass: `AGENTS.md` re-read and corrected — the
+      "Not yet wired" line is gone, `src/Factory/` no longer says
+      "(eventually)", and the Testing conventions section documents
+      `tests/E2E/` and `composer infection`.
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 

@@ -54,8 +54,8 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
 - `src/Report/ActivitySummaryCalculator.php` — the one piece of real
   domain logic (duration-to-days aggregation for `/reports`).
 - `src/Factory/` — Foundry v2 factories (`PersistentObjectFactory`, real
-  objects) for every entity, used by both tests and (eventually) dev
-  fixtures.
+  objects) for every entity, used by both tests and dev fixtures
+  (`src/Story/AppStory.php`).
 - `tests/Functional/` — WebTestCase functional tests, one per
   controller area plus `SecurityControllerTest`.
 
@@ -80,6 +80,13 @@ App: `https://localhost` (self-signed cert — accept the browser warning).
 Seeded VM login: `ronan.guilloux@gmail.com` / a temporary dev password
 set via `app:user:create` — change it by re-running that command (it's
 idempotent) rather than looking it up here.
+
+Seed realistic dev data (the Bright Achievers worked example, plus a
+handful of extra volunteers/activities):
+
+```bash
+docker compose exec php bin/console foundry:load-fixtures --no-interaction
+```
 
 **After changing an entity:**
 
@@ -123,6 +130,27 @@ for dev specifically — leave that override in place.
   default, which crashes with a 500 against a non-nullable property
   instead of showing a validation error. Already applied to every
   existing form; apply it to any new required text field too.
+- `tests/E2E/` holds one real-browser Symfony Panther smoke test
+  (login → create Volunteer → create Activity → see it in the list and
+  `/reports` → mobile-nav check). It's excluded from the default
+  `docker compose exec php php bin/phpunit` run (slower, a real Chromium
+  instance) — run it explicitly with
+  `docker compose exec php php bin/phpunit --testsuite="End-to-End Test Suite"`.
+  Since it's real, separate-process HTTP against Panther's built-in
+  webserver, Foundry-created fixtures need
+  `#[DAMA\DoctrineTestBundle\PHPUnit\SkipDatabaseRollback]` on the test
+  class to actually commit (DAMA otherwise rolls back each test's writes,
+  invisible to that other process) — and because this app uses Turbo
+  Drive, every form submission is asynchronous, so assert on the
+  resulting page only after an explicit `$client->wait()->until(...)`.
+- `composer infection` runs Infection, mutation-testing scoped to
+  `src/Report/ActivitySummaryCalculator.php` and the delete-guard methods
+  in the four repositories that have one (`infection.json.dist`) — not
+  part of `composer quality` (slow, run manually). It's a two-step script:
+  Infection's own coverage-generating run doesn't work reliably under
+  this FrankenPHP build's PHP (an Xdebug-restart incompatibility), so the
+  script generates coverage via plain `php bin/phpunit` first, then runs
+  `infection --skip-initial-tests` against it.
 
 **Quality checks** (see
 [ADR 0005](docs/adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md)
@@ -155,5 +183,5 @@ docker compose exec php composer rector     # preview refactors — dry-run only
 
 **Current build status and what's left:** see
 [`docs/project/next-steps.md`](docs/project/next-steps.md) — kept up to
-date as work completes, unlike this file. Don't assume Panther,
-Infection, or dev fixtures are wired until that file says so.
+date as work completes, unlike this file. Panther, Infection, and dev
+fixtures are all wired as described above.
