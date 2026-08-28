@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Activity;
+use App\Enum\ActivityDuration;
 use App\Form\ActivityFormType;
 use App\Repository\ActivityRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,7 +35,9 @@ final class ActivityController extends AbstractController
                     'volunteer' => $activity->getVolunteer()?->getFullName() ?? '—',
                     'project' => $activity->getProject()?->getName() ?? '—',
                     'activityType' => $activity->getActivityType()?->getName() ?? '—',
-                    'duration' => $activity->getDuration()?->label() ?? '—',
+                    'duration' => ActivityDuration::Other === $activity->getDuration()
+                        ? ($activity->getDurationOther() ?? ActivityDuration::Other->label())
+                        : ($activity->getDuration()?->label() ?? '—'),
                 ],
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('activity_edit', ['id' => $activity->getId()])],
@@ -42,7 +45,11 @@ final class ActivityController extends AbstractController
                         'label' => 'Delete',
                         'url' => $this->generateUrl('activity_delete', ['id' => $activity->getId()]),
                         'method' => 'post',
-                        'confirm' => 'Delete this activity entry?',
+                        'confirm' => sprintf(
+                            'Delete the %s activity for %s?',
+                            $activity->getDate()?->format('j M Y') ?? 'undated',
+                            $activity->getVolunteer()?->getFullName() ?? 'unknown volunteer',
+                        ),
                         'csrfToken' => $this->csrfToken($activity),
                     ],
                 ],

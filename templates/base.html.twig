@@ -40,7 +40,8 @@
             {% if is_granted('ROLE_ADMIN') %}
                 {% set settings_items = settings_items|merge([{label: 'Users', route: 'user_index'}]) %}
             {% endif %}
-            <header class="bg-brand-900 text-white" data-controller="nav" data-action="click@window->nav#closeSettings">
+            {% set current_route = app.request.attributes.get('_route') %}
+            <header class="bg-brand-900 text-white" data-controller="nav" data-action="click@window->nav#closeSettings keydown.esc@window->nav#closeSettings">
                 <div class="mx-auto max-w-5xl px-4">
                     <div class="flex h-14 items-center justify-between">
                         <a href="{{ path('app_home') }}" class="flex items-center gap-2 font-semibold">
@@ -50,16 +51,16 @@
 
                         <div class="hidden items-center gap-4 text-sm sm:flex">
                             {% for item in nav_items %}
-                                <a href="{{ path(item.route) }}" class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
+                                <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
                             <div class="relative">
-                                <button type="button" class="flex items-center gap-1 hover:text-brand-300 hover:underline" data-action="nav#toggleSettings">
+                                <button type="button" class="flex items-center gap-1 hover:text-brand-300 hover:underline" aria-expanded="false" data-nav-target="settingsButton" data-action="nav#toggleSettings">
                                     Settings
                                     <span aria-hidden="true">▾</span>
                                 </button>
                                 <div class="absolute right-0 z-10 mt-2 hidden w-44 rounded-md bg-white py-1 text-slate-900 shadow-lg" data-nav-target="settingsMenu">
                                     {% for item in settings_items %}
-                                        <a href="{{ path(item.route) }}" class="block px-4 py-2 hover:bg-slate-100">{{ item.label }}</a>
+                                        <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="block px-4 py-2 hover:bg-slate-100">{{ item.label }}</a>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -68,19 +69,19 @@
                             <a href="{{ path('app_logout') }}" class="hover:text-brand-300 hover:underline">Sign out</a>
                         </div>
 
-                        <button type="button" class="rounded p-2 hover:bg-brand-800 sm:hidden" data-action="nav#toggle" aria-label="Toggle menu">
+                        <button type="button" class="rounded p-2 hover:bg-brand-800 sm:hidden" aria-expanded="false" data-nav-target="menuButton" data-action="nav#toggle" aria-label="Toggle menu">
                             ☰
                         </button>
                     </div>
 
-                    <div class="hidden pb-3 sm:hidden" data-nav-target="menu">
+                    <div class="hidden pb-3" data-nav-target="menu">
                         <div class="flex flex-col gap-2 text-sm">
                             {% for item in nav_items %}
-                                <a href="{{ path(item.route) }}" class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
+                                <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
                             <span class="mt-1 border-t border-brand-800 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Settings</span>
                             {% for item in settings_items %}
-                                <a href="{{ path(item.route) }}" class="pl-2 hover:text-brand-300 hover:underline">{{ item.label }}</a>
+                                <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="pl-2 hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
                             <a href="{{ path('app_logout') }}" class="hover:text-brand-300 hover:underline">Sign out</a>
@@ -91,9 +92,14 @@
         {% endif %}
 
         <main class="mx-auto max-w-5xl px-4 py-6">
+            {% set flash_styles = {
+                error: 'bg-red-50 text-red-700',
+                warning: 'bg-amber-50 text-amber-800',
+                success: 'bg-green-50 text-green-700',
+            } %}
             {% for label, messages in app.flashes %}
                 {% for message in messages %}
-                    <div class="mb-4 rounded-md p-3 text-sm {{ label == 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700' }}">
+                    <div class="mb-4 rounded-md p-3 text-sm {{ flash_styles[label]|default(flash_styles.success) }}" role="alert" aria-live="polite">
                         {{ message }}
                     </div>
                 {% endfor %}

@@ -85,4 +85,52 @@ final class ActivityControllerTest extends WebTestCase
         $activity = $activityRepository->find($activityId);
         self::assertSame('Original Logger', $activity->getLoggedBy()->getFullName());
     }
+
+    #[Test]
+    public function otherDurationRequiresAFreeTextValue(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $project = ProjectFactory::createOne();
+        $activityType = ActivityTypeFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+
+        $form = $crawler->selectButton('Save')->form([
+            'activity_form[date]' => '2026-08-11',
+            'activity_form[volunteer]' => (string) $volunteer->getId(),
+            'activity_form[project]' => (string) $project->getId(),
+            'activity_form[activityType]' => (string) $activityType->getId(),
+            'activity_form[duration]' => 'other',
+        ]);
+        $client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'Please specify the duration when choosing "Other".');
+    }
+
+    #[Test]
+    public function otherDurationWithAFreeTextValueIsAccepted(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $project = ProjectFactory::createOne();
+        $activityType = ActivityTypeFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+
+        $form = $crawler->selectButton('Save')->form([
+            'activity_form[date]' => '2026-08-11',
+            'activity_form[volunteer]' => (string) $volunteer->getId(),
+            'activity_form[project]' => (string) $project->getId(),
+            'activity_form[activityType]' => (string) $activityType->getId(),
+            'activity_form[duration]' => 'other',
+            'activity_form[durationOther]' => '2.5h',
+        ]);
+        $client->submit($form);
+
+        self::assertResponseRedirects('/activities');
+        $client->followRedirect();
+        self::assertSelectorTextContains('body', '2.5h');
+    }
 }

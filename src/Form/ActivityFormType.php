@@ -14,6 +14,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -47,6 +48,11 @@ final class ActivityFormType extends AbstractType
                 'choice_label' => static fn(ActivityDuration $duration) => $duration->label(),
                 'expanded' => true,
                 'label' => 'Duration',
+            ])
+            ->add('durationOther', TextType::class, [
+                'required' => false,
+                'label' => 'If "Other", specify',
+                'help' => 'Only used when "Other" is selected above — e.g. 1h, 2h, 2.5h.',
             ])
             ->add('notes', TextareaType::class, ['required' => false]);
     }

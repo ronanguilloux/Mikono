@@ -25,7 +25,10 @@ final class ActivityFactory extends PersistentObjectFactory
             'volunteer' => VolunteerFactory::new(),
             'project' => ProjectFactory::new(),
             'activityType' => ActivityTypeFactory::new(),
-            'duration' => self::faker()->randomElement(ActivityDuration::cases()),
+            // Excludes ActivityDuration::Other, which needs a companion
+            // durationOther value — set it explicitly via ->with() when a
+            // test needs an "Other" duration.
+            'duration' => self::faker()->randomElement([ActivityDuration::HalfDay, ActivityDuration::FullDay]),
             'loggedBy' => UserFactory::new(),
         ];
     }

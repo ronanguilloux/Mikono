@@ -1,8 +1,8 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Edit activity — UCESCO Volunteer Manager{% endblock %}
+{% block title %}Edit activity — {{ activity.date|date('j M Y') }} ({{ activity.volunteer.fullName }}) — UCESCO Volunteer Manager{% endblock %}
 
 {% block body %}
-    <h1 class="mb-4 text-xl font-semibold">Edit activity</h1>
+    <h1 class="mb-4 text-xl font-semibold">Edit activity — {{ activity.date|date('j M Y') }} ({{ activity.volunteer.fullName }})</h1>
     {% include 'activity/_form.html.twig' %}
 {% endblock %}

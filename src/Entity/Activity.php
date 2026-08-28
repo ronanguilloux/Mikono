@@ -8,6 +8,7 @@ use App\Enum\ActivityDuration;
 use App\Repository\ActivityRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: ActivityRepository::class)]
 class Activity
@@ -39,6 +40,9 @@ class Activity
     #[ORM\Column(length: 20, enumType: ActivityDuration::class)]
     #[Assert\NotNull]
     private ?ActivityDuration $duration = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $durationOther = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notes = null;
@@ -122,6 +126,28 @@ class Activity
         $this->duration = $duration;
 
         return $this;
+    }
+
+    public function getDurationOther(): ?string
+    {
+        return $this->durationOther;
+    }
+
+    public function setDurationOther(?string $durationOther): static
+    {
+        $this->durationOther = $durationOther;
+
+        return $this;
+    }
+
+    #[Assert\Callback]
+    public function validateDurationOther(ExecutionContextInterface $context): void
+    {
+        if (ActivityDuration::Other === $this->duration && (null === $this->durationOther || '' === trim($this->durationOther))) {
+            $context->buildViolation('Please specify the duration when choosing "Other".')
+                ->atPath('durationOther')
+                ->addViolation();
+        }
     }
 
     public function getNotes(): ?string

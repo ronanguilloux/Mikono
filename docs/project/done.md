@@ -6,6 +6,45 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-08-28 — Activity duration "Other" option
+
+Decision and implementation recorded in
+[ADR 0008](../adr/0008-add-other-activity-duration-with-free-text-companion-field.md).
+
+## 2026-08-27 — P0 UX review fixes
+
+Implemented the six P0 (quick, low-risk) findings from the 2026-08-26
+UX review in [`next-steps.md`](next-steps.md):
+
+- Required-field indicator (`*`) in `templates/form/tailwind_theme.html.twig`'s
+  `form_label` block, driven off the form view's existing `required` var.
+  Fixed a follow-on regression this surfaced: the block bypassed
+  Symfony's `form_label_content` fallback (humanizing the field name
+  when no explicit `label` option is set), so `Activity`'s `date`,
+  `volunteer`, and `project` fields — none of which set a `label`
+  option — rendered with no label text at all, leaving a lone floating
+  `*`. Fixed by delegating to `parent()` in a `form_label_content`
+  override instead of reimplementing label rendering, and by excluding
+  individual `radio`/`checkbox` choice options (via `block_prefixes`)
+  from the asterisk so expanded fields like `Duration` don't repeat it
+  on every option ("Half day \*", "Full day \*").
+- Flash messages gained `role="alert"`/`aria-live="polite"` and an
+  explicit `error`/`warning`/`success` style map in `base.html.twig`,
+  replacing the old binary `label == 'error'` check.
+- Visible focus ring (`focus:ring-2 focus:ring-brand-500`) restored on
+  all text/select/textarea inputs, alongside the existing border-color
+  swap — helps both keyboard users and outdoor/bright-sunlight phone use.
+- Copy consistency: `user/index.html.twig`'s empty state now matches the
+  other 4 CRUD areas' call-to-action phrasing; Activity's edit page
+  title/heading and delete-confirm string now name the date and
+  volunteer instead of the generic "Edit activity"/"Delete this
+  activity entry?", avoiding a wrong-day accidental delete.
+- Nav accessibility: `aria-expanded` on both nav toggles (wired through
+  `nav_controller.js`), `aria-current="page"` on the active nav link,
+  and Escape-to-close on the Settings dropdown.
+- Removed the dead, redundant `sm:hidden` on the mobile nav panel in
+  `base.html.twig` (already always-`hidden`, toggled by JS).
+
 ## 2026-08-26 — Top nav reorder, Panther-based ad-hoc UI screenshots
 
 Reordered the top nav to lead with the frequently-used items

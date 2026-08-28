@@ -14,9 +14,14 @@
 {% block form_label %}
     {% if label is not same as(false) %}
         <label {% if label_attr %}{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}{% endif %} class="mb-1 block text-sm font-medium text-slate-700">
-            {{- label is not same as(false) ? (label|trans(label_translation_parameters, translation_domain)) -}}
+            {{- block('form_label_content') -}}
         </label>
     {% endif %}
+{% endblock %}
+
+{% block form_label_content %}
+    {{- parent() -}}
+    {%- if required and 'radio' not in block_prefixes and 'checkbox' not in block_prefixes %} <span class="text-red-600" aria-hidden="true">*</span>{% endif -%}
 {% endblock %}
 
 {% block form_errors %}
@@ -30,17 +35,17 @@
 {% endblock %}
 
 {% block form_widget_simple %}
-    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none')|trim}) %}
+    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1')|trim}) %}
     {{ parent() }}
 {% endblock %}
 
 {% block textarea_widget %}
-    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none')|trim}) %}
+    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1')|trim}) %}
     {{ parent() }}
 {% endblock %}
 
 {% block choice_widget_collapsed %}
-    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none')|trim}) %}
+    {% set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1')|trim}) %}
     {{ parent() }}
 {% endblock %}
 

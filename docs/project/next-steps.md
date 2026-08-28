@@ -30,31 +30,8 @@ server-rendered Twig + Turbo Drive + native `confirm()` for deletes
 conditions), and plain `<select>` (not JS-searchable) for the Activity
 form's three `EntityType` fields at today's data volumes.
 
-**P0 — quick, low-risk, do anytime:**
-
-- Add a required-field indicator (e.g. `*`) to
-  `templates/form/tailwind_theme.html.twig`'s `form_label` block, driven
-  off the existing `required` form-view var — right now no form
-  distinguishes required from optional fields before submit.
-- Add `role="alert"` and `aria-live="polite"` to the flash-message block
-  in `templates/base.html.twig`, and replace its binary
-  `label == 'error'` color check with an explicit allow-list (a
-  hypothetical `'warning'` flash currently renders as green/success).
-- Restore visible focus styling in `tailwind_theme.html.twig` — inputs
-  use `focus:outline-none` with only a border-color swap, weak both for
-  keyboard users and for outdoor/bright-sunlight phone use in the field.
-- Align copy that's inconsistent across the 5 CRUD areas:
-  `user/index.html.twig`'s empty state (no call-to-action, unlike the
-  other 4), Activity's edit-page title (generic "Edit activity" vs.
-  named entities elsewhere), and Activity's delete-confirm string
-  (generic "Delete this activity entry?" — should include date/volunteer
-  to avoid a wrong-day accidental delete, since the native `confirm()`
-  dialog is the only guard).
-- Add `aria-expanded` (both nav toggles), `aria-current="page"` (active
-  nav link), and Escape-to-close on the Settings dropdown in
-  `assets/controllers/nav_controller.js` / `templates/base.html.twig`.
-- Remove the dead, redundant `sm:hidden` on the mobile nav panel in
-  `templates/base.html.twig` (already always-`hidden`, toggled by JS).
+P0 items (quick, low-risk) are done — see
+[`done.md`](done.md#2026-08-27--p0-ux-review-fixes).
 
 **P1 — moderate, before adoption scales past one user:**
 
