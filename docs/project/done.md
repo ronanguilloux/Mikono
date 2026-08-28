@@ -6,10 +6,35 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-08-28 — Five System-of-Work mockups reviewed and validated
+
+Before touching any Twig for the System of Work initiatives and the P1/P2
+UX-review findings in [`next-steps.md`](next-steps.md), five key screens
+were mocked up as interactive HTML Artifacts and reviewed: the
+work-focused home screen, the batch/group activity logging form, the
+volunteer detail/timeline page, a card-based mobile layout for the
+Activities index, and a Reports dashboard (KPI tiles, top-volunteers
+recognition, tabbed + paginated tables, print-friendly view). All five
+are now validated; the resulting design decisions are recorded directly
+in `next-steps.md` as the implementation-ready spec. No application code
+changed — mockups only.
+
 ## 2026-08-28 — Activity duration "Other" option
 
 Decision and implementation recorded in
 [ADR 0008](../adr/0008-add-other-activity-duration-with-free-text-companion-field.md).
+
+## 2026-08-27 — Dev fixtures: real UCESCO project/activity-type breadth
+
+`src/Story/AppStory.php` gained the projects, activity types, and
+activities observed in the Volunteer Manager's real nightly WhatsApp
+roster messages (clinics, schools, MVETI, orphanage, beach clean-ups,
+home visits, orientation, etc. — see
+[`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md#evidence-from-real-roster-messages-2026-08-27)),
+so dev fixtures and future mockups stop looking like a two-project toy
+dataset ("Bright Achievers" / "Mombasa Youth Centre" only).
+
+Commit: `4b07740`.
 
 ## 2026-08-27 — P0 UX review fixes
 

@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -13,142 +13,170 @@ or `docs/adr`/`docs/brainstorm`.
 
 v0.1 is feature-complete (all five CRUD areas, auth, Reports view,
 functional tests, one Panther E2E smoke test, scoped Infection, and dev
-fixtures — see [`done.md`](done.md)). A full UX review of the Tailwind
-templates has since identified the work below — nothing in it is
-started yet.
+fixtures — see [`done.md`](done.md)). A UX review
+([`docs/brainstorm/`](../brainstorm/) narrative referenced below) and a
+System-of-Work brainstorm together identified the follow-on work in
+this file. Five key screens were then mocked up as interactive HTML
+Artifacts and reviewed (2026-08-28) before any Twig work started — see
+["Validated screen designs"](#validated-screen-designs-2026-08-28-mockup-review)
+below. **All five mockups are now validated. Nothing below has been
+coded yet, but every design decision it depends on has been made** —
+this file is now an implementation-ready spec, not a set of open
+questions.
 
-### UX review findings (2026-08-26)
+### Next step: implement in Twig, in this order
+
+1. Volunteer timeline "show" page (mockup 3) — no schema change, a
+   single new controller action + template, lowest risk.
+2. `Escort` entity + migration (see
+   ["Escort/chaperone capture"](#escortchaperone-capture-needed-before-the-batch-form)
+   below), then the batch/group activity logging form (mockup 2), which
+   depends on it.
+3. Work-focused home screen (mockup 1) — depends on the batch form
+   existing (its "+ Plan activity" / "+ Log activity" buttons link to
+   it) and on `ActivitySummaryCalculator` already providing the
+   stale-check data it needs.
+4. Mobile card layout for the Activities index (mockup 4) — independent
+   of the above, can land any time.
+5. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
+   don't need pagination and can ship on their own; pull in a
+   pagination library once the ADR below is written.
+
+### Validated screen designs (2026-08-28 mockup review)
 
 Reviewed against the app's actual user — a single non-technical
 Volunteer Manager logging activities day-to-day from Kibera/Mombasa,
 who needs to adopt the app fast with no developer on hand (see
 [`docs/brainstorm/02-volunteer-manager-v0.1-context.md`](../brainstorm/02-volunteer-manager-v0.1-context.md)).
-Findings are grouped by priority; each item names the template(s) it
-touches. Two things already work well and should be kept as-is:
-server-rendered Twig + Turbo Drive + native `confirm()` for deletes
-(no SPA/modal payload — well-matched to low-bandwidth field
-conditions), and plain `<select>` (not JS-searchable) for the Activity
-form's three `EntityType` fields at today's data volumes.
+Two things already work well and were kept as-is throughout every
+mockup: server-rendered Twig + Turbo Drive + native `confirm()` for
+deletes, and the app's real brand mark/colors (no placeholder logo).
 
-P0 items (quick, low-risk) are done — see
-[`done.md`](done.md#2026-08-27--p0-ux-review-fixes).
+**1. Work-focused home screen** (`DashboardController`'s `app_home`
+route, replacing the current redirect straight to `report_index`;
+[Mockup: "Roster & Check-Ins"](https://claude.ai/code/artifact/f57fc24b-432e-4fd2-8c33-0efd02f6cf1a)):
 
-**P1 — moderate, before adoption scales past one user:**
+- Center column, top to bottom: **Today's roster** (grouped by project,
+  same shape as Tomorrow's roster below, "+ Log activity" action) then
+  **Needs a check-in** (stale volunteers/projects, sorted worst-first,
+  severity-colored day-count badge: amber 30–50 days, red 50+) — both
+  full width. This differs from the original brainstorm framing (which
+  put Tomorrow's roster front and center): the reviewed layout puts
+  *today's* work first since the rest of the center column is about
+  today, and moves Tomorrow's roster into the side panel instead.
+- Side panel (desktop: right column; mobile: stacks below the center
+  column): **Tomorrow's roster** alone — grouped by project, "Copy as
+  text" reveals a WhatsApp-ready text block (schedule only, no
+  auto-generated greeting — the VM adds their own before sending, per
+  the evidence in
+  [`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md#evidence-from-real-roster-messages-2026-08-27)),
+  with a copy-to-clipboard button and an always-selectable fallback
+  textarea for when clipboard access isn't available.
 
-- Proactively surface the volunteer/project delete-guard message (today
-  only shown as a flash *after* a blocked delete attempt) — an inline
-  note near volunteers/projects with activity history, before delete is
-  attempted, in `templates/volunteer/index.html.twig` and
+**2. Batch/group activity logging form** (new controller action +
+form type;
+[Mockup: "Group Activity Log"](https://claude.ai/code/artifact/189cd039-f694-4a7f-a836-8a96ff89e7c1)):
+
+- Date field: native `<input type="date">` (native browser picker kept
+  intact) plus "Today" / "Tomorrow" quick-set buttons that just prefill
+  the value — the same form is used for logging today and for planning
+  tomorrow's roster.
+- Project / Activity type: plain native `<select>`, unchanged from the
+  existing single-activity form's convention (not JS-searchable at
+  today's data volumes). Inactive options keep the `(inactive)` suffix,
+  same as today.
+- Duration: the same three-option radio group as the existing form
+  (Half day / Full day / Other), with the "Other" free-text input
+  enabled/disabled based on the selected radio.
+- New **"Accompanied by" (escort) field**, optional single-select, one
+  per batch session — needs the `Escort` entity first (below).
+- **Attendee picker — a deliberate scope increase over the existing
+  single-`<select>` convention**: selected volunteers show as removable
+  chips, with a search box below offering filtered autocomplete
+  (keyboard: ↑/↓ to highlight, Enter to add) to add more. Inactive
+  volunteers appear in results with a muted "Inactive" pill instead of
+  the current form's plain `(inactive)` text suffix. This was
+  explicitly requested during review — a native `<select multiple>` or
+  a long checkbox list doesn't scale to fast repetitive logging as the
+  volunteer list grows. Needs a small Stimulus controller, not plain
+  HTML.
+- Live feedback: "N volunteers selected" and "This will create N
+  activity entries — one per volunteer selected, all sharing this date,
+  project, type and duration."
+- Actions: **Save**, **Save and add another**, and Cancel.
+
+**3. Volunteer detail/timeline "show" page** (new `volunteer_show`
+route + template — the one CRUD area still missing a show view;
+[Mockup: "Volunteer Timeline"](https://claude.ai/code/artifact/b8d7d2fa-60ab-4a79-9e3d-20f9da58bb8b)):
+
+- Header: full name, Active/Inactive status pill, "Volunteer since
+  {createdAt}", Edit + Log activity actions.
+- "At a glance" card: email; phone with a non-blocking "+ Add" nudge
+  when missing (never a blocking validation error); activities logged;
+  total days; most-recent-activity date, tagged **"Planned"** when that
+  date is in the future — this surfaces, in the UI, the future-dated-row
+  trade-off already accepted in the System of Work brainstorm (a
+  planned row briefly counts toward `mostRecent`/`totalDays`) instead of
+  leaving it only as a footnote.
+- Notes card (the `notes` field, surfaced instead of write-once/
+  never-seen-again) with an inline "Edit" link.
+- Reverse-chronological activity timeline; planned (future-dated)
+  entries get a visually distinct hollow marker instead of the solid
+  one past entries get.
+
+**4. Mobile card layout for the Activities index**
+([Mockup: "Cards vs. Scroll"](https://claude.ai/code/artifact/723b8a40-5356-4746-afb0-23399abd5448)):
+below a breakpoint,
+replace the horizontal-scroll table with a card per activity — date +
+duration pill on top, volunteer name prominent, "Project · Activity
+type" as a secondary line, Edit/Delete as plain text links. **Desktop
+keeps the existing horizontal-scroll table unchanged** — this is a
+mobile-only swap, not a replacement. Mobile nav (hamburger) itself is
+out of scope here — already reviewed as working well.
+
+**5. Reports dashboard**
+([Mockup: "Reports Dashboard"](https://claude.ai/code/artifact/37d624b5-2d29-4224-9471-c4dcde7125ab)):
+KPI tiles (Volunteers, Projects, Activities
+logged, Total days contributed) above the existing content; a "Top
+volunteers" recognition card (top 5 by total days, medal styling for
+the top 3, built from `summarizeByVolunteer()`'s already-produced
+data); the existing "By volunteer" / "By project" tables become tabs
+over one shared table region with a page-size selector (25 / 50 / 100 /
+All) and windowed-ellipsis pagination controls — validated visually at
+both today's small scale and the hypothetical `« 1 2 3 … 66 67 »`
+large-scale case (see
+["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27)
+below); a "Print-friendly view" button (`window.print()` + `@media
+print` rules hiding the app chrome).
+
+### Escort/chaperone capture (needed before the batch form)
+
+Confirmed by Edna's real nightly roster messages (2026-08-27), which
+each name one staff member who accompanied volunteers per project per
+day ("Accompanied by Mr Maeba") — nothing today captures this, and it's
+used throughout mockups 1 and 2 above. Add a new `Escort` lookup entity
+(id/name/`isActive`, same shape as `ActivityType`) as a 6th CRUD area
+under Settings; add a nullable `Activity::$accompaniedBy` (`ManyToOne`
+→ `Escort`) set once per batch-logged session and applied to every row
+it creates. Needs a migration and a new CRUD area, no new
+infrastructure — full reasoning in
+[`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md#evidence-from-real-roster-messages-2026-08-27).
+
+### Not yet mocked — still open
+
+Two UX-review findings weren't part of the five priority mockups and
+still need their own design pass before implementation:
+
+- Proactively surface the volunteer/project delete-guard message
+  (today only shown as a flash *after* a blocked delete attempt) — an
+  inline note near volunteers/projects with activity history, before
+  delete is attempted, in `templates/volunteer/index.html.twig` and
   `templates/project/index.html.twig`.
-- Visually de-emphasize inactive volunteers/projects in the Activity
-  form's selects (`templates/activity/_form.html.twig`) — currently only
-  a `" (inactive)"` text suffix, easy to mis-pick during fast repetitive
-  logging.
-- Add a "Save and add another" option to the Activity form — the
-  worked example this app is built around is logging several activities
-  in one sitting; this is the single highest-leverage speed win for the
-  daily task.
-- Reuse the `<twig:DataTable>` component in
-  `templates/report/index.html.twig` instead of its current
-  hand-duplicated table macro.
-
-**P2 — larger/structural, wants a mockup reaction first:**
-
-- A responsive strategy for wide tables on mobile (Activity's index has
-  5 data columns + actions; today it's horizontal-scroll only) — likely
-  a card-based layout below a breakpoint.
-- Pagination on index pages once data volume grows — every index
-  currently loads the full result set; fine today, will slow down over
-  a weak mobile connection as activity history accumulates. A concrete
-  unified direction (tabs + pagination pattern, applied to all six list
-  views) is captured below in
-  ["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27).
 - Enforce/highlight Project's conditional `partnerOrganizationName`
   requirement (currently static help text only) — needs light JS or a
   LiveComponent, more than a template tweak.
-- A Reports/dashboard redesign (stat tiles/KPIs vs. the current two
-  plain tables), if richer reporting is wanted.
 
-### System of Work initiatives (2026-08-26)
-
-v0.1 built a System of Record — CRUD plus a historical report. The real
-goal is a System of Work: the app should actively help the VM do their
-job, not just archive data about it. That means serving two temporal
-directions: **looking back** at a long history of already-logged
-activity (stale volunteers/projects, recognition), and **looking
-forward** at a short, high-stakes plan — the VM almost always plans at
-least the next morning's handful of activities ahead of time, then
-manually types that up as a roster message sent to volunteers over
-WhatsApp. Full reasoning (audience, desired impact, rejected
-alternatives) is captured in
-[`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md);
-this is the resulting action list. These are additive to, not a
-replacement for, the UX-review tiers above.
-
-**Buildable now, no new infrastructure:**
-
-- A work-focused home screen replacing the current plain Reports landing
-  (`DashboardController` redirects `app_home` → `report_index` today) —
-  surfaces volunteers/projects whose most-recent-activity date (already
-  computed by `ActivitySummaryCalculator::summarize()`) is stale beyond
-  a threshold, as an actionable "needs a check-in" list. Historical
-  breakdown moves to a secondary view, not removed.
-- Batch/group activity logging — a form variant matching how the work
-  actually happens (one session: one date/project/activity
-  type/duration, several volunteers at once) instead of one
-  single-volunteer submission per person. Needs only a multi-select
-  `Volunteer` field plus a controller loop — no LiveComponent or new JS.
-- A volunteer detail/timeline "show" page — none of the 5 CRUD areas has
-  one today (only index/new/edit); surfaces activity history and notes
-  at a glance, turning `Volunteer` into an actual lightweight CRM
-  record.
-- Surfacing the `notes` field (already on `Volunteer` and `Project`)
-  somewhere it's seen again after entry — today it's captured once and
-  then invisible.
-- Opportunistic data-completeness nudges — flag volunteers missing
-  phone/email inline, without turning these legitimately-optional
-  fields into blocking validation errors.
-- A "top volunteers this period" recognition view, built from data
-  `summarizeByVolunteer()` already produces — supports actively
-  thanking/retaining volunteers, not just recording their hours.
-- Print-friendly report styling (`@media print` CSS only, no new
-  dependency) so the existing Reports view can go straight to a donor
-  or UCESCO leadership without a separate export step.
-- **Tomorrow's roster** — a view filtered to `Activity` rows dated
-  tomorrow (or the next few days), grouped by project, with a one-click
-  "copy as text" block formatted for pasting straight into WhatsApp.
-  Needs zero schema change: `Activity.date` is already unconstrained,
-  so planning tomorrow is just the batch/group logging form above used
-  with a future date, plus a new query method and the copy-to-clipboard
-  affordance (a small Stimulus controller). Corrections (no-show, plan
-  changed) reuse the existing edit/delete flow, same as fixing a past
-  logging mistake — no new "confirm/cancel" workflow needed. One
-  accepted trade-off worth documenting rather than silently living
-  with: a future-dated row briefly counts toward `totalDays`/
-  `mostRecent` in the historical summary before that day actually
-  happens — minor and self-correcting given the short lookahead, not
-  worth a status field.
-- **Escort/chaperone capture** — confirmed by Edna's real nightly
-  roster messages (2026-08-27), which each name one staff member who
-  accompanied volunteers per project per day ("Accompanied by Mr
-  Maeba") — nothing today captures this. Add a new `Escort` lookup
-  entity (id/name/`isActive`, same shape as `ActivityType`) as a 6th
-  CRUD area under Settings; add a nullable `Activity::$accompaniedBy`
-  (`ManyToOne` → `Escort`) set once per batch-logged session (the
-  batch/group logging form above) and applied to every row it creates;
-  surface it back out as the "Accompanied by ..." line in Tomorrow's
-  roster's copy-as-text block. Needs a migration and a new CRUD area,
-  but no new infrastructure — full reasoning in
-  [`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md#evidence-from-real-roster-messages-2026-08-27).
-
-Also confirmed by those same messages: dev fixtures
-(`src/Story/AppStory.php`) were expanded to seed the real breadth of
-UCESCO's projects and activity types (clinics, schools, MVETI,
-orphanage, beach clean-ups, home visits, orientation, etc.), so the
-mockups below can draw on realistic project names instead of just
-"Bright Achievers" / "Mombasa Youth Centre".
-
-**Flagged for a future ADR (needs new infrastructure, not buildable as-is):**
+### Flagged for a future ADR (needs new infrastructure, not buildable as-is)
 
 - Automated stale-volunteer check-in reminders — the natural next step
   after the home screen above, but needs an outbound channel. Given the
@@ -173,18 +201,13 @@ Scoped as one shared pattern, not a Reports-only fix — it applies to all
 six list views: the Volunteer, Project, ActivityType, Activity, and User
 index pages, plus both tables on the Reports page. None of these paginate
 today; all five simple-list controllers call `findAllOrderedByName()` /
-`findAllOrderedByDateDesc()` / `findBy([], ...)` with no `Request` param,
-and `templates/report/index.html.twig` stacks its two "By Volunteer" /
-"By Project" tables vertically with no tabs.
+`findAllOrderedByDateDesc()` / `findBy([], ...)` with no `Request` param.
+The Reports page's own tabbed + paginated treatment was mocked up and
+validated as part of mockup 5 above (page-size selector, windowed page
+numbers including the large-scale ellipsis case) — what follows is the
+technical pagination-mechanism decision, still open, for wiring that
+validated UI up to real data across all six views:
 
-- **Reports tabs**: "By Volunteer" / "By Project" become two tabs over a
-  single `<turbo-frame>` — switching tabs is a normal link Turbo
-  intercepts and loads only into that frame, no full-page reload and no
-  new JS dependency. The pagination controls and page-size selector live
-  *inside* that same frame, so paging and changing page-size are also
-  frame-scoped Turbo navigations for free — the same mechanism already
-  proven at the Turbo Drive level elsewhere in the app, just Turbo Frames
-  instead of full-page Drive nav for this one contained region.
 - **Page-size control**: a `perPage` query param offering 25 / 50 / 100 /
   All (default 25), identical on every list view.
 - **Page navigation UI**: windowed numbered pages with ellipsis
@@ -245,41 +268,7 @@ and `templates/report/index.html.twig` stacks its two "By Volunteer" /
   actual pick still belongs in an ADR once this is picked up for
   implementation.
 - **Not decided here**: which library, and exactly how the pagination
-  object plugs into `DataTable` — left to that ADR plus the mockup step
-  below.
-
-### Next step: mock up key screens as an Artifact before touching Twig
-
-Before implementing any of the above, mock up the following as
-interactive HTML Artifacts (not code) so they can be reacted to
-visually first, in priority order — the System of Work items now lead,
-since they carry the bigger impact:
-
-1. **The work-focused home screen** — mock both temporal directions
-   together: **Tomorrow's roster** (grouped by project, with the
-   copy-as-WhatsApp-text affordance) front and center as the
-   highest-frequency daily action, alongside the "needs a check-in"
-   list (stale volunteers/projects) — since this is the screen the VM
-   would see first every day.
-2. **Batch activity/roster logging form** — mock the shared
-   group-session flow (one date/project/type/duration, multi-select
-   volunteers) used for both planning tomorrow and logging a past
-   session, together with the "Save and add another" idea and the
-   de-emphasized-inactive select treatment from the UX review, since
-   all three target this one screen.
-3. **Volunteer detail/timeline page** — mock the missing "show" view:
-   notes, activity history, and total days at a glance.
-4. **Mobile index + nav** — mock a card-based alternative to the wide
-   Activity table at a phone viewport, side-by-side with the current
-   horizontal-scroll behavior.
-5. **Reports/dashboard** (optional) — mock a stat-tile/KPI alternative
-   to the current two-plain-tables layout, plus the "top volunteers"
-   recognition view, only if richer reporting is wanted. If picked up,
-   also mock the tabbed + paginated Reports view from
-   ["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27)
-   above — both the page-size selector and the windowed page numbers —
-   so the pattern can be reacted to visually before it's built out across
-   the other five index pages too.
+  object plugs into `DataTable` — both still open, for the ADR.
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 
