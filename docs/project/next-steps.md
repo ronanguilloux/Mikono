@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-08-26
+**Last updated:** 2026-08-27
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -59,7 +59,10 @@ P0 items (quick, low-risk) are done — see
   a card-based layout below a breakpoint.
 - Pagination on index pages once data volume grows — every index
   currently loads the full result set; fine today, will slow down over
-  a weak mobile connection as activity history accumulates.
+  a weak mobile connection as activity history accumulates. A concrete
+  unified direction (tabs + pagination pattern, applied to all six list
+  views) is captured below in
+  ["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27).
 - Enforce/highlight Project's conditional `partnerOrganizationName`
   requirement (currently static help text only) — needs light JS or a
   LiveComponent, more than a template tweak.
@@ -164,6 +167,87 @@ mockups below can draw on realistic project names instead of just
   bottleneck, not preemptively (API costs, volunteer opt-in/consent,
   message-template approval all apply).
 
+### Reports tabs + unified pagination design (2026-08-27)
+
+Scoped as one shared pattern, not a Reports-only fix — it applies to all
+six list views: the Volunteer, Project, ActivityType, Activity, and User
+index pages, plus both tables on the Reports page. None of these paginate
+today; all five simple-list controllers call `findAllOrderedByName()` /
+`findAllOrderedByDateDesc()` / `findBy([], ...)` with no `Request` param,
+and `templates/report/index.html.twig` stacks its two "By Volunteer" /
+"By Project" tables vertically with no tabs.
+
+- **Reports tabs**: "By Volunteer" / "By Project" become two tabs over a
+  single `<turbo-frame>` — switching tabs is a normal link Turbo
+  intercepts and loads only into that frame, no full-page reload and no
+  new JS dependency. The pagination controls and page-size selector live
+  *inside* that same frame, so paging and changing page-size are also
+  frame-scoped Turbo navigations for free — the same mechanism already
+  proven at the Turbo Drive level elsewhere in the app, just Turbo Frames
+  instead of full-page Drive nav for this one contained region.
+- **Page-size control**: a `perPage` query param offering 25 / 50 / 100 /
+  All (default 25), identical on every list view.
+- **Page navigation UI**: windowed numbered pages with ellipsis
+  truncation (e.g. `« 1 2 3 … 66 67 »`) — always show first/last page, a
+  small window around the current page, prev/next arrows, and collapse
+  the rest behind `…`. This is the standard accessible pattern for long
+  paginated lists and is what makes browsing "67 pages at 25-per-page vs.
+  fewer pages at 50/100" tractable.
+- **Rendering**: extend the shared `DataTable` TwigComponent
+  (`src/Twig/Components/DataTable.php` /
+  `templates/components/DataTable.html.twig`) to optionally accept a
+  pagination summary (current page, total pages, perPage, total count)
+  and render the controls, rather than hand-rolling pagination markup per
+  template — it's already the one reused abstraction across every CRUD
+  index page.
+- **Pagination mechanism — comparison for a future ADR** (per this
+  project's "every non-trivial architectural decision gets an ADR"
+  convention — not decided here):
+
+  *Hand-rolled* (Doctrine `LIMIT`/`OFFSET` or ORM `Paginator` in each
+  repository, plus a small shared `PaginatedResult`-style value object
+  that both DB-backed lists and the Report's in-memory
+  `summarizeByVolunteer()`/`summarizeByProject()` arrays populate the same
+  way):
+  - \+ no new dependency; matches this project's default stance and its
+    established pattern for wiring a contrib package by hand
+    (`dama/doctrine-test-bundle`, despite `allow-contrib: false`) instead
+    of avoiding contrib packages outright.
+  - \+ full control, minimal surface for a 6-screen app.
+  - − windowed/ellipsis page-number rendering is fiddly to get right by
+    hand (off-by-one edge cases at both ends) and would need to be built
+    and tested from scratch.
+  - − no free sortable-column support if that's ever wanted later.
+
+  *KnpPaginatorBundle* (`knplabs/knp-paginator-bundle`):
+  - \+ `paginate()` accepts a Doctrine `Query`/`QueryBuilder` **or a
+    plain array**, so it already unifies the DB-backed lists and the
+    Report's in-memory summary arrays under one call — the "one unified
+    solution" goal, without a bespoke value object.
+  - \+ ships a windowed/ellipsis pagination Twig template out of the
+    box — precisely the "best UI/UX" piece being asked for here,
+    pre-built and battle-tested rather than hand-rolled.
+  - \+ optional sortable-column helper (`knp_pagination_sortable()`) if
+    column sorting is ever wanted, at no extra cost.
+  - − a new dependency; its default templates are
+    Bootstrap/Foundation-flavored and would need a custom Tailwind
+    template override (a supported, documented customization point, not
+    a hack).
+  - − its Flex recipe would be ignored by this project's
+    `allow-contrib: false`, so it needs the same manual-wiring treatment
+    already proven for `dama/doctrine-test-bundle`.
+
+  **Leaning recommendation for the ADR**: KnpPaginatorBundle — it directly
+  solves the hardest part of this ask (correct windowed pagination UI)
+  with a maintained implementation instead of a hand-rolled one, and this
+  project's own convention already accommodates wiring a contrib package
+  by hand rather than ruling it out. This is a recommendation only; the
+  actual pick still belongs in an ADR once this is picked up for
+  implementation.
+- **Not decided here**: which library, and exactly how the pagination
+  object plugs into `DataTable` — left to that ADR plus the mockup step
+  below.
+
 ### Next step: mock up key screens as an Artifact before touching Twig
 
 Before implementing any of the above, mock up the following as
@@ -190,7 +274,12 @@ since they carry the bigger impact:
    horizontal-scroll behavior.
 5. **Reports/dashboard** (optional) — mock a stat-tile/KPI alternative
    to the current two-plain-tables layout, plus the "top volunteers"
-   recognition view, only if richer reporting is wanted.
+   recognition view, only if richer reporting is wanted. If picked up,
+   also mock the tabbed + paginated Reports view from
+   ["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27)
+   above — both the page-size selector and the windowed page numbers —
+   so the pattern can be reacted to visually before it's built out across
+   the other five index pages too.
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 
