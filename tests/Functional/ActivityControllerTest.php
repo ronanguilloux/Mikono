@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Entity\Activity;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
@@ -11,6 +12,7 @@ use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use App\Enum\ProjectLocation;
 use PHPUnit\Framework\Attributes\Test;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
@@ -40,6 +42,21 @@ final class ActivityControllerTest extends WebTestCase
         );
     }
 
+    /**
+     * Re-reads an Activity through a cleared entity manager. The manager
+     * still holds the pre-submission object in its identity map, so a
+     * plain find() after a form submission can hand back stale state.
+     */
+    private function reloadActivity(KernelBrowser $client, int $id): Activity
+    {
+        $manager = $client->getContainer()->get('doctrine')->getManager();
+        $manager->clear();
+        $activity = $manager->getRepository(Activity::class)->find($id);
+        self::assertInstanceOf(Activity::class, $activity);
+
+        return $activity;
+    }
+
     #[Test]
     public function theBrightAchieversWorkedExampleCanBeLoggedEndToEnd(): void
     {
@@ -51,6 +68,7 @@ final class ActivityControllerTest extends WebTestCase
             'partnerOrganizationName' => 'Bright Achievers High School',
         ]);
         $activityType = ActivityTypeFactory::createOne(['name' => 'Computer lessons']);
+        $escort = EscortFactory::createOne(['name' => 'Mr Maeba']);
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/activities/new');
 
@@ -60,6 +78,7 @@ final class ActivityControllerTest extends WebTestCase
             'activity_form[project]' => (string) $project->getId(),
             'activity_form[activityType]' => (string) $activityType->getId(),
             'activity_form[duration]' => 'full_day',
+            'activity_form[accompaniedBy]' => (string) $escort->getId(),
             'activity_form[notes]' => 'Delivered Computer lessons to students',
         ]);
         $client->submit($form);
@@ -70,6 +89,12 @@ final class ActivityControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Bright Achievers');
         self::assertSelectorTextContains('body', 'Computer lessons');
         self::assertSelectorTextContains('body', 'Full day');
+
+        $loggedActivity = $client->getContainer()->get('doctrine')->getRepository(Activity::class)->findOneBy([]);
+        self::assertInstanceOf(Activity::class, $loggedActivity);
+        $loggedEscort = $loggedActivity->getAccompaniedBy();
+        self::assertNotNull($loggedEscort);
+        self::assertSame('Mr Maeba', $loggedEscort->getName());
 
         $client->request('GET', '/reports');
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
@@ -96,7 +121,7 @@ final class ActivityControllerTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        $activityRepository = $client->getContainer()->get('doctrine')->getRepository(\App\Entity\Activity::class);
+        $activityRepository = $client->getContainer()->get('doctrine')->getRepository(Activity::class);
         $activityId = $activityRepository->findOneBy([])->getId();
 
         $client->loginUser($editor);
@@ -108,6 +133,47 @@ final class ActivityControllerTest extends WebTestCase
 
         $activity = $activityRepository->find($activityId);
         self::assertSame('Original Logger', $activity->getLoggedBy()->getFullName());
+    }
+
+    #[Test]
+    public function escortCanBeSetAndClearedFromTheSingleActivityEditForm(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $project = ProjectFactory::createOne();
+        $activityType = ActivityTypeFactory::createOne();
+        $escort = EscortFactory::createOne(['name' => 'Mr Maeba']);
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+        $form = $crawler->selectButton('Save')->form([
+            'activity_form[date]' => '2026-08-11',
+            'activity_form[volunteer]' => (string) $volunteer->getId(),
+            'activity_form[project]' => (string) $project->getId(),
+            'activity_form[activityType]' => (string) $activityType->getId(),
+            'activity_form[duration]' => 'half_day',
+        ]);
+        $client->submit($form);
+
+        $logged = $client->getContainer()->get('doctrine')->getRepository(Activity::class)->findOneBy([]);
+        self::assertInstanceOf(Activity::class, $logged);
+        $activityId = (int) $logged->getId();
+        self::assertNull($logged->getAccompaniedBy());
+
+        $crawler = $client->request('GET', "/activities/{$activityId}/edit");
+        $client->submit($crawler->selectButton('Save')->form([
+            'activity_form[accompaniedBy]' => (string) $escort->getId(),
+        ]));
+
+        $activityEscort = $this->reloadActivity($client, $activityId)->getAccompaniedBy();
+        self::assertNotNull($activityEscort);
+        self::assertSame('Mr Maeba', $activityEscort->getName());
+
+        $crawler = $client->request('GET', "/activities/{$activityId}/edit");
+        $client->submit($crawler->selectButton('Save')->form([
+            'activity_form[accompaniedBy]' => '',
+        ]));
+
+        self::assertNull($this->reloadActivity($client, $activityId)->getAccompaniedBy());
     }
 
     #[Test]
@@ -184,7 +250,7 @@ final class ActivityControllerTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'Logged 2 activities');
 
-        $activityRepository = $client->getContainer()->get('doctrine')->getRepository(\App\Entity\Activity::class);
+        $activityRepository = $client->getContainer()->get('doctrine')->getRepository(Activity::class);
         $activities = $activityRepository->findAll();
         self::assertCount(2, $activities);
         foreach ($activities as $activity) {

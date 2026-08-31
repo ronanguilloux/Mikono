@@ -6,6 +6,36 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-08-31 — Escort as a field on the single-activity forms
+
+Write-path parity for `Activity::$accompaniedBy`, which until now could
+only be set from the batch form: `ActivityFormType` (used by both
+`/activities/new` and `/activities/{id}/edit`) gained the same optional
+`accompaniedBy` `EntityType` — escorts ordered by name, `— No escort
+recorded —` placeholder, label "Accompanied by" — placed between the
+duration fields and `notes`. It binds to the `accompaniedBy` property
+directly, where the batch form's equivalent field is called `escort`
+because it's backed by `BatchActivityInput` rather than the entity. No
+entity, migration, controller or template change was needed; the shared
+Tailwind form theme renders it.
+
+Two `ActivityControllerTest` cases cover it: the Bright Achievers worked
+example now logs an escort and asserts it persisted, and a new
+`escortCanBeSetAndClearedFromTheSingleActivityEditForm` walks the edit
+round-trip — logged with no escort, corrected to one, then cleared back
+to none. That second case needed a `reloadActivity()` helper that clears
+the entity manager first: the manager the test holds keeps the
+pre-submission object in its identity map, so a plain `find()` after a
+form submission silently returned the stale escort and the clear step
+looked like it had failed. The new `query_builder` closure adds one more
+occurrence of the untyped-`$repo` PHPStan pattern already baselined for
+this file (and for `BatchActivityFormType`), so two baseline counts went
+3 → 4.
+
+Reading escort back out — an Activities-index column, mobile-card line,
+or per-escort report — remains deliberately unbuilt and undesigned; see
+next-steps.md's "Escort display and reporting".
+
 ## 2026-08-31 — Batch/group activity logging form (mockup 2)
 
 Second half of next-steps.md's item 1, now the batch/group activity

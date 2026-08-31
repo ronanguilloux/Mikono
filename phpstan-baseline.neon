@@ -123,13 +123,13 @@ parameters:
 		-
 			message: '#^Cannot call method createQueryBuilder\(\) on mixed\.$#'
 			identifier: method.nonObject
-			count: 3
+			count: 4
 			path: src/Form/ActivityFormType.php
 
 		-
 			message: '#^Cannot call method orderBy\(\) on mixed\.$#'
 			identifier: method.nonObject
-			count: 3
+			count: 4
 			path: src/Form/ActivityFormType.php
 
 		-

@@ -6,6 +6,7 @@ namespace App\Form;
 
 use App\Entity\Activity;
 use App\Entity\ActivityType;
+use App\Entity\Escort;
 use App\Entity\Project;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
@@ -53,6 +54,14 @@ final class ActivityFormType extends AbstractType
                 'required' => false,
                 'label' => 'If "Other", specify',
                 'help' => 'Only used when "Other" is selected above — e.g. 1h, 2h, 2.5h.',
+            ])
+            ->add('accompaniedBy', EntityType::class, [
+                'class' => Escort::class,
+                'choice_label' => 'name',
+                'query_builder' => static fn($repo) => $repo->createQueryBuilder('e')->orderBy('e.name', 'ASC'),
+                'placeholder' => '— No escort recorded —',
+                'required' => false,
+                'label' => 'Accompanied by',
             ])
             ->add('notes', TextareaType::class, ['required' => false]);
     }
