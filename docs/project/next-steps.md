@@ -19,21 +19,20 @@ System-of-Work brainstorm together identified the follow-on work in
 this file. Five key screens were then mocked up as interactive HTML
 Artifacts and reviewed (2026-08-28) before any Twig work started — see
 ["Validated screen designs"](#validated-screen-designs-2026-08-28-mockup-review)
-below. **All five mockups were validated; mockups 1 and 2 (the
-work-focused home screen and the batch/group activity logging form)
-have since shipped** (`done.md`, 2026-08-31) and have been removed from
-this file, as has the escort write-path parity fix that followed
-(`done.md`, same date). Mockups 4 and 5 remain, and are
-implementation-ready specs rather than open questions. Three things
+below. **All five mockups were validated; mockups 1, 2 and 4 (the
+work-focused home screen, the batch/group activity logging form, and the
+Activities index mobile card layout) have since shipped** (`done.md`,
+2026-08-31) and have been removed from this file, as has the escort
+write-path parity fix that followed (`done.md`, same date). Mockup 5
+remains, and is an implementation-ready spec rather than an open
+question. Three things
 are still genuinely undecided and are marked as such where they
 appear: escort display/reporting, the two "not yet mocked" UX-review
 findings, and the pagination mechanism (which needs an ADR).
 
-### Next step: implement in Twig, in this order
+### Next step: implement in Twig
 
-1. Mobile card layout for the Activities index (mockup 4) — independent
-   of everything else, can land any time.
-2. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
+1. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
    don't need pagination and can ship on their own; pull in a
    pagination library once the ADR below is written.
 
@@ -46,16 +45,6 @@ who needs to adopt the app fast with no developer on hand (see
 Two things already work well and were kept as-is throughout every
 mockup: server-rendered Twig + Turbo Drive + native `confirm()` for
 deletes, and the app's real brand mark/colors (no placeholder logo).
-
-**4. Mobile card layout for the Activities index**
-([Mockup: "Cards vs. Scroll"](https://claude.ai/code/artifact/723b8a40-5356-4746-afb0-23399abd5448)):
-below a breakpoint,
-replace the horizontal-scroll table with a card per activity — date +
-duration pill on top, volunteer name prominent, "Project · Activity
-type" as a secondary line, Edit/Delete as plain text links. **Desktop
-keeps the existing horizontal-scroll table unchanged** — this is a
-mobile-only swap, not a replacement. Mobile nav (hamburger) itself is
-out of scope here — already reviewed as working well.
 
 **5. Reports dashboard**
 ([Mockup: "Reports Dashboard"](https://claude.ai/code/artifact/37d624b5-2d29-4224-9471-c4dcde7125ab)):
@@ -91,9 +80,10 @@ need their own design pass before implementation:
   the 2026-08-28 mockup review.
   - The **Activities index** (`templates/activity/index.html.twig`)
     shows no escort column. Worth a 6th column given the table already
-    scrolls horizontally on mobile — or is escort better left to the
-    edit form? Interacts with mockup 4's mobile card layout, which
-    would also need a line for it.
+    scrolls horizontally on desktop — or is escort better left to the
+    edit form? The mobile card layout shipped without it (`done.md`,
+    2026-08-31) precisely because this is still open: answering "yes"
+    means both a 6th table column *and* a fourth line on the card.
   - **Reports** (`ActivitySummaryCalculator`, `/reports`) don't break
     anything down by escort. Whether "days accompanied per escort" is
     a report the VM actually wants is unvalidated — worth asking before

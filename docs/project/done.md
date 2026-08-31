@@ -6,6 +6,62 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-08-31 — Mobile card layout for the Activities index (mockup 4)
+
+Below `md` (768px), `templates/activity/index.html.twig` now renders one
+card per activity instead of the horizontally-scrolling table: date (plus
+a `· Planned` tag on future-dated rows, in brand colour) and the duration
+pill on the top line, volunteer name prominent, `Project · Activity type`
+as a secondary line, Edit/Delete as plain text links. **The desktop table
+is unchanged** — this is a mobile-only swap, exactly as the 2026-08-28
+mockup review validated it. Both renderings ship in every response and
+CSS picks one (`hidden md:block` / `md:hidden`), so only one is ever in
+the accessibility tree.
+
+The breakpoint is `md` (768px), not the `sm` the nav hamburger uses: the
+two swaps answer different questions — the nav swaps when the header runs
+out of room, the table swaps when six columns stop fitting. Measured in
+headless Chrome against the seeded worst case ("UCESCO Mombasa Youth
+Centre" × "Vocational training support"), the table's own width:
+
+| viewport | table behaviour              |
+| -------- | ---------------------------- |
+| 414px    | scrolls sideways (+236px)    |
+| 640px    | scrolls sideways (+10px)     |
+| 700px    | fits, cells wrap to 3 lines  |
+| 768px    | fits, cells wrap             |
+| 900px    | fits, cells wrap to 2 lines  |
+| ≥1024px  | one line per row             |
+
+Sideways scroll — the thing the cards exist to kill — stops at roughly
+650px, so `sm` (640px) sits just on the wrong side of it and has no margin
+for a project name longer than today's longest. `md` clears it with ~120px
+to spare. Above `md` the table degrades gracefully (it wraps, it doesn't
+scroll), so the wrapped 768–1023px band is an acceptable middle rather than
+a second failure. If that band ever feels cramped, the honest next move is
+`lg` plus a two-column card grid — but that goes beyond what the mockup
+review validated, so it wasn't done pre-emptively.
+
+Supporting changes:
+
+- `templates/components/RowActions.html.twig` — new anonymous
+  TwigComponent holding the Edit link and the CSRF-protected,
+  `data-turbo-confirm`-guarded Delete form. `DataTable` and the card list
+  both render it (only the classes differ, via props), so the delete
+  path can't drift between the two.
+- `ActivityController::index()` adds a `planned` boolean per row,
+  deliberately outside `DataTable`'s own `cells`/`actions` row shape,
+  which ignores it. That keeps the "planned" tag card-only rather than
+  changing the desktop date column.
+- Two functional tests: one asserting both renderings coexist (table rows
+  *and* cards, each card carrying a real POST delete token), one
+  asserting only the future-dated card is tagged `Planned`.
+
+Escort is still absent from both the table and the cards — *where* escort
+should be read back out remains open in
+[`next-steps.md`](next-steps.md), and this change deliberately didn't
+pre-empt it.
+
 ## 2026-08-31 — Activity forms only offer active volunteers
 
 Both activity-logging forms listed every volunteer, active or not, and

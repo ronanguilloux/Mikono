@@ -31,11 +31,19 @@ final class ActivityController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
     {
+        $today = new \DateTimeImmutable('today');
+
         $rows = [];
         foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
+            $date = $activity->getDate();
             $rows[] = [
+                // Extra to DataTable's own row shape, which ignores it: the
+                // mobile card list tags future-dated rows as planned, the way
+                // the home screen's tomorrow roster does. The desktop table
+                // stays exactly as it was.
+                'planned' => null !== $date && $date > $today,
                 'cells' => [
-                    'date' => $activity->getDate()?->format('D j M Y') ?? '—',
+                    'date' => $date?->format('D j M Y') ?? '—',
                     'volunteer' => $activity->getVolunteer()?->getFullName() ?? '—',
                     'project' => $activity->getProject()?->getName() ?? '—',
                     'activityType' => $activity->getActivityType()?->getName() ?? '—',
@@ -51,7 +59,7 @@ final class ActivityController extends AbstractController
                         'method' => 'post',
                         'confirm' => sprintf(
                             'Delete the %s activity for %s?',
-                            $activity->getDate()?->format('j M Y') ?? 'undated',
+                            $date?->format('j M Y') ?? 'undated',
                             $activity->getVolunteer()?->getFullName() ?? 'unknown volunteer',
                         ),
                         'csrfToken' => $this->csrfToken($activity),

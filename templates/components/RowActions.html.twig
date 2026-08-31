@@ -1,0 +1,27 @@
+{#
+    Edit/Delete links for one row, shared by the DataTable (desktop) and
+    the Activities mobile card list. Extracted so the CSRF token and the
+    Turbo delete confirmation can't drift between the two renderings —
+    only the styling differs, via the class props.
+#}
+{% props
+    actions = [],
+    linkClass = 'text-slate-700 hover:underline',
+    buttonClass = 'text-red-700 hover:underline'
+%}
+
+{% for action in actions %}
+    {% if action.method|default('get') == 'get' %}
+        <a href="{{ action.url }}" class="{{ linkClass }}">{{ action.label }}</a>
+    {% else %}
+        <form
+            method="post"
+            action="{{ action.url }}"
+            class="inline"
+            {% if action.confirm is defined %}data-turbo-confirm="{{ action.confirm }}"{% endif %}
+        >
+            <input type="hidden" name="_token" value="{{ action.csrfToken }}">
+            <button type="submit" class="{{ buttonClass }}">{{ action.label }}</button>
+        </form>
+    {% endif %}
+{% endfor %}

@@ -21,5 +21,45 @@
         </div>
     </div>
 
-    <twig:DataTable :columns="columns" :rows="rows" emptyMessage="No activities logged yet — log the first one above." />
+    {% set empty_message = 'No activities logged yet — log the first one above.' %}
+
+    {# Same rows, two renderings: the horizontal-scroll table stays as-is on
+       desktop, while narrow screens get one card per activity so a full row
+       reads without a sideways swipe. Only one of the two is ever displayed,
+       so screen readers see a single list. #}
+    <div class="hidden md:block">
+        <twig:DataTable :columns="columns" :rows="rows" :emptyMessage="empty_message" />
+    </div>
+
+    <div class="md:hidden">
+        {% if rows is empty %}
+            <p class="rounded-lg border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                {{ empty_message }}
+            </p>
+        {% else %}
+            <ul class="space-y-2" data-activity-cards>
+                {% for row in rows %}
+                    <li class="rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <div class="mb-1 flex items-center justify-between gap-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wide {{ row.planned|default(false) ? 'text-brand-600' : 'text-slate-500' }}">
+                                {{ row.cells.date }}{% if row.planned|default(false) %} · Planned{% endif %}
+                            </span>
+                            <span class="shrink-0 rounded-full border border-brand-200 bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand-600">
+                                {{ row.cells.duration }}
+                            </span>
+                        </div>
+                        <div class="text-sm font-semibold">{{ row.cells.volunteer }}</div>
+                        <p class="mt-0.5 text-xs text-slate-500">{{ row.cells.project }} · {{ row.cells.activityType }}</p>
+                        <div class="mt-2 flex gap-4 text-[11.5px] font-semibold">
+                            <twig:RowActions
+                                :actions="row.actions"
+                                linkClass="text-slate-500 hover:underline"
+                                buttonClass="text-red-700 hover:underline"
+                            />
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
 {% endblock %}

@@ -384,4 +384,49 @@ final class ActivityControllerTest extends WebTestCase
             $crawler->filter('#activity_form_volunteer option[selected]')->attr('value'),
         );
     }
+
+    #[Test]
+    public function theIndexRendersOneMobileCardPerActivityAlongsideTheDesktopTable(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Naomi', 'lastName' => 'Cherop']);
+        $project = ProjectFactory::createOne(['name' => 'Toi School Field']);
+        $activityType = ActivityTypeFactory::createOne(['name' => 'Sports']);
+        ActivityFactory::createMany(2, [
+            'volunteer' => $volunteer,
+            'project' => $project,
+            'activityType' => $activityType,
+            'date' => new \DateTimeImmutable('yesterday'),
+        ]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities');
+
+        self::assertResponseIsSuccessful();
+        // Both renderings ship in the same response — CSS decides which one
+        // is displayed, so the desktop table must survive the card addition.
+        self::assertCount(2, $crawler->filter('table tbody tr'));
+        $cards = $crawler->filter('[data-activity-cards] > li');
+        self::assertCount(2, $cards);
+        self::assertStringContainsString('Naomi Cherop', $cards->first()->text());
+        self::assertStringContainsString('Toi School Field · Sports', $cards->first()->text());
+        // Delete stays a real CSRF-protected POST inside the card too.
+        self::assertCount(2, $crawler->filter('[data-activity-cards] form[method="post"] input[name="_token"]'));
+    }
+
+    #[Test]
+    public function aFutureDatedActivityIsTaggedAsPlannedOnItsMobileCard(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne(['date' => new \DateTimeImmutable('tomorrow')]);
+        ActivityFactory::createOne(['date' => new \DateTimeImmutable('today')]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities');
+
+        $cards = $crawler->filter('[data-activity-cards] > li');
+        self::assertCount(2, $cards);
+        self::assertStringContainsString('Planned', $cards->eq(0)->text());
+        self::assertStringNotContainsString('Planned', $cards->eq(1)->text());
+    }
 }
