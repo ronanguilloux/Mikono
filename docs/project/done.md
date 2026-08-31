@@ -33,6 +33,12 @@ Centre" × "Vocational training support"), the table's own width:
 | 900px    | fits, cells wrap to 2 lines  |
 | ≥1024px  | one line per row             |
 
+Those widths come from a four-row sample; a screenshot of the full seeded
+list at 1280px still shows a few two-line rows (the long project names,
+and the `Wed 26 Aug 2026` date column). Desktop wrapping was left alone —
+the table is deliberately untouched here — but tightening the date column
+is an easy future win if it ever grates.
+
 Sideways scroll — the thing the cards exist to kill — stops at roughly
 650px, so `sm` (640px) sits just on the wrong side of it and has no margin
 for a project name longer than today's longest. `md` clears it with ~120px

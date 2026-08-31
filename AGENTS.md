@@ -94,7 +94,7 @@ password then lands in plaintext in shell history:
 
 ```bash
 docker compose exec php bin/console app:user:create \
-  --email=ronan.guilloux@gmail.com --full-name="Ronan Guilloux" --password=<new-password> --admin
+  --email=SOME_DEV_OR_TEST_ACCOUNT@gmail.com --full-name="Dave And Taste" --password=<new-password> --admin
 ```
 
 **That local account is for AI agents, not for a human** — nobody signs
