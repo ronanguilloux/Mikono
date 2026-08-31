@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\Volunteer;
 use App\Form\VolunteerFormType;
+use App\Repository\ActivityRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,6 +20,7 @@ final class VolunteerController extends AbstractController
 {
     public function __construct(
         private readonly VolunteerRepository $volunteers,
+        private readonly ActivityRepository $activities,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
     ) {}
@@ -36,6 +38,7 @@ final class VolunteerController extends AbstractController
                     'status' => $volunteer->isActive() ? 'Active' : 'Inactive',
                 ],
                 'actions' => [
+                    ['label' => 'View', 'url' => $this->generateUrl('volunteer_show', ['id' => $volunteer->getId()])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('volunteer_edit', ['id' => $volunteer->getId()])],
                     [
                         'label' => 'Delete',
@@ -76,6 +79,35 @@ final class VolunteerController extends AbstractController
         }
 
         return $this->render('volunteer/new.html.twig', ['form' => $form]);
+    }
+
+    #[Route('/{id}', name: 'show', methods: ['GET'])]
+    public function show(Volunteer $volunteer): Response
+    {
+        $activities = $this->activities->findByVolunteerOrderedByDateDesc($volunteer);
+
+        $totalDays = 0.0;
+        $mostRecent = null;
+        foreach ($activities as $activity) {
+            $totalDays += $activity->getDuration()?->toDays() ?? 0.0;
+
+            $date = $activity->getDate();
+            if (null !== $date && (null === $mostRecent || $date > $mostRecent)) {
+                $mostRecent = $date;
+            }
+        }
+
+        $today = new \DateTimeImmutable('today');
+
+        return $this->render('volunteer/show.html.twig', [
+            'volunteer' => $volunteer,
+            'activities' => $activities,
+            'activityCount' => count($activities),
+            'totalDays' => $totalDays,
+            'mostRecent' => $mostRecent,
+            'mostRecentIsPlanned' => null !== $mostRecent && $mostRecent > $today,
+            'today' => $today,
+        ]);
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]

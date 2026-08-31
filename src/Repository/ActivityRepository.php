@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -26,6 +27,22 @@ class ActivityRepository extends ServiceEntityRepository
             ->join('a.volunteer', 'v')
             ->join('a.project', 'p')
             ->join('a.activityType', 't')
+            ->orderBy('a.date', 'DESC')
+            ->addOrderBy('a.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** @return Activity[] */
+    public function findByVolunteerOrderedByDateDesc(Volunteer $volunteer): array
+    {
+        return $this->createQueryBuilder('a')
+            ->addSelect('v', 'p', 't')
+            ->join('a.volunteer', 'v')
+            ->join('a.project', 'p')
+            ->join('a.activityType', 't')
+            ->where('a.volunteer = :volunteer')
+            ->setParameter('volunteer', $volunteer)
             ->orderBy('a.date', 'DESC')
             ->addOrderBy('a.id', 'DESC')
             ->getQuery()

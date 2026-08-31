@@ -6,6 +6,26 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-08-31 — Volunteer timeline "show" page
+
+Implemented mockup 3 from the 2026-08-28 validated screen designs
+([`next-steps.md`](next-steps.md)): the one CRUD area still missing a
+show view. New `volunteer_show` route (`GET /volunteers/{id}`) renders
+`templates/volunteer/show.html.twig` — header with Active/Inactive
+status pill and "Volunteer since" date, an "At a glance" card (email,
+phone with a non-blocking "+ Add" nudge when missing, activities
+logged, total days, most-recent-activity date tagged "Planned" when
+future-dated), a Notes card with an inline Edit link, and a
+reverse-chronological activity timeline (hollow marker on planned/
+future entries, solid on past ones). `ActivityRepository` gained
+`findByVolunteerOrderedByDateDesc()`, same join/order shape as
+`findAllOrderedByDateDesc()`; the "at a glance" stats are computed
+directly in the controller from that per-volunteer list rather than
+touching `ActivitySummaryCalculator` (which aggregates across all
+volunteers). Added a "View" action ahead of Edit/Delete in the
+Volunteers index `DataTable`, and two functional tests
+(`VolunteerControllerTest`).
+
 ## 2026-08-28 — Five System-of-Work mockups reviewed and validated
 
 Before touching any Twig for the System of Work initiatives and the P1/P2

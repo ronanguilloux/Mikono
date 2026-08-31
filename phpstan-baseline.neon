@@ -181,6 +181,12 @@ parameters:
 			path: src/Repository/ActivityRepository.php
 
 		-
+			message: '#^Method App\\Repository\\ActivityRepository\:\:findByVolunteerOrderedByDateDesc\(\) should return array\<App\\Entity\\Activity\> but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Repository/ActivityRepository.php
+
+		-
 			message: '#^Method App\\Repository\\ActivityTypeRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\ActivityType\> but returns mixed\.$#'
 			identifier: return.type
 			count: 1

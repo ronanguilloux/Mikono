@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-31
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -26,19 +26,17 @@ questions.
 
 ### Next step: implement in Twig, in this order
 
-1. Volunteer timeline "show" page (mockup 3) — no schema change, a
-   single new controller action + template, lowest risk.
-2. `Escort` entity + migration (see
+1. `Escort` entity + migration (see
    ["Escort/chaperone capture"](#escortchaperone-capture-needed-before-the-batch-form)
    below), then the batch/group activity logging form (mockup 2), which
    depends on it.
-3. Work-focused home screen (mockup 1) — depends on the batch form
+2. Work-focused home screen (mockup 1) — depends on the batch form
    existing (its "+ Plan activity" / "+ Log activity" buttons link to
    it) and on `ActivitySummaryCalculator` already providing the
    stale-check data it needs.
-4. Mobile card layout for the Activities index (mockup 4) — independent
+3. Mobile card layout for the Activities index (mockup 4) — independent
    of the above, can land any time.
-5. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
+4. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
    don't need pagination and can ship on their own; pull in a
    pagination library once the ADR below is written.
 
@@ -104,25 +102,6 @@ form type;
   activity entries — one per volunteer selected, all sharing this date,
   project, type and duration."
 - Actions: **Save**, **Save and add another**, and Cancel.
-
-**3. Volunteer detail/timeline "show" page** (new `volunteer_show`
-route + template — the one CRUD area still missing a show view;
-[Mockup: "Volunteer Timeline"](https://claude.ai/code/artifact/b8d7d2fa-60ab-4a79-9e3d-20f9da58bb8b)):
-
-- Header: full name, Active/Inactive status pill, "Volunteer since
-  {createdAt}", Edit + Log activity actions.
-- "At a glance" card: email; phone with a non-blocking "+ Add" nudge
-  when missing (never a blocking validation error); activities logged;
-  total days; most-recent-activity date, tagged **"Planned"** when that
-  date is in the future — this surfaces, in the UI, the future-dated-row
-  trade-off already accepted in the System of Work brainstorm (a
-  planned row briefly counts toward `mostRecent`/`totalDays`) instead of
-  leaving it only as a footnote.
-- Notes card (the `notes` field, surfaced instead of write-once/
-  never-seen-again) with an inline "Edit" link.
-- Reverse-chronological activity timeline; planned (future-dated)
-  entries get a visually distinct hollow marker instead of the solid
-  one past entries get.
 
 **4. Mobile card layout for the Activities index**
 ([Mockup: "Cards vs. Scroll"](https://claude.ai/code/artifact/723b8a40-5356-4746-afb0-23399abd5448)):

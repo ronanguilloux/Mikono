@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
@@ -59,6 +60,41 @@ final class VolunteerControllerTest extends WebTestCase
         $client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
+    }
+
+    #[Test]
+    public function showDisplaysVolunteerDetailsAndTimeline(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge', 'notes' => 'Fluent in Swahili.']);
+        ActivityFactory::createOne([
+            'volunteer' => $volunteer,
+            'date' => new \DateTimeImmutable('yesterday'),
+            'duration' => ActivityDuration::FullDay,
+        ]);
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', "/volunteers/{$volunteer->getId()}");
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Aisha Njoroge');
+        self::assertSelectorTextContains('body', 'Fluent in Swahili.');
+        self::assertSelectorTextContains('body', 'Activities logged');
+        self::assertSelectorTextContains('body', 'Full day');
+    }
+
+    #[Test]
+    public function showTagsAFutureActivityAsPlanned(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => new \DateTimeImmutable('+1 week')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', "/volunteers/{$volunteer->getId()}");
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Planned');
     }
 
     #[Test]
