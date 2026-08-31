@@ -19,23 +19,71 @@ System-of-Work brainstorm together identified the follow-on work in
 this file. Five key screens were then mocked up as interactive HTML
 Artifacts and reviewed (2026-08-28) before any Twig work started — see
 ["Validated screen designs"](#validated-screen-designs-2026-08-28-mockup-review)
-below. **All five mockups are now validated. Nothing below has been
-coded yet, but every design decision it depends on has been made** —
-this file is now an implementation-ready spec, not a set of open
-questions.
+below. **All five mockups were validated; mockup 2 (the batch/group
+activity logging form) has since shipped** (`done.md`, 2026-08-31) and
+has been removed from this file. Mockups 1, 4 and 5 remain, and are
+implementation-ready specs rather than open questions. Three things
+are still genuinely undecided and are marked as such where they
+appear: escort display/reporting, the two "not yet mocked" UX-review
+findings, and the pagination mechanism (which needs an ADR).
 
 ### Next step: implement in Twig, in this order
 
-1. Work-focused home screen (mockup 1) — the batch/group activity
+1. **Escort as a field on the single-activity forms** — small parity
+   fix, no mockup or design pass needed (see
+   ["Escort is a field of Activity"](#escort-is-a-field-of-activity-write-path-parity)
+   below). Finishes the half-built Escort feature; independent of
+   everything else, so it can land immediately.
+2. Work-focused home screen (mockup 1) — the batch/group activity
    logging form it depends on (its "+ Plan activity" / "+ Log activity"
    buttons link to `/activities/new-batch`) is done (`done.md`,
    2026-08-31), as is `ActivitySummaryCalculator`'s existing
    stale-check data that the "Needs a check-in" section needs.
-2. Mobile card layout for the Activities index (mockup 4) — independent
+3. Mobile card layout for the Activities index (mockup 4) — independent
    of the above, can land any time.
-3. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
+4. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
    don't need pagination and can ship on their own; pull in a
    pagination library once the ADR below is written.
+
+### Escort is a field of Activity (write-path parity)
+
+`Activity::$accompaniedBy` (`ManyToOne` → `Escort`, nullable) is a
+first-class attribute of every `Activity`, exactly like `project`,
+`activityType` and `duration` — but today it can only be set from the
+**batch** form (`/activities/new-batch`). That's an accident of build
+order (the batch form was where the need surfaced), not a design
+decision: an activity logged one at a time can never record who
+accompanied it, and one already logged can never have it corrected.
+
+Concretely, `ActivityFormType` — used by both `/activities/new` and
+`/activities/{id}/edit` — has no `escort` field at all. Adding it is a
+one-field change, since `BatchActivityFormType` already established the
+exact treatment to copy:
+
+```php
+->add('accompaniedBy', EntityType::class, [
+    'class' => Escort::class,
+    'choice_label' => 'name',
+    'query_builder' => static fn($repo) => $repo->createQueryBuilder('e')->orderBy('e.name', 'ASC'),
+    'placeholder' => '— No escort recorded —',
+    'required' => false,
+    'label' => 'Accompanied by',
+])
+```
+
+Note the property is `accompaniedBy` here (the form is entity-backed,
+`data_class` → `Activity`), whereas the batch form calls it `escort`
+because it's backed by `App\Dto\BatchActivityInput` and fans out into
+many rows. Same field, different binding.
+
+This needs **no** design pass and **no** mockup — it's making the
+single-activity form match a shape already reviewed and shipped. Both
+`ActivityControllerTest` cases that cover `/activities/new` and the
+edit round-trip should gain an escort assertion alongside.
+
+Display and reporting are a separate question — see ["Escort display
+and reporting"](#not-yet-mocked--still-open) below, which does need a
+design pass.
 
 ### Validated screen designs (2026-08-28 mockup review)
 
@@ -66,7 +114,15 @@ route, replacing the current redirect straight to `report_index`;
   the evidence in
   [`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md#evidence-from-real-roster-messages-2026-08-27)),
   with a copy-to-clipboard button and an always-selectable fallback
-  textarea for when clipboard access isn't available.
+  textarea for when clipboard access isn't available. **Must render an
+  "Accompanied by ..." line per project group from
+  `Activity::$accompaniedBy`** — this is the whole reason that field
+  exists: closing the loop with the real WhatsApp message format Edna
+  already sends (evidence in the same brainstorm doc, initiative 9).
+  `accompaniedBy` is write-only today, so this roster is its first read
+  path — don't build this screen without it. Landing the write-path
+  parity fix first (item 1 above) also means rosters aren't silently
+  missing an escort line for any activity logged one at a time.
 
 **4. Mobile card layout for the Activities index**
 ([Mockup: "Cards vs. Scroll"](https://claude.ai/code/artifact/723b8a40-5356-4746-afb0-23399abd5448)):
@@ -95,8 +151,8 @@ print` rules hiding the app chrome).
 
 ### Not yet mocked — still open
 
-Two UX-review findings weren't part of the five priority mockups and
-still need their own design pass before implementation:
+Three findings weren't part of the five priority mockups and still
+need their own design pass before implementation:
 
 - Proactively surface the volunteer/project delete-guard message
   (today only shown as a flash *after* a blocked delete attempt) — an
@@ -106,6 +162,23 @@ still need their own design pass before implementation:
 - Enforce/highlight Project's conditional `partnerOrganizationName`
   requirement (currently static help text only) — needs light JS or a
   LiveComponent, more than a template tweak.
+- **Escort display and reporting.** Distinct from the write-path
+  parity fix above (which is decided and actionable): *where* escort
+  should be read back out is genuinely open, and none of it was part of
+  the 2026-08-28 mockup review.
+  - The **Activities index** (`templates/activity/index.html.twig`)
+    shows no escort column. Worth a 6th column given the table already
+    scrolls horizontally on mobile — or is escort better left to the
+    edit form? Interacts with mockup 4's mobile card layout, which
+    would also need a line for it.
+  - **Reports** (`ActivitySummaryCalculator`, `/reports`) don't break
+    anything down by escort. Whether "days accompanied per escort" is
+    a report the VM actually wants is unvalidated — worth asking before
+    building, since every escort row is also a staff workload figure.
+
+  Mockup 1's Tomorrow's roster will be the first read path once built,
+  but it only covers the planned-ahead case and renders escort as a
+  text line, not a column or a metric — so it settles neither question.
 
 ### Flagged for a future ADR (needs new infrastructure, not buildable as-is)
 
