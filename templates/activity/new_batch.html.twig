@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Log a group activity — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <a href="{{ path('activity_index') }}" class="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-700">← Back to Activities</a>
+
+    <div class="mb-4">
+        <h1 class="text-xl font-semibold">Log a group activity</h1>
+        <p class="mt-1 text-sm text-slate-500">One project, one session — log everyone who attended at once, instead of one form per volunteer.</p>
+    </div>
+
+    {{ form_start(form, {
+        attr: {
+            class: 'max-w-2xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm',
+            'data-controller': 'batch-activity-form',
+            'data-batch-activity-form-today-value': todayIso,
+            'data-batch-activity-form-tomorrow-value': tomorrowIso,
+        },
+    }) }}
+        {{ form_errors(form) }}
+
+        <div class="mb-4">
+            {{ form_label(form.date) }}
+            <div class="flex flex-wrap items-center gap-2">
+                {{ form_widget(form.date, {attr: {style: 'max-width: 190px', 'data-batch-activity-form-target': 'dateInput'}}) }}
+                <button
+                    type="button"
+                    data-action="batch-activity-form#setToday"
+                    class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-brand-500 hover:text-brand-700"
+                >
+                    Today
+                </button>
+                <button
+                    type="button"
+                    data-action="batch-activity-form#setTomorrow"
+                    class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-brand-500 hover:text-brand-700"
+                >
+                    Tomorrow
+                </button>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">Planning ahead? Pick tomorrow's date — this becomes tomorrow's roster automatically.</p>
+            {{ form_errors(form.date) }}
+        </div>
+
+        <div class="mb-4 grid gap-4 sm:grid-cols-2">
+            <div>{{ form_row(form.project) }}</div>
+            <div>{{ form_row(form.activityType) }}</div>
+        </div>
+
+        {{ form_row(form.duration) }}
+
+        <div class="mb-4">
+            {{ form_label(form.durationOther) }}
+            {{ form_widget(form.durationOther, {attr: {'data-batch-activity-form-target': 'otherDurationInput'}}) }}
+            {{ form_errors(form.durationOther) }}
+            <p class="mt-1 text-xs text-slate-500">Only used when "Other" is selected above — e.g. 1h, 2h, 2.5h.</p>
+        </div>
+
+        {{ form_row(form.escort) }}
+
+        <div class="mb-4">
+            <label class="mb-1 block text-sm font-medium text-slate-700">
+                Who attended? <span class="text-red-600" aria-hidden="true">*</span>
+            </label>
+
+            <div data-batch-activity-form-target="chips" class="mb-2 flex flex-wrap gap-2"></div>
+
+            <div class="relative">
+                <input
+                    type="text"
+                    data-batch-activity-form-target="search"
+                    data-action="input->batch-activity-form#onSearchInput focus->batch-activity-form#onSearchFocus blur->batch-activity-form#onSearchBlur keydown->batch-activity-form#onSearchKeydown"
+                    placeholder="Search volunteers to add…"
+                    autocomplete="off"
+                    role="combobox"
+                    aria-expanded="false"
+                    aria-controls="volunteer-suggestions"
+                    class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+                >
+                <div
+                    id="volunteer-suggestions"
+                    data-batch-activity-form-target="suggestions"
+                    hidden
+                    class="absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-y-auto rounded-md border border-slate-300 bg-white shadow-lg"
+                ></div>
+            </div>
+
+            <p class="mt-2 text-xs text-slate-500">
+                <span data-batch-activity-form-target="count">0</span> volunteer(s) selected
+            </p>
+
+            {{ form_errors(form.volunteers) }}
+
+            <div class="hidden" data-batch-activity-form-target="checkboxes">
+                {{ form_widget(form.volunteers) }}
+            </div>
+        </div>
+
+        {{ form_row(form.notes) }}
+
+        <div class="mt-6 border-t border-slate-200 pt-4">
+            <p class="mb-3 text-xs text-slate-500">
+                This will create <span class="font-semibold text-slate-900" data-batch-activity-form-target="count">0</span> activity entries — one per volunteer selected, all sharing this date, project, type and duration.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="submit" name="save_action" value="index" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                    Save
+                </button>
+                <button type="submit" name="save_action" value="add_another" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:border-brand-500 hover:text-brand-700">
+                    Save and add another
+                </button>
+                <a href="{{ path('activity_index') }}" class="text-sm text-slate-600 hover:underline">Cancel</a>
+            </div>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

@@ -6,6 +6,32 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-08-31 — Batch/group activity logging form (mockup 2)
+
+Second half of next-steps.md's item 1, now the batch/group activity
+logging form itself is done too: `/activities/new-batch`
+(`ActivityController::newBatch()`), backed by an unbound
+`BatchActivityFormType` (`data_class` → the new `App\Dto\BatchActivityInput`,
+not an entity — one submission fans out into one `Activity` per selected
+volunteer, all sharing the same date/project/type/duration/escort/notes).
+Matches the validated mockup: native date input with "Today"/"Tomorrow"
+quick-set buttons, the same expanded duration radio group as the
+single-activity form with the "Other" free-text field enabled/disabled
+live, an optional single-select `accompaniedBy` (Escort) field, and the
+deliberate scope increase — a chips + search-autocomplete attendee picker
+(keyboard ↑/↓/Enter, muted "Inactive" pill for inactive volunteers) built
+on a real `EntityType` multiple/expanded checkbox group progressively
+enhanced by a new Stimulus controller
+(`assets/controllers/batch_activity_form_controller.js`), so the raw
+checkboxes stay the actual form-submission mechanism. "Save" and "Save
+and add another" are separate submit buttons (`name="save_action"`)
+read in the controller to decide the redirect target. A cross-field
+"Other" duration requires free text) validation is wired as a
+`Assert\Callback` on the DTO form, same message as the single-activity
+form's entity-level callback. Five functional tests added to
+`ActivityControllerTest`. The Activities index page also gained a "Log
+group activity" button next to the existing "Log activity" one.
+
 ## 2026-08-31 — Escort entity, migration, and 6th CRUD area
 
 First half of next-steps.md's item 1: the `Escort` lookup entity
@@ -18,8 +44,8 @@ repositories) and `templates/escort/` (index/new/edit/_form, following
 the `ActivityType` CRUD area's shape exactly), an `EscortFactory` for
 tests and fixtures, an "Escorts" link in the Settings nav, and five
 functional tests (`EscortControllerTest`). The batch/group activity
-logging form (mockup 2) that consumes `accompaniedBy` is still open —
-see next-steps.md.
+logging form (mockup 2) that consumes `accompaniedBy` is done too —
+see the entry above.
 
 **Dev-environment note (unrelated to this feature):** the local SQLite
 database's `doctrine_migration_versions` table had been reset to empty

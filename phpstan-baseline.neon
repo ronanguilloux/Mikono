@@ -49,12 +49,6 @@ parameters:
 			path: src/Command/CreateUserCommand.php
 
 		-
-			message: '#^Parameter \#1 \$loggedBy of method App\\Entity\\Activity\:\:setLoggedBy\(\) expects App\\Entity\\User\|null, Symfony\\Component\\Security\\Core\\User\\UserInterface\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Controller/ActivityController.php
-
-		-
 			message: '#^Parameter \#2 \$token of method Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController\:\:isCsrfTokenValid\(\) expects string\|null, bool\|float\|int\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -149,6 +143,30 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: src/Form/ActivityTypeFormType.php
+
+		-
+			message: '#^Cannot call method addOrderBy\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: src/Form/BatchActivityFormType.php
+
+		-
+			message: '#^Cannot call method createQueryBuilder\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: src/Form/BatchActivityFormType.php
+
+		-
+			message: '#^Cannot call method orderBy\(\) on mixed\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: src/Form/BatchActivityFormType.php
+
+		-
+			message: '#^Class App\\Form\\BatchActivityFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Form/BatchActivityFormType.php
 
 		-
 			message: '#^Class App\\Form\\EscortFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'

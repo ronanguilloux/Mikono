@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Dto\BatchActivityInput;
 use App\Entity\Activity;
+use App\Entity\User;
 use App\Enum\ActivityDuration;
 use App\Form\ActivityFormType;
+use App\Form\BatchActivityFormType;
 use App\Repository\ActivityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -76,7 +79,7 @@ final class ActivityController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $activity->setLoggedBy($this->getUser());
+            $activity->setLoggedBy($this->loggedByUser());
             $this->entityManager->persist($activity);
             $this->entityManager->flush();
 
@@ -86,6 +89,51 @@ final class ActivityController extends AbstractController
         }
 
         return $this->render('activity/new.html.twig', ['form' => $form]);
+    }
+
+    #[Route('/new-batch', name: 'new_batch', methods: ['GET', 'POST'])]
+    public function newBatch(Request $request): Response
+    {
+        $today = new \DateTimeImmutable('today');
+        $data = new BatchActivityInput();
+        $data->date = $today;
+        $form = $this->createForm(BatchActivityFormType::class, $data);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $loggedBy = $this->loggedByUser();
+
+            foreach ($data->volunteers as $volunteer) {
+                $activity = new Activity();
+                $activity->setDate($data->date);
+                $activity->setVolunteer($volunteer);
+                $activity->setProject($data->project);
+                $activity->setActivityType($data->activityType);
+                $activity->setDuration($data->duration);
+                $activity->setDurationOther($data->durationOther);
+                $activity->setAccompaniedBy($data->escort);
+                $activity->setNotes($data->notes);
+                $activity->setLoggedBy($loggedBy);
+                $this->entityManager->persist($activity);
+            }
+
+            $this->entityManager->flush();
+
+            $count = count($data->volunteers);
+            $this->addFlash('success', sprintf('Logged %d %s.', $count, 1 === $count ? 'activity' : 'activities'));
+
+            if ('add_another' === $request->request->get('save_action')) {
+                return $this->redirectToRoute('activity_new_batch');
+            }
+
+            return $this->redirectToRoute('activity_index');
+        }
+
+        return $this->render('activity/new_batch.html.twig', [
+            'form' => $form,
+            'todayIso' => $today->format('Y-m-d'),
+            'tomorrowIso' => $today->modify('+1 day')->format('Y-m-d'),
+        ]);
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
@@ -123,6 +171,13 @@ final class ActivityController extends AbstractController
         $this->addFlash('success', 'Activity was deleted.');
 
         return $this->redirectToRoute('activity_index');
+    }
+
+    private function loggedByUser(): ?User
+    {
+        $user = $this->getUser();
+
+        return $user instanceof User ? $user : null;
     }
 
     private function csrfTokenId(Activity $activity): string

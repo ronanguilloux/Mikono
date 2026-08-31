@@ -26,18 +26,14 @@ questions.
 
 ### Next step: implement in Twig, in this order
 
-1. Batch/group activity logging form (mockup 2) — the `Escort` entity
-   + migration it depends on (see
-   ["Escort/chaperone capture"](#escortchaperone-capture-needed-before-the-batch-form)
-   below) is done (`done.md`, 2026-08-31); only the form itself
-   remains.
-2. Work-focused home screen (mockup 1) — depends on the batch form
-   existing (its "+ Plan activity" / "+ Log activity" buttons link to
-   it) and on `ActivitySummaryCalculator` already providing the
-   stale-check data it needs.
-3. Mobile card layout for the Activities index (mockup 4) — independent
+1. Work-focused home screen (mockup 1) — the batch/group activity
+   logging form it depends on (its "+ Plan activity" / "+ Log activity"
+   buttons link to `/activities/new-batch`) is done (`done.md`,
+   2026-08-31), as is `ActivitySummaryCalculator`'s existing
+   stale-check data that the "Needs a check-in" section needs.
+2. Mobile card layout for the Activities index (mockup 4) — independent
    of the above, can land any time.
-4. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
+3. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
    don't need pagination and can ship on their own; pull in a
    pagination library once the ADR below is written.
 
@@ -72,38 +68,6 @@ route, replacing the current redirect straight to `report_index`;
   with a copy-to-clipboard button and an always-selectable fallback
   textarea for when clipboard access isn't available.
 
-**2. Batch/group activity logging form** (new controller action +
-form type;
-[Mockup: "Group Activity Log"](https://claude.ai/code/artifact/189cd039-f694-4a7f-a836-8a96ff89e7c1)):
-
-- Date field: native `<input type="date">` (native browser picker kept
-  intact) plus "Today" / "Tomorrow" quick-set buttons that just prefill
-  the value — the same form is used for logging today and for planning
-  tomorrow's roster.
-- Project / Activity type: plain native `<select>`, unchanged from the
-  existing single-activity form's convention (not JS-searchable at
-  today's data volumes). Inactive options keep the `(inactive)` suffix,
-  same as today.
-- Duration: the same three-option radio group as the existing form
-  (Half day / Full day / Other), with the "Other" free-text input
-  enabled/disabled based on the selected radio.
-- New **"Accompanied by" (escort) field**, optional single-select, one
-  per batch session — needs the `Escort` entity first (below).
-- **Attendee picker — a deliberate scope increase over the existing
-  single-`<select>` convention**: selected volunteers show as removable
-  chips, with a search box below offering filtered autocomplete
-  (keyboard: ↑/↓ to highlight, Enter to add) to add more. Inactive
-  volunteers appear in results with a muted "Inactive" pill instead of
-  the current form's plain `(inactive)` text suffix. This was
-  explicitly requested during review — a native `<select multiple>` or
-  a long checkbox list doesn't scale to fast repetitive logging as the
-  volunteer list grows. Needs a small Stimulus controller, not plain
-  HTML.
-- Live feedback: "N volunteers selected" and "This will create N
-  activity entries — one per volunteer selected, all sharing this date,
-  project, type and duration."
-- Actions: **Save**, **Save and add another**, and Cancel.
-
 **4. Mobile card layout for the Activities index**
 ([Mockup: "Cards vs. Scroll"](https://claude.ai/code/artifact/723b8a40-5356-4746-afb0-23399abd5448)):
 below a breakpoint,
@@ -128,20 +92,6 @@ large-scale case (see
 ["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27)
 below); a "Print-friendly view" button (`window.print()` + `@media
 print` rules hiding the app chrome).
-
-### Escort/chaperone capture (needed before the batch form)
-
-**Done 2026-08-31** (see `done.md`). Confirmed by Edna's real nightly
-roster messages (2026-08-27), which each name one staff member who
-accompanied volunteers per project per day ("Accompanied by Mr
-Maeba") — nothing today captures this, and it's used throughout
-mockups 1 and 2 above. A new `Escort` lookup
-entity (id/name/`isActive`, same shape as `ActivityType`) as a 6th CRUD
-area under Settings; a nullable `Activity::$accompaniedBy` (`ManyToOne`
-→ `Escort`) set once per batch-logged session and applied to every row
-it creates. Needs a migration and a new CRUD area, no new
-infrastructure — full reasoning in
-[`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md#evidence-from-real-roster-messages-2026-08-27).
 
 ### Not yet mocked — still open
 
