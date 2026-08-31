@@ -41,7 +41,7 @@ final class SecurityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function correctCredentialsAuthenticateAndLandOnReports(): void
+    public function correctCredentialsAuthenticateAndLandOnTheHomeScreen(): void
     {
         $client = static::createClient();
         UserFactory::createOne(['email' => 'vm@example.org']);
@@ -54,7 +54,7 @@ final class SecurityControllerTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/reports');
+        self::assertResponseRedirects('/');
     }
 
     #[Test]

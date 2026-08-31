@@ -43,8 +43,9 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
             '_password' => 'password-1234',
         ]);
         $client->submit($form);
-        $client->wait()->until(static fn(RemoteWebDriver $driver) => str_contains($driver->getCurrentURL(), '/reports'));
-        self::assertStringContainsString('/reports', $client->getCurrentURL());
+        // Signing in lands on the work-focused home screen, not Reports.
+        $client->waitForVisibility('#today-heading');
+        self::assertSelectorTextContains('#today-heading', "Today's roster");
 
         $crawler = $client->request('GET', '/volunteers/new');
         $form = $crawler->selectButton('Save')->form([

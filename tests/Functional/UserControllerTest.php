@@ -62,7 +62,7 @@ final class UserControllerTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/reports');
+        self::assertResponseRedirects('/');
     }
 
     #[Test]

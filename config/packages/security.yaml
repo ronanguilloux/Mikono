@@ -25,7 +25,9 @@ security:
             form_login:
                 login_path: app_login
                 check_path: app_login
-                default_target_path: report_index
+                # The home screen is where the day's work is — Reports was only
+                # the landing page while app_home was a bare redirect to it.
+                default_target_path: app_home
             logout:
                 path: app_logout
                 target: app_login

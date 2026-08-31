@@ -6,6 +6,97 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-08-31 — Activity forms only offer active volunteers
+
+Both activity-logging forms listed every volunteer, active or not, and
+merely annotated the departed ones — `ActivityFormType` appended
+"(inactive)" to the label, `BatchActivityFormType` passed a
+`data-inactive` attribute the Stimulus controller used to grey out chips
+and suggestions. Since UCESCO's volunteers come for a few weeks and then
+leave, that list only grows, and none of it is a valid answer to "who
+attended?". Both `query_builder` closures now filter on
+`v.isActive = true`, and the dead greying-out branches came out of
+`batch_activity_form_controller.js` with the `data-inactive` attribute.
+
+**One deliberate exception:** `ActivityFormType` also backs
+`/activities/{id}/edit`, so its query adds an `orWhere` for the
+activity's *current* volunteer, read from `$options['data']`. Without it,
+fixing a typo on a historical entry would have found its volunteer
+missing from the dropdown and forced reassigning the activity to someone
+who wasn't there. `editingAnOldActivityKeepsItsSinceDeactivatedVolunteerSelectable`
+covers exactly that.
+
+Typing those two closures' `$repo` parameters as `VolunteerRepository`
+(instead of leaving them untyped, as the remaining ones still are)
+resolved six baselined `method.nonObject` findings, so
+`phpstan-baseline.neon` shrank from 62 to 56 — regenerated after
+confirming the run reported nothing but over-counted entries, so no new
+error was absorbed.
+
+## 2026-08-31 — Work-focused home screen (mockup 1)
+
+`DashboardController`'s `app_home` route stopped being a bare redirect to
+`/reports` and now renders `templates/dashboard/index.html.twig`: Today's
+roster and "Projects needing volunteers" in the centre column, Tomorrow's
+roster in the side panel, per the 2026-08-28 mockup review. The firewall's
+`default_target_path` moved from `report_index` to `app_home` at the same
+time — Reports was only ever the landing page because `app_home` had
+nothing of its own to show.
+
+Three new pieces of domain code, all under `src/Report/` so the existing
+Infection scope picks them up:
+
+- `ActivityRepository::findByDate()` — one day's rows, oldest id first,
+  with the escort left-joined in. Insertion order, not project name, is
+  what orders the roster: it's the closest proxy for the order the VM
+  actually worked through the day.
+- `RosterBuilder` + `Roster`/`RosterGroup`/`RosterSlot` readonly value
+  objects — groups a day by project *and* activity type (the WhatsApp
+  format's `📍 Site (Activity type)` heading), dedupes escorts per group,
+  and marks a volunteer's second site of the same day `(later)`.
+  `Roster::toWhatsAppText()` renders the schedule body only, with no
+  greeting: every real message opens in the VM's own voice, so that half
+  is deliberately left to her.
+- `QuietProjectFinder` + `QuietProject`/`QuietProjectSeverity`, backed by
+  a new `ProjectRepository::findActiveWithLastActivityDate()`.
+
+**The one real product decision here:** the mockup's "Needs a check-in"
+listed stale volunteers *and* stale projects. It shipped as **"Projects
+needing volunteers"** — projects only, never volunteers. UCESCO's
+volunteers come for a few weeks and then leave, often for good, so a
+volunteer who has stopped appearing has usually finished rather than
+lapsed; most won't be back, and a list of people who are never returning
+would bury the signal that is actionable. A quiet project always is: it's
+somewhere the next arriving volunteer can be assigned, which is what the
+VM actually does with this list. A project with nothing ever logged
+against it therefore stays on the list and is aged from its `createdAt`
+rather than being skipped — that's the site most in need of attention.
+Amber at 30+ days, red at 50+, quietest first; anything dated today or
+later counts as zero days, so work already planned ahead never reads as
+stale. Each row carries an "Assign volunteers" link into the batch form
+pre-filled with that project. **Do not "complete" this by adding
+volunteers back in** — their absence is the decision.
+
+This is the first read path for `Activity::$accompaniedBy`: both rosters
+render an "Accompanied by ..." line per project group, closing the loop
+with the message format the VM already sends by hand.
+
+Supporting changes: a `clipboard` Stimulus controller (clipboard API,
+falling back to selecting the always-selectable textarea when the browser
+refuses access); `/activities/new-batch` now honours a `?date=Y-m-d`
+query param (and a `?project=` one, for "Assign volunteers") so
+"+ Plan activity" opens already dated tomorrow;
+`AppStory` seeds a today/tomorrow roster relative to load time plus the
+three named escorts (nothing seeded escorts before, and fixed fixture
+dates would have left the new screen looking empty).
+
+Tests: `DashboardControllerTest` (6 functional cases) plus a new
+`tests/Integration/` directory holding `RosterBuilderTest` and
+`QuietProjectFinderTest`, which exercise the date/severity rules directly by
+passing a fixed "today" into the finder rather than manipulating
+fixtures' `createdAt`. The E2E smoke test and two functional tests that
+asserted a post-login redirect to `/reports` were updated to `/`.
+
 ## 2026-08-31 — Escort as a field on the single-activity forms
 
 Write-path parity for `Activity::$accompaniedBy`, which until now could

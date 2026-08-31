@@ -41,22 +41,12 @@ export default class extends Controller {
 
         this.chipsTarget.innerHTML = '';
         checked.forEach((checkbox) => {
-            const inactive = checkbox.dataset.inactive === '1';
             const chip = document.createElement('span');
-            chip.className = `inline-flex items-center gap-1.5 rounded-full py-1 pl-3 pr-1.5 text-sm font-medium ${
-                inactive ? 'bg-slate-100 text-slate-500' : 'bg-brand-100 text-brand-700'
-            }`;
+            chip.className = 'inline-flex items-center gap-1.5 rounded-full bg-brand-100 py-1 pl-3 pr-1.5 text-sm font-medium text-brand-700';
 
             const label = document.createElement('span');
             label.textContent = checkbox.dataset.name;
             chip.appendChild(label);
-
-            if (inactive) {
-                const pill = document.createElement('span');
-                pill.className = 'rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide';
-                pill.textContent = 'Inactive';
-                chip.appendChild(pill);
-            }
 
             const remove = document.createElement('button');
             remove.type = 'button';
@@ -146,16 +136,9 @@ export default class extends Controller {
                 row.dataset.checkboxId = checkbox.id;
 
                 const name = document.createElement('span');
-                name.className = `flex-1 ${checkbox.dataset.inactive === '1' ? 'text-slate-400' : ''}`;
+                name.className = 'flex-1';
                 name.textContent = checkbox.dataset.name;
                 row.appendChild(name);
-
-                if (checkbox.dataset.inactive === '1') {
-                    const pill = document.createElement('span');
-                    pill.className = 'rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500';
-                    pill.textContent = 'Inactive';
-                    row.appendChild(pill);
-                }
 
                 row.addEventListener('mousedown', (event) => {
                     event.preventDefault();

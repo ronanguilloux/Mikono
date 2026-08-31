@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Activity;
 use App\Entity\Project;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -26,6 +27,29 @@ class ProjectRepository extends ServiceEntityRepository
             ->orderBy('p.name', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Every still-active project with the date it was last worked on, or null
+     * if nothing has ever been logged against it. Unlike volunteers, a project
+     * with no activity at all is kept — that's the one most in need of
+     * attention, not the one to hide.
+     *
+     * @return list<array{project: Project, lastActivity: \DateTimeImmutable|string|null}>
+     */
+    public function findActiveWithLastActivityDate(): array
+    {
+        /** @var list<array{project: Project, lastActivity: \DateTimeImmutable|string|null}> $rows */
+        $rows = $this->createQueryBuilder('p')
+            ->select('p AS project', 'MAX(a.date) AS lastActivity')
+            ->leftJoin(Activity::class, 'a', Join::WITH, 'a.project = p')
+            ->where('p.isActive = :active')
+            ->setParameter('active', true)
+            ->groupBy('p.id')
+            ->getQuery()
+            ->getResult();
+
+        return $rows;
     }
 
     public function countReferencingActivities(Project $project): int

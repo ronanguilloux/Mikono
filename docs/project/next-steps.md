@@ -19,11 +19,11 @@ System-of-Work brainstorm together identified the follow-on work in
 this file. Five key screens were then mocked up as interactive HTML
 Artifacts and reviewed (2026-08-28) before any Twig work started — see
 ["Validated screen designs"](#validated-screen-designs-2026-08-28-mockup-review)
-below. **All five mockups were validated; mockup 2 (the batch/group
-activity logging form) has since shipped** (`done.md`, 2026-08-31) and
-has been removed from this file, as has the escort write-path parity
-fix that followed it (`done.md`, same date). Mockups 1, 4 and 5 remain,
-and are
+below. **All five mockups were validated; mockups 1 and 2 (the
+work-focused home screen and the batch/group activity logging form)
+have since shipped** (`done.md`, 2026-08-31) and have been removed from
+this file, as has the escort write-path parity fix that followed
+(`done.md`, same date). Mockups 4 and 5 remain, and are
 implementation-ready specs rather than open questions. Three things
 are still genuinely undecided and are marked as such where they
 appear: escort display/reporting, the two "not yet mocked" UX-review
@@ -31,17 +31,9 @@ findings, and the pagination mechanism (which needs an ADR).
 
 ### Next step: implement in Twig, in this order
 
-1. Work-focused home screen (mockup 1) — the batch/group activity
-   logging form it depends on (its "+ Plan activity" / "+ Log activity"
-   buttons link to `/activities/new-batch`) is done (`done.md`,
-   2026-08-31), as is `ActivitySummaryCalculator`'s existing
-   stale-check data that the "Needs a check-in" section needs. Escort
-   write-path parity is also done (`done.md`, 2026-08-31), so rosters
-   won't be silently missing an escort line for activities logged one
-   at a time.
-2. Mobile card layout for the Activities index (mockup 4) — independent
-   of the above, can land any time.
-3. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
+1. Mobile card layout for the Activities index (mockup 4) — independent
+   of everything else, can land any time.
+2. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
    don't need pagination and can ship on their own; pull in a
    pagination library once the ADR below is written.
 
@@ -54,35 +46,6 @@ who needs to adopt the app fast with no developer on hand (see
 Two things already work well and were kept as-is throughout every
 mockup: server-rendered Twig + Turbo Drive + native `confirm()` for
 deletes, and the app's real brand mark/colors (no placeholder logo).
-
-**1. Work-focused home screen** (`DashboardController`'s `app_home`
-route, replacing the current redirect straight to `report_index`;
-[Mockup: "Roster & Check-Ins"](https://claude.ai/code/artifact/f57fc24b-432e-4fd2-8c33-0efd02f6cf1a)):
-
-- Center column, top to bottom: **Today's roster** (grouped by project,
-  same shape as Tomorrow's roster below, "+ Log activity" action) then
-  **Needs a check-in** (stale volunteers/projects, sorted worst-first,
-  severity-colored day-count badge: amber 30–50 days, red 50+) — both
-  full width. This differs from the original brainstorm framing (which
-  put Tomorrow's roster front and center): the reviewed layout puts
-  *today's* work first since the rest of the center column is about
-  today, and moves Tomorrow's roster into the side panel instead.
-- Side panel (desktop: right column; mobile: stacks below the center
-  column): **Tomorrow's roster** alone — grouped by project, "Copy as
-  text" reveals a WhatsApp-ready text block (schedule only, no
-  auto-generated greeting — the VM adds their own before sending, per
-  the evidence in
-  [`docs/brainstorm/04-system-of-work-for-the-volunteer-manager.md`](../brainstorm/04-system-of-work-for-the-volunteer-manager.md#evidence-from-real-roster-messages-2026-08-27)),
-  with a copy-to-clipboard button and an always-selectable fallback
-  textarea for when clipboard access isn't available. **Must render an
-  "Accompanied by ..." line per project group from
-  `Activity::$accompaniedBy`** — this is the whole reason that field
-  exists: closing the loop with the real WhatsApp message format Edna
-  already sends (evidence in the same brainstorm doc, initiative 9).
-  `accompaniedBy` is write-only today (settable from both the batch and
-  single-activity forms since 2026-08-31, but read back nowhere), so
-  this roster is its first read path — don't build this screen without
-  it.
 
 **4. Mobile card layout for the Activities index**
 ([Mockup: "Cards vs. Scroll"](https://claude.ai/code/artifact/723b8a40-5356-4746-afb0-23399abd5448)):
@@ -136,17 +99,25 @@ need their own design pass before implementation:
     a report the VM actually wants is unvalidated — worth asking before
     building, since every escort row is also a staff workload figure.
 
-  Mockup 1's Tomorrow's roster will be the first read path once built,
-  but it only covers the planned-ahead case and renders escort as a
-  text line, not a column or a metric — so it settles neither question.
+  The home screen's rosters (shipped 2026-08-31) are now escort's first
+  read path, but they only cover today and tomorrow and render escort as
+  a text line, not a column or a metric — so they settle neither
+  question.
 
 ### Flagged for a future ADR (needs new infrastructure, not buildable as-is)
 
-- Automated stale-volunteer check-in reminders — the natural next step
-  after the home screen above, but needs an outbound channel. Given the
-  Kibera/Mombasa context, SMS via a regional gateway (e.g. Africa's
-  Talking) may be more reliable than email — worth an ADR comparing SMS
-  vs. email vs. staying purely in-app before committing any infra.
+- Automated outbound reminders — still needs an outbound channel, and
+  given the Kibera/Mombasa context SMS via a regional gateway (e.g.
+  Africa's Talking) may be more reliable than email; worth an ADR
+  comparing SMS vs. email vs. staying purely in-app before committing
+  any infra. **What such a reminder should be about has changed**: this
+  was originally framed as chasing stale *volunteers*, but the home
+  screen shipped as "Projects needing volunteers" precisely because
+  volunteers who stop appearing have usually finished their stint rather
+  than lapsed (`done.md`, 2026-08-31). Don't reintroduce that premise
+  through the back door — if an outbound channel is ever added, the
+  message worth sending is about quiet projects or the day's roster, not
+  a nudge to volunteers who have moved on.
 - Task/assignment hand-offs once a second `User` account actually exists
   (the entity is already scoped to grow beyond one user) — e.g.
   assigning a follow-up to a colleague. Nothing to build until then.
@@ -154,7 +125,8 @@ need their own design pass before implementation:
   decision; the print-friendly view above covers the on-demand handoff
   case without one.
 - WhatsApp Business API / automated roster sending — the manual
-  copy-paste in "Tomorrow's roster" above takes well under a minute
+  copy-paste in the home screen's "Tomorrow's roster" takes well under a
+  minute
   today; only worth an ADR if that manual step demonstrably becomes a
   bottleneck, not preemptively (API costs, volunteer opt-in/consent,
   message-template approval all apply).

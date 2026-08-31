@@ -10,6 +10,8 @@ use App\Entity\Escort;
 use App\Entity\Project;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
+use App\Repository\VolunteerRepository;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -23,12 +25,30 @@ final class ActivityFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        // Inactive volunteers have finished their stint — offering them when
+        // logging an activity is noise. The one exception is this form's other
+        // job, /activities/{id}/edit: the activity's own volunteer stays
+        // selectable even once deactivated, so fixing a typo on an old entry
+        // never forces reassigning it to somebody else.
+        $data = $options['data'] ?? null;
+        $currentVolunteer = $data instanceof Activity ? $data->getVolunteer() : null;
+
         $builder
             ->add('date', DateType::class, ['widget' => 'single_text'])
             ->add('volunteer', EntityType::class, [
                 'class' => Volunteer::class,
                 'choice_label' => static fn(Volunteer $volunteer) => $volunteer->getFullName() . ($volunteer->isActive() ? '' : ' (inactive)'),
-                'query_builder' => static fn($repo) => $repo->createQueryBuilder('v')->orderBy('v.lastName', 'ASC')->addOrderBy('v.firstName', 'ASC'),
+                'query_builder' => static function (VolunteerRepository $volunteers) use ($currentVolunteer): QueryBuilder {
+                    $builder = $volunteers->createQueryBuilder('v')
+                        ->where('v.isActive = :active')
+                        ->setParameter('active', true);
+
+                    if (null !== $currentVolunteer) {
+                        $builder->orWhere('v = :current')->setParameter('current', $currentVolunteer);
+                    }
+
+                    return $builder->orderBy('v.lastName', 'ASC')->addOrderBy('v.firstName', 'ASC');
+                },
                 'placeholder' => 'Choose a volunteer',
             ])
             ->add('project', EntityType::class, [

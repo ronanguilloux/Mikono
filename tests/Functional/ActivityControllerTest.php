@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Entity\Activity;
+use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
@@ -327,5 +328,60 @@ final class ActivityControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', 'Please specify the duration when choosing "Other".');
+    }
+
+    #[Test]
+    public function inactiveVolunteersAreNotOfferedOnTheSingleActivityForm(): void
+    {
+        $client = static::createClient();
+        $active = VolunteerFactory::createOne(['firstName' => 'Still', 'lastName' => 'Here', 'isActive' => true]);
+        $gone = VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone', 'isActive' => false]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+
+        $offered = $crawler->filter('#activity_form_volunteer option')->extract(['value']);
+        self::assertContains((string) $active->getId(), $offered);
+        self::assertNotContains((string) $gone->getId(), $offered);
+    }
+
+    #[Test]
+    public function inactiveVolunteersAreNotOfferedOnTheBatchForm(): void
+    {
+        $client = static::createClient();
+        $active = VolunteerFactory::createOne(['firstName' => 'Still', 'lastName' => 'Here', 'isActive' => true]);
+        $gone = VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone', 'isActive' => false]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new-batch');
+
+        $offered = $crawler
+            ->filter('[data-batch-activity-form-target="checkboxes"] input[type="checkbox"]')
+            ->extract(['value']);
+        self::assertContains((string) $active->getId(), $offered);
+        self::assertNotContains((string) $gone->getId(), $offered);
+    }
+
+    #[Test]
+    public function editingAnOldActivityKeepsItsSinceDeactivatedVolunteerSelectable(): void
+    {
+        // Otherwise fixing a typo on a historical entry would force
+        // reassigning it to somebody who wasn't there.
+        $client = static::createClient();
+        $gone = VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone', 'isActive' => false]);
+        $activity = ActivityFactory::createOne(['volunteer' => $gone]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', sprintf('/activities/%d/edit', $activity->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertContains(
+            (string) $gone->getId(),
+            $crawler->filter('#activity_form_volunteer option')->extract(['value']),
+        );
+        self::assertSame(
+            (string) $gone->getId(),
+            $crawler->filter('#activity_form_volunteer option[selected]')->attr('value'),
+        );
     }
 }

@@ -53,13 +53,19 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
   `templates/components/DataTable.html.twig`) and the Tailwind form
   theme (`templates/form/tailwind_theme.html.twig`, registered globally
   in `config/packages/twig.yaml`) rather than hand-styling a new area.
-- `src/Report/ActivitySummaryCalculator.php` — the one piece of real
-  domain logic (duration-to-days aggregation for `/reports`).
+- `src/Report/` — the app's real domain logic:
+  `ActivitySummaryCalculator` (duration-to-days aggregation for
+  `/reports`), plus `RosterBuilder`/`QuietProjectFinder` and their
+  readonly value objects behind the home screen. `QuietProjectFinder`
+  covers projects only and never volunteers — that's deliberate and
+  evidence-based, so read its class docblock before "completing" it.
 - `src/Factory/` — Foundry v2 factories (`PersistentObjectFactory`, real
   objects) for every entity, used by both tests and dev fixtures
   (`src/Story/AppStory.php`).
 - `tests/Functional/` — WebTestCase functional tests, one per
   controller area plus `SecurityControllerTest`.
+- `tests/Integration/` — KernelTestCase tests for `src/Report/` services
+  that need the database but no HTTP layer.
 
 ## Stack
 
@@ -140,6 +146,13 @@ for dev specifically — leave that override in place.
   default, which crashes with a 500 against a non-nullable property
   instead of showing a validation error. Already applied to every
   existing form; apply it to any new required text field too.
+- The volunteer pickers on both activity forms list **active volunteers
+  only** — volunteers leave after a few weeks, so the inactive ones are
+  pure noise when logging attendance. `ActivityFormType` also backs the
+  edit screen, so its query keeps the activity's own current volunteer
+  selectable even once deactivated; any future "active only" picker on a
+  form that edits existing rows needs the same escape hatch, or old
+  records become uneditable.
 - `tests/E2E/` holds one real-browser Symfony Panther smoke test
   (login → create Volunteer → create Activity → see it in the list and
   `/reports` → mobile-nav check). It's excluded from the default

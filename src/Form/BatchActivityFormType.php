@@ -10,6 +10,8 @@ use App\Entity\Escort;
 use App\Entity\Project;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
+use App\Repository\VolunteerRepository;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -81,9 +83,15 @@ final class BatchActivityFormType extends AbstractType
                 'choice_label' => static fn(Volunteer $volunteer) => $volunteer->getFullName(),
                 'choice_attr' => static fn(Volunteer $volunteer) => [
                     'data-name' => $volunteer->getFullName(),
-                    'data-inactive' => $volunteer->isActive() ? '0' : '1',
                 ],
-                'query_builder' => static fn($repo) => $repo->createQueryBuilder('v')->orderBy('v.lastName', 'ASC')->addOrderBy('v.firstName', 'ASC'),
+                // Active volunteers only — this form only ever creates new
+                // activities, so somebody who has finished their stint is
+                // never a valid answer to "who attended?".
+                'query_builder' => static fn(VolunteerRepository $volunteers): QueryBuilder => $volunteers->createQueryBuilder('v')
+                    ->where('v.isActive = :active')
+                    ->setParameter('active', true)
+                    ->orderBy('v.lastName', 'ASC')
+                    ->addOrderBy('v.firstName', 'ASC'),
                 'multiple' => true,
                 'expanded' => true,
                 'label' => 'Who attended?',

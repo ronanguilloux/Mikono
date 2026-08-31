@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Dto\BatchActivityInput;
 use App\Entity\Activity;
+use App\Entity\Project;
 use App\Entity\User;
 use App\Enum\ActivityDuration;
 use App\Form\ActivityFormType;
@@ -96,7 +97,11 @@ final class ActivityController extends AbstractController
     {
         $today = new \DateTimeImmutable('today');
         $data = new BatchActivityInput();
-        $data->date = $today;
+        // The home screen links here pre-filled: its rosters pass the day they
+        // cover, and "Assign volunteers" on a quiet project passes that
+        // project, so the VM lands on a form that only needs the people.
+        $data->date = $this->requestedDate($request) ?? $today;
+        $data->project = $this->requestedProject($request);
         $form = $this->createForm(BatchActivityFormType::class, $data);
         $form->handleRequest($request);
 
@@ -171,6 +176,25 @@ final class ActivityController extends AbstractController
         $this->addFlash('success', 'Activity was deleted.');
 
         return $this->redirectToRoute('activity_index');
+    }
+
+    private function requestedDate(Request $request): ?\DateTimeImmutable
+    {
+        $raw = $request->query->get('date');
+        if (!is_string($raw)) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $raw);
+
+        return false === $date ? null : $date;
+    }
+
+    private function requestedProject(Request $request): ?Project
+    {
+        $id = $request->query->getInt('project');
+
+        return 0 === $id ? null : $this->entityManager->find(Project::class, $id);
     }
 
     private function loggedByUser(): ?User

@@ -115,21 +115,15 @@ parameters:
 			path: src/Entity/User.php
 
 		-
-			message: '#^Cannot call method addOrderBy\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: src/Form/ActivityFormType.php
-
-		-
 			message: '#^Cannot call method createQueryBuilder\(\) on mixed\.$#'
 			identifier: method.nonObject
-			count: 4
+			count: 3
 			path: src/Form/ActivityFormType.php
 
 		-
 			message: '#^Cannot call method orderBy\(\) on mixed\.$#'
 			identifier: method.nonObject
-			count: 4
+			count: 3
 			path: src/Form/ActivityFormType.php
 
 		-
@@ -145,21 +139,15 @@ parameters:
 			path: src/Form/ActivityTypeFormType.php
 
 		-
-			message: '#^Cannot call method addOrderBy\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: src/Form/BatchActivityFormType.php
-
-		-
 			message: '#^Cannot call method createQueryBuilder\(\) on mixed\.$#'
 			identifier: method.nonObject
-			count: 4
+			count: 3
 			path: src/Form/BatchActivityFormType.php
 
 		-
 			message: '#^Cannot call method orderBy\(\) on mixed\.$#'
 			identifier: method.nonObject
-			count: 4
+			count: 3
 			path: src/Form/BatchActivityFormType.php
 
 		-

@@ -9,6 +9,7 @@ use App\Enum\ProjectLocation;
 use App\Enum\ProjectOwnership;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
@@ -161,6 +162,42 @@ final class AppStory extends Story
                 'activityType' => $activityType,
                 'loggedBy' => $admin,
             ]);
+        }
+
+        // Today's and tomorrow's rosters, seeded relative to the day the
+        // fixtures are loaded — the home screen's two roster panels are
+        // date-relative, so a fixed date would leave it looking empty. This is
+        // also the only place escorts get seeded: the roster is where they're
+        // read back out.
+        $mrsAchola = EscortFactory::createOne(['name' => 'Mrs Achola']);
+        $mrMaeba = EscortFactory::createOne(['name' => 'Mr Maeba']);
+        $msNjeri = EscortFactory::createOne(['name' => 'Ms Njeri']);
+
+        $today = new \DateTimeImmutable('today');
+        $tomorrow = $today->modify('+1 day');
+
+        foreach ([
+            [$today, $ucescoHq, $orientation, [$extraVolunteers[0]], $mrsAchola],
+            [$today, $toiSchoolField, $sports, [$extraVolunteers[1], $extraVolunteers[2]], $mrMaeba],
+            [$today, $mombasaHomeVisits, $homeVisit, [$extraVolunteers[3]], null],
+            [$tomorrow, $beyondZero, $clinicSupport, [$ronanVolunteer, $extraVolunteers[1]], $mrMaeba],
+            [$tomorrow, $peggyLucas, $schoolSupport, [$extraVolunteers[2], $extraVolunteers[3]], $msNjeri],
+            // Ronan is already at Beyond Zero tomorrow — a volunteer moving to
+            // a second site the same day is the "(later)" case from the VM's
+            // real roster messages.
+            [$tomorrow, $mveti, $vocationalTrainingSupport, [$ronanVolunteer, $extraVolunteers[0]], $mrMaeba],
+        ] as [$date, $project, $activityType, $volunteers, $escort]) {
+            foreach ($volunteers as $volunteer) {
+                ActivityFactory::createOne([
+                    'volunteer' => $volunteer,
+                    'project' => $project,
+                    'activityType' => $activityType,
+                    'date' => $date,
+                    'duration' => ActivityDuration::HalfDay,
+                    'accompaniedBy' => $escort,
+                    'loggedBy' => $admin,
+                ]);
+            }
         }
     }
 }
