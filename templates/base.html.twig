@@ -36,6 +36,7 @@
             {% set settings_items = [
                 {label: 'Projects', route: 'project_index'},
                 {label: 'Activity Types', route: 'activity_type_index'},
+                {label: 'Escorts', route: 'escort_index'},
             ] %}
             {% if is_granted('ROLE_ADMIN') %}
                 {% set settings_items = settings_items|merge([{label: 'Users', route: 'user_index'}]) %}

@@ -51,6 +51,10 @@ class Activity
     #[ORM\JoinColumn(nullable: false)]
     private ?User $loggedBy = null;
 
+    #[ORM\ManyToOne(targetEntity: Escort::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Escort $accompaniedBy = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -170,6 +174,18 @@ class Activity
     public function setLoggedBy(?User $loggedBy): static
     {
         $this->loggedBy = $loggedBy;
+
+        return $this;
+    }
+
+    public function getAccompaniedBy(): ?Escort
+    {
+        return $this->accompaniedBy;
+    }
+
+    public function setAccompaniedBy(?Escort $accompaniedBy): static
+    {
+        $this->accompaniedBy = $accompaniedBy;
 
         return $this;
     }

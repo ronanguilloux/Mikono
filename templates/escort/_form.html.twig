@@ -1,0 +1,13 @@
+{{ form_start(form, {attr: {class: 'max-w-lg'}}) }}
+    {{ form_widget(form) }}
+
+    <div class="flex items-center gap-3">
+        <button
+            type="submit"
+            class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+        >
+            Save
+        </button>
+        <a href="{{ path('escort_index') }}" class="text-sm text-slate-600 hover:underline">Cancel</a>
+    </div>
+{{ form_end(form) }}

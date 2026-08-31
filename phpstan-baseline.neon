@@ -70,6 +70,12 @@ parameters:
 			message: '#^Parameter \#2 \$token of method Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController\:\:isCsrfTokenValid\(\) expects string\|null, bool\|float\|int\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
+			path: src/Controller/EscortController.php
+
+		-
+			message: '#^Parameter \#2 \$token of method Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController\:\:isCsrfTokenValid\(\) expects string\|null, bool\|float\|int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
 			path: src/Controller/ProjectController.php
 
 		-
@@ -145,6 +151,12 @@ parameters:
 			path: src/Form/ActivityTypeFormType.php
 
 		-
+			message: '#^Class App\\Form\\EscortFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Form/EscortFormType.php
+
+		-
 			message: '#^Class App\\Form\\ProjectFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
 			identifier: missingType.generics
 			count: 1
@@ -191,6 +203,12 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Repository/ActivityTypeRepository.php
+
+		-
+			message: '#^Method App\\Repository\\EscortRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\Escort\> but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Repository/EscortRepository.php
 
 		-
 			message: '#^Method App\\Repository\\ProjectRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\Project\> but returns mixed\.$#'

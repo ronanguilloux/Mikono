@@ -6,6 +6,31 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-08-31 — Escort entity, migration, and 6th CRUD area
+
+First half of next-steps.md's item 1: the `Escort` lookup entity
+(id/name/`isActive`, same shape as `ActivityType`) plus a nullable
+`Activity::$accompaniedBy` (`ManyToOne` → `Escort`) — schema captured
+in `migrations/Version20260831150157.php`. Added the `EscortController`/
+`EscortFormType`/`EscortRepository` (with the same
+`countReferencingActivities()` delete-guard as the other four lookup
+repositories) and `templates/escort/` (index/new/edit/_form, following
+the `ActivityType` CRUD area's shape exactly), an `EscortFactory` for
+tests and fixtures, an "Escorts" link in the Settings nav, and five
+functional tests (`EscortControllerTest`). The batch/group activity
+logging form (mockup 2) that consumes `accompaniedBy` is still open —
+see next-steps.md.
+
+**Dev-environment note (unrelated to this feature):** the local SQLite
+database's `doctrine_migration_versions` table had been reset to empty
+while the actual schema from all five prior migrations was still
+present, so `doctrine:migrations:migrate` failed on
+`Version20260824204146` with "table user already exists". Fixed by
+backfilling version tracking for the five already-applied migrations
+via `doctrine:migrations:version --add --range-from=... --range-to=...`
+before running the new one normally. `doctrine:schema:validate`
+confirms the schema is in sync after.
+
 ## 2026-08-31 — Volunteer timeline "show" page
 
 Implemented mockup 3 from the 2026-08-28 validated screen designs

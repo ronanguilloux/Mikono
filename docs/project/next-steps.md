@@ -26,10 +26,11 @@ questions.
 
 ### Next step: implement in Twig, in this order
 
-1. `Escort` entity + migration (see
+1. Batch/group activity logging form (mockup 2) — the `Escort` entity
+   + migration it depends on (see
    ["Escort/chaperone capture"](#escortchaperone-capture-needed-before-the-batch-form)
-   below), then the batch/group activity logging form (mockup 2), which
-   depends on it.
+   below) is done (`done.md`, 2026-08-31); only the form itself
+   remains.
 2. Work-focused home screen (mockup 1) — depends on the batch form
    existing (its "+ Plan activity" / "+ Log activity" buttons link to
    it) and on `ActivitySummaryCalculator` already providing the
@@ -130,12 +131,13 @@ print` rules hiding the app chrome).
 
 ### Escort/chaperone capture (needed before the batch form)
 
-Confirmed by Edna's real nightly roster messages (2026-08-27), which
-each name one staff member who accompanied volunteers per project per
-day ("Accompanied by Mr Maeba") — nothing today captures this, and it's
-used throughout mockups 1 and 2 above. Add a new `Escort` lookup entity
-(id/name/`isActive`, same shape as `ActivityType`) as a 6th CRUD area
-under Settings; add a nullable `Activity::$accompaniedBy` (`ManyToOne`
+**Done 2026-08-31** (see `done.md`). Confirmed by Edna's real nightly
+roster messages (2026-08-27), which each name one staff member who
+accompanied volunteers per project per day ("Accompanied by Mr
+Maeba") — nothing today captures this, and it's used throughout
+mockups 1 and 2 above. A new `Escort` lookup
+entity (id/name/`isActive`, same shape as `ActivityType`) as a 6th CRUD
+area under Settings; a nullable `Activity::$accompaniedBy` (`ManyToOne`
 → `Escort`) set once per batch-logged session and applied to every row
 it creates. Needs a migration and a new CRUD area, no new
 infrastructure — full reasoning in
