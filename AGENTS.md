@@ -97,6 +97,15 @@ docker compose exec php bin/console app:user:create \
   --email=ronan.guilloux@gmail.com --full-name="Ronan Guilloux" --password=<new-password> --admin
 ```
 
+**That local account is for AI agents, not for a human** — nobody signs
+into the dev app with it by hand, so an agent that needs to log in (the
+`scripts/panther-screenshot.php` flow below, mainly) may reset its
+password with the command above without asking first, and doesn't need
+to preserve whatever password was set before. It's a local, dev-only
+SQLite account on `https://localhost` with seeded fixture data behind it;
+nothing about it is shared with production, and no real password
+belongs in this file — this repo is public.
+
 Seed realistic dev data (the Bright Achievers worked example, plus a
 handful of extra volunteers/activities):
 
