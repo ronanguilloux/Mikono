@@ -85,9 +85,10 @@ docker compose exec php php bin/phpunit
 ```
 
 App: `https://localhost` (self-signed cert — accept the browser warning).
-Seeded VM login: `ronan.guilloux@gmail.com` / a temporary dev password
-set via `app:user:create` — change it by re-running that command (it's
-idempotent) rather than looking it up here. `--email`/`--full-name`/
+Seeded VM login: a single dev/test account and a temporary dev password,
+both set via `app:user:create` — neither is recorded here (this repo is
+public); re-run that command to set what you need rather than looking it
+up. `--email`/`--full-name`/
 `--password` (plus the existing `--admin` flag) make it a one-liner
 instead of interactive prompts — dev/local convenience only, since the
 password then lands in plaintext in shell history:

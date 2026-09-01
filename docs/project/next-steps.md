@@ -130,9 +130,12 @@ today; all five simple-list controllers call `findAllOrderedByName()` /
 `findAllOrderedByDateDesc()` / `findBy([], ...)` with no `Request` param.
 The Reports page's own tabbed + paginated treatment was mocked up and
 validated as part of mockup 5 above (page-size selector, windowed page
-numbers including the large-scale ellipsis case) — what follows is the
-technical pagination-mechanism decision, still open, for wiring that
-validated UI up to real data across all six views:
+numbers including the large-scale ellipsis case). The mechanism for wiring
+that validated UI up to real data is now settled in
+[ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md) —
+KnpPaginatorBundle, hand-wired, rendering through a project-owned Tailwind
+template inside `DataTable`. What remains here is the implementation
+shape:
 
 - **Page-size control**: a `perPage` query param offering 25 / 50 / 100 /
   All (default 25), identical on every list view.
@@ -149,52 +152,23 @@ validated UI up to real data across all six views:
   and render the controls, rather than hand-rolling pagination markup per
   template — it's already the one reused abstraction across every CRUD
   index page.
-- **Pagination mechanism — comparison for a future ADR** (per this
-  project's "every non-trivial architectural decision gets an ADR"
-  convention — not decided here):
-
-  *Hand-rolled* (Doctrine `LIMIT`/`OFFSET` or ORM `Paginator` in each
-  repository, plus a small shared `PaginatedResult`-style value object
-  that both DB-backed lists and the Report's in-memory
-  `summarizeByVolunteer()`/`summarizeByProject()` arrays populate the same
-  way):
-  - \+ no new dependency; matches this project's default stance and its
-    established pattern for wiring a contrib package by hand
-    (`dama/doctrine-test-bundle`, despite `allow-contrib: false`) instead
-    of avoiding contrib packages outright.
-  - \+ full control, minimal surface for a 6-screen app.
-  - − windowed/ellipsis page-number rendering is fiddly to get right by
-    hand (off-by-one edge cases at both ends) and would need to be built
-    and tested from scratch.
-  - − no free sortable-column support if that's ever wanted later.
-
-  *KnpPaginatorBundle* (`knplabs/knp-paginator-bundle`):
-  - \+ `paginate()` accepts a Doctrine `Query`/`QueryBuilder` **or a
-    plain array**, so it already unifies the DB-backed lists and the
-    Report's in-memory summary arrays under one call — the "one unified
-    solution" goal, without a bespoke value object.
-  - \+ ships a windowed/ellipsis pagination Twig template out of the
-    box — precisely the "best UI/UX" piece being asked for here,
-    pre-built and battle-tested rather than hand-rolled.
-  - \+ optional sortable-column helper (`knp_pagination_sortable()`) if
-    column sorting is ever wanted, at no extra cost.
-  - − a new dependency; its default templates are
-    Bootstrap/Foundation-flavored and would need a custom Tailwind
-    template override (a supported, documented customization point, not
-    a hack).
-  - − its Flex recipe would be ignored by this project's
-    `allow-contrib: false`, so it needs the same manual-wiring treatment
-    already proven for `dama/doctrine-test-bundle`.
-
-  **Leaning recommendation for the ADR**: KnpPaginatorBundle — it directly
-  solves the hardest part of this ask (correct windowed pagination UI)
-  with a maintained implementation instead of a hand-rolled one, and this
-  project's own convention already accommodates wiring a contrib package
-  by hand rather than ruling it out. This is a recommendation only; the
-  actual pick still belongs in an ADR once this is picked up for
-  implementation.
-- **Not decided here**: which library, and exactly how the pagination
-  object plugs into `DataTable` — both still open, for the ADR.
+- **Mechanism**: `knplabs/knp-paginator-bundle` ^6.10, hand-wired in
+  `config/bundles.php` + `config/packages/` (its Flex recipe is ignored
+  under `allow-contrib: false`, same as `dama/doctrine-test-bundle`).
+  Verified to resolve on Symfony 8.1 / PHP 8.5. One `paginate()` shape
+  covers both the CRUD lists' `QueryBuilder`s and the Report's in-memory
+  `summarizeByVolunteer()`/`summarizeByProject()` arrays. Rationale and
+  the rejected alternatives (hand-rolled, Pagerfanta) are in
+  [ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md).
+- **Note for whoever builds it**: the bundle *does* ship
+  `tailwindcss_pagination.html.twig` (an earlier note here claiming its
+  templates are Bootstrap-only was wrong), but it renders only
+  first/prev/range/next/last arrows in stock blue/gray — not the reviewed
+  `« 1 2 3 … 66 67 »` design.
+  Treat it as a reference and register our own template, built from
+  `SlidingPagination::getPaginationData()`'s `pagesInRange` /
+  `firstPageInRange` / `lastPageInRange` / `first` / `last` keys; the
+  ellipsis is just `firstPageInRange > first`.
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 
