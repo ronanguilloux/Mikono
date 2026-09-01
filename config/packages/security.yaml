@@ -28,6 +28,13 @@ security:
                 # The home screen is where the day's work is — Reports was only
                 # the landing page while app_home was a bare redirect to it.
                 default_target_path: app_home
+            # The login form is the app's only internet-facing entry point
+            # and it had no brute-force protection. Generous enough that a
+            # VM mistyping a password on a phone keyboard won't lock
+            # themselves out of a day's logging.
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
             logout:
                 path: app_logout
                 target: app_login

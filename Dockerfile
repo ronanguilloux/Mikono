@@ -37,25 +37,6 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 
 ENV PHP_INI_SCAN_DIR=":$PHP_INI_DIR/app.conf.d"
 
-###> recipes ###
-###> symfony/panther ###
-# Chromium and ChromeDriver
-ENV PANTHER_NO_SANDBOX=1
-# Not mandatory, but recommended
-ENV PANTHER_CHROME_ARGUMENTS='--disable-dev-shm-usage'
-# hadolint ignore=DL3008
-RUN apt-get update && apt-get install -y --no-install-recommends chromium chromium-driver && rm -rf /var/lib/apt/lists/*
-
-# Firefox and geckodriver
-#ARG GECKODRIVER_VERSION=0.34.0
-# hadolint ignore=DL3008
-#RUN apt-get update && apt-get install -y --no-install-recommends firefox && rm -rf /var/lib/apt/lists/*
-#RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v$GECKODRIVER_VERSION/geckodriver-v$GECKODRIVER_VERSION-aarch64.tar.gz; \
-#	tar -zxf geckodriver-v$GECKODRIVER_VERSION-aarch64.tar.gz -C /usr/bin; \
-#	rm geckodriver-v$GECKODRIVER_VERSION-aarch64.tar.gz
-###< symfony/panther ###
-###< recipes ###
-
 COPY --link frankenphp/conf.d/10-app.ini $PHP_INI_DIR/app.conf.d/
 COPY --link --chmod=755 frankenphp/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 COPY --link frankenphp/Caddyfile /etc/frankenphp/Caddyfile
@@ -82,6 +63,30 @@ EOF
 
 COPY --link frankenphp/conf.d/20-app.dev.ini $PHP_INI_DIR/app.conf.d/
 
+# Panther's Chromium lives in the dev stage only, deliberately: the prod
+# builder stage inherits from frankenphp_base, so keeping it there made
+# every production build download a browser it never ships. Both Panther
+# entry points (tests/E2E/ and scripts/panther-screenshot.php) run in this
+# dev container. Keep the Flex markers intact — the recipe is managed.
+###> recipes ###
+###> symfony/panther ###
+# Chromium and ChromeDriver
+ENV PANTHER_NO_SANDBOX=1
+# Not mandatory, but recommended
+ENV PANTHER_CHROME_ARGUMENTS='--disable-dev-shm-usage'
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends chromium chromium-driver && rm -rf /var/lib/apt/lists/*
+
+# Firefox and geckodriver
+#ARG GECKODRIVER_VERSION=0.34.0
+# hadolint ignore=DL3008
+#RUN apt-get update && apt-get install -y --no-install-recommends firefox && rm -rf /var/lib/apt/lists/*
+#RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v$GECKODRIVER_VERSION/geckodriver-v$GECKODRIVER_VERSION-aarch64.tar.gz; \
+#	tar -zxf geckodriver-v$GECKODRIVER_VERSION-aarch64.tar.gz -C /usr/bin; \
+#	rm geckodriver-v$GECKODRIVER_VERSION-aarch64.tar.gz
+###< symfony/panther ###
+###< recipes ###
+
 CMD [ "frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile", "--watch" ]
 
 # Builder for the prod FrankenPHP image
@@ -105,6 +110,12 @@ RUN <<-EOF
 	composer dump-autoload --classmap-authoritative --no-dev
 	composer dump-env prod
 	composer run-script --no-dev post-install-cmd
+	# Must run BEFORE asset-map:compile: outside the test env the Tailwind
+	# bundle is in strict mode, and TailwindBuilder::getOutputCssContent()
+	# throws when var/tailwind/ holds no built CSS — asset-map:compile then
+	# fails the whole image build. Downloads the standalone Tailwind binary,
+	# so the build needs network egress.
+	php bin/console tailwind:build --minify
 	if [ -f importmap.php ]; then
 		php bin/console asset-map:compile
 	fi

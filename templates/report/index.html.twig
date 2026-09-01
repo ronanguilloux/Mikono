@@ -31,10 +31,72 @@
     </div>
 {% endmacro %}
 
+{% macro kpi_tile(label, value, sub) %}
+    <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{{ label }}</div>
+        <div class="mt-1 text-2xl font-semibold">{{ value }}</div>
+        <div class="mt-0.5 text-xs text-slate-500">{{ sub }}</div>
+    </div>
+{% endmacro %}
+
 {% import _self as report %}
 
 {% block body %}
-    <h1 class="mb-4 text-xl font-semibold">Reports</h1>
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold">Reports</h1>
+        <button
+            type="button"
+            onclick="window.print()"
+            class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-brand-500 hover:text-brand-700 print:hidden"
+        >
+            Print-friendly view
+        </button>
+    </div>
+
+    <div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {{ report.kpi_tile('Volunteers', metrics.volunteerCount, metrics.activeVolunteerCount ~ ' active') }}
+        {{ report.kpi_tile('Projects', metrics.projectCount, metrics.activeProjectCount ~ ' active') }}
+        {{ report.kpi_tile(
+            'Activities logged',
+            metrics.activityCount,
+            metrics.plannedActivityCount > 0 ? 'incl. ' ~ metrics.plannedActivityCount ~ ' planned' : 'all logged'
+        ) }}
+        {{ report.kpi_tile(
+            'Total days contributed',
+            metrics.totalDays|number_format(1),
+            metrics.hasUncounted
+                ? 'all-time · ' ~ metrics.uncountedDurationCount ~ ' not counted'
+                : 'all-time'
+        ) }}
+    </div>
+
+    {% if byVolunteer is not empty %}
+        <section class="mb-8 rounded-lg border border-slate-200 bg-white shadow-sm" aria-labelledby="top-volunteers-heading">
+            <div class="border-b border-slate-200 px-5 py-4">
+                <h2 id="top-volunteers-heading" class="font-semibold">Top volunteers</h2>
+                <p class="mt-0.5 text-xs text-slate-500">By total days contributed, all-time</p>
+            </div>
+            <ul class="divide-y divide-slate-100">
+                {% set medals = {
+                    1: 'bg-amber-100 text-amber-700',
+                    2: 'bg-slate-100 text-slate-600',
+                    3: 'bg-orange-100 text-orange-800',
+                } %}
+                {% for row in byVolunteer|slice(0, 5) %}
+                    {# The stat drops to its own line below sm so the name — the
+                       whole point of a recognition card — isn't truncated. #}
+                    <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3">
+                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold {{ medals[loop.index]|default('bg-slate-100 text-slate-400') }}"
+                              aria-hidden="true">{{ loop.index }}</span>
+                        <span class="min-w-0 flex-1 truncate text-sm font-semibold">{{ row.label }}</span>
+                        <span class="w-full pl-10 text-xs tabular-nums text-slate-500 sm:w-auto sm:pl-0 sm:text-sm">
+                            {{ row.totalDays|number_format(1) }} days · {{ row.count }} {{ row.count == 1 ? 'activity' : 'activities' }}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
 
     <div class="mb-8">
         <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By volunteer</h2>

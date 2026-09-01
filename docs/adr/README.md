@@ -37,3 +37,4 @@ drafts and maintains these.
 | [0007](0007-adopt-panther-for-adhoc-visual-verification.md) | Adopt Panther (not Playwright) for ad-hoc, Claude-session-driven visual verification | Accepted |
 | [0008](0008-add-other-activity-duration-with-free-text-companion-field.md) | Add an `Other` `ActivityDuration` case with a free-text companion field | Accepted |
 | [0009](0009-adopt-knppaginatorbundle-for-list-pagination.md) | Adopt KnpPaginatorBundle for list pagination across every index view | Accepted |
+| [0010](0010-build-in-ci-and-deploy-by-image-pull.md) | Build the production image in CI and deploy by pulling it | Accepted |

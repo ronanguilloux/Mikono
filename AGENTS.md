@@ -234,6 +234,35 @@ docker compose exec php composer rector     # preview refactors — dry-run only
   `git config core.hooksPath .githooks`. Bypass deliberately with
   `git commit --no-verify`, not by disabling the hook.
 
+**Deployment** (see
+[ADR 0010](docs/adr/0010-build-in-ci-and-deploy-by-image-pull.md),
+[`docs/project/hosting-plan.md`](docs/project/hosting-plan.md) for what a
+server must provide, and
+[`docs/project/deployment-plan.md`](docs/project/deployment-plan.md) for
+the runbook):
+
+- CI builds the production image and pushes it to GHCR
+  (`.github/workflows/`); the server only pulls. Nothing is built on the
+  production host.
+- **Always pass both compose files** —
+  `docker compose -f compose.yaml -f compose.prod.yaml …`. A bare
+  `docker compose up -d` silently loads `compose.override.yaml` and would
+  run production in `APP_ENV=dev` with Xdebug and a bind mount.
+- `APP_SECRET` is a **runtime** variable, never a build argument: the
+  published image is public, and `composer dump-env prod` bakes
+  build-time environment into it.
+- In the `frankenphp_prod_builder` stage, `tailwind:build` must run
+  **before** `asset-map:compile`. Outside the `test` env the Tailwind
+  bundle is in strict mode and throws when no built CSS exists, failing
+  the whole image build. Don't reorder or drop it.
+- `date.timezone` is `Africa/Nairobi` in `frankenphp/conf.d/10-app.ini`,
+  not UTC — the home screen's rosters resolve
+  `new \DateTimeImmutable('today')` against it, and every user is in
+  Kenya. That file is copied into the image, not bind-mounted, so
+  changing it needs a `docker compose build php`.
+- Backups: `scripts/backup-db.sh` (host-side, hot `VACUUM INTO`, no
+  downtime, no `sqlite3` binary needed).
+
 **What's next:** see
 [`docs/project/next-steps.md`](docs/project/next-steps.md) (forward-only).
 **What's already been done:** see

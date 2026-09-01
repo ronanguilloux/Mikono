@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-01
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -23,18 +23,69 @@ below. **All five mockups were validated; mockups 1, 2 and 4 (the
 work-focused home screen, the batch/group activity logging form, and the
 Activities index mobile card layout) have since shipped** (`done.md`,
 2026-08-31) and have been removed from this file, as has the escort
-write-path parity fix that followed (`done.md`, same date). Mockup 5
-remains, and is an implementation-ready spec rather than an open
-question. Three things
-are still genuinely undecided and are marked as such where they
-appear: escort display/reporting, the two "not yet mocked" UX-review
-findings, and the pagination mechanism (which needs an ADR).
+write-path parity fix that followed (`done.md`, same date). **Mockup 5
+has half shipped**: its KPI tiles, top-volunteers card, and
+print-friendly view landed as slice 1 (`done.md`, 2026-08-31); only its
+tabs + pagination remain, as slice 2 below. Two things are still
+genuinely undecided and are marked as such where they appear: escort
+display/reporting and the two "not yet mocked" UX-review findings. The
+pagination mechanism is no longer among them — it is settled in
+[ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md).
 
 ### Next step: implement in Twig
 
-1. Reports dashboard (mockup 5) — the KPI tiles and top-volunteers list
-   don't need pagination and can ship on their own; pull in a
-   pagination library once the ADR below is written.
+1. Reports dashboard, slice 2 (mockup 5, remainder) — turn the "By
+   volunteer" / "By project" tables into tabs over one shared table
+   region, and add the page-size selector plus windowed pagination
+   controls, per ADR 0009 and the implementation shape recorded under
+   ["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27)
+   below. Same pass extends `DataTable` and reaches all six index views.
+
+### Getting it hosted (2026-08-31 hosting review)
+
+[ADR 0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)
+deferred every hosting question out of v0.1. A review of the Docker,
+FrankenPHP, and Symfony configuration turned that deferral into two new
+living documents — [`hosting-plan.md`](hosting-plan.md) (what the
+architecture requires of a server, and where that server should be) and
+[`deployment-plan.md`](deployment-plan.md) (the runbook) — plus
+[ADR 0010](../adr/0010-build-in-ci-and-deploy-by-image-pull.md) for the
+build-and-ship shape. The defects that review found are fixed
+(`done.md`, 2026-09-01). What is left is genuinely forward work:
+
+1. **Choose the provider and region — needs measurement first.** The
+   stated goal is hosting in Kenya for latency. That points at the right
+   country for the wrong reason: latency plausibly saves well under a
+   second per working session once the mobile access leg is accounted
+   for, while the *stronger* argument is that this app holds personal
+   data about Kenyan volunteers and Kenya's Data Protection Act 2019
+   constrains taking that data out of the country. Before this is locked
+   into an ADR, run the `mtr` / `curl -w` protocol in
+   [`hosting-plan.md`](hosting-plan.md#5-where-to-host) from a real
+   device on a real network in Nairobi and Mombasa, and record the
+   numbers there. The ranking to test against is Nairobi, then
+   Johannesburg, then Europe — and *not* a European VPS behind
+   Cloudflare, for the reasons given in that section.
+2. **Then do the first deployment**, following
+   [`deployment-plan.md`](deployment-plan.md): domain, server bootstrap,
+   `deploy.env`, backup cron, and the restore drill. The drill is not
+   optional — an untested backup of the one file holding all of the VM's
+   data is a hope, not a backup.
+3. **Sessions are lost on every deploy.** They live in
+   `var/cache/prod/sessions`, which is not a volume, so a redeploy signs
+   everyone out. At one user this is a shrug; it is recorded so it isn't
+   rediscovered as a bug. The fix, when a second `User` exists, is a
+   volume or a different session handler.
+4. **SQLite journal mode.** The database uses the default rollback
+   journal. Switching to WAL plus a `busy_timeout` is a one-time
+   `PRAGMA` and is the cheapest first move on the single-writer limit
+   ADR 0003 flagged — worth doing when a second `User` account appears,
+   not before.
+5. **No regression test pins the timezone behaviour.** The home screen's
+   rosters resolve `new \DateTimeImmutable('today')` against the PHP
+   `date.timezone`, which is now `Africa/Nairobi`; nothing fails if that
+   silently reverts to UTC. A test asserting the roster boundary at,
+   say, 01:00 EAT would catch it.
 
 ### Validated screen designs (2026-08-28 mockup review)
 
@@ -46,20 +97,17 @@ Two things already work well and were kept as-is throughout every
 mockup: server-rendered Twig + Turbo Drive + native `confirm()` for
 deletes, and the app's real brand mark/colors (no placeholder logo).
 
-**5. Reports dashboard**
+**5. Reports dashboard — remaining half**
 ([Mockup: "Reports Dashboard"](https://claude.ai/code/artifact/37d624b5-2d29-4224-9471-c4dcde7125ab)):
-KPI tiles (Volunteers, Projects, Activities
-logged, Total days contributed) above the existing content; a "Top
-volunteers" recognition card (top 5 by total days, medal styling for
-the top 3, built from `summarizeByVolunteer()`'s already-produced
-data); the existing "By volunteer" / "By project" tables become tabs
+the existing "By volunteer" / "By project" tables become tabs
 over one shared table region with a page-size selector (25 / 50 / 100 /
 All) and windowed-ellipsis pagination controls — validated visually at
 both today's small scale and the hypothetical `« 1 2 3 … 66 67 »`
 large-scale case (see
 ["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27)
-below); a "Print-friendly view" button (`window.print()` + `@media
-print` rules hiding the app chrome).
+below). The tiles, the top-volunteers card, and the print-friendly view
+from this mockup already shipped (`done.md`, 2026-08-31) and are not
+repeated here.
 
 ### Not yet mocked — still open
 

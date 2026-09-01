@@ -1,0 +1,60 @@
+---
+# Publishes the production image the server pulls.
+# See docs/adr/0010-build-in-ci-and-deploy-by-image-pull.md and
+# docs/project/deployment-plan.md
+name: Build and publish production image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  # Matches IMAGES_PREFIX + the image name in compose.prod.yaml, so the
+  # server pulls with IMAGES_PREFIX=ghcr.io/<owner>/
+  IMAGE: ghcr.io/${{ github.repository_owner }}/app-php-prod
+
+jobs:
+  build-and-push:
+    name: Build and push to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,format=short
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # No build-args, deliberately: APP_SECRET and every other runtime
+      # value stay runtime-only. The published image is public, and
+      # `composer dump-env prod` would bake a build-time value into it.
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: frankenphp_prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,73 @@
+---
+# Quality gate. Until this existed the only one was .githooks/pre-commit,
+# which is local and bypassable with --no-verify.
+# See docs/adr/0010-build-in-ci-and-deploy-by-image-pull.md
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-and-tests:
+    name: Quality checks and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: frankenphp_dev
+          tags: app-php-dev:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The same commands documented in AGENTS.md, run where they cannot
+      # be skipped. --no-scripts: the image already ran post-install-cmd.
+      - name: Install dependencies
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app app-php-dev:ci \
+            composer install --no-interaction --no-progress --no-scripts
+
+      - name: Quality (cs-check + phpstan + phpat + security audit)
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app app-php-dev:ci \
+            composer quality
+
+      - name: Tests
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app app-php-dev:ci \
+            php bin/phpunit
+
+  prod-image-builds:
+    name: Production image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build only — publishing happens in build-image.yml on main. The
+      # point is that a production build which cannot complete fails here,
+      # on the pull request, and not during a deployment. That is exactly
+      # how the missing `tailwind:build` step went unnoticed.
+      - name: Build the production target
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: frankenphp_prod
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

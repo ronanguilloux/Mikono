@@ -6,6 +6,117 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-01 — Production readiness: hosting review and its fixes
+
+A review of `Dockerfile`, `compose*.yaml`, `frankenphp/`, and the app
+config, prompted by [ADR 0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)
+having deferred every hosting question out of v0.1. It produced
+[`hosting-plan.md`](hosting-plan.md), [`deployment-plan.md`](deployment-plan.md),
+and [ADR 0010](../adr/0010-build-in-ci-and-deploy-by-image-pull.md) — and
+found two defects that a first deployment would have hit head-on:
+
+- **The production image could not be built at all.** The `Dockerfile`
+  ran `asset-map:compile` without ever running `tailwind:build`, and
+  `TailwindBuilder::getOutputCssContent()` *throws* when the built CSS is
+  missing (strict mode is on outside the `test` env) — a hard build
+  failure, not degraded styling. Nobody had seen it because the
+  `frankenphp_prod` target had never been built. Fixed by running
+  `tailwind:build --minify` before `asset-map:compile`; the production
+  image now builds and serves 26 KB of minified CSS.
+- **The server ran in UTC while every user is in Kenya (EAT, UTC+3).**
+  The home screen's "Today's roster"/"Tomorrow's roster" and the greeting
+  resolve `new \DateTimeImmutable('today')` against PHP's `date.timezone`,
+  so between 00:00 and 03:00 local time the app showed the *previous*
+  day's roster. `date.timezone` is now `Africa/Nairobi` in
+  `frankenphp/conf.d/10-app.ini`. PHP bundles its own timezone database,
+  so the slim production image needs no `tzdata`.
+
+Also in this pass:
+
+- Panther's Chromium install moved from `frankenphp_base` to
+  `frankenphp_dev`. The production *builder* stage inherits from the
+  base, so every production build was downloading a browser the final
+  image never ships. Both Panther entry points run in the dev container,
+  so nothing else changed.
+- `symfony/monolog-bundle` added — the app had no logging at all. The
+  official recipe's Docker variant already writes production logs to
+  `php://stderr` as JSON, which is what `docker compose logs` wants.
+- `login_throttling` (5 attempts / 15 minutes) on the `main` firewall,
+  via `symfony/rate-limiter`. The login form is the app's only
+  internet-facing entry point and had no brute-force protection. Symfony
+  surfaces the limit as an ordinary authentication error ("Too many
+  failed login attempts…"), not an HTTP 429.
+- `scripts/backup-db.sh` — hot backup via SQLite's `VACUUM INTO` through
+  `pdo_sqlite`, verified with `PRAGMA integrity_check` before it leaves
+  the container. No downtime, and no `sqlite3` binary (the slim
+  production image has none).
+- `.github/workflows/` — the repository had no CI whatsoever; the only
+  quality gate was the local, bypassable pre-commit hook. `ci.yml` runs
+  `composer quality` and `bin/phpunit`, and separately proves the
+  production target still builds on every pull request. `build-image.yml`
+  publishes it to GHCR on `main`.
+- `compose.prod.yaml` now carries `DEFAULT_URI`, an `IMAGE_TAG`, and the
+  comment explaining why both compose files must always be passed.
+
+**One-off for anyone with an existing checkout:** `10-app.ini` is copied
+into the image rather than bind-mounted, so the timezone fix needs
+`docker compose build php && docker compose up -d --wait` to take effect
+locally.
+
+## 2026-08-31 — Reports dashboard, slice 1 (mockup 5, minus tabs/pagination)
+
+`/reports` was two tables and nothing else. It now opens with four KPI
+tiles (Volunteers, Projects, Activities logged, Total days contributed),
+a "Top volunteers" recognition card, and a print-friendly view. The two
+existing tables are untouched below it — this was purely additive.
+
+Mockup 5 was deliberately split. The tabs, the 25/50/100/All page-size
+selector, and the windowed `« 1 2 3 … 66 67 »` controls are **slice 2**:
+they pull in KnpPaginatorBundle per
+[ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md),
+touch all six index views, and extend `DataTable` — a different blast
+radius, worth landing on its own.
+
+New domain code, both under `src/Report/` and therefore inside Infection's
+scope (`infection.json.dist` lists the directory):
+
+- `ReportMetrics` — readonly VO carrying the four tile figures plus the
+  sub-line figures under them.
+- `ReportMetricsCalculator` — counts in PHP from the finders that already
+  exist (`findAllOrderedByName()` × 2, `findAllOrderedByDateDesc()`).
+  **No new repository methods on purpose:** `src/Repository` is in
+  Infection's scope too, so a `countActive()` there would need its own
+  mutation-killing tests for nothing —
+  `ActivitySummaryCalculator` already walks every activity the same way,
+  and this app serves one user over hundreds of rows.
+
+Two domain rules, both reused rather than invented:
+
+- **Planned = future-dated**, the same rule the Activities mobile cards
+  ship with, so the word means one thing app-wide.
+- **`ActivityDuration::Other` contributes 0.0 days** by design
+  ([ADR 0008](../adr/0008-add-other-activity-duration-with-free-text-companion-field.md)
+  — its free-text value is never parsed). A total-days tile that silently
+  under-reports is a trap, so `ReportMetrics::hasUncounted()` exists and
+  the sub-line reads `all-time · N not counted` whenever such rows exist.
+
+The top-5 list is `byVolunteer|slice(0, 5)` in the template rather than a
+second service: `summarizeByVolunteer()` already sorts by total days
+descending, so there's no second sort and no second pass over the data.
+
+Printing needed no CSS file — Tailwind's built-in `print:` variant does
+it, with `print:hidden` on the base template's `<header>` and on the
+button itself. Verified twice over: a functional test asserts both
+elements carry the class, and the compiled `var/tailwind/app.built.css`
+really contains the `@media print` rule.
+
+Two fixes came out of screenshotting the result rather than trusting the
+markup: the mockup's 🖨 emoji rendered as a tofu box (no emoji font in the
+container, and no reason to gamble on the viewer's), so the button is
+plain text; and at 375px the volunteer names — the entire point of a
+recognition card — were truncating to `Stewart M…`, so the stat now drops
+to its own line below `sm`.
+
 ## 2026-08-31 — Mobile card layout for the Activities index (mockup 4)
 
 Below `md` (768px), `templates/activity/index.html.twig` now renders one

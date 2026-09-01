@@ -1,10 +1,24 @@
 ---
-# Production environment override
+# Production environment override.
+#
+# Always deploy with BOTH files — `docker compose up -d` alone silently
+# picks up compose.override.yaml and would run production in APP_ENV=dev:
+#
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d
+#
+# See docs/project/deployment-plan.md.
 services:
   php:
-    image: ${IMAGES_PREFIX:-}app-php-prod
+    # IMAGES_PREFIX doubles as the registry prefix (e.g.
+    # `ghcr.io/<owner>/`), so the same file covers a local prod build and a
+    # `docker compose pull` of the image CI published.
+    image: ${IMAGES_PREFIX:-}app-php-prod:${IMAGE_TAG:-latest}
     build:
       context: .
       target: frankenphp_prod
     environment:
+      # Runtime-only, never a build arg: the published image is public, and
+      # `composer dump-env prod` would bake a build-time value into it.
       APP_SECRET: ${APP_SECRET}
+      # Used by CLI commands that generate URLs; no HTTP request context there.
+      DEFAULT_URI: ${DEFAULT_URI:-https://${SERVER_NAME:-localhost}}
