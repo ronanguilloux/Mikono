@@ -8,6 +8,7 @@ use App\Entity\Activity;
 use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -20,8 +21,13 @@ class ActivityRepository extends ServiceEntityRepository
         parent::__construct($registry, Activity::class);
     }
 
-    /** @return Activity[] */
-    public function findAllOrderedByDateDesc(): array
+    /**
+     * The paginated index builds on this; findAllOrderedByDateDesc() is the
+     * same query without a LIMIT, for the callers that genuinely need every
+     * row. All three joins are to-one, so a LIMIT can't multiply rows and the
+     * page size means what it says.
+     */
+    public function createOrderedByDateDescQueryBuilder(): QueryBuilder
     {
         return $this->createQueryBuilder('a')
             ->addSelect('v', 'p', 't')
@@ -29,7 +35,13 @@ class ActivityRepository extends ServiceEntityRepository
             ->join('a.project', 'p')
             ->join('a.activityType', 't')
             ->orderBy('a.date', 'DESC')
-            ->addOrderBy('a.id', 'DESC')
+            ->addOrderBy('a.id', 'DESC');
+    }
+
+    /** @return Activity[] */
+    public function findAllOrderedByDateDesc(): array
+    {
+        return $this->createOrderedByDateDescQueryBuilder()
             ->getQuery()
             ->getResult();
     }

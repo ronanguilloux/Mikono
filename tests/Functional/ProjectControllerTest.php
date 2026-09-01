@@ -68,4 +68,19 @@ final class ProjectControllerTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'Cannot delete Bright Achievers');
     }
+
+    #[Test]
+    public function theIndexPaginatesAtTwentyFivePerPage(): void
+    {
+        $client = static::createClient();
+        ProjectFactory::createMany(26);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/projects');
+        self::assertCount(25, $crawler->filter('table tbody tr'));
+
+        $crawler = $client->request('GET', '/projects?page=2');
+        self::assertCount(1, $crawler->filter('table tbody tr'));
+    }
 }

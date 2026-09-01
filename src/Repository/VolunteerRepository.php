@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Activity;
 use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -19,12 +20,21 @@ class VolunteerRepository extends ServiceEntityRepository
         parent::__construct($registry, Volunteer::class);
     }
 
-    /** @return Volunteer[] */
-    public function findAllOrderedByName(): array
+    /**
+     * The paginated index builds on this; findAllOrderedByName() is the same
+     * query without a LIMIT, for the callers that genuinely need every row.
+     */
+    public function createOrderedByNameQueryBuilder(): QueryBuilder
     {
         return $this->createQueryBuilder('v')
             ->orderBy('v.lastName', 'ASC')
-            ->addOrderBy('v.firstName', 'ASC')
+            ->addOrderBy('v.firstName', 'ASC');
+    }
+
+    /** @return Volunteer[] */
+    public function findAllOrderedByName(): array
+    {
+        return $this->createOrderedByNameQueryBuilder()
             ->getQuery()
             ->getResult();
     }

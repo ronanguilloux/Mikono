@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\ActivityType;
 use App\Form\ActivityTypeFormType;
+use App\Pagination\ListPaginator;
 use App\Repository\ActivityTypeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,13 +22,20 @@ final class ActivityTypeController extends AbstractController
         private readonly ActivityTypeRepository $activityTypes,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ListPaginator $paginator,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $pagination = $this->paginator->paginateQuery(
+            $this->activityTypes->createOrderedByNameQueryBuilder(),
+            ActivityType::class,
+            $request,
+        );
+
         $rows = [];
-        foreach ($this->activityTypes->findAllOrderedByName() as $activityType) {
+        foreach ($pagination as $activityType) {
             $rows[] = [
                 'cells' => [
                     'name' => $activityType->getName(),
@@ -52,6 +60,7 @@ final class ActivityTypeController extends AbstractController
                 ['key' => 'description', 'label' => 'Description'],
             ],
             'rows' => $rows,
+            'pagination' => $pagination,
         ]);
     }
 

@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\Escort;
 use App\Form\EscortFormType;
+use App\Pagination\ListPaginator;
 use App\Repository\EscortRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,13 +22,20 @@ final class EscortController extends AbstractController
         private readonly EscortRepository $escorts,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ListPaginator $paginator,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $pagination = $this->paginator->paginateQuery(
+            $this->escorts->createOrderedByNameQueryBuilder(),
+            Escort::class,
+            $request,
+        );
+
         $rows = [];
-        foreach ($this->escorts->findAllOrderedByName() as $escort) {
+        foreach ($pagination as $escort) {
             $rows[] = [
                 'cells' => [
                     'name' => $escort->getName(),
@@ -52,6 +60,7 @@ final class EscortController extends AbstractController
                 ['key' => 'status', 'label' => 'Status'],
             ],
             'rows' => $rows,
+            'pagination' => $pagination,
         ]);
     }
 

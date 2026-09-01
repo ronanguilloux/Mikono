@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Activity;
 use App\Entity\ActivityType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -19,11 +20,20 @@ class ActivityTypeRepository extends ServiceEntityRepository
         parent::__construct($registry, ActivityType::class);
     }
 
+    /**
+     * The paginated index builds on this; findAllOrderedByName() is the same
+     * query without a LIMIT, for the callers that genuinely need every row.
+     */
+    public function createOrderedByNameQueryBuilder(): QueryBuilder
+    {
+        return $this->createQueryBuilder('t')
+            ->orderBy('t.name', 'ASC');
+    }
+
     /** @return ActivityType[] */
     public function findAllOrderedByName(): array
     {
-        return $this->createQueryBuilder('t')
-            ->orderBy('t.name', 'ASC')
+        return $this->createOrderedByNameQueryBuilder()
             ->getQuery()
             ->getResult();
     }

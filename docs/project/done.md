@@ -6,6 +6,63 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-01 — Reports tabs + unified pagination across every list view
+
+Slice 2 of mockup 5, and the last of the five validated 2026-08-28
+screen designs to ship. The mechanism was decided ahead of the code in
+[ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md)
+— KnpPaginatorBundle for the windowing math, our own Tailwind markup,
+rendered through `DataTable` — so this entry records only what the ADR
+doesn't.
+
+What landed: `/reports`' two breakdowns became tabs over one shared
+table region (`?tab=volunteer|project`), and all seven list views (six
+CRUD indexes plus Reports) gained a page-size selector and windowed
+`‹ 1 … 32 33 34 … 66 67 ›` controls. `App\Pagination\ListPaginator` is
+the single place `page` and `perPage` are parsed; `DataTable` grew
+`pagination` and `withActions` props; the Reports template lost its
+hand-rolled `summary_table` macro in favour of `DataTable`.
+
+Five things worth knowing that aren't in the ADR:
+
+- **ADR 0009 predates the Escort CRUD area** (commit `62f608f`). Read
+  its "five CRUD lists / six list views" as "six CRUD lists / seven
+  list views". The decision itself is unchanged, so this is recorded
+  here rather than as a superseding ADR.
+- **`perPage=all` maps to a finite ceiling** (`ListPaginator::ALL_PER_PAGE`,
+  100 000), not 0 or `PHP_INT_MAX`: the bundle divides by the limit to
+  get the page count, so 0 is a division by zero, and a bigint `LIMIT`
+  is dialect-fragile.
+- **Bad input never 404s.** An unknown `perPage` falls back to 25, a
+  `page` below 1 clamps to 1, a `page` past the end serves the last
+  page. Note that `InputBag::getInt()` could not be used for this — in
+  Symfony 8 it *throws* on non-numeric input, which would have made
+  `?page=abc` a 400.
+- **Print did not regress.** The print-friendly view has always put both
+  breakdowns on paper in full, so tabbing the screen would have halved
+  it. A `hidden print:block` panel renders both complete tables
+  alongside the paginated screen panel, at no extra query — both
+  summaries come from one in-memory pass either way. The consequence is
+  in `tests/E2E/VolunteerManagerSmokeTest.php`: Panther reads only
+  *visible* text, so its `Bright Achievers` assertion now requests
+  `/reports?tab=project`.
+- **The bundle's `knp_pagination_render()` is not used.** Its render
+  helper requires a `TranslatorInterface` this single-locale app doesn't
+  have (its skipped contrib recipe would have enabled it), and it only
+  contributes `route`/`query` to the template context — both public on
+  the pagination object. `PaginationBar` includes
+  `templates/pagination/tailwind.html.twig` directly instead, so no
+  translation subsystem was added to serve a template with no
+  translatable strings.
+
+The windowing math is pinned by
+`tests/Integration/Pagination/ListPaginatorTest.php`, which renders the
+controls template against a synthetic 67-page pagination and asserts the
+exact reviewed sequence at both ends and the middle — including the
+empty-list case, where the bundle's page range computes to `[1, 0]` and
+would otherwise render a link to page "0". Suite went from 73 tests to
+116.
+
 ## 2026-09-01 — Production readiness: hosting review and its fixes
 
 A review of `Dockerfile`, `compose*.yaml`, `frankenphp/`, and the app

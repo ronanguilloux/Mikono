@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\Project;
 use App\Form\ProjectFormType;
+use App\Pagination\ListPaginator;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,13 +22,20 @@ final class ProjectController extends AbstractController
         private readonly ProjectRepository $projects,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ListPaginator $paginator,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $pagination = $this->paginator->paginateQuery(
+            $this->projects->createOrderedByNameQueryBuilder(),
+            Project::class,
+            $request,
+        );
+
         $rows = [];
-        foreach ($this->projects->findAllOrderedByName() as $project) {
+        foreach ($pagination as $project) {
             $rows[] = [
                 'cells' => [
                     'name' => $project->getName(),
@@ -56,6 +64,7 @@ final class ProjectController extends AbstractController
                 ['key' => 'status', 'label' => 'Status'],
             ],
             'rows' => $rows,
+            'pagination' => $pagination,
         ]);
     }
 

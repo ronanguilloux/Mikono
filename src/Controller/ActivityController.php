@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Enum\ActivityDuration;
 use App\Form\ActivityFormType;
 use App\Form\BatchActivityFormType;
+use App\Pagination\ListPaginator;
 use App\Repository\ActivityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,15 +27,22 @@ final class ActivityController extends AbstractController
         private readonly ActivityRepository $activities,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ListPaginator $paginator,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $today = new \DateTimeImmutable('today');
 
+        $pagination = $this->paginator->paginateQuery(
+            $this->activities->createOrderedByDateDescQueryBuilder(),
+            Activity::class,
+            $request,
+        );
+
         $rows = [];
-        foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
+        foreach ($pagination as $activity) {
             $date = $activity->getDate();
             $rows[] = [
                 // Extra to DataTable's own row shape, which ignores it: the
@@ -77,6 +85,7 @@ final class ActivityController extends AbstractController
                 ['key' => 'duration', 'label' => 'Duration'],
             ],
             'rows' => $rows,
+            'pagination' => $pagination,
         ]);
     }
 

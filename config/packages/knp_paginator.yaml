@@ -1,0 +1,23 @@
+# Hand-wired, like dama/doctrine-test-bundle: composer.json sets
+# `allow-contrib: false`, so this bundle's contrib recipe never runs. Only
+# the auto-generated recipe fired, registering the bundle in
+# config/bundles.php — everything below is ours. See ADR 0009.
+knp_paginator:
+    # The mockup's windowed controls show three pages around the current one
+    # before the ellipsis (« 1 2 3 … 66 67 »).
+    page_range: 3
+    default_options:
+        page_name: page
+        distinct: true
+        # A stale bookmark past the last page shows the last page rather than
+        # dying. There is one non-technical user; a dead end is worse than a
+        # surprise. App\Pagination\ListPaginator makes the same call for
+        # `page` and `perPage`.
+        page_out_of_range: fix
+        default_limit: 25
+# No `template.pagination` key on purpose. Our controls live in
+# templates/pagination/tailwind.html.twig, but PaginationBar includes them
+# directly instead of going through knp_pagination_render() — that helper
+# requires a TranslatorInterface this single-locale app doesn't have, and it
+# only contributes `route`/`query` to the context, both public on the
+# pagination object. Registering the template here would be dead config.

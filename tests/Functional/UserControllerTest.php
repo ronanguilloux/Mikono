@@ -109,4 +109,22 @@ final class UserControllerTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'cannot delete your own account');
     }
+
+    #[Test]
+    public function theIndexPaginatesAtTwentyFivePerPage(): void
+    {
+        // 26 created here plus the admin doing the looking makes 27 — two on
+        // the second page, not one.
+        $client = static::createClient();
+        UserFactory::createMany(26);
+        $admin = UserFactory::new()->admin()->create();
+
+        $client->loginUser($admin);
+
+        $crawler = $client->request('GET', '/users');
+        self::assertCount(25, $crawler->filter('table tbody tr'));
+
+        $crawler = $client->request('GET', '/users?page=2');
+        self::assertCount(2, $crawler->filter('table tbody tr'));
+    }
 }

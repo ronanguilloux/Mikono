@@ -5,7 +5,9 @@
                 {% for column in columns %}
                     <th class="px-4 py-2 text-left font-medium text-slate-600">{{ column.label }}</th>
                 {% endfor %}
-                <th class="px-4 py-2"></th>
+                {% if withActions %}
+                    <th class="px-4 py-2"></th>
+                {% endif %}
             </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
@@ -14,13 +16,15 @@
                     {% for column in columns %}
                         <td class="px-4 py-2 align-top">{{ row.cells[column.key]|default('') }}</td>
                     {% endfor %}
-                    <td class="px-4 py-2 text-right align-top whitespace-nowrap">
-                        <twig:RowActions :actions="row.actions" />
-                    </td>
+                    {% if withActions %}
+                        <td class="px-4 py-2 text-right align-top whitespace-nowrap">
+                            <twig:RowActions :actions="row.actions|default([])" />
+                        </td>
+                    {% endif %}
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="{{ columns|length + 1 }}" class="px-4 py-6 text-center text-slate-500">
+                    <td colspan="{{ columns|length + (withActions ? 1 : 0) }}" class="px-4 py-6 text-center text-slate-500">
                         {{ emptyMessage }}
                     </td>
                 </tr>
@@ -28,3 +32,12 @@
         </tbody>
     </table>
 </div>
+
+{#
+    Outside the table and outside the scroll wrapper, deliberately: several
+    tests count `table tbody tr`, and page links inside <table> would both
+    break those and be invalid markup.
+#}
+{% if pagination is not null %}
+    <twig:PaginationBar :pagination="pagination" />
+{% endif %}

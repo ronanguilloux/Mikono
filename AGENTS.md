@@ -53,6 +53,21 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
   `templates/components/DataTable.html.twig`) and the Tailwind form
   theme (`templates/form/tailwind_theme.html.twig`, registered globally
   in `config/packages/twig.yaml`) rather than hand-styling a new area.
+  `DataTable` also takes an optional `pagination` (renders the controls
+  below the table) and `withActions` (set `false` for a read-only table,
+  or it grows a phantom empty actions column).
+- `src/Pagination/` — `ListPaginator`, the single place `page` and
+  `perPage` are read off the query string for all seven list views.
+  Page sizes are whitelisted 25/50/100/All, default 25. Bad input never
+  404s: an unknown size falls back to the default, `page` below 1 clamps
+  to 1, `page` past the end serves the last page. Don't reach for
+  `InputBag::getInt()` here — in Symfony 8 it throws on non-numeric
+  input, which turns `?page=abc` into a 400. See
+  [ADR 0009](docs/adr/0009-adopt-knppaginatorbundle-for-list-pagination.md).
+  The controls markup lives in `templates/pagination/tailwind.html.twig`,
+  included by `templates/components/PaginationBar.html.twig` — not
+  rendered via `knp_pagination_render()`, which needs a translator this
+  app deliberately doesn't have.
 - `src/Report/` — the app's real domain logic:
   `ActivitySummaryCalculator` (duration-to-days aggregation for
   `/reports`), plus `RosterBuilder`/`QuietProjectFinder` and their
@@ -143,9 +158,13 @@ for dev specifically — leave that override in place.
 - `dama/doctrine-test-bundle`'s Flex recipe is silently ignored
   (`composer.json` has `allow-contrib: false`, deliberately, from the
   original skeleton) — it's wired by hand in `config/bundles.php` and
-  `phpunit.dist.xml` instead of flipping that global flag. If a future
-  contrib package is needed, wire it the same way rather than enabling
-  `allow-contrib` project-wide.
+  `phpunit.dist.xml` instead of flipping that global flag.
+  `knplabs/knp-paginator-bundle` is the second package on this footing
+  (`config/bundles.php` + `config/packages/knp_paginator.yaml`); note
+  that a skipped contrib recipe also skips whatever *else* it would have
+  enabled — that bundle's recipe would have turned on the translator its
+  render helper needs. If a future contrib package is needed, wire it
+  the same way rather than enabling `allow-contrib` project-wide.
 - In `WebTestCase` tests, `static::createClient()` must be the **first**
   call in every test method — Foundry factories auto-boot the kernel to
   reach Doctrine, and booting it twice throws. Create the client, then

@@ -429,4 +429,42 @@ final class ActivityControllerTest extends WebTestCase
         self::assertStringContainsString('Planned', $cards->eq(0)->text());
         self::assertStringNotContainsString('Planned', $cards->eq(1)->text());
     }
+
+    #[Test]
+    public function theIndexPaginatesAndTheMobileCardsFollowTheSamePage(): void
+    {
+        // The two renderings read the same rows, so a page that moved one and
+        // not the other would be a silent desktop/mobile split.
+        $client = static::createClient();
+        ActivityFactory::createMany(26);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/activities');
+        self::assertCount(25, $crawler->filter('table tbody tr'));
+        self::assertCount(25, $crawler->filter('[data-activity-cards] > li'));
+
+        $crawler = $client->request('GET', '/activities?page=2');
+        self::assertCount(1, $crawler->filter('table tbody tr'));
+        self::assertCount(1, $crawler->filter('[data-activity-cards] > li'));
+    }
+
+    #[Test]
+    public function thePaginationControlsSitOutsideTheTableAndStayReachableOnMobile(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createMany(26);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities');
+
+        // Page links inside <table> would be invalid markup and would break
+        // every `table tbody tr` count in this file.
+        self::assertCount(0, $crawler->filter('table [data-pagination]'));
+        self::assertCount(1, $crawler->filter('[data-pagination]'));
+        // ...and outside the `hidden md:block` wrapper, or the card list would
+        // be capped at one page with no way forward.
+        self::assertCount(0, $crawler->filter('.md\\:hidden [data-pagination-bar]'));
+        self::assertCount(1, $crawler->filter('[data-pagination-bar]'));
+    }
 }

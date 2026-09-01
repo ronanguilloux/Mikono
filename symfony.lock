@@ -50,6 +50,9 @@
             ".php-cs-fixer.dist.php"
         ]
     },
+    "knplabs/knp-paginator-bundle": {
+        "version": "v6.10.0"
+    },
     "phpstan/phpstan": {
         "version": "2.2.9"
     },

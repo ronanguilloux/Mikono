@@ -146,4 +146,19 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Cannot delete Aisha Njoroge');
         self::assertSelectorTextContains('body', 'Aisha Njoroge');
     }
+
+    #[Test]
+    public function theIndexPaginatesAtTwentyFivePerPage(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createMany(26);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/volunteers');
+        self::assertCount(25, $crawler->filter('table tbody tr'));
+
+        $crawler = $client->request('GET', '/volunteers?page=2');
+        self::assertCount(1, $crawler->filter('table tbody tr'));
+    }
 }

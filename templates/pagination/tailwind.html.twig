@@ -1,0 +1,73 @@
+{#
+    Windowed page controls, registered as knp_paginator.template.pagination.
+    Not the bundle's own tailwindcss_pagination.html.twig — that one renders
+    arrows only, in stock blue/gray. This is the design validated in the
+    2026-08-28 mockup review: « 1 2 3 … 66 67 », brand palette, two sentinels
+    at the tail and one at the head.
+
+    Context comes from SlidingPagination::getPaginationData() merged with
+    `route` and `query` (the current request's params), which is why `tab` and
+    `perPage` survive every page link without being named here.
+
+    Two traps live in that data:
+      - `previous` / `next` are only set when they exist, so they must be
+        reached through `is defined` under strict_variables.
+      - at totalCount == 0 the windowing math yields pagesInRange [1, 0], so
+        an unguarded render puts a page "0" link on an empty list. The
+        pageCount > 1 guard below is what stops it.
+#}
+{% if pageCount is defined and pageCount > 1 %}
+    {% set page_param = options.pageParameterName|default('page') %}
+    {% set link_class = 'inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-slate-300 px-2 text-sm text-slate-700 hover:border-brand-500 hover:text-brand-700' %}
+    {% set muted_class = 'inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-slate-200 px-2 text-sm text-slate-300' %}
+
+    {% macro page_url(route, query, page_param, page) %}
+        {{- path(route, query|merge({(page_param): page})) -}}
+    {% endmacro %}
+    {% import _self as pager %}
+
+    <nav class="flex flex-wrap items-center gap-1 print:hidden" aria-label="Pagination" data-pagination>
+        {% if previous is defined %}
+            <a href="{{ pager.page_url(route, query, page_param, previous) }}" rel="prev" aria-label="Previous page" class="{{ link_class }}">&lsaquo;</a>
+        {% else %}
+            <span class="{{ muted_class }}" aria-hidden="true">&lsaquo;</span>
+        {% endif %}
+
+        {# Head sentinel: the first page, plus an ellipsis when the window
+           doesn't already reach it. The `> first + 1` guard avoids the silly
+           "1 … 2" — if only one page is hidden, there's nothing to collapse. #}
+        {% if firstPageInRange > first %}
+            <a href="{{ pager.page_url(route, query, page_param, first) }}" aria-label="Page {{ first }}" class="{{ link_class }}">{{ first }}</a>
+            {% if firstPageInRange > first + 1 %}
+                <span class="px-1 text-slate-400" aria-hidden="true">…</span>
+            {% endif %}
+        {% endif %}
+
+        {% for page in pagesInRange %}
+            {% if page == current %}
+                <span aria-current="page" class="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-brand-600 bg-brand-600 px-2 text-sm font-semibold text-white">{{ page }}</span>
+            {% else %}
+                <a href="{{ pager.page_url(route, query, page_param, page) }}" aria-label="Page {{ page }}" class="{{ link_class }}">{{ page }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {# Tail sentinel: the reviewed design shows the last TWO pages
+           (« … 66 67 »), so each one gets rendered only when the window
+           hasn't already covered it. #}
+        {% if lastPageInRange < last %}
+            {% if lastPageInRange < last - 2 %}
+                <span class="px-1 text-slate-400" aria-hidden="true">…</span>
+            {% endif %}
+            {% if lastPageInRange < last - 1 %}
+                <a href="{{ pager.page_url(route, query, page_param, last - 1) }}" aria-label="Page {{ last - 1 }}" class="{{ link_class }}">{{ last - 1 }}</a>
+            {% endif %}
+            <a href="{{ pager.page_url(route, query, page_param, last) }}" aria-label="Page {{ last }}" class="{{ link_class }}">{{ last }}</a>
+        {% endif %}
+
+        {% if next is defined %}
+            <a href="{{ pager.page_url(route, query, page_param, next) }}" rel="next" aria-label="Next page" class="{{ link_class }}">&rsaquo;</a>
+        {% else %}
+            <span class="{{ muted_class }}" aria-hidden="true">&rsaquo;</span>
+        {% endif %}
+    </nav>
+{% endif %}

@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\Volunteer;
 use App\Form\VolunteerFormType;
+use App\Pagination\ListPaginator;
 use App\Repository\ActivityRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,13 +24,20 @@ final class VolunteerController extends AbstractController
         private readonly ActivityRepository $activities,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ListPaginator $paginator,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $pagination = $this->paginator->paginateQuery(
+            $this->volunteers->createOrderedByNameQueryBuilder(),
+            Volunteer::class,
+            $request,
+        );
+
         $rows = [];
-        foreach ($this->volunteers->findAllOrderedByName() as $volunteer) {
+        foreach ($pagination as $volunteer) {
             $rows[] = [
                 'cells' => [
                     'name' => $volunteer->getFullName(),
@@ -59,6 +67,7 @@ final class VolunteerController extends AbstractController
                 ['key' => 'status', 'label' => 'Status'],
             ],
             'rows' => $rows,
+            'pagination' => $pagination,
         ]);
     }
 

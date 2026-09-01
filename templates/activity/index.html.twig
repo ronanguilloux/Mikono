@@ -62,4 +62,10 @@
             </ul>
         {% endif %}
     </div>
+
+    {# The one index that renders its own bar instead of letting DataTable do
+       it: DataTable lives inside `hidden md:block` above, so a bar rendered
+       there would be invisible on mobile — capping the card list at one page
+       with no way to reach the next. Rendered here, it serves both. #}
+    <twig:PaginationBar :pagination="pagination" />
 {% endblock %}

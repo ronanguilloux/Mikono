@@ -11,35 +11,41 @@ or `docs/adr`/`docs/brainstorm`.
 
 ## Open work
 
-v0.1 is feature-complete (all five CRUD areas, auth, Reports view,
+v0.1 is feature-complete (all six CRUD areas, auth, Reports view,
 functional tests, one Panther E2E smoke test, scoped Infection, and dev
 fixtures — see [`done.md`](done.md)). A UX review
 ([`docs/brainstorm/`](../brainstorm/) narrative referenced below) and a
 System-of-Work brainstorm together identified the follow-on work in
 this file. Five key screens were then mocked up as interactive HTML
-Artifacts and reviewed (2026-08-28) before any Twig work started — see
-["Validated screen designs"](#validated-screen-designs-2026-08-28-mockup-review)
-below. **All five mockups were validated; mockups 1, 2 and 4 (the
-work-focused home screen, the batch/group activity logging form, and the
-Activities index mobile card layout) have since shipped** (`done.md`,
-2026-08-31) and have been removed from this file, as has the escort
-write-path parity fix that followed (`done.md`, same date). **Mockup 5
-has half shipped**: its KPI tiles, top-volunteers card, and
-print-friendly view landed as slice 1 (`done.md`, 2026-08-31); only its
-tabs + pagination remain, as slice 2 below. Two things are still
-genuinely undecided and are marked as such where they appear: escort
-display/reporting and the two "not yet mocked" UX-review findings. The
-pagination mechanism is no longer among them — it is settled in
-[ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md).
+Artifacts and reviewed (2026-08-28) before any Twig work started.
+**All five mockups were validated and all five have now shipped** — the
+work-focused home screen, the batch/group activity logging form, the
+Activities index mobile card layout, the escort write-path parity fix,
+and both slices of the Reports dashboard (`done.md`, 2026-08-31 and
+2026-09-01). Their entries have been removed from this file, along with
+the pagination design spec that slice 2 implemented; the decision behind
+it is [ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md),
+and the seam it left behind — `DataTable` plus `App\Pagination\ListPaginator`
+— is what the sortable-columns step below builds on.
+
+What remains is genuinely open: sortable columns, hosting, escort
+display/reporting, and the four "not yet mocked" findings.
 
 ### Next step: implement in Twig
 
-1. Reports dashboard, slice 2 (mockup 5, remainder) — turn the "By
-   volunteer" / "By project" tables into tabs over one shared table
-   region, and add the page-size selector plus windowed pagination
-   controls, per ADR 0009 and the implementation shape recorded under
-   ["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27)
-   below. Same pass extends `DataTable` and reaches all six index views.
+1. **Sortable columns on every list view.** Every column header on the seven
+   list tables becomes a link that sorts by that column — ascending on the
+   first click, descending on the second, with the active column showing its
+   direction. Reaches the same six CRUD index views plus both Reports
+   breakdowns. Three columns stay plain, unsortable headers, deliberately:
+   ActivityType's **Description** (free text — ordering it surfaces nothing
+   anyone is looking for), Activity's **Duration** (stored as the enum values
+   `half_day`/`full_day`/`other` alongside a free-text `durationOther`, so any
+   `ORDER BY` on it is arbitrary), and User's **Role** (derived from the
+   `roles` JSON array via `isAdmin()`, not a column). Implementation shape
+   under ["Sortable columns design"](#sortable-columns-design-2026-08-31)
+   below; it rides the `DataTable` / `ListPaginator` seam that the Reports
+   slice-2 pass has now put in place, so the groundwork already exists.
 
 ### Getting it hosted (2026-08-31 hosting review)
 
@@ -87,33 +93,20 @@ build-and-ship shape. The defects that review found are fixed
    silently reverts to UTC. A test asserting the roster boundary at,
    say, 01:00 EAT would catch it.
 
-### Validated screen designs (2026-08-28 mockup review)
-
-Reviewed against the app's actual user — a single non-technical
-Volunteer Manager logging activities day-to-day from Kibera/Mombasa,
-who needs to adopt the app fast with no developer on hand (see
-[`docs/brainstorm/02-volunteer-manager-v0.1-context.md`](../brainstorm/02-volunteer-manager-v0.1-context.md)).
-Two things already work well and were kept as-is throughout every
-mockup: server-rendered Twig + Turbo Drive + native `confirm()` for
-deletes, and the app's real brand mark/colors (no placeholder logo).
-
-**5. Reports dashboard — remaining half**
-([Mockup: "Reports Dashboard"](https://claude.ai/code/artifact/37d624b5-2d29-4224-9471-c4dcde7125ab)):
-the existing "By volunteer" / "By project" tables become tabs
-over one shared table region with a page-size selector (25 / 50 / 100 /
-All) and windowed-ellipsis pagination controls — validated visually at
-both today's small scale and the hypothetical `« 1 2 3 … 66 67 »`
-large-scale case (see
-["Reports tabs + unified pagination design"](#reports-tabs--unified-pagination-design-2026-08-27)
-below). The tiles, the top-volunteers card, and the print-friendly view
-from this mockup already shipped (`done.md`, 2026-08-31) and are not
-repeated here.
-
 ### Not yet mocked — still open
 
-Three findings weren't part of the five priority mockups and still
+Four findings weren't part of the five priority mockups and still
 need their own design pass before implementation:
 
+- **The "Planned" badge on the Reports breakdowns.** The mockup-5
+  artifact tags a future-dated "Most recent" cell with a `Planned`
+  badge, the way the Activities cards and the home screen's tomorrow
+  roster do. Slice 2 shipped the tabs and pagination without it
+  (`done.md`, 2026-09-01) because it isn't a template tweak:
+  `ActivitySummaryCalculator` would have to track whether a bucket's
+  most-recent date is in the future, which changes a class inside the
+  Infection scope. Small, but it deserves its own pass with its own
+  integration tests rather than riding along.
 - Proactively surface the volunteer/project delete-guard message
   (today only shown as a flash *after* a blocked delete attempt) — an
   inline note near volunteers/projects with activity history, before
@@ -169,54 +162,81 @@ need their own design pass before implementation:
   bottleneck, not preemptively (API costs, volunteer opt-in/consent,
   message-template approval all apply).
 
-### Reports tabs + unified pagination design (2026-08-27)
+### Sortable columns design (2026-08-31)
 
-Scoped as one shared pattern, not a Reports-only fix — it applies to all
-six list views: the Volunteer, Project, ActivityType, Activity, and User
-index pages, plus both tables on the Reports page. None of these paginate
-today; all five simple-list controllers call `findAllOrderedByName()` /
-`findAllOrderedByDateDesc()` / `findBy([], ...)` with no `Request` param.
-The Reports page's own tabbed + paginated treatment was mocked up and
-validated as part of mockup 5 above (page-size selector, windowed page
-numbers including the large-scale ellipsis case). The mechanism for wiring
-that validated UI up to real data is now settled in
-[ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md) —
-KnpPaginatorBundle, hand-wired, rendering through a project-owned Tailwind
-template inside `DataTable`. What remains here is the implementation
-shape:
+Scoped, like pagination was, as one shared pattern across all seven list
+tables rather than a per-screen fix — and best built directly on top of that
+now-shipped work (`done.md`, 2026-09-01), since both extend the same two
+seams (`DataTable`'s column definitions and `App\Pagination\ListPaginator`).
+The shape below was worked out against the bundle's actual code, not its
+README:
 
-- **Page-size control**: a `perPage` query param offering 25 / 50 / 100 /
-  All (default 25), identical on every list view.
-- **Page navigation UI**: windowed numbered pages with ellipsis
-  truncation (e.g. `« 1 2 3 … 66 67 »`) — always show first/last page, a
-  small window around the current page, prev/next arrows, and collapse
-  the rest behind `…`. This is the standard accessible pattern for long
-  paginated lists and is what makes browsing "67 pages at 25-per-page vs.
-  fewer pages at 50/100" tractable.
-- **Rendering**: extend the shared `DataTable` TwigComponent
-  (`src/Twig/Components/DataTable.php` /
-  `templates/components/DataTable.html.twig`) to optionally accept a
-  pagination summary (current page, total pages, perPage, total count)
-  and render the controls, rather than hand-rolling pagination markup per
-  template — it's already the one reused abstraction across every CRUD
-  index page.
-- **Mechanism**: `knplabs/knp-paginator-bundle` ^6.10, hand-wired in
-  `config/bundles.php` + `config/packages/` (its Flex recipe is ignored
-  under `allow-contrib: false`, same as `dama/doctrine-test-bundle`).
-  Verified to resolve on Symfony 8.1 / PHP 8.5. One `paginate()` shape
-  covers both the CRUD lists' `QueryBuilder`s and the Report's in-memory
-  `summarizeByVolunteer()`/`summarizeByProject()` arrays. Rationale and
-  the rejected alternatives (hand-rolled, Pagerfanta) are in
-  [ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md).
-- **Note for whoever builds it**: the bundle *does* ship
-  `tailwindcss_pagination.html.twig` (an earlier note here claiming its
-  templates are Bootstrap-only was wrong), but it renders only
-  first/prev/range/next/last arrows in stock blue/gray — not the reviewed
-  `« 1 2 3 … 66 67 »` design.
-  Treat it as a reference and register our own template, built from
-  `SlidingPagination::getPaginationData()`'s `pagesInRange` /
-  `firstPageInRange` / `lastPageInRange` / `first` / `last` keys; the
-  ellipsis is just `firstPageInRange > first`.
+- **The column definition carries the sort, not the URL.** `DataTable`'s
+  columns are `['key' => …, 'label' => …]`
+  (`src/Twig/Components/DataTable.php`). Add an optional third key naming the
+  field to sort on. A column without it
+  renders as a plain `<th>` — which is exactly how Description, Duration and
+  Role opt out, with no special-casing anywhere.
+- **URL contract**: `?sort=<column key>&direction=asc|desc`, e.g.
+  `?sort=email&direction=asc`. Column keys, not DQL paths — the query string
+  shouldn't leak `v.fullName`, and the same `?sort=totalDays` should mean the
+  same thing on `/reports` as anywhere else. A sort link resets `page` to 1
+  and keeps `perPage` and `tab`; `PaginationBar` and its page-size form
+  already carry unknown query params through, so `sort`/`direction` survive
+  paging and resizing for free.
+- **Knp's own sorting is deliberately not used.** Two independent reasons,
+  both verified against the vendor code:
+  - `knp_pagination_sortable()` goes through
+    `Knp\Bundle\PaginatorBundle\Helper\Processor`, whose constructor requires
+    a `TranslatorInterface` — the same blocker that already stopped this app
+    using `knp_pagination_render()` (see the note in
+    `config/packages/knp_paginator.yaml`). The header markup is ours, for the
+    same reason the pagination controls are.
+  - `SortableSubscriber` reads the raw `sort` param and pushes it straight
+    into an `ORDER BY` tree walker, so the query param has to *be* the DQL
+    path, and a value outside `sortFieldAllowList` throws
+    `InvalidValueException` — a 500. That is the opposite of the "bad input
+    never 404s" contract `ListPaginator` already keeps for `page`/`perPage`,
+    and this app has one non-technical user working from bookmarked URLs.
+- **Mechanism**: give `ListPaginator` a per-view sort map supplied by the
+  controller (`'email' => 'v.email'`, …). It resolves `sort` against that map,
+  applies `orderBy()` to the `QueryBuilder` itself, and neutralises Knp's
+  sortable subscriber by passing a `sortFieldParameterName` that never appears
+  in a URL. An unknown or absent `sort` falls back to the view's existing
+  default order (`createOrderedByNameQueryBuilder()` /
+  `createOrderedByDateDescQueryBuilder()`) — same forgiving posture as
+  `perPage`. Because the map *is* the whitelist, no user-supplied string ever
+  reaches DQL.
+- **Ties must break deterministically.** Sorting Volunteers by Status drops
+  every row into two buckets; with no secondary `addOrderBy` on name (or
+  `id`), SQLite is free to hand back rows on page 2 that were already on
+  page 1. Each sort keeps the view's default order as its tie-break.
+- **Joined columns already work.** `createOrderedByDateDescQueryBuilder()`
+  joins `v`, `p` and `t`, so Volunteer / Project / Activity type sort on the
+  joined name with no query change. All three joins are to-one, so paging
+  can't multiply rows.
+- **Reports sort in memory, before pagination.** `/reports` paginates arrays,
+  not a query. Knp's `ArraySubscriber` would demand `[totalDays]`-style
+  property paths in the URL, breaking the contract above; `usort` the
+  `SummaryRow` list against the same key→field map before `paginateArray()`
+  instead. Sort the whole list, not the page.
+- **Mobile is in scope.** The Activities card layout has no header row to
+  click, so it gets a "Sort by" + direction select beside its own
+  `PaginationBar`, reusing the `auto-submit` Stimulus controller the way the
+  page-size selector does and emitting the same two params. The one list that
+  grows longest shouldn't be sortable only on desktop.
+- **Accessibility**: the active column's `<th>` carries
+  `aria-sort="ascending"`/`"descending"`, and the link text stays the plain
+  column label — several tests resolve headers and buttons by text.
+- **Tests**: extend `tests/Integration/Pagination/ListPaginatorTest.php` for
+  map resolution, unknown-`sort` fallback and direction clamping; per index
+  view, one functional assertion that `?sort=…&direction=asc` reorders the
+  first row and one that a junk `sort` still returns 200 in default order.
+- **ADR**: choosing our own sort resolution over the bundle's is a mechanism
+  decision, so it gets its own ADR extending
+  [ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md), via
+  the `adr-scribe` subagent — written alongside the code, not reconstructed
+  after it.
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 

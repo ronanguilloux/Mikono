@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\UserFormType;
+use App\Pagination\ListPaginator;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,13 +26,20 @@ final class UserController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ListPaginator $paginator,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $pagination = $this->paginator->paginateQuery(
+            $this->users->createOrderedByNameQueryBuilder(),
+            User::class,
+            $request,
+        );
+
         $rows = [];
-        foreach ($this->users->findBy([], ['fullName' => 'ASC']) as $user) {
+        foreach ($pagination as $user) {
             $rows[] = [
                 'cells' => [
                     'name' => $user->getFullName(),
@@ -60,6 +68,7 @@ final class UserController extends AbstractController
                 ['key' => 'status', 'label' => 'Status'],
             ],
             'rows' => $rows,
+            'pagination' => $pagination,
         ]);
     }
 

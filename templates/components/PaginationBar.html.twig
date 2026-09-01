@@ -1,0 +1,85 @@
+{#
+    The footer under a paginated list: the row count, the page-size selector,
+    and the windowed page controls (templates/pagination/tailwind.html.twig,
+    reached through knp_pagination_render so the markup exists once).
+
+    A separate component rather than markup inlined into DataTable, because
+    the Activities index needs it OUTSIDE DataTable: there the table is
+    wrapped in `hidden md:block`, so a bar rendered inside would leave mobile
+    users capped at one page with no way to reach the next. Every other list
+    passes :pagination to DataTable and never names this component.
+
+    Always visible, even at a single page — that's the reviewed design, which
+    shows "Showing 1–17 of 17" beside a disabled « 1 ». The page-size selector
+    is the point: it has to be reachable before the list is long.
+#}
+{% props pagination %}
+
+{% set total = pagination.getTotalItemCount() %}
+{% set data = pagination.getPaginationData() %}
+{% set current_per_page = app.request.query.get('perPage')|default('') %}
+
+<div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600 print:hidden" data-pagination-bar>
+    <p>
+        {% if total > 0 %}
+            Showing {{ data.firstItemNumber }}–{{ data.lastItemNumber }} of {{ total|number_format }}
+        {% else %}
+            No rows
+        {% endif %}
+    </p>
+
+    <div class="flex flex-wrap items-center gap-3">
+        <form method="get" class="flex items-center gap-2" data-controller="auto-submit">
+            {#
+                Carry every other query param through, so changing the page size
+                on /reports doesn't drop the active tab. `page` is deliberately
+                omitted: a new page size means a new page 1, and keeping the old
+                offset would drop the user somewhere arbitrary.
+            #}
+            {% for key, value in app.request.query.all %}
+                {% if key not in ['page', 'perPage'] and value is not iterable %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endif %}
+            {% endfor %}
+
+            <label for="per-page" class="sr-only">Rows per page</label>
+            <span aria-hidden="true">Show</span>
+            <select
+                id="per-page"
+                name="perPage"
+                class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+                data-action="change->auto-submit#submit"
+            >
+                {% for option in [25, 50, 100] %}
+                    <option value="{{ option }}" {{ current_per_page == option ? 'selected' : '' }}>{{ option }}</option>
+                {% endfor %}
+                <option value="all" {{ current_per_page == 'all' ? 'selected' : '' }}>All</option>
+            </select>
+            <span aria-hidden="true">per page</span>
+
+            {#
+                Labelled "Apply", never "Delete" — several tests reach the row
+                delete buttons with submitForm('Delete'), which resolves by
+                button text. sr-only rather than absent so the selector still
+                works with JavaScript off.
+            #}
+            <button type="submit" class="sr-only">Apply</button>
+        </form>
+
+        {#
+            Included directly rather than through knp_pagination_render(): the
+            bundle's render helper requires a TranslatorInterface, which this
+            single-locale app doesn't have and which its skipped contrib recipe
+            would have enabled. Pulling in symfony/translation to serve a
+            template with no translatable strings is the wrong trade, and the
+            helper only adds `route` and `query` to the context — both public
+            on the pagination object. ADR 0009's decision (Knp for the windowing
+            math, our own markup) is unaffected.
+        #}
+        {% include 'pagination/tailwind.html.twig' with data|merge({
+            route: pagination.getRoute(),
+            query: pagination.getQuery(),
+            options: pagination.getPaginatorOptions(),
+        }) only %}
+    </div>
+</div>

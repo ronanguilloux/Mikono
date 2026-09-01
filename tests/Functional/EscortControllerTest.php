@@ -89,4 +89,19 @@ final class EscortControllerTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'Cannot delete Mr Maeba');
     }
+
+    #[Test]
+    public function theIndexPaginatesAtTwentyFivePerPage(): void
+    {
+        $client = static::createClient();
+        EscortFactory::createMany(26);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/escorts');
+        self::assertCount(25, $crawler->filter('table tbody tr'));
+
+        $crawler = $client->request('GET', '/escorts?page=2');
+        self::assertCount(1, $crawler->filter('table tbody tr'));
+    }
 }

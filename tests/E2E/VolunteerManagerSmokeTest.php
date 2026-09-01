@@ -81,6 +81,11 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
 
         $client->request('GET', '/reports');
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
+
+        // The breakdowns are tabbed now, and unlike the DomCrawler used by the
+        // functional tests, Panther reads only what is actually visible — the
+        // project name lives on the other tab (and in the print-only panel).
+        $client->request('GET', '/reports?tab=project');
         self::assertSelectorTextContains('body', 'Bright Achievers');
 
         $client->getWebDriver()->manage()->window()->setSize(new WebDriverDimension(375, 812));

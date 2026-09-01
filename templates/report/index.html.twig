@@ -2,35 +2,6 @@
 
 {% block title %}Reports — UCESCO Volunteer Manager{% endblock %}
 
-{% macro summary_table(rows, first_column_label) %}
-    <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50">
-                <tr>
-                    <th class="px-4 py-2 text-left font-medium text-slate-600">{{ first_column_label }}</th>
-                    <th class="px-4 py-2 text-left font-medium text-slate-600">Activities</th>
-                    <th class="px-4 py-2 text-left font-medium text-slate-600">Total days</th>
-                    <th class="px-4 py-2 text-left font-medium text-slate-600">Most recent</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                {% for row in rows %}
-                    <tr>
-                        <td class="px-4 py-2">{{ row.label }}</td>
-                        <td class="px-4 py-2">{{ row.count }}</td>
-                        <td class="px-4 py-2">{{ row.totalDays }}</td>
-                        <td class="px-4 py-2">{{ row.mostRecent ? row.mostRecent|date('j M Y') : '—' }}</td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="4" class="px-4 py-6 text-center text-slate-500">No activities logged yet.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-{% endmacro %}
-
 {% macro kpi_tile(label, value, sub) %}
     <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{{ label }}</div>
@@ -53,7 +24,10 @@
         </button>
     </div>
 
-    <div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    {# data-kpi-tiles rather than relying on `main .grid > div`: the tile count
+       is asserted in tests, and a bare .grid selector would break the moment a
+       shared component grew a grid class. #}
+    <div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4" data-kpi-tiles>
         {{ report.kpi_tile('Volunteers', metrics.volunteerCount, metrics.activeVolunteerCount ~ ' active') }}
         {{ report.kpi_tile('Projects', metrics.projectCount, metrics.activeProjectCount ~ ' active') }}
         {{ report.kpi_tile(
@@ -98,13 +72,68 @@
         </section>
     {% endif %}
 
-    <div class="mb-8">
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By volunteer</h2>
-        {{ report.summary_table(byVolunteer, 'Volunteer') }}
+    {#
+        On screen: one shared table region, the two breakdowns behind tabs.
+        Tabs are links carrying ?tab=, not role="tab" buttons — the ARIA tabs
+        pattern mandates arrow-key handling we would not be shipping, and a
+        server-side tab keeps one model for tab and page alike, survives
+        bookmarking, and can't be silently lost when a page link is clicked.
+        The links deliberately omit `page`, so switching breakdowns starts over
+        at page 1 rather than landing on a page the other list may not have.
+    #}
+    <div data-report-panel="screen" class="print:hidden">
+        {% set tab_base = 'rounded-md px-3 py-1.5 text-sm font-medium' %}
+        {% set tab_on = tab_base ~ ' bg-brand-600 text-white' %}
+        {% set tab_off = tab_base ~ ' border border-slate-300 text-slate-700 hover:border-brand-500 hover:text-brand-700' %}
+        {% set carried = app.request.query.all|filter((v, k) => k not in ['tab', 'page'] and v is not iterable) %}
+
+        <nav class="mb-3 flex flex-wrap items-center gap-2" aria-label="Report breakdown">
+            <a
+                href="{{ path('report_index', carried|merge({tab: 'volunteer'})) }}"
+                class="{{ tab == 'volunteer' ? tab_on : tab_off }}"
+                {{ tab == 'volunteer' ? 'aria-current="page"' : '' }}
+            >By volunteer</a>
+            <a
+                href="{{ path('report_index', carried|merge({tab: 'project'})) }}"
+                class="{{ tab == 'project' ? tab_on : tab_off }}"
+                {{ tab == 'project' ? 'aria-current="page"' : '' }}
+            >By project</a>
+        </nav>
+
+        <twig:DataTable
+            :columns="columns"
+            :rows="rows"
+            :pagination="pagination"
+            :withActions="false"
+            emptyMessage="No activities logged yet."
+        />
     </div>
 
-    <div>
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By project</h2>
-        {{ report.summary_table(byProject, 'Project') }}
+    {#
+        On paper: both breakdowns, complete and unpaginated. The print-friendly
+        view shipped before the tabs did, and it has always handed over every
+        row of both tables — tabbing the screen must not quietly halve what
+        prints. Costs no extra query; both summaries are already in hand.
+    #}
+    <div data-report-panel="print" class="hidden print:block">
+        <div class="mb-8">
+            <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By volunteer</h2>
+            <twig:DataTable
+                :columns="volunteerColumns"
+                :rows="volunteerRows"
+                :withActions="false"
+                emptyMessage="No activities logged yet."
+            />
+        </div>
+
+        <div>
+            <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By project</h2>
+            <twig:DataTable
+                :columns="projectColumns"
+                :rows="projectRows"
+                :withActions="false"
+                emptyMessage="No activities logged yet."
+            />
+        </div>
     </div>
 {% endblock %}

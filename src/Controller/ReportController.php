@@ -4,29 +4,108 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Pagination\ListPaginator;
 use App\Report\ActivitySummaryCalculator;
 use App\Report\ReportMetricsCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+/**
+ * @phpstan-type SummaryRow array{label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}
+ */
 #[Route('/reports', name: 'report_')]
 final class ReportController extends AbstractController
 {
+    private const string TAB_VOLUNTEER = 'volunteer';
+    private const string TAB_PROJECT = 'project';
+
     public function __construct(
         private readonly ActivitySummaryCalculator $calculator,
         private readonly ReportMetricsCalculator $metrics,
+        private readonly ListPaginator $paginator,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        // summarizeByVolunteer() already sorts by total days descending, so the
-        // "Top volunteers" card is the head of this same list — no second pass.
+        // Anything but "project" is the volunteer breakdown, so a mistyped or
+        // stale ?tab= lands on the default rather than an error page.
+        $tab = self::TAB_PROJECT === $request->query->get('tab')
+            ? self::TAB_PROJECT
+            : self::TAB_VOLUNTEER;
+
+        // Both breakdowns are computed either way: they come from one in-memory
+        // pass over the activities, the "Top volunteers" card needs the whole
+        // volunteer list, and the print panel needs both complete. Paginating
+        // one of them costs no extra query.
+        $byVolunteer = $this->calculator->summarizeByVolunteer();
+        $byProject = $this->calculator->summarizeByProject();
+
+        $pagination = $this->paginator->paginateArray(
+            self::TAB_PROJECT === $tab ? $byProject : $byVolunteer,
+            $request,
+        );
+
+        /** @var list<SummaryRow> $pageOfRows */
+        $pageOfRows = iterator_to_array($pagination, false);
+
         return $this->render('report/index.html.twig', [
             'metrics' => $this->metrics->calculate(new \DateTimeImmutable('today')),
-            'byVolunteer' => $this->calculator->summarizeByVolunteer(),
-            'byProject' => $this->calculator->summarizeByProject(),
+            // summarizeByVolunteer() already sorts by total days descending, so the
+            // "Top volunteers" card is the head of this same list — no second pass.
+            'byVolunteer' => $byVolunteer,
+            'tab' => $tab,
+            'columns' => $this->columnsFor($tab),
+            'rows' => $this->toRows($pageOfRows),
+            'pagination' => $pagination,
+            // Complete and unpaginated, for the print-only panel. The
+            // print-friendly view has always put both breakdowns on paper in
+            // full, and tabbing the screen mustn't quietly halve that.
+            'volunteerRows' => $this->toRows($byVolunteer),
+            'projectRows' => $this->toRows($byProject),
+            'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
+            'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
         ]);
+    }
+
+    /** @return list<array{key: string, label: string}> */
+    private function columnsFor(string $tab): array
+    {
+        return [
+            ['key' => 'label', 'label' => self::TAB_PROJECT === $tab ? 'Project' : 'Volunteer'],
+            ['key' => 'count', 'label' => 'Activities'],
+            ['key' => 'totalDays', 'label' => 'Total days'],
+            ['key' => 'mostRecent', 'label' => 'Most recent'],
+        ];
+    }
+
+    /**
+     * Summary rows in DataTable's shape. No 'actions' key — these rows are
+     * read-only, which is what DataTable's withActions=false is for.
+     *
+     * @param list<SummaryRow> $summaries
+     *
+     * @return list<array{cells: array<string, string>}>
+     */
+    private function toRows(array $summaries): array
+    {
+        $rows = [];
+        foreach ($summaries as $summary) {
+            $rows[] = [
+                'cells' => [
+                    'label' => $summary['label'],
+                    'count' => (string) $summary['count'],
+                    // One decimal throughout, matching the Top volunteers card
+                    // and the "Total days contributed" tile. Before pagination
+                    // this table alone printed the raw float.
+                    'totalDays' => number_format($summary['totalDays'], 1),
+                    'mostRecent' => $summary['mostRecent']?->format('j M Y') ?? '—',
+                ],
+            ];
+        }
+
+        return $rows;
     }
 }

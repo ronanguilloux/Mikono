@@ -8,6 +8,7 @@ use App\Entity\Activity;
 use App\Entity\Project;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -20,11 +21,20 @@ class ProjectRepository extends ServiceEntityRepository
         parent::__construct($registry, Project::class);
     }
 
+    /**
+     * The paginated index builds on this; findAllOrderedByName() is the same
+     * query without a LIMIT, for the callers that genuinely need every row.
+     */
+    public function createOrderedByNameQueryBuilder(): QueryBuilder
+    {
+        return $this->createQueryBuilder('p')
+            ->orderBy('p.name', 'ASC');
+    }
+
     /** @return Project[] */
     public function findAllOrderedByName(): array
     {
-        return $this->createQueryBuilder('p')
-            ->orderBy('p.name', 'ASC')
+        return $this->createOrderedByNameQueryBuilder()
             ->getQuery()
             ->getResult();
     }
