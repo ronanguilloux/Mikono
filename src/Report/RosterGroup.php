@@ -21,4 +21,19 @@ final readonly class RosterGroup
         public array $slots,
         public array $escortNames,
     ) {}
+
+    /**
+     * The escort names as the VM writes them — "Edna and Sam", not
+     * "Edna, Sam". Both roster read paths exist to be copied back into
+     * WhatsApp, so they match her wording rather than a list separator.
+     */
+    public function escortLine(): string
+    {
+        if (count($this->escortNames) < 2) {
+            return implode('', $this->escortNames);
+        }
+
+        return implode(', ', array_slice($this->escortNames, 0, -1))
+            . ' and ' . $this->escortNames[count($this->escortNames) - 1];
+    }
 }

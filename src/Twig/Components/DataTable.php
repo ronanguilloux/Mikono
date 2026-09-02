@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Pagination\SortState;
 use Knp\Bundle\PaginatorBundle\Pagination\SlidingPaginationInterface;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
@@ -45,4 +46,17 @@ final class DataTable
      * @var SlidingPaginationInterface<int, mixed>|null
      */
     public ?SlidingPaginationInterface $pagination = null;
+
+    /**
+     * Turns the headers into sort links. Null leaves every header as plain
+     * text — which is what the Reports print panel wants, since it renders
+     * both breakdowns complete and there is nothing to re-order.
+     *
+     * A column becomes clickable iff its key is in the controller's sort map,
+     * carried here as SortState::$sortableKeys. Sortability deliberately isn't
+     * a flag on the column definition too: one source of truth means Activity
+     * Type's Description, Activity's Duration and User's Role opt out by
+     * simply not being in the map, with no special-casing here. See ADR 0011.
+     */
+    public ?SortState $sortState = null;
 }

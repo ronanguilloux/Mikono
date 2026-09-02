@@ -41,7 +41,7 @@ class EscortRepository extends ServiceEntityRepository
     public function countReferencingActivities(Escort $escort): int
     {
         return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.accompaniedBy = :escort')
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE :escort MEMBER OF a.escorts')
             ->setParameter('escort', $escort)
             ->getSingleScalarResult();
     }

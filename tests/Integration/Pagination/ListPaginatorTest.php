@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Pagination;
 
 use App\Pagination\ListPaginator;
+use App\Pagination\SortState;
+use App\Repository\VolunteerRepository;
 use Knp\Bundle\PaginatorBundle\Pagination\SlidingPaginationInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -15,6 +17,20 @@ use Twig\Environment;
 
 final class ListPaginatorTest extends KernelTestCase
 {
+    /**
+     * VolunteerController's real map, which is the interesting one: `name`
+     * covers the multi-field case and `status` the single-field one.
+     *
+     * @var array<string, non-empty-list<string>>
+     */
+    private const array SORT_MAP = [
+        'name' => ['v.lastName', 'v.firstName'],
+        'status' => ['v.isActive'],
+    ];
+
+    /** The DQL VolunteerRepository::createOrderedByNameQueryBuilder() produces untouched. */
+    private const string DEFAULT_DQL = 'SELECT v FROM App\Entity\Volunteer v ORDER BY v.lastName ASC, v.firstName ASC';
+
     #[Test]
     public function defaultsToTwentyFiveRowsPerPage(): void
     {
@@ -135,6 +151,245 @@ final class ListPaginatorTest extends KernelTestCase
         // Zero rows makes the bundle's page range compute to [1, 0]; unguarded,
         // that renders a link to page "0".
         self::assertSame('', $this->renderControlsFor(1, 0));
+    }
+
+    #[Test]
+    public function reportsEveryMappedColumnAsSortable(): void
+    {
+        self::assertSame(['name', 'status'], $this->sortState([])->sortableKeys);
+    }
+
+    #[Test]
+    public function resolvesAMappedSortKey(): void
+    {
+        self::assertSame('status', $this->sortState(['sort' => 'status'])->activeKey);
+    }
+
+    /**
+     * The map is the whitelist, so anything not in it has to fall through to
+     * the view's own order rather than reaching DQL or erroring.
+     */
+    #[Test]
+    #[DataProvider('unusableSortParams')]
+    public function hasNoActiveColumnForAnUnusableSort(mixed $requested): void
+    {
+        self::assertNull($this->sortState(null === $requested ? [] : ['sort' => $requested])->activeKey);
+    }
+
+    /** @return iterable<string, array{mixed}> */
+    public static function unusableSortParams(): iterable
+    {
+        yield 'absent' => [null];
+        yield 'not in the map' => ['phone'];
+        yield 'empty' => [''];
+        // Reaches ListPaginator through query->all(), never InputBag::get(),
+        // which would turn `?sort[]=name` into a 400.
+        yield 'an array' => [['name']];
+        yield 'a DQL path, in case anyone tries' => ['v.lastName'];
+    }
+
+    #[Test]
+    #[DataProvider('sortDirections')]
+    public function readsDescendingOnlyWhenItIsAskedFor(?string $requested, string $expected): void
+    {
+        $query = ['sort' => 'name'] + (null === $requested ? [] : ['direction' => $requested]);
+
+        self::assertSame($expected, $this->sortState($query)->direction);
+    }
+
+    /** @return iterable<string, array{?string, string}> */
+    public static function sortDirections(): iterable
+    {
+        yield 'descending' => ['desc', SortState::DESC];
+        yield 'descending, shouted' => ['DESC', SortState::DESC];
+        yield 'ascending' => ['asc', SortState::ASC];
+        yield 'absent' => [null, SortState::ASC];
+        yield 'junk' => ['sideways', SortState::ASC];
+        yield 'empty' => ['', SortState::ASC];
+    }
+
+    /**
+     * Clicking a header sorts ascending first and flips only on a second
+     * click; a different column always starts over at ascending rather than
+     * inheriting the current direction.
+     */
+    #[Test]
+    public function flipsOnlyTheActiveColumn(): void
+    {
+        $ascending = $this->sortState(['sort' => 'name', 'direction' => 'asc']);
+
+        self::assertSame(SortState::DESC, $ascending->nextDirectionFor('name'));
+        self::assertSame(SortState::ASC, $ascending->nextDirectionFor('status'));
+
+        $descending = $this->sortState(['sort' => 'name', 'direction' => 'desc']);
+
+        self::assertSame(SortState::ASC, $descending->nextDirectionFor('name'));
+    }
+
+    #[Test]
+    public function announcesTheSortedColumnToScreenReaders(): void
+    {
+        $state = $this->sortState(['sort' => 'name', 'direction' => 'desc']);
+
+        self::assertSame('descending', $state->ariaSortFor('name'));
+        self::assertNull($state->ariaSortFor('status'));
+    }
+
+    #[Test]
+    public function leavesTheViewsOwnOrderAloneWithoutASort(): void
+    {
+        self::assertSame(self::DEFAULT_DQL, $this->dqlAfterSort([]));
+    }
+
+    /**
+     * The same must hold for a junk `sort`, byte for byte: a bookmarked URL
+     * with a stale column name shows the default order, never an error.
+     */
+    #[Test]
+    public function leavesTheViewsOwnOrderAloneForAnUnknownSort(): void
+    {
+        self::assertSame(self::DEFAULT_DQL, $this->dqlAfterSort(['sort' => 'nonsense', 'direction' => 'desc']));
+    }
+
+    #[Test]
+    public function putsTheRequestedColumnFirstAndKeepsTheDefaultOrderAsTieBreak(): void
+    {
+        // Without the trailing tie-break, every row falls into one of two
+        // isActive buckets and SQLite may repeat a page-1 row on page 2.
+        self::assertSame(
+            'SELECT v FROM App\Entity\Volunteer v ORDER BY v.isActive ASC, v.lastName ASC, v.firstName ASC',
+            $this->dqlAfterSort(['sort' => 'status']),
+        );
+    }
+
+    #[Test]
+    public function appliesEveryFieldOfAMultiFieldColumn(): void
+    {
+        // `name` has no single column behind it — getFullName() is lastName
+        // plus firstName, and both have to flip together.
+        self::assertSame(
+            'SELECT v FROM App\Entity\Volunteer v ORDER BY v.lastName DESC, v.firstName DESC, v.lastName ASC, v.firstName ASC',
+            $this->dqlAfterSort(['sort' => 'name', 'direction' => 'desc']),
+        );
+    }
+
+    #[Test]
+    public function leavesAnArrayOfRowsAloneWithoutASort(): void
+    {
+        $sorted = $this->paginator()->sortArray(self::summaries(), new Request(), ['count' => 'count']);
+
+        self::assertSame('Ada Bea Chris Dee', implode(' ', array_column($sorted, 'label')));
+    }
+
+    #[Test]
+    #[DataProvider('arraySortOrders')]
+    public function sortsAnArrayOfRowsInBothDirections(string $direction, string $expected): void
+    {
+        $sorted = $this->paginator()->sortArray(
+            self::summaries(),
+            $this->requestWith(['sort' => 'count', 'direction' => $direction]),
+            ['count' => 'count'],
+        );
+
+        self::assertSame($expected, implode(' ', array_column($sorted, 'label')));
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function arraySortOrders(): iterable
+    {
+        yield 'ascending' => ['asc', 'Chris Bea Ada Dee'];
+        yield 'descending' => ['desc', 'Dee Ada Bea Chris'];
+    }
+
+    /**
+     * A "—" cell is missing data, not a small value, so those rows belong at
+     * the bottom whichever way the column points. /reports' `mostRecent` is
+     * the only nullable column today.
+     */
+    #[Test]
+    #[DataProvider('nullSortDirections')]
+    public function keepsRowsWithNoValueLastInBothDirections(string $direction): void
+    {
+        $sorted = $this->paginator()->sortArray(
+            self::summaries(),
+            $this->requestWith(['sort' => 'mostRecent', 'direction' => $direction]),
+            ['mostRecent' => 'mostRecent'],
+        );
+
+        $labels = array_column($sorted, 'label');
+
+        self::assertSame('Chris', array_pop($labels));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function nullSortDirections(): iterable
+    {
+        yield 'ascending' => ['asc'];
+        yield 'descending' => ['desc'];
+    }
+
+    /**
+     * usort is stable as of PHP 8.0, which is what makes the caller's own
+     * order — ActivitySummaryCalculator's totalDays ranking — the tie-break
+     * here, the way the repository's ORDER BY is on the query side.
+     */
+    #[Test]
+    public function keepsTheCallersOrderForRowsThatTie(): void
+    {
+        $sorted = $this->paginator()->sortArray(
+            self::summaries(),
+            $this->requestWith(['sort' => 'totalDays']),
+            ['totalDays' => 'totalDays'],
+        );
+
+        // Ada and Bea both total 2.0 days, and Ada was handed in first.
+        self::assertSame('Dee Ada Bea Chris', implode(' ', array_column($sorted, 'label')));
+    }
+
+    /**
+     * Four rows in the shape ReportController paginates, deliberately not in
+     * any of the orders under test: one tie on totalDays, one null date.
+     *
+     * @return list<array{label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}>
+     */
+    private static function summaries(): array
+    {
+        return [
+            ['label' => 'Ada', 'count' => 5, 'totalDays' => 2.0, 'mostRecent' => new \DateTimeImmutable('2026-03-01')],
+            ['label' => 'Bea', 'count' => 3, 'totalDays' => 2.0, 'mostRecent' => new \DateTimeImmutable('2026-01-01')],
+            ['label' => 'Chris', 'count' => 1, 'totalDays' => 9.0, 'mostRecent' => null],
+            ['label' => 'Dee', 'count' => 9, 'totalDays' => 1.0, 'mostRecent' => new \DateTimeImmutable('2026-02-01')],
+        ];
+    }
+
+    /** @param array<string, mixed> $query */
+    private function sortState(array $query): SortState
+    {
+        return $this->paginator()->sortState(new Request($query), self::SORT_MAP);
+    }
+
+    /**
+     * Asserted as DQL rather than through a controller: the ORDER BY is the
+     * whole point, and reading it back off the QueryBuilder says exactly what
+     * applySort() did without a database round trip.
+     *
+     * @param array<string, mixed> $query
+     */
+    private function dqlAfterSort(array $query): string
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+
+        $volunteers = $container->get(VolunteerRepository::class);
+        self::assertInstanceOf(VolunteerRepository::class, $volunteers);
+
+        $knpPaginator = $container->get('knp_paginator');
+        self::assertInstanceOf(PaginatorInterface::class, $knpPaginator);
+
+        $queryBuilder = $volunteers->createOrderedByNameQueryBuilder();
+        (new ListPaginator($knpPaginator))->applySort($queryBuilder, new Request($query), self::SORT_MAP);
+
+        return $queryBuilder->getDQL();
     }
 
     private function renderControlsFor(int $page, int $totalRows): string

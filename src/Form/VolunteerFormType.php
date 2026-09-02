@@ -20,7 +20,9 @@ final class VolunteerFormType extends AbstractType
     {
         $builder
             ->add('firstName', TextType::class, ['empty_data' => ''])
-            ->add('lastName', TextType::class, ['empty_data' => ''])
+            // Optional — see ADR 0014. No 'empty_data' here, deliberately:
+            // a blank submission must store null, not an empty string.
+            ->add('lastName', TextType::class, ['required' => false])
             ->add('email', EmailType::class, ['required' => false])
             ->add('phone', TelType::class, ['required' => false])
             ->add('notes', TextareaType::class, ['required' => false])

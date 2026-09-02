@@ -8,9 +8,10 @@ use App\Repository\ActivityRepository;
 
 /**
  * Turns a day's flat Activity rows into the project-grouped shape the VM's own
- * roster messages use. This is the first read path for Activity::$accompaniedBy
- * — the field exists precisely so the "Accompanied by ..." line can come back
- * out here instead of being retyped by hand every evening.
+ * roster messages use. This is the first read path for Activity::$escorts —
+ * the field exists precisely so the "Accompanied by ..." line can come back
+ * out here instead of being retyped by hand every evening, which is also why
+ * it renders every escort on the group rather than just one (ADR 0013).
  */
 final class RosterBuilder
 {
@@ -39,9 +40,10 @@ final class RosterBuilder
             $firstGroupPerVolunteer[$volunteerName] ??= $key;
             $groups[$key]['slots'][] = new RosterSlot($volunteerName, $firstGroupPerVolunteer[$volunteerName] !== $key);
 
-            $escortName = $activity->getAccompaniedBy()?->getName();
-            if (null !== $escortName && !in_array($escortName, $groups[$key]['escortNames'], true)) {
-                $groups[$key]['escortNames'][] = $escortName;
+            foreach ($activity->getEscortNames() as $escortName) {
+                if (!in_array($escortName, $groups[$key]['escortNames'], true)) {
+                    $groups[$key]['escortNames'][] = $escortName;
+                }
             }
         }
 

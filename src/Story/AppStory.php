@@ -4,199 +4,103 @@ declare(strict_types=1);
 
 namespace App\Story;
 
-use App\Enum\ActivityDuration;
-use App\Enum\ProjectLocation;
-use App\Enum\ProjectOwnership;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
+use App\Fixture\RosterArchive;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Zenstruck\Foundry\Attribute\AsFixture;
 use Zenstruck\Foundry\Story;
 
+/**
+ * The dev and demo dataset — every row of it real.
+ *
+ * Nothing here is generated: the volunteers, escorts, sites, dates and roster
+ * notes all come from `docs/fixtures/rosters.yaml`, transcribed from a month
+ * of the VM's own WhatsApp roster messages. See ADR 0012 for why, and
+ * `docs/fixtures/README.md` for what the archive can and cannot supply.
+ *
+ * To grow the dataset, add to the archive — not to this file.
+ */
 #[AsFixture(name: 'main')]
 final class AppStory extends Story
 {
+    public function __construct(
+        #[Autowire('%kernel.project_dir%')]
+        private readonly string $projectDir,
+    ) {}
+
     public function build(): void
     {
+        $archive = RosterArchive::fromFile($this->projectDir . '/' . RosterArchive::DEFAULT_PATH);
+
+        // The one account the app has, and the one the archive's activities
+        // are all logged by — there is no second user to attribute them to.
         $admin = UserFactory::new()->admin()->create([
             'email' => 'ronan.guilloux@gmail.com',
             'fullName' => 'Ronan Guilloux',
         ]);
 
-        $brightAchievers = ProjectFactory::new()->partner()->create([
-            'name' => 'Bright Achievers',
-            'location' => ProjectLocation::Kibera,
-            'partnerOrganizationName' => 'Bright Achievers High School',
-        ]);
-        $mombasaProject = ProjectFactory::new()->create([
-            'name' => 'UCESCO Mombasa Youth Centre',
-            'location' => ProjectLocation::Mombasa,
-            'ownership' => ProjectOwnership::Ucesco,
-        ]);
-
-        $computerLessons = ActivityTypeFactory::createOne(['name' => 'Computer lessons']);
-        $tutoring = ActivityTypeFactory::createOne(['name' => 'Tutoring']);
-
-        $ronanVolunteer = VolunteerFactory::createOne(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
-        $extraVolunteers = VolunteerFactory::new()->many(4)->create();
-
-        // The literal worked example this app's v0.1 scope is defined by.
-        ActivityFactory::createOne([
-            'volunteer' => $ronanVolunteer,
-            'project' => $brightAchievers,
-            'activityType' => $computerLessons,
-            'date' => new \DateTimeImmutable('2026-08-11'),
-            'duration' => ActivityDuration::FullDay,
-            'notes' => 'Delivered Computer lessons to students',
-            'loggedBy' => $admin,
-        ]);
-        ActivityFactory::new()->many(6)->create([
-            'project' => $mombasaProject,
-            'activityType' => $tutoring,
-            'loggedBy' => $admin,
-        ]);
-
-        // Real UCESCO project/activity-type breadth, observed in the VM's
-        // actual nightly WhatsApp roster messages (see docs/brainstorm/04).
-        $ucescoHq = ProjectFactory::new()->create([
-            'name' => 'UCESCO HQ',
-            'location' => ProjectLocation::Kibera,
-            'ownership' => ProjectOwnership::Ucesco,
-        ]);
-        $beyondZero = ProjectFactory::new()->partner()->create([
-            'name' => 'Beyond Zero clinic',
-            'location' => ProjectLocation::Kibera,
-            'partnerOrganizationName' => 'Beyond Zero',
-        ]);
-        $ackClinic = ProjectFactory::new()->partner()->create([
-            'name' => 'ACK clinic',
-            'location' => ProjectLocation::Kibera,
-            'partnerOrganizationName' => 'Anglican Church of Kenya (ACK)',
-        ]);
-        $peggyLucas = ProjectFactory::new()->create([
-            'name' => 'Peggy Lucas school',
-            'location' => ProjectLocation::Kibera,
-            'ownership' => ProjectOwnership::Ucesco,
-        ]);
-        $mveti = ProjectFactory::new()->partner()->create([
-            'name' => 'MVETI',
-            'location' => ProjectLocation::Kibera,
-            'partnerOrganizationName' => 'MVETI',
-        ]);
-        $toiSchoolField = ProjectFactory::new()->partner()->create([
-            'name' => 'Toi School Field',
-            'location' => ProjectLocation::Kibera,
-            'partnerOrganizationName' => 'Toi School',
-        ]);
-        $dreamsOfHope = ProjectFactory::new()->partner()->create([
-            'name' => 'Dreams of Hope Kids',
-            'location' => ProjectLocation::Kibera,
-            'partnerOrganizationName' => 'Dreams of Hope',
-        ]);
-        $mintoOrphanage = ProjectFactory::new()->partner()->create([
-            'name' => "Minto Children's Orphanage",
-            'location' => ProjectLocation::Mombasa,
-            'partnerOrganizationName' => "Minto Children's Orphanage",
-        ]);
-        $mtwapaBeach = ProjectFactory::new()->create([
-            'name' => 'Mtwapa Beach',
-            'location' => ProjectLocation::Mombasa,
-            'ownership' => ProjectOwnership::Ucesco,
-        ]);
-        $nyaliBeach = ProjectFactory::new()->create([
-            'name' => 'Nyali Beach',
-            'location' => ProjectLocation::Mombasa,
-            'ownership' => ProjectOwnership::Ucesco,
-        ]);
-        $mombasaOffice = ProjectFactory::new()->create([
-            'name' => 'Mombasa Office',
-            'location' => ProjectLocation::Mombasa,
-            'ownership' => ProjectOwnership::Ucesco,
-        ]);
-        $mombasaHomeVisits = ProjectFactory::new()->create([
-            'name' => 'Mombasa Home Visits',
-            'location' => ProjectLocation::Mombasa,
-            'ownership' => ProjectOwnership::Ucesco,
-        ]);
-
-        $orientation = ActivityTypeFactory::createOne(['name' => 'Orientation']);
-        $clinicSupport = ActivityTypeFactory::createOne(['name' => 'Clinic support']);
-        $schoolSupport = ActivityTypeFactory::createOne(['name' => 'School support']);
-        $vocationalTrainingSupport = ActivityTypeFactory::createOne(['name' => 'Vocational training support']);
-        $sports = ActivityTypeFactory::createOne(['name' => 'Sports']);
-        $homeVisit = ActivityTypeFactory::createOne(['name' => 'Home visit']);
-        $orphanageSupport = ActivityTypeFactory::createOne(['name' => 'Orphanage support']);
-        $beachCleanUp = ActivityTypeFactory::createOne(['name' => 'Beach clean-up']);
-        $officeSupport = ActivityTypeFactory::createOne(['name' => 'Office/admin support']);
-
-        // Orientation is every new volunteer's first activity in real life:
-        // a slides presentation at HQ, then a tour of sites.
-        ActivityFactory::createOne([
-            'volunteer' => $extraVolunteers[0],
-            'project' => $ucescoHq,
-            'activityType' => $orientation,
-            'date' => new \DateTimeImmutable('2026-08-01'),
-            'duration' => ActivityDuration::HalfDay,
-            'notes' => 'Orientation: slides presentation at HQ, then a tour of sites.',
-            'loggedBy' => $admin,
-        ]);
-
-        foreach ([
-            [$beyondZero, $clinicSupport],
-            [$ackClinic, $clinicSupport],
-            [$peggyLucas, $schoolSupport],
-            [$mveti, $vocationalTrainingSupport],
-            [$toiSchoolField, $sports],
-            [$dreamsOfHope, $orphanageSupport],
-            [$mintoOrphanage, $orphanageSupport],
-            [$mtwapaBeach, $beachCleanUp],
-            [$nyaliBeach, $beachCleanUp],
-            [$mombasaOffice, $officeSupport],
-            [$mombasaHomeVisits, $homeVisit],
-        ] as [$project, $activityType]) {
-            ActivityFactory::new()->many(2)->create([
-                'project' => $project,
-                'activityType' => $activityType,
-                'loggedBy' => $admin,
+        $volunteers = [];
+        foreach ($archive->volunteers as $volunteer) {
+            // First name only, no contact details: that is all the rosters
+            // carry, and the fixtures don't fill the gaps in.
+            $volunteers[$volunteer->name] = VolunteerFactory::createOne([
+                'firstName' => $volunteer->name,
+                'lastName' => null,
+                'email' => null,
+                'phone' => null,
+                'notes' => $volunteer->notes,
+                'isActive' => $volunteer->active,
             ]);
         }
 
-        // Today's and tomorrow's rosters, seeded relative to the day the
-        // fixtures are loaded — the home screen's two roster panels are
-        // date-relative, so a fixed date would leave it looking empty. This is
-        // also the only place escorts get seeded: the roster is where they're
-        // read back out.
-        $mrsAchola = EscortFactory::createOne(['name' => 'Mrs Achola']);
-        $mrMaeba = EscortFactory::createOne(['name' => 'Mr Maeba']);
-        $msNjeri = EscortFactory::createOne(['name' => 'Ms Njeri']);
+        $escorts = [];
+        foreach ($archive->escorts as $name) {
+            $escorts[$name] = EscortFactory::createOne(['name' => $name]);
+        }
+
+        $activityTypes = [];
+        $projects = [];
+        foreach ($archive->projects as $key => $project) {
+            $activityTypes[$project->activityType] ??= ActivityTypeFactory::createOne([
+                'name' => $project->activityType,
+            ]);
+            $projects[$key] = ProjectFactory::createOne([
+                'name' => $project->name,
+                'location' => $project->location,
+                'ownership' => $project->ownership,
+                'partnerOrganizationName' => $project->partner,
+                'isActive' => true,
+            ]);
+        }
 
         $today = new \DateTimeImmutable('today');
-        $tomorrow = $today->modify('+1 day');
 
-        foreach ([
-            [$today, $ucescoHq, $orientation, [$extraVolunteers[0]], $mrsAchola],
-            [$today, $toiSchoolField, $sports, [$extraVolunteers[1], $extraVolunteers[2]], $mrMaeba],
-            [$today, $mombasaHomeVisits, $homeVisit, [$extraVolunteers[3]], null],
-            [$tomorrow, $beyondZero, $clinicSupport, [$ronanVolunteer, $extraVolunteers[1]], $mrMaeba],
-            [$tomorrow, $peggyLucas, $schoolSupport, [$extraVolunteers[2], $extraVolunteers[3]], $msNjeri],
-            // Ronan is already at Beyond Zero tomorrow — a volunteer moving to
-            // a second site the same day is the "(later)" case from the VM's
-            // real roster messages.
-            [$tomorrow, $mveti, $vocationalTrainingSupport, [$ronanVolunteer, $extraVolunteers[0]], $mrMaeba],
-        ] as [$date, $project, $activityType, $volunteers, $escort]) {
-            foreach ($volunteers as $volunteer) {
-                ActivityFactory::createOne([
-                    'volunteer' => $volunteer,
-                    'project' => $project,
-                    'activityType' => $activityType,
-                    'date' => $date,
-                    'duration' => ActivityDuration::HalfDay,
-                    'accompaniedBy' => $escort,
-                    'loggedBy' => $admin,
-                ]);
+        foreach ($archive->rosters as $roster) {
+            $date = $roster->dateRelativeTo($today);
+
+            foreach ($roster->sites as $site) {
+                $siteEscorts = array_map(
+                    fn(string $name) => $escorts[$name] ?? throw new \RuntimeException(sprintf('Roster names an escort the archive does not list: "%s".', $name)),
+                    $site->escorts,
+                );
+
+                foreach ($site->volunteers as $slot) {
+                    ActivityFactory::createOne([
+                        'date' => $date,
+                        'volunteer' => $volunteers[$slot->name] ?? throw new \RuntimeException(sprintf('Roster names a volunteer the archive does not list: "%s".', $slot->name)),
+                        'project' => $projects[$site->projectKey],
+                        'activityType' => $activityTypes[$archive->projects[$site->projectKey]->activityType],
+                        'duration' => $site->duration,
+                        'notes' => $slot->note,
+                        'escorts' => $siteEscorts,
+                        'loggedBy' => $admin,
+                    ]);
+                }
             }
         }
     }

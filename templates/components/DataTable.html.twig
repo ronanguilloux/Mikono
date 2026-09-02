@@ -1,9 +1,43 @@
+{#
+    Every param except the three the header link sets itself, so a sort keeps
+    `perPage` and the Reports `tab`. `page` is dropped deliberately: a new sort
+    order means a new page 1, and keeping the old offset would drop the reader
+    somewhere arbitrary. Same idiom as the Reports tab nav and PaginationBar's
+    page-size form.
+#}
+{% set sort_carried = app.request.query.all|filter((v, k) => k not in ['sort', 'direction', 'page'] and v is not iterable) %}
+
 <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
     <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50">
             <tr>
                 {% for column in columns %}
-                    <th class="px-4 py-2 text-left font-medium text-slate-600">{{ column.label }}</th>
+                    {% if sortState is not null and sortState.isSortable(column.key) %}
+                        <th
+                            class="px-4 py-2 text-left font-medium text-slate-600"
+                            {% if sortState.ariaSortFor(column.key) %}aria-sort="{{ sortState.ariaSortFor(column.key) }}"{% endif %}
+                        >
+                            {#
+                                The link text is the bare column label, with the
+                                arrow as a sibling outside the <a>: several tests
+                                resolve headers and buttons by text, and "Name ↑"
+                                would break them.
+                            #}
+                            <a
+                                href="{{ path(app.request.attributes.get('_route'), sort_carried|merge({
+                                    sort: column.key,
+                                    direction: sortState.nextDirectionFor(column.key),
+                                })) }}"
+                                class="hover:text-brand-700 hover:underline"
+                                data-sort-link="{{ column.key }}"
+                            >{{ column.label }}</a>
+                            {% if sortState.isActive(column.key) %}
+                                <span class="ml-0.5 text-brand-600" aria-hidden="true">{{ sortState.direction == 'asc' ? '↑' : '↓' }}</span>
+                            {% endif %}
+                        </th>
+                    {% else %}
+                        <th class="px-4 py-2 text-left font-medium text-slate-600">{{ column.label }}</th>
+                    {% endif %}
                 {% endfor %}
                 {% if withActions %}
                     <th class="px-4 py-2"></th>

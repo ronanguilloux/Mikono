@@ -21,6 +21,20 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 final class UserController extends AbstractController
 {
+    /**
+     * Column key => DQL field(s) for the index's sortable headers; the map is
+     * the whitelist. Role is absent on purpose — it's derived from the `roles`
+     * JSON array via isAdmin(), not a column, so there is nothing to ORDER BY.
+     * See ADR 0011.
+     *
+     * @var array<string, non-empty-list<string>>
+     */
+    private const array SORT_MAP = [
+        'name' => ['u.fullName'],
+        'email' => ['u.email'],
+        'status' => ['u.isActive'],
+    ];
+
     public function __construct(
         private readonly UserRepository $users,
         private readonly EntityManagerInterface $entityManager,
@@ -32,11 +46,10 @@ final class UserController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $pagination = $this->paginator->paginateQuery(
-            $this->users->createOrderedByNameQueryBuilder(),
-            User::class,
-            $request,
-        );
+        $queryBuilder = $this->users->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        $pagination = $this->paginator->paginateQuery($queryBuilder, User::class, $request);
 
         $rows = [];
         foreach ($pagination as $user) {
@@ -69,6 +82,7 @@ final class UserController extends AbstractController
             ],
             'rows' => $rows,
             'pagination' => $pagination,
+            'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
     }
 

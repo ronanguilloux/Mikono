@@ -161,4 +161,123 @@ final class VolunteerControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/volunteers?page=2');
         self::assertCount(1, $crawler->filter('table tbody tr'));
     }
+
+    #[Test]
+    public function theIndexSortsByARequestedColumn(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/volunteers?sort=name&direction=asc');
+        self::assertStringContainsString('Aisha Achieng', $crawler->filter('table tbody tr')->first()->text());
+
+        $crawler = $client->request('GET', '/volunteers?sort=name&direction=desc');
+        self::assertStringContainsString('Zawadi Zuma', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    /**
+     * The map is the whitelist, so a stale bookmark or a hand-edited URL falls
+     * back to the default order instead of erroring — the same posture
+     * ListPaginator already keeps for `page` and `perPage`.
+     */
+    #[Test]
+    public function theIndexShrugsOffAnUnknownSortColumn(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers?sort=v.lastName&direction=sideways');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Aisha Achieng', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    /**
+     * The case that would bite: `InputBag::get()` throws a BadRequestException
+     * on a non-scalar, so reading `sort` through it would turn `?sort[]=name`
+     * into a 400. ListPaginator goes through `query->all()` instead, and the
+     * page-size form and page links both skip iterable params.
+     */
+    #[Test]
+    public function theIndexShrugsOffAnArraySortParam(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/volunteers?sort[]=name&direction[]=desc');
+
+        self::assertResponseIsSuccessful();
+    }
+
+    /**
+     * Covers the shared DataTable header markup, not just this screen: the
+     * link text has to stay the bare column label (several tests resolve
+     * headers and buttons by text) with the direction carried by aria-sort
+     * and an arrow outside the link.
+     */
+    #[Test]
+    public function sortableHeadersLinkOnTheLabelAndAnnounceTheDirection(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne();
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers?sort=name&direction=asc');
+
+        self::assertSame('Name', $crawler->filter('[data-sort-link="name"]')->text());
+        self::assertSame('ascending', $crawler->filter('thead th')->first()->attr('aria-sort'));
+
+        // A second click flips it; every other column starts over at ascending.
+        self::assertStringContainsString('direction=desc', (string) $crawler->filter('[data-sort-link="name"]')->attr('href'));
+        self::assertStringContainsString('direction=asc', (string) $crawler->filter('[data-sort-link="email"]')->attr('href'));
+    }
+
+    #[Test]
+    public function aSortLinkKeepsThePageSizeAndStartsOverAtPageOne(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createMany(26);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers?page=2&perPage=50');
+
+        $href = (string) $crawler->filter('[data-sort-link="email"]')->attr('href');
+
+        self::assertStringContainsString('perPage=50', $href);
+        // A new order means a new page 1; keeping the old offset would drop
+        // the reader somewhere arbitrary in the re-sorted list.
+        self::assertStringNotContainsString('page=2', $href);
+    }
+
+    /**
+     * Status has two values, so without the default order kept as a tie-break
+     * SQLite is free to hand back a row on page 2 that was already on page 1.
+     */
+    #[Test]
+    public function sortingByALowCardinalityColumnStillPagesWithoutRepeatingRows(): void
+    {
+        $client = static::createClient();
+        foreach (range(1, 26) as $number) {
+            VolunteerFactory::createOne(['firstName' => 'Volunteer', 'lastName' => sprintf('Number%02d', $number)]);
+        }
+
+        $client->loginUser(UserFactory::createOne());
+
+        $firstPage = $client->request('GET', '/volunteers?sort=status&direction=asc')->filter('table tbody tr')->each(
+            static fn($row) => $row->text(),
+        );
+        $secondPage = $client->request('GET', '/volunteers?sort=status&direction=asc&page=2')->filter('table tbody tr')->each(
+            static fn($row) => $row->text(),
+        );
+
+        self::assertCount(25, $firstPage);
+        self::assertCount(1, $secondPage);
+        self::assertSame([], array_intersect($firstPage, $secondPage));
+    }
 }

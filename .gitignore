@@ -23,3 +23,9 @@
 /.php-cs-fixer.php
 /.php-cs-fixer.cache
 ###< friendsofphp/php-cs-fixer ###
+
+###> app fixtures ###
+# Raw WhatsApp exports name sponsored children and donors — see ADR 0012.
+# Only the derived roster extract in docs/fixtures/ is committed.
+/docs/fixtures/*_dumps.txt
+###< app fixtures ###

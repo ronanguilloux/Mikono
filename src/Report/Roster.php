@@ -63,7 +63,7 @@ final readonly class Roster
             }
 
             if ([] !== $group->escortNames) {
-                $lines[] = 'Accompanied by: ' . implode(', ', $group->escortNames);
+                $lines[] = 'Accompanied by: ' . $group->escortLine();
             }
 
             $blocks[] = implode("\n", $lines);

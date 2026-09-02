@@ -28,7 +28,7 @@
        reads without a sideways swipe. Only one of the two is ever displayed,
        so screen readers see a single list. #}
     <div class="hidden md:block">
-        <twig:DataTable :columns="columns" :rows="rows" :emptyMessage="empty_message" />
+        <twig:DataTable :columns="columns" :rows="rows" :sortState="sortState" :emptyMessage="empty_message" />
     </div>
 
     <div class="md:hidden">
@@ -37,6 +37,12 @@
                 {{ empty_message }}
             </p>
         {% else %}
+            {# The cards have no header row to click, so sorting reaches mobile
+               as a pair of selects emitting the same `sort`/`direction` params
+               the <th> links do. Same reason PaginationBar is hoisted out of
+               DataTable below: the table is inside `hidden md:block`. #}
+            <twig:SortSelect :columns="columns" :sortState="sortState" defaultLabel="Newest first" />
+
             <ul class="space-y-2" data-activity-cards>
                 {% for row in rows %}
                     <li class="rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">

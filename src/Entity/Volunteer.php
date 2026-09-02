@@ -20,9 +20,11 @@ class Volunteer
     #[Assert\NotBlank]
     private string $firstName = '';
 
-    #[ORM\Column(length: 255)]
-    #[Assert\NotBlank]
-    private string $lastName = '';
+    // Optional on purpose: the VM's rosters name volunteers by first name
+    // only, and requiring a surname would block recording someone she has
+    // just met. See ADR 0014.
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $lastName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Email]
@@ -66,21 +68,22 @@ class Volunteer
         return $this;
     }
 
-    public function getLastName(): string
+    public function getLastName(): ?string
     {
         return $this->lastName;
     }
 
-    public function setLastName(string $lastName): static
+    public function setLastName(?string $lastName): static
     {
-        $this->lastName = $lastName;
+        // '' and null both mean "no surname recorded"; store one of them.
+        $this->lastName = ('' === $lastName) ? null : $lastName;
 
         return $this;
     }
 
     public function getFullName(): string
     {
-        return trim("{$this->firstName} {$this->lastName}");
+        return trim($this->firstName . ' ' . ($this->lastName ?? ''));
     }
 
     public function getEmail(): ?string

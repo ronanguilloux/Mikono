@@ -26,7 +26,8 @@ final class BatchActivityInput
 
     public ?string $durationOther = null;
 
-    public ?Escort $escort = null;
+    /** @var list<Escort> */
+    public array $escorts = [];
 
     /** @var list<Volunteer> */
     public array $volunteers = [];

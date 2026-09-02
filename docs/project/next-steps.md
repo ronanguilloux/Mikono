@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-01 (real-data fixtures shipped)
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -23,29 +23,56 @@ work-focused home screen, the batch/group activity logging form, the
 Activities index mobile card layout, the escort write-path parity fix,
 and both slices of the Reports dashboard (`done.md`, 2026-08-31 and
 2026-09-01). Their entries have been removed from this file, along with
-the pagination design spec that slice 2 implemented; the decision behind
-it is [ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md),
-and the seam it left behind — `DataTable` plus `App\Pagination\ListPaginator`
-— is what the sortable-columns step below builds on.
+the pagination and sortable-columns design specs that followed; the
+decisions behind those are
+[ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md)
+and
+[ADR 0011](../adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md),
+and the seam they left behind — `DataTable` plus
+`App\Pagination\ListPaginator`, which now owns `page`, `perPage`, `sort`
+and `direction` — is where any future cross-cutting list behaviour
+belongs.
 
-What remains is genuinely open: sortable columns, hosting, escort
-display/reporting, and the four "not yet mocked" findings.
+What remains is genuinely open: hosting, escort display/reporting, and
+the four "not yet mocked" findings — plus the follow-ups the real-data
+fixtures left behind.
 
-### Next step: implement in Twig
+### Follow-ups from the real-data fixtures (2026-09-01)
 
-1. **Sortable columns on every list view.** Every column header on the seven
-   list tables becomes a link that sorts by that column — ascending on the
-   first click, descending on the second, with the active column showing its
-   direction. Reaches the same six CRUD index views plus both Reports
-   breakdowns. Three columns stay plain, unsortable headers, deliberately:
-   ActivityType's **Description** (free text — ordering it surfaces nothing
-   anyone is looking for), Activity's **Duration** (stored as the enum values
-   `half_day`/`full_day`/`other` alongside a free-text `durationOther`, so any
-   `ORDER BY` on it is arbitrary), and User's **Role** (derived from the
-   `roles` JSON array via `isAdmin()`, not a column). Implementation shape
-   under ["Sortable columns design"](#sortable-columns-design-2026-08-31)
-   below; it rides the `DataTable` / `ListPaginator` seam that the Reports
-   slice-2 pass has now put in place, so the groundwork already exists.
+The fixtures now come exclusively from the VM's own WhatsApp roster
+archive, and the two model gaps that surfaced while building them are
+fixed ([ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md),
+[0013](../adr/0013-record-every-escort-on-an-activity.md),
+[0014](../adr/0014-make-a-volunteers-last-name-optional.md); `done.md`,
+2026-09-01). What that work left open:
+
+1. **Ask Edna two questions.** Are "Ellen" (early August) and "Hellen"
+   (September) the same volunteer? And can she supply surnames for the
+   fifteen volunteers in the archive? Both fill in
+   [`docs/fixtures/rosters.yaml`](../fixtures/rosters.yaml); neither
+   blocks anything.
+2. **Uganda is deferred, not decided.** The Kampala/Luwero rosters at the
+   end of August appear only as truncated headers with no volunteers, so
+   nothing is seeded for them. When a complete one arrives, the naming
+   convention absorbs it ("Uganda - ..."); whether `ProjectLocation`
+   should grow a third case is the question to reopen then, and it is a
+   scope question for the VM, not a modelling one.
+3. **The escort field is now five stacked checkboxes.** The Tailwind
+   form theme renders expanded choices with the label *under* the input
+   (Duration has always looked like this), which made both activity
+   forms noticeably taller. Worth a theme pass if it annoys in use — it
+   is a styling question, not a model one.
+4. **The test suite is not repeatable within 15 minutes** — found while
+   running it several times over during this work, and pre-existing.
+   `security.yaml` sets `login_throttling` to 5 attempts per 15 minutes,
+   and the limiter's storage lives in `var/cache/test`, which no test
+   resets. Run the suite three or four times in a row and
+   `SecurityControllerTest::correctCredentialsAuthenticateAndLandOnTheHomeScreen`
+   starts failing with a redirect back to `/login`;
+   `bin/console cache:pool:clear --all --env=test` fixes it until next
+   time. The proper fix is resetting the rate-limiter pool in the test
+   bootstrap, so a green suite doesn't depend on how recently it last
+   ran.
 
 ### Getting it hosted (2026-08-31 hosting review)
 
@@ -124,7 +151,11 @@ need their own design pass before implementation:
     scrolls horizontally on desktop — or is escort better left to the
     edit form? The mobile card layout shipped without it (`done.md`,
     2026-08-31) precisely because this is still open: answering "yes"
-    means both a 6th table column *and* a fourth line on the card.
+    means both a 6th table column *and* a fourth line on the card. Note
+    that escort is now a *collection*
+    ([ADR 0013](../adr/0013-record-every-escort-on-an-activity.md)), so
+    such a column renders a list and cannot be a one-line `SORT_MAP`
+    entry — the honest options are an unsortable column or none.
   - **Reports** (`ActivitySummaryCalculator`, `/reports`) don't break
     anything down by escort. Whether "days accompanied per escort" is
     a report the VM actually wants is unvalidated — worth asking before
@@ -161,82 +192,6 @@ need their own design pass before implementation:
   today; only worth an ADR if that manual step demonstrably becomes a
   bottleneck, not preemptively (API costs, volunteer opt-in/consent,
   message-template approval all apply).
-
-### Sortable columns design (2026-08-31)
-
-Scoped, like pagination was, as one shared pattern across all seven list
-tables rather than a per-screen fix — and best built directly on top of that
-now-shipped work (`done.md`, 2026-09-01), since both extend the same two
-seams (`DataTable`'s column definitions and `App\Pagination\ListPaginator`).
-The shape below was worked out against the bundle's actual code, not its
-README:
-
-- **The column definition carries the sort, not the URL.** `DataTable`'s
-  columns are `['key' => …, 'label' => …]`
-  (`src/Twig/Components/DataTable.php`). Add an optional third key naming the
-  field to sort on. A column without it
-  renders as a plain `<th>` — which is exactly how Description, Duration and
-  Role opt out, with no special-casing anywhere.
-- **URL contract**: `?sort=<column key>&direction=asc|desc`, e.g.
-  `?sort=email&direction=asc`. Column keys, not DQL paths — the query string
-  shouldn't leak `v.fullName`, and the same `?sort=totalDays` should mean the
-  same thing on `/reports` as anywhere else. A sort link resets `page` to 1
-  and keeps `perPage` and `tab`; `PaginationBar` and its page-size form
-  already carry unknown query params through, so `sort`/`direction` survive
-  paging and resizing for free.
-- **Knp's own sorting is deliberately not used.** Two independent reasons,
-  both verified against the vendor code:
-  - `knp_pagination_sortable()` goes through
-    `Knp\Bundle\PaginatorBundle\Helper\Processor`, whose constructor requires
-    a `TranslatorInterface` — the same blocker that already stopped this app
-    using `knp_pagination_render()` (see the note in
-    `config/packages/knp_paginator.yaml`). The header markup is ours, for the
-    same reason the pagination controls are.
-  - `SortableSubscriber` reads the raw `sort` param and pushes it straight
-    into an `ORDER BY` tree walker, so the query param has to *be* the DQL
-    path, and a value outside `sortFieldAllowList` throws
-    `InvalidValueException` — a 500. That is the opposite of the "bad input
-    never 404s" contract `ListPaginator` already keeps for `page`/`perPage`,
-    and this app has one non-technical user working from bookmarked URLs.
-- **Mechanism**: give `ListPaginator` a per-view sort map supplied by the
-  controller (`'email' => 'v.email'`, …). It resolves `sort` against that map,
-  applies `orderBy()` to the `QueryBuilder` itself, and neutralises Knp's
-  sortable subscriber by passing a `sortFieldParameterName` that never appears
-  in a URL. An unknown or absent `sort` falls back to the view's existing
-  default order (`createOrderedByNameQueryBuilder()` /
-  `createOrderedByDateDescQueryBuilder()`) — same forgiving posture as
-  `perPage`. Because the map *is* the whitelist, no user-supplied string ever
-  reaches DQL.
-- **Ties must break deterministically.** Sorting Volunteers by Status drops
-  every row into two buckets; with no secondary `addOrderBy` on name (or
-  `id`), SQLite is free to hand back rows on page 2 that were already on
-  page 1. Each sort keeps the view's default order as its tie-break.
-- **Joined columns already work.** `createOrderedByDateDescQueryBuilder()`
-  joins `v`, `p` and `t`, so Volunteer / Project / Activity type sort on the
-  joined name with no query change. All three joins are to-one, so paging
-  can't multiply rows.
-- **Reports sort in memory, before pagination.** `/reports` paginates arrays,
-  not a query. Knp's `ArraySubscriber` would demand `[totalDays]`-style
-  property paths in the URL, breaking the contract above; `usort` the
-  `SummaryRow` list against the same key→field map before `paginateArray()`
-  instead. Sort the whole list, not the page.
-- **Mobile is in scope.** The Activities card layout has no header row to
-  click, so it gets a "Sort by" + direction select beside its own
-  `PaginationBar`, reusing the `auto-submit` Stimulus controller the way the
-  page-size selector does and emitting the same two params. The one list that
-  grows longest shouldn't be sortable only on desktop.
-- **Accessibility**: the active column's `<th>` carries
-  `aria-sort="ascending"`/`"descending"`, and the link text stays the plain
-  column label — several tests resolve headers and buttons by text.
-- **Tests**: extend `tests/Integration/Pagination/ListPaginatorTest.php` for
-  map resolution, unknown-`sort` fallback and direction clamping; per index
-  view, one functional assertion that `?sort=…&direction=asc` reorders the
-  first row and one that a junk `sort` still returns 200 in default order.
-- **ADR**: choosing our own sort resolution over the bundle's is a mechanism
-  decision, so it gets its own ADR extending
-  [ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md), via
-  the `adr-scribe` subagent — written alongside the code, not reconstructed
-  after it.
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 

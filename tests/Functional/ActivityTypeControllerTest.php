@@ -61,4 +61,54 @@ final class ActivityTypeControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/activity-types?page=2');
         self::assertCount(1, $crawler->filter('table tbody tr'));
     }
+
+    #[Test]
+    public function theIndexSortsByName(): void
+    {
+        $client = static::createClient();
+        ActivityTypeFactory::createOne(['name' => 'Art class']);
+        ActivityTypeFactory::createOne(['name' => 'Zumba']);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/activity-types?sort=name&direction=desc');
+        self::assertStringContainsString('Zumba', $crawler->filter('table tbody tr')->first()->text());
+
+        $crawler = $client->request('GET', '/activity-types?sort=name&direction=asc');
+        self::assertStringContainsString('Art class', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    /**
+     * Description is free text — ordering it surfaces nothing anyone is
+     * looking for, so it is left out of the controller's sort map. Being out
+     * of the map is the whole opt-out; nothing special-cases it in DataTable.
+     */
+    #[Test]
+    public function theDescriptionHeaderIsNotSortable(): void
+    {
+        $client = static::createClient();
+        ActivityTypeFactory::createOne(['name' => 'Art class', 'description' => 'Painting and drawing']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activity-types');
+
+        self::assertCount(1, $crawler->filter('[data-sort-link="name"]'));
+        self::assertCount(0, $crawler->filter('[data-sort-link="description"]'));
+        // Still a header, just a plain one.
+        self::assertSame('Description', $crawler->filter('thead th')->eq(1)->text());
+    }
+
+    #[Test]
+    public function theIndexShrugsOffAnUnknownSortColumn(): void
+    {
+        $client = static::createClient();
+        ActivityTypeFactory::createOne(['name' => 'Art class']);
+        ActivityTypeFactory::createOne(['name' => 'Zumba']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activity-types?sort=description&direction=desc');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Art class', $crawler->filter('table tbody tr')->first()->text());
+    }
 }

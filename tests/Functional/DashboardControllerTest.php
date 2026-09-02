@@ -26,7 +26,7 @@ final class DashboardControllerTest extends WebTestCase
             'volunteer' => VolunteerFactory::createOne(['firstName' => 'Naomi', 'lastName' => 'Cherop']),
             'project' => ProjectFactory::createOne(['name' => 'UCESCO HQ']),
             'activityType' => ActivityTypeFactory::createOne(['name' => 'Orientation']),
-            'accompaniedBy' => EscortFactory::createOne(['name' => 'Mrs Achola']),
+            'escorts' => [EscortFactory::createOne(['name' => 'Mrs Achola'])],
         ]);
 
         $client->loginUser(UserFactory::createOne());
@@ -50,7 +50,7 @@ final class DashboardControllerTest extends WebTestCase
             'volunteer' => VolunteerFactory::createOne(['firstName' => 'Grace', 'lastName' => 'Wanjiru']),
             'project' => ProjectFactory::createOne(['name' => 'Peggy Lucas school']),
             'activityType' => ActivityTypeFactory::createOne(['name' => 'School support']),
-            'accompaniedBy' => EscortFactory::createOne(['name' => 'Ms Njeri']),
+            'escorts' => [EscortFactory::createOne(['name' => 'Ms Njeri'])],
         ]);
 
         $client->loginUser(UserFactory::createOne());
@@ -77,7 +77,7 @@ final class DashboardControllerTest extends WebTestCase
     public function listsQuietProjectsWithAWayToAssignVolunteersToThem(): void
     {
         $client = static::createClient();
-        $project = ProjectFactory::createOne(['name' => 'Mombasa Youth Centre']);
+        $project = ProjectFactory::createOne(['name' => 'Mtwapa Youth Centre']);
         ActivityFactory::createOne([
             'date' => (new \DateTimeImmutable('today'))->modify('-58 days'),
             'project' => $project,
@@ -88,7 +88,7 @@ final class DashboardControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'Projects needing volunteers');
-        self::assertSelectorTextContains('body', 'Mombasa Youth Centre');
+        self::assertSelectorTextContains('body', 'Mtwapa Youth Centre');
         self::assertSelectorTextContains('body', '58 days');
         self::assertSame(
             1,

@@ -51,6 +51,10 @@ class ActivityRepository extends ServiceEntityRepository
      * thing to the order the VM actually worked through the day, and it's what
      * decides the project-group order on the roster.
      *
+     * The escorts join is to-many (ADR 0013), so this query can't grow a LIMIT
+     * without multiplying rows. It doesn't need one — it loads a single day —
+     * but the paginated index deliberately doesn't join escorts at all.
+     *
      * @return Activity[]
      */
     public function findByDate(\DateTimeImmutable $date): array
@@ -61,7 +65,7 @@ class ActivityRepository extends ServiceEntityRepository
             ->join('a.volunteer', 'v')
             ->join('a.project', 'p')
             ->join('a.activityType', 't')
-            ->leftJoin('a.accompaniedBy', 'e')
+            ->leftJoin('a.escorts', 'e')
             ->where('a.date = :date')
             ->setParameter('date', $date, Types::DATE_IMMUTABLE)
             ->orderBy('a.id', 'ASC')

@@ -1,0 +1,440 @@
+# UCESCO roster archive — the fixture dataset.
+#
+# Transcribed by hand from the volunteers' WhatsApp group (03/08/2026 →
+# 01/09/2026), where the Volunteer Manager posts each afternoon the schedule
+# for the following day. The raw export stays out of git; see README.md in
+# this directory for the transcription rules and ADR 0012 for why fixtures
+# come from here rather than from a generator.
+#
+# Every date below is the day the roster COVERS. `posted` is the day the
+# message announcing it was sent.
+
+volunteers:
+  - name: Ellen
+    active: false
+  - name: Ronan
+    active: false
+  - name: Charline
+    active: false
+  - name: Gwen
+    active: false
+  - name: Daphne
+    active: true
+  - name: Tina
+    active: false
+    # 28/08: "I will miss all of you so much! Can't wait to be back in February"
+    notes: Finished her stint on 28/08/2026; said she would be back in February.
+  - name: Annabelle
+    active: false
+  - name: Leni
+    active: false
+  - name: Marco
+    active: true
+  - name: Cyrine
+    active: false
+  - name: Rahel
+    active: true
+  - name: Lana
+    active: true
+  - name: Chloe
+    active: true
+  # Recorded as the rosters spell them. "Hellen" (September) may or may not be
+  # the "Ellen" of early August — the archive does not say, so they are not
+  # merged.
+  - name: Hellen
+    active: true
+  - name: Hannah
+    active: true
+
+escorts:
+  - Mr Maeba
+  - Sam
+  - Hassan
+  - Ofright
+  - Edna
+
+# Location and ownership are not in the roster messages; they come from the
+# project records already established with the VM (docs/brainstorm/04).
+# Sites outside the Nairobi base carry the region in their name.
+projects:
+  - key: peggy_lucas
+    name: Peggy Lucas school
+    location: kibera
+    ownership: ucesco
+    activity_type: School support
+  - key: bright_achievers
+    name: Bright Achievers school
+    location: kibera
+    ownership: partner
+    partner: Bright Achievers High School
+    activity_type: School support
+  - key: ack_clinic
+    name: ACK clinic
+    location: kibera
+    ownership: partner
+    partner: Anglican Church of Kenya (ACK)
+    activity_type: Clinic support
+  - key: beyond_zero
+    name: Beyond Zero clinic
+    location: kibera
+    ownership: partner
+    partner: Beyond Zero
+    activity_type: Clinic support
+  - key: toi_field
+    name: Toi School Field
+    location: kibera
+    ownership: partner
+    partner: Toi School
+    activity_type: Sports
+  - key: dreams_of_hope
+    name: Dreams of Hope Kids
+    location: kibera
+    ownership: partner
+    partner: Dreams of Hope
+    activity_type: Orphanage support
+  - key: mveti
+    name: MVETI
+    location: kibera
+    ownership: partner
+    partner: MVETI
+    activity_type: Vocational training support
+  # The five sites below sit in Mombasa, and `location` is where that is
+  # recorded — the name never repeats it (ADR 0015). The messages qualify
+  # them the same way, in parentheses: "Minto children Orphanage (Mombasa)".
+  - key: mt_hermon
+    name: Mt Hermon school
+    location: mombasa
+    ownership: partner
+    partner: Mt Hermon School
+    activity_type: School support
+    # Placed in Mombasa because Ofright escorts it, and Ofright works only the
+    # Mombasa sites in this archive. The messages never say so outright.
+  - key: minto
+    name: Minto Children's Orphanage
+    location: mombasa
+    ownership: partner
+    partner: Minto Children's Orphanage
+    activity_type: Orphanage support
+  - key: mtwapa_beach
+    name: Mtwapa Beach
+    location: mombasa
+    ownership: ucesco
+    activity_type: Beach clean-up
+  - key: mombasa_office
+    # "Mombasa Office assisting in Communication" in the messages; the region
+    # is the `location`, so the site itself is the office.
+    name: Office
+    location: mombasa
+    ownership: ucesco
+    activity_type: Office/admin support
+  - key: mombasa_home_visits
+    # "Home Visit (Mombasa)" in the messages.
+    name: Home visits
+    location: mombasa
+    ownership: ucesco
+    activity_type: Home visit
+  # No roster line in this archive sends anyone to HQ, but it is a real site
+  # and orientation happens there — every new volunteer's first half-day.
+  - key: ucesco_hq
+    name: UCESCO HQ
+    location: kibera
+    ownership: ucesco
+    activity_type: Orientation
+
+rosters:
+  - date: 2026-08-04
+    posted: 2026-08-03
+    truncated: true
+    sites:
+      - project: peggy_lucas
+        volunteers: [{name: Ellen}, {name: Ronan}]
+        escorts: [Mr Maeba]
+      - project: ack_clinic
+        volunteers: [{name: Charline}, {name: Daphne}]
+        escorts: [Sam]
+
+  - date: 2026-08-05
+    posted: 2026-08-04
+    truncated: true
+    sites:
+      - project: peggy_lucas
+        volunteers:
+          - {name: Ellen}
+          - {name: Ronan}
+          - {name: Gwen}
+          - {name: Tina, note: To go with the kids to the sports.}
+        escorts: [Mr Maeba]
+      - project: ack_clinic
+        volunteers: [{name: Charline}, {name: Daphne}]
+        escorts: [Hassan]
+
+  - date: 2026-08-06
+    posted: 2026-08-05
+    truncated: true
+    sites:
+      - project: bright_achievers
+        volunteers: [{name: Ellen}]
+        escorts: [Sam]
+      - project: peggy_lucas
+        volunteers:
+          - {name: Ronan}
+          - {name: Tina, note: With the Dreams of Hope kids.}
+        escorts: [Mr Maeba]
+
+  - date: 2026-08-07
+    posted: 2026-08-06
+    truncated: true
+    sites:
+      - project: bright_achievers
+        volunteers: [{name: Ellen}, {name: Ronan}]
+        escorts: [Sam]
+      - project: peggy_lucas
+        volunteers: [{name: Tina, note: With the Dreams of Hope kids.}]
+        escorts: [Mr Maeba]
+
+  - date: 2026-08-10
+    posted: 2026-08-09
+    truncated: true
+    sites:
+      - project: bright_achievers
+        volunteers: [{name: Ronan}]
+        escorts: [Hassan]
+      - project: peggy_lucas
+        volunteers: [{name: Ellen}, {name: Tina}]
+        escorts: [Mr Maeba]
+
+  - date: 2026-08-11
+    posted: 2026-08-10
+    truncated: true
+    sites:
+      - project: bright_achievers
+        volunteers: [{name: Ronan}]
+        escorts: [Hassan]
+      - project: ack_clinic
+        volunteers: [{name: Daphne}]
+        escorts: [Hassan]
+      # The message is cut off right after this line, before any escort.
+      - project: peggy_lucas
+        volunteers: [{name: Ellen}]
+        escorts: []
+
+  # "please note that the schedule remains unchanged" — the previous day's
+  # roster, repeated by the VM rather than reposted.
+  - date: 2026-08-12
+    posted: 2026-08-11
+    truncated: true
+    sites:
+      - project: bright_achievers
+        volunteers: [{name: Ronan}]
+        escorts: [Hassan]
+      - project: ack_clinic
+        volunteers: [{name: Daphne}]
+        escorts: [Hassan]
+      - project: peggy_lucas
+        volunteers: [{name: Ellen}]
+        escorts: []
+
+  - date: 2026-08-13
+    posted: 2026-08-12
+    truncated: true
+    sites:
+      - project: bright_achievers
+        volunteers: [{name: Ronan}]
+        escorts: [Hassan]
+      - project: peggy_lucas
+        volunteers: [{name: Tina}, {name: Annabelle}, {name: Daphne}]
+        escorts: [Mr Maeba]
+
+  - date: 2026-08-14
+    posted: 2026-08-13
+    truncated: true
+    sites:
+      - project: bright_achievers
+        volunteers: [{name: Ronan}]
+        escorts: [Hassan]
+      - project: toi_field
+        volunteers: [{name: Tina}]
+        escorts: [Mr Maeba]
+      - project: beyond_zero
+        volunteers: [{name: Daphne}]
+        escorts: [Hassan]
+
+  - date: 2026-08-17
+    posted: 2026-08-16
+    sites:
+      - project: dreams_of_hope
+        volunteers: [{name: Annabelle}]
+        escorts: [Mr Maeba]
+      - project: minto
+        volunteers: [{name: Leni}]
+        escorts: [Ofright]
+
+  - date: 2026-08-18
+    posted: 2026-08-17
+    truncated: true
+    sites:
+      - project: dreams_of_hope
+        volunteers: [{name: Annabelle}]
+        escorts: [Mr Maeba]
+      - project: mombasa_office
+        volunteers: [{name: Leni, note: Assisting in communications.}]
+        escorts: [Ofright]
+
+  - date: 2026-08-19
+    posted: 2026-08-18
+    sites:
+      - project: dreams_of_hope
+        volunteers: [{name: Annabelle}]
+        escorts: [Mr Maeba]
+      - project: mtwapa_beach
+        volunteers: [{name: Leni}]
+        escorts: [Ofright]
+
+  - date: 2026-08-20
+    posted: 2026-08-19
+    truncated: true
+    sites:
+      - project: ack_clinic
+        volunteers: [{name: Daphne}]
+        escorts: [Hassan]
+      - project: dreams_of_hope
+        volunteers: [{name: Tina}, {name: Annabelle}]
+        escorts: [Mr Maeba]
+      - project: minto
+        volunteers: [{name: Leni}]
+        escorts: []
+
+  - date: 2026-08-21
+    posted: 2026-08-20
+    truncated: true
+    sites:
+      - project: ack_clinic
+        volunteers: [{name: Daphne}]
+        escorts: [Mr Maeba]
+      # The message says only "Sports". Toi school field is the sports site it
+      # names a week earlier.
+      - project: toi_field
+        volunteers: [{name: Tina}, {name: Annabelle}, {name: Marco}]
+        escorts: [Mr Maeba]
+      - project: mombasa_home_visits
+        volunteers: [{name: Leni}]
+        escorts: []
+
+  - date: 2026-08-24
+    posted: 2026-08-23
+    truncated: true
+    sites:
+      - project: ack_clinic
+        volunteers: [{name: Daphne}]
+        escorts: [Mr Maeba]
+      - project: peggy_lucas
+        volunteers: [{name: Tina}]
+        escorts: [Mr Maeba]
+      - project: bright_achievers
+        volunteers: [{name: Marco}]
+        escorts: []
+
+  - date: 2026-08-25
+    posted: 2026-08-24
+    truncated: true
+    sites:
+      - project: ack_clinic
+        volunteers: [{name: Daphne}]
+        escorts: [Mr Maeba]
+      - project: peggy_lucas
+        volunteers: [{name: Tina}, {name: Marco}, {name: Cyrine}]
+        escorts: [Mr Maeba]
+
+  - date: 2026-08-26
+    posted: 2026-08-25
+    truncated: true
+    sites:
+      - project: ack_clinic
+        volunteers: [{name: Daphne}]
+        escorts: [Mr Maeba]
+      - project: peggy_lucas
+        volunteers: [{name: Tina}, {name: Marco}, {name: Cyrine}]
+        escorts: [Mr Maeba]
+
+  - date: 2026-08-27
+    posted: 2026-08-26
+    truncated: true
+    sites:
+      - project: beyond_zero
+        volunteers: [{name: Daphne}]
+        escorts: [Sam]
+      - project: peggy_lucas
+        volunteers:
+          - {name: Tina}
+          - {name: Marco}
+          - {name: Cyrine}
+          - {name: Rahel, note: Later MVETI.}
+          - {name: Lana, note: Later MVETI.}
+          - {name: Chloe, note: Later MVETI.}
+        escorts: []
+      # The "-later MVETI" suffixes above, transcribed as the second site they
+      # describe.
+      - project: mveti
+        volunteers:
+          - {name: Rahel, note: 'Later, from Peggy Lucas school.'}
+          - {name: Lana, note: 'Later, from Peggy Lucas school.'}
+          - {name: Chloe, note: 'Later, from Peggy Lucas school.'}
+        escorts: []
+
+  - date: 2026-08-28
+    posted: 2026-08-27
+    truncated: true
+    sites:
+      - project: peggy_lucas
+        volunteers:
+          - {name: Tina}
+          - {name: Marco}
+          - {name: Cyrine}
+          - {name: Daphne}
+          - {name: Lana, note: Later MVETI.}
+          - {name: Chloe, note: Later MVETI.}
+        escorts: []
+      - project: mveti
+        volunteers:
+          - {name: Rahel}
+          - {name: Lana, note: 'Later, from Peggy Lucas school.'}
+          - {name: Chloe, note: 'Later, from Peggy Lucas school.'}
+        escorts: []
+
+  - date: 2026-08-31
+    posted: 2026-08-30
+    truncated: true
+    sites:
+      - project: peggy_lucas
+        volunteers: [{name: Daphne}, {name: Marco}]
+        escorts: []
+      # "Accompanied by Edna and Sam" closes the MVETI block in this message.
+      # The next day's message attaches the same pair to Peggy Lucas, so the
+      # attribution here is the layout's, not a certainty.
+      - project: mveti
+        volunteers: [{name: Rahel}, {name: Lana}, {name: Chloe}]
+        escorts: [Edna, Sam]
+
+  - date: 2026-09-01
+    posted: 2026-08-31
+    truncated: true
+    anchor: today
+    sites:
+      - project: peggy_lucas
+        volunteers: [{name: Daphne}, {name: Marco}]
+        escorts: [Edna, Sam]
+      - project: mt_hermon
+        volunteers: [{name: Hellen}, {name: Hannah}]
+        escorts: [Ofright]
+
+  - date: 2026-09-02
+    posted: 2026-09-01
+    truncated: true
+    anchor: tomorrow
+    sites:
+      - project: peggy_lucas
+        volunteers: [{name: Daphne}, {name: Marco}]
+        escorts: [Hassan]
+      - project: mt_hermon
+        volunteers: [{name: Hellen}, {name: Hannah}]
+        escorts: [Ofright]

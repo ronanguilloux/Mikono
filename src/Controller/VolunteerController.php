@@ -19,6 +19,20 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[Route('/volunteers', name: 'volunteer_')]
 final class VolunteerController extends AbstractController
 {
+    /**
+     * Column key => DQL field(s) for the index's sortable headers. The map is
+     * the whitelist, so nothing a reader types reaches DQL. `name` needs two
+     * fields because getFullName() has no single column behind it. See ADR 0011.
+     *
+     * @var array<string, non-empty-list<string>>
+     */
+    private const array SORT_MAP = [
+        'name' => ['v.lastName', 'v.firstName'],
+        'email' => ['v.email'],
+        'phone' => ['v.phone'],
+        'status' => ['v.isActive'],
+    ];
+
     public function __construct(
         private readonly VolunteerRepository $volunteers,
         private readonly ActivityRepository $activities,
@@ -30,11 +44,10 @@ final class VolunteerController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $pagination = $this->paginator->paginateQuery(
-            $this->volunteers->createOrderedByNameQueryBuilder(),
-            Volunteer::class,
-            $request,
-        );
+        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        $pagination = $this->paginator->paginateQuery($queryBuilder, Volunteer::class, $request);
 
         $rows = [];
         foreach ($pagination as $volunteer) {
@@ -68,6 +81,7 @@ final class VolunteerController extends AbstractController
             ],
             'rows' => $rows,
             'pagination' => $pagination,
+            'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
     }
 

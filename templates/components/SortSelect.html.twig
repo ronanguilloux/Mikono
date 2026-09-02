@@ -1,0 +1,75 @@
+{#
+    The mobile stand-in for clickable column headers.
+
+    The Activities index wraps its DataTable in `hidden md:block` and renders a
+    card list underneath, so sortable <th>s are invisible on a phone — the same
+    trap that got PaginationBar hoisted out of DataTable there. This emits the
+    identical `sort`/`direction` params the headers do, so the two controls are
+    interchangeable and the one list that grows longest isn't sortable on
+    desktop only.
+
+    Structure copied from PaginationBar's page-size form on purpose, down to
+    the sr-only submit button that keeps it working with JavaScript off.
+#}
+{% props columns = [], sortState = null, defaultLabel = 'Default order' %}
+
+{% if sortState is not null and sortState.sortableKeys is not empty %}
+    <form
+        method="get"
+        {# mb-, not mt-: this sits above the list it re-orders, since a sort
+           control at the bottom of 25 cards is a scroll away from useless. #}
+        class="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600 print:hidden"
+        data-controller="auto-submit"
+        data-sort-select
+    >
+        {#
+            Carry the rest of the query string through, so sorting doesn't drop
+            the page size. `sort`/`direction` come from the selects below, and
+            `page` is dropped because a new order means a new page 1.
+        #}
+        {% for key, value in app.request.query.all %}
+            {% if key not in ['page', 'sort', 'direction'] and value is not iterable %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
+
+        <label for="sort-by" class="sr-only">Sort by</label>
+        <span aria-hidden="true">Sort by</span>
+        <select
+            id="sort-by"
+            name="sort"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            {#
+                An empty value is not in any sort map, so it falls through to
+                the view's own default order — which is what the list is
+                actually showing before anyone picks a column. Without it the
+                select would claim to be sorted by its first column while the
+                rows were in some other order entirely.
+            #}
+            <option value="" {{ sortState.activeKey is null ? 'selected' : '' }}>{{ defaultLabel }}</option>
+            {% for column in columns|filter(column => sortState.isSortable(column.key)) %}
+                <option value="{{ column.key }}" {{ sortState.isActive(column.key) ? 'selected' : '' }}>{{ column.label }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="sort-direction" class="sr-only">Sort direction</label>
+        <select
+            id="sort-direction"
+            name="direction"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            <option value="asc" {{ sortState.direction == 'asc' ? 'selected' : '' }}>Ascending</option>
+            <option value="desc" {{ sortState.direction == 'desc' ? 'selected' : '' }}>Descending</option>
+        </select>
+
+        {#
+            Labelled "Sort", never "Delete" — the Activities cards carry delete
+            buttons that tests reach with submitForm('Delete'), which resolves
+            by button text.
+        #}
+        <button type="submit" class="sr-only">Sort</button>
+    </form>
+{% endif %}

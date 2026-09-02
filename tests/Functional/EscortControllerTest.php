@@ -80,7 +80,7 @@ final class EscortControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $escort = EscortFactory::createOne(['name' => 'Mr Maeba']);
-        ActivityFactory::createOne(['accompaniedBy' => $escort]);
+        ActivityFactory::createOne(['escorts' => [$escort]]);
         $client->loginUser(UserFactory::createOne());
         $client->request('GET', '/escorts');
         $client->submitForm('Delete');
@@ -103,5 +103,35 @@ final class EscortControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/escorts?page=2');
         self::assertCount(1, $crawler->filter('table tbody tr'));
+    }
+
+    #[Test]
+    public function theIndexSortsByARequestedColumn(): void
+    {
+        $client = static::createClient();
+        EscortFactory::createOne(['name' => 'Mr Achieng']);
+        EscortFactory::createOne(['name' => 'Mrs Zuma']);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/escorts?sort=name&direction=desc');
+        self::assertStringContainsString('Mrs Zuma', $crawler->filter('table tbody tr')->first()->text());
+
+        $crawler = $client->request('GET', '/escorts?sort=name&direction=asc');
+        self::assertStringContainsString('Mr Achieng', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    #[Test]
+    public function theIndexShrugsOffAnUnknownSortColumn(): void
+    {
+        $client = static::createClient();
+        EscortFactory::createOne(['name' => 'Mr Achieng']);
+        EscortFactory::createOne(['name' => 'Mrs Zuma']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/escorts?sort=e.name&direction=desc');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Mr Achieng', $crawler->filter('table tbody tr')->first()->text());
     }
 }

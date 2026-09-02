@@ -21,6 +21,21 @@ final class ReportController extends AbstractController
     private const string TAB_VOLUNTEER = 'volunteer';
     private const string TAB_PROJECT = 'project';
 
+    /**
+     * Column key => SummaryRow key for the breakdowns' sortable headers. Both
+     * tabs share these four keys, which is why a sort survives a tab switch
+     * intact. Unlike the CRUD indexes this sorts an array rather than a query,
+     * so the values are array keys, not DQL paths. See ADR 0011.
+     *
+     * @var array<string, string>
+     */
+    private const array SORT_MAP = [
+        'label' => 'label',
+        'count' => 'count',
+        'totalDays' => 'totalDays',
+        'mostRecent' => 'mostRecent',
+    ];
+
     public function __construct(
         private readonly ActivitySummaryCalculator $calculator,
         private readonly ReportMetricsCalculator $metrics,
@@ -43,10 +58,17 @@ final class ReportController extends AbstractController
         $byVolunteer = $this->calculator->summarizeByVolunteer();
         $byProject = $this->calculator->summarizeByProject();
 
-        $pagination = $this->paginator->paginateArray(
+        // Sorted before pagination, and across the whole breakdown rather than
+        // the page — sorting a page would only shuffle the 25 rows already on
+        // screen. $byVolunteer/$byProject themselves stay in the calculator's
+        // totalDays order for the "Top volunteers" card and the print panel.
+        $sorted = $this->paginator->sortArray(
             self::TAB_PROJECT === $tab ? $byProject : $byVolunteer,
             $request,
+            self::SORT_MAP,
         );
+
+        $pagination = $this->paginator->paginateArray($sorted, $request);
 
         /** @var list<SummaryRow> $pageOfRows */
         $pageOfRows = iterator_to_array($pagination, false);
@@ -60,6 +82,7 @@ final class ReportController extends AbstractController
             'columns' => $this->columnsFor($tab),
             'rows' => $this->toRows($pageOfRows),
             'pagination' => $pagination,
+            'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
             // Complete and unpaginated, for the print-only panel. The
             // print-friendly view has always put both breakdowns on paper in
             // full, and tabbing the screen mustn't quietly halve that.

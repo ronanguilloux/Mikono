@@ -42,9 +42,16 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
 - `.claude/agents/` — Claude Code-specific subagents (`adr-scribe`,
   `context-capturer`). Not portable, unlike `.agents/skills/`.
 - `src/Entity/`, `src/Repository/` — Doctrine entities (`User`,
-  `Volunteer`, `Project`, `ActivityType`, `Activity`) and their
+  `Volunteer`, `Project`, `ActivityType`, `Activity`, `Escort`) and their
   repositories, each with a `countReferencingActivities()` delete-guard
-  where applicable.
+  where applicable. Two shapes here were set by what the real rosters
+  actually say, so don't "tidy" them back: `Activity::$escorts` is a
+  **collection**, because the VM writes "Accompanied by Edna and Sam"
+  ([ADR 0013](docs/adr/0013-record-every-escort-on-an-activity.md)) — the
+  escort delete-guard is a `MEMBER OF` query, and the eager escorts join
+  is to-many, so it can't carry a `LIMIT`; and `Volunteer::$lastName` is
+  **optional**, because the rosters name volunteers by first name only
+  ([ADR 0014](docs/adr/0014-make-a-volunteers-last-name-optional.md)).
 - `src/Enum/` — backed PHP enums (`ProjectLocation`, `ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
 - `src/Controller/`, `src/Form/`, `templates/<area>/` — one set per CRUD
@@ -54,20 +61,39 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
   theme (`templates/form/tailwind_theme.html.twig`, registered globally
   in `config/packages/twig.yaml`) rather than hand-styling a new area.
   `DataTable` also takes an optional `pagination` (renders the controls
-  below the table) and `withActions` (set `false` for a read-only table,
-  or it grows a phantom empty actions column).
-- `src/Pagination/` — `ListPaginator`, the single place `page` and
-  `perPage` are read off the query string for all seven list views.
+  below the table), `withActions` (set `false` for a read-only table,
+  or it grows a phantom empty actions column) and `sortState` (turns the
+  headers into sort links; leave it null for a table with nothing to
+  re-order, like the Reports print panel).
+- `src/Pagination/` — `ListPaginator`, the single place `page`,
+  `perPage`, `sort` and `direction` are read off the query string for
+  all seven list views, plus the `SortState` VO it hands to templates.
   Page sizes are whitelisted 25/50/100/All, default 25. Bad input never
   404s: an unknown size falls back to the default, `page` below 1 clamps
-  to 1, `page` past the end serves the last page. Don't reach for
+  to 1, `page` past the end serves the last page, and an unknown `sort`
+  leaves the view's own order alone. Don't reach for
   `InputBag::getInt()` here — in Symfony 8 it throws on non-numeric
-  input, which turns `?page=abc` into a 400. See
-  [ADR 0009](docs/adr/0009-adopt-knppaginatorbundle-for-list-pagination.md).
+  input, which turns `?page=abc` into a 400; `sort`/`direction` are read
+  through `query->all()` for the same reason, since `InputBag::get()`
+  throws on `?sort[]=x`. See
+  [ADR 0009](docs/adr/0009-adopt-knppaginatorbundle-for-list-pagination.md)
+  and
+  [ADR 0011](docs/adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md).
   The controls markup lives in `templates/pagination/tailwind.html.twig`,
   included by `templates/components/PaginationBar.html.twig` — not
   rendered via `knp_pagination_render()`, which needs a translator this
-  app deliberately doesn't have.
+  app deliberately doesn't have. Knp's *sortable* support is off for that
+  same reason plus one more (it 500s on a field outside its allow list):
+  `ListPaginator` passes `SORT_FIELD_PARAMETER_NAME => null` and resolves
+  sorting itself. Making a column sortable is a one-line entry in that
+  controller's `SORT_MAP` const (column key => DQL field(s), or array key
+  on `/reports`) — the map *is* the whitelist, so nothing a reader types
+  reaches DQL, and a column opts out by simply not being in it. Don't add
+  a second sortability flag to the column definition. Every sort keeps the
+  repository's own `ORDER BY` as a tie-break; drop that and a paginated
+  sort on a low-cardinality column repeats rows across pages. The mobile
+  equivalent of clickable headers is `templates/components/SortSelect.html.twig`,
+  used by the Activities index because its table is inside `hidden md:block`.
 - `src/Report/` — the app's real domain logic:
   `ActivitySummaryCalculator` (duration-to-days aggregation for
   `/reports`), plus `RosterBuilder`/`QuietProjectFinder` and their
@@ -77,6 +103,19 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
 - `src/Factory/` — Foundry v2 factories (`PersistentObjectFactory`, real
   objects) for every entity, used by both tests and dev fixtures
   (`src/Story/AppStory.php`).
+- `src/Fixture/` — `RosterArchive` and its readonly VOs, which read
+  `docs/fixtures/rosters.yaml`. **The dev/demo dataset is never
+  generated**: every volunteer, escort, site, date and roster note in
+  `AppStory` comes from that file, transcribed by hand from a month of
+  the VM's real WhatsApp roster messages
+  ([ADR 0012](docs/adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
+  To grow the dataset, add to the archive — not to `AppStory`, and never
+  with Faker. The raw WhatsApp exports (`docs/fixtures/*_dumps.txt`) are
+  gitignored because they name sponsored children and donors; this repo
+  is public. `docs/fixtures/README.md` has the transcription rules, and
+  `tests/Integration/Fixture/RosterArchiveTest.php` enforces the ones a
+  test can. Test factories may still generate — a pagination test needs
+  twenty-six arbitrary escorts, not twenty-six real ones.
 - `tests/Functional/` — WebTestCase functional tests, one per
   controller area plus `SecurityControllerTest`.
 - `tests/Integration/` — KernelTestCase tests for `src/Report/` services
@@ -122,8 +161,10 @@ SQLite account on `https://localhost` with seeded fixture data behind it;
 nothing about it is shared with production, and no real password
 belongs in this file — this repo is public.
 
-Seed realistic dev data (the Bright Achievers worked example, plus a
-handful of extra volunteers/activities):
+Seed the dev data — the real August 2026 roster archive: 15 volunteers,
+13 sites, 5 escorts and 90 activities, with the last two days anchored
+onto today and tomorrow so the home screen's roster panels have
+something to show:
 
 ```bash
 docker compose exec php bin/console foundry:load-fixtures --no-interaction
@@ -174,7 +215,10 @@ for dev specifically — leave that override in place.
   `string` — Symfony transforms a submitted empty string to `null` by
   default, which crashes with a 500 against a non-nullable property
   instead of showing a validation error. Already applied to every
-  existing form; apply it to any new required text field too.
+  existing form; apply it to any new required text field too. The mirror
+  case is `VolunteerFormType`'s `lastName`, which is `required: false`
+  with **no** `empty_data` — an optional field must store `null`, not an
+  empty string, or "not recorded" ends up with two representations.
 - The volunteer pickers on both activity forms list **active volunteers
   only** — volunteers leave after a few weeks, so the inactive ones are
   pure noise when logging attendance. `ActivityFormType` also backs the

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Enum\ProjectLocation;
 use App\Factory\ActivityFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
@@ -82,5 +83,53 @@ final class ProjectControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/projects?page=2');
         self::assertCount(1, $crawler->filter('table tbody tr'));
+    }
+
+    #[Test]
+    public function theIndexSortsByARequestedColumn(): void
+    {
+        $client = static::createClient();
+        ProjectFactory::createOne(['name' => 'Alpha Centre']);
+        ProjectFactory::createOne(['name' => 'Zebra Centre']);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/projects?sort=name&direction=desc');
+        self::assertStringContainsString('Zebra Centre', $crawler->filter('table tbody tr')->first()->text());
+
+        $crawler = $client->request('GET', '/projects?sort=name&direction=asc');
+        self::assertStringContainsString('Alpha Centre', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    /**
+     * Location and Ownership sort by the enum's stored backing value rather
+     * than its label(). For both enums today those two orders coincide, and
+     * this pins that: kibera < mombasa reads as Kibera (Nairobi) first.
+     */
+    #[Test]
+    public function theIndexSortsEnumColumnsInLabelOrder(): void
+    {
+        $client = static::createClient();
+        ProjectFactory::createOne(['name' => 'Coast Project', 'location' => ProjectLocation::Mombasa]);
+        ProjectFactory::createOne(['name' => 'Slum Project', 'location' => ProjectLocation::Kibera]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/projects?sort=location&direction=asc');
+
+        self::assertStringContainsString('Kibera (Nairobi)', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    #[Test]
+    public function theIndexShrugsOffAnUnknownSortColumn(): void
+    {
+        $client = static::createClient();
+        ProjectFactory::createOne(['name' => 'Alpha Centre']);
+        ProjectFactory::createOne(['name' => 'Zebra Centre']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/projects?sort=partnerOrganizationName&direction=desc');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Alpha Centre', $crawler->filter('table tbody tr')->first()->text());
     }
 }

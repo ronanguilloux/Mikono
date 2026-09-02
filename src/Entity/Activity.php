@@ -6,6 +6,8 @@ namespace App\Entity;
 
 use App\Enum\ActivityDuration;
 use App\Repository\ActivityRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
@@ -51,9 +53,17 @@ class Activity
     #[ORM\JoinColumn(nullable: false)]
     private ?User $loggedBy = null;
 
-    #[ORM\ManyToOne(targetEntity: Escort::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Escort $accompaniedBy = null;
+    /**
+     * The VM's own roster messages sometimes end "Accompanied by Edna and
+     * Sam" — two staff on one group — so this is a collection, not a single
+     * escort. See ADR 0013.
+     *
+     * @var Collection<int, Escort>
+     */
+    #[ORM\ManyToMany(targetEntity: Escort::class)]
+    #[ORM\JoinTable(name: 'activity_escort')]
+    #[ORM\OrderBy(['name' => 'ASC'])]
+    private Collection $escorts;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -63,6 +73,7 @@ class Activity
 
     public function __construct()
     {
+        $this->escorts = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -178,16 +189,35 @@ class Activity
         return $this;
     }
 
-    public function getAccompaniedBy(): ?Escort
+    /** @return Collection<int, Escort> */
+    public function getEscorts(): Collection
     {
-        return $this->accompaniedBy;
+        return $this->escorts;
     }
 
-    public function setAccompaniedBy(?Escort $accompaniedBy): static
+    public function addEscort(Escort $escort): static
     {
-        $this->accompaniedBy = $accompaniedBy;
+        if (!$this->escorts->contains($escort)) {
+            $this->escorts->add($escort);
+        }
 
         return $this;
+    }
+
+    public function removeEscort(Escort $escort): static
+    {
+        $this->escorts->removeElement($escort);
+
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getEscortNames(): array
+    {
+        return array_values(array_map(
+            static fn(Escort $escort) => $escort->getName(),
+            $this->escorts->toArray(),
+        ));
     }
 
     public function getCreatedAt(): \DateTimeImmutable

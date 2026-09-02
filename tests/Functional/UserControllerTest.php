@@ -127,4 +127,51 @@ final class UserControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/users?page=2');
         self::assertCount(2, $crawler->filter('table tbody tr'));
     }
+
+    #[Test]
+    public function theIndexSortsByARequestedColumn(): void
+    {
+        $client = static::createClient();
+        UserFactory::createOne(['email' => 'aisha@example.org', 'fullName' => 'Aisha Achieng']);
+        $admin = UserFactory::new()->admin()->create(['email' => 'zawadi@example.org', 'fullName' => 'Zawadi Zuma']);
+
+        $client->loginUser($admin);
+
+        $crawler = $client->request('GET', '/users?sort=email&direction=desc');
+        self::assertStringContainsString('zawadi@example.org', $crawler->filter('table tbody tr')->first()->text());
+
+        $crawler = $client->request('GET', '/users?sort=email&direction=asc');
+        self::assertStringContainsString('aisha@example.org', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    /**
+     * Role is derived from the `roles` JSON array via isAdmin(), not a column,
+     * so there is nothing to ORDER BY and it stays out of the sort map.
+     */
+    #[Test]
+    public function theRoleHeaderIsNotSortable(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+
+        $crawler = $client->request('GET', '/users');
+
+        self::assertCount(1, $crawler->filter('[data-sort-link="name"]'));
+        self::assertCount(0, $crawler->filter('[data-sort-link="role"]'));
+        self::assertSame('Role', $crawler->filter('thead th')->eq(2)->text());
+    }
+
+    #[Test]
+    public function theIndexShrugsOffAnUnknownSortColumn(): void
+    {
+        $client = static::createClient();
+        UserFactory::createOne(['email' => 'aisha@example.org', 'fullName' => 'Aisha Achieng']);
+        $admin = UserFactory::new()->admin()->create(['email' => 'zawadi@example.org', 'fullName' => 'Zawadi Zuma']);
+
+        $client->loginUser($admin);
+        $crawler = $client->request('GET', '/users?sort=role&direction=desc');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Aisha Achieng', $crawler->filter('table tbody tr')->first()->text());
+    }
 }

@@ -23,6 +23,25 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[Route('/activities', name: 'activity_')]
 final class ActivityController extends AbstractController
 {
+    /**
+     * Column key => DQL field(s) for the index's sortable headers; the map is
+     * the whitelist. The three joins in createOrderedByDateDescQueryBuilder()
+     * are all to-one, so sorting on a joined name can't multiply rows and the
+     * page size keeps meaning what it says.
+     *
+     * Duration is absent on purpose: it's stored as the enum values
+     * half_day/full_day/other alongside a free-text durationOther, so any
+     * ORDER BY on it is arbitrary. See ADR 0011.
+     *
+     * @var array<string, non-empty-list<string>>
+     */
+    private const array SORT_MAP = [
+        'date' => ['a.date'],
+        'volunteer' => ['v.lastName', 'v.firstName'],
+        'project' => ['p.name'],
+        'activityType' => ['t.name'],
+    ];
+
     public function __construct(
         private readonly ActivityRepository $activities,
         private readonly EntityManagerInterface $entityManager,
@@ -35,11 +54,10 @@ final class ActivityController extends AbstractController
     {
         $today = new \DateTimeImmutable('today');
 
-        $pagination = $this->paginator->paginateQuery(
-            $this->activities->createOrderedByDateDescQueryBuilder(),
-            Activity::class,
-            $request,
-        );
+        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        $pagination = $this->paginator->paginateQuery($queryBuilder, Activity::class, $request);
 
         $rows = [];
         foreach ($pagination as $activity) {
@@ -86,6 +104,7 @@ final class ActivityController extends AbstractController
             ],
             'rows' => $rows,
             'pagination' => $pagination,
+            'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
     }
 
@@ -133,7 +152,9 @@ final class ActivityController extends AbstractController
                 $activity->setActivityType($data->activityType);
                 $activity->setDuration($data->duration);
                 $activity->setDurationOther($data->durationOther);
-                $activity->setAccompaniedBy($data->escort);
+                foreach ($data->escorts as $escort) {
+                    $activity->addEscort($escort);
+                }
                 $activity->setNotes($data->notes);
                 $activity->setLoggedBy($loggedBy);
                 $this->entityManager->persist($activity);

@@ -10,9 +10,11 @@ deliberately left hosting out of v0.1's scope; this file is where that
 deferred question gets answered. The *how to ship it* half lives in
 [`deployment-plan.md`](deployment-plan.md).
 
-**Still open:** the provider and region. The recommendation below is a
-ranking plus a measurement protocol, not a decision — it becomes an ADR
-once someone has run the measurements from Nairobi and Mombasa.
+**Still open:** which provider. The *class* of machine is settled — a
+KVM VPS with root, in Nairobi if a provider clears the bar in §5 — and
+shared hosting is ruled out entirely, for reasons set out there. What
+remains is the choice between two named candidates, and that becomes an
+ADR once someone has run the measurements from Nairobi and Mombasa.
 
 ## 1. What the architecture forces
 
@@ -76,6 +78,30 @@ the `frankenphp_dev` stage only.
   see the proxy's IP and mis-detect the scheme. That is a config change,
   not a drop-in.
 
+### Getting a name without buying one
+
+The A record and the real `SERVER_NAME` above are requirements; *paying a
+registrar* is not. A free subdomain satisfies both:
+
+- **DuckDNS** — the pick of the three: it serves A **and** AAAA records
+  and has an update API, so the record can be re-pointed from a script.
+- **sslip.io** — no registration at all; the hostname encodes the IP.
+- **FreeDNS** (afraid.org).
+
+Set `SERVER_NAME=mikono.duckdns.org` and everything above works
+unchanged: Caddy answers the ACME HTTP-01 challenge on port 80, issues a
+real certificate, and `caddy_data` persists it across deploys. Nothing in
+[`compose.yaml`](../../compose.yaml) or
+[`deployment-plan.md`](deployment-plan.md) §4 changes — it is a different
+value for a variable that already exists.
+
+**Rejected: a certificate on the bare IP address.** Let's Encrypt issues
+those only under the short-lived 6-day profile, and it requires a
+`SERVER_NAME` that is not a domain — contradicting the `SERVER_NAME` rule
+above. It is written down here so it does not get rediscovered as a
+shortcut. The domain question does not end at a free subdomain either;
+see §6.
+
 ## 4. Storage and backup
 
 All persistent state is two Docker named volumes:
@@ -134,8 +160,25 @@ Protection Act 2019** places conditions on transferring personal data
 outside the country. Hosting in Kenya makes that question disappear
 instead of requiring an answer.
 
-That is a better reason to land in Nairobi than milliseconds, and it
-cuts against the tempting shortcut in the next section.
+That is a better reason to land in Nairobi than milliseconds, and it is
+what rules out the tempting Cloudflare shortcut further down.
+
+### Shared hosting is excluded by construction
+
+There is no Kenyan shared-hosting plan to go looking for, and the reason
+has nothing to do with the Kenyan market. This architecture rules out
+shared hosting by construction — four decisions already recorded above do
+it, and a 2,500 KSh/year cPanel plan satisfies none of them:
+
+| Requirement | Why shared hosting cannot meet it |
+| --- | --- |
+| FrankenPHP embeds Caddy (§1) | The container **is** the web server and terminates TLS itself. On shared hosting, ports 80 and 443 belong to the host — never to you. |
+| Docker Engine + Compose 2.30+ (§2) | No cPanel shared plan offers it. |
+| 443/udp for HTTP/3 (§3) | Not exposed on shared hosting — and §3 identifies HTTP/3 as the one part of this stack that genuinely helps on a degraded mobile network. |
+| Shell access for `app:user:create` (§1) | No SMTP and no password-reset-by-email means accounts are created over SSH. Not negotiable. |
+
+So the target is a **KVM VPS in Nairobi with root access**. Everything
+below is about choosing which one.
 
 ### The real cost of in-country hosting
 
@@ -171,10 +214,46 @@ certificate issuance (needing Origin CA or a DNS-01 challenge), and
 requires the `trusted_proxies` configuration this app does not have. It
 trades a settled question for three unsettled ones.
 
+### Candidates
+
+Two Nairobi providers, both advertising unmanaged KVM — which is a claim
+to check, not a fact, hence the questions below:
+
+| Provider | Plan | Price | Specification |
+| --- | --- | --- | --- |
+| HostPinnacle | SM VPS 1 | ~1,100 KSh/month | 4 vCPU / 6 GB |
+| Truehost | VPS Kenya | ~1,400 KSh/month | not recorded — ask |
+
+HostPinnacle's plan is three times the 2 GB recommended in §2, which
+settles the last of the maturity criteria above: the recommended size is
+affordable here, so there is no reason to run this app on the 1 GB
+minimum.
+
+Prices and specifications are as quoted on 2026-09-01 and **have not been
+verified against the providers' own pages**. Confirm before paying, and
+replace the numbers here with what was actually quoted.
+
+### Four questions to ask before paying
+
+Each of these maps to a hard requirement above, so ask them of any
+candidate — the answers are rarely on the pricing page:
+
+1. **KVM or OpenVZ?** An OpenVZ VPS does not run Docker properly.
+   Require KVM (§2).
+2. **Is the VPS unmanaged?** One shipped with cPanel/CloudLinux will
+   fight Docker for ports 80 and 443 (§1).
+3. **Is UDP traffic on port 443 filtered, inbound and outbound?** Many
+   hosts block UDP by default as an anti-DNS-amplification measure.
+   Without it there is no HTTP/3 (§3). The
+   `curl -sI --http3` check in [`deployment-plan.md`](deployment-plan.md)
+   §5 is how you confirm the answer was true.
+4. **Is IPv6 provided?** It is one of the maturity criteria above, and
+   it is often the weak point of Kenyan VPS offerings.
+
 ### Measure before deciding
 
-The numbers above are estimates from general knowledge of the region's
-connectivity. **They must not be treated as findings.** Before the
+The latency figures above are estimates from general knowledge of the
+region's connectivity. **They must not be treated as findings.** Before the
 provider choice is locked into an ADR, run this from a device on the real
 network in Nairobi and in Mombasa, on the operator the VM actually uses,
 against a candidate host in each region:
@@ -196,8 +275,18 @@ answered on its own terms rather than assumed away.
 
 ## 6. Open decisions
 
-- **Provider and region** — pending the measurements above. Becomes an
-  ADR once decided.
+- **Provider and region** — narrowed, not settled. Shared hosting is
+  eliminated (§5); the shortlist is HostPinnacle SM VPS 1 and Truehost
+  VPS Kenya, subject to the four questions and the measurements above.
+  Becomes an ADR once decided.
+- **Domain name.** A free DuckDNS subdomain (§3) is enough to get a
+  pilot onto a real certificate, and it costs nothing. But it hands the
+  project's namespace to a third party — for an app holding personal data
+  about Kenyan volunteers, on a server chosen largely to keep that data
+  in Kenya. The day the Data Protection Act is the leading argument
+  rather than a supporting one, a `.ke` domain at a few hundred shillings
+  is the more coherent position than free. **This trade-off belongs in
+  the Consequences section of the hosting ADR**, not only here.
 - **SQLite journal mode.** The database runs in SQLite's default
   rollback-journal mode. Switching to WAL (plus a `busy_timeout`) would
   make concurrent readers and a writer coexist far more gracefully, and

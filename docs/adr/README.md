@@ -38,3 +38,8 @@ drafts and maintains these.
 | [0008](0008-add-other-activity-duration-with-free-text-companion-field.md) | Add an `Other` `ActivityDuration` case with a free-text companion field | Accepted |
 | [0009](0009-adopt-knppaginatorbundle-for-list-pagination.md) | Adopt KnpPaginatorBundle for list pagination across every index view | Accepted |
 | [0010](0010-build-in-ci-and-deploy-by-image-pull.md) | Build the production image in CI and deploy by pulling it | Accepted |
+| [0011](0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md) | Resolve list sorting in `ListPaginator` rather than with Knp's sortable support | Accepted |
+| [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md) | Seed fixtures from the real WhatsApp roster archive, never from generated data | Accepted |
+| [0013](0013-record-every-escort-on-an-activity.md) | Record every escort on an activity, not just one | Accepted |
+| [0014](0014-make-a-volunteers-last-name-optional.md) | Make a volunteer's last name optional | Accepted |
+| [0015](0015-keep-a-projects-region-in-its-location-not-its-name.md) | Keep a project's region in its `location`, not in its name | Accepted |

@@ -18,6 +18,18 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[Route('/activity-types', name: 'activity_type_')]
 final class ActivityTypeController extends AbstractController
 {
+    /**
+     * Column key => DQL field(s) for the index's sortable headers; the map is
+     * the whitelist. Description is absent on purpose — it's free text, and
+     * ordering it surfaces nothing anyone is looking for. Being out of the map
+     * is the whole opt-out: DataTable renders it as a plain header. See ADR 0011.
+     *
+     * @var array<string, non-empty-list<string>>
+     */
+    private const array SORT_MAP = [
+        'name' => ['t.name'],
+    ];
+
     public function __construct(
         private readonly ActivityTypeRepository $activityTypes,
         private readonly EntityManagerInterface $entityManager,
@@ -28,11 +40,10 @@ final class ActivityTypeController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $pagination = $this->paginator->paginateQuery(
-            $this->activityTypes->createOrderedByNameQueryBuilder(),
-            ActivityType::class,
-            $request,
-        );
+        $queryBuilder = $this->activityTypes->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        $pagination = $this->paginator->paginateQuery($queryBuilder, ActivityType::class, $request);
 
         $rows = [];
         foreach ($pagination as $activityType) {
@@ -61,6 +72,7 @@ final class ActivityTypeController extends AbstractController
             ],
             'rows' => $rows,
             'pagination' => $pagination,
+            'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
     }
 

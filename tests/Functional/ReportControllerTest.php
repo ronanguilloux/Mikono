@@ -336,6 +336,118 @@ final class ReportControllerTest extends WebTestCase
     }
 
     /**
+     * The breakdowns paginate an in-memory array, so the sort has to run over
+     * the whole list before pagination — sorting a page would only shuffle the
+     * 25 rows already on screen. Number26 is on page 2 unsorted; descending by
+     * label has to bring it to the top of page 1.
+     */
+    #[Test]
+    public function sortingSpansTheWholeBreakdownAndNotJustThePage(): void
+    {
+        $client = static::createClient();
+        $this->twentySixVolunteers();
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?sort=label&direction=desc');
+
+        $firstRow = $crawler->filter('[data-report-panel="screen"] table tbody tr')->first()->text();
+
+        self::assertStringContainsString('Volunteer Number26', $firstRow);
+    }
+
+    #[Test]
+    public function sortingReversesOnASecondClick(): void
+    {
+        $client = static::createClient();
+        $this->twentySixVolunteers();
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?sort=label&direction=asc');
+
+        self::assertStringContainsString(
+            'Volunteer Number01',
+            $crawler->filter('[data-report-panel="screen"] table tbody tr')->first()->text(),
+        );
+    }
+
+    /**
+     * Both tabs expose the same four column keys, so a sort means the same
+     * thing on either side and survives the switch — unlike `page`, which is
+     * dropped because the other breakdown may not have one.
+     */
+    #[Test]
+    public function aSortSurvivesATabSwitch(): void
+    {
+        $client = static::createClient();
+        $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?sort=totalDays&direction=desc&page=2');
+
+        $href = (string) $crawler->filter('[data-report-panel="screen"] nav a')->eq(1)->attr('href');
+
+        self::assertStringContainsString('sort=totalDays', $href);
+        self::assertStringContainsString('direction=desc', $href);
+        self::assertStringNotContainsString('page=2', $href);
+    }
+
+    #[Test]
+    public function theBreakdownShrugsOffAnUnknownSortColumn(): void
+    {
+        $client = static::createClient();
+        $this->twentySixVolunteers();
+
+        $client->loginUser(UserFactory::createOne());
+
+        // Asserted against the real baseline rather than a hard-coded name:
+        // the default order is the calculator's totalDays ranking, and these
+        // rows all total one day, so what breaks the tie is the order the
+        // buckets were filled — by activity date, which the factory randomises.
+        $default = $this->firstScreenRow($client->request('GET', '/reports'));
+        $withJunk = $this->firstScreenRow($client->request('GET', '/reports?sort=nonsense&direction=sideways'));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame($default, $withJunk);
+    }
+
+    /**
+     * The print panel hands over both breakdowns complete and in the
+     * calculator's own order. A sort is a screen-only affordance; it must not
+     * reach the paper copy, which has no headers to click in the first place.
+     */
+    #[Test]
+    public function thePrintPanelIgnoresTheSortAndKeepsItsHeadersPlain(): void
+    {
+        $client = static::createClient();
+        $this->twentySixVolunteers();
+
+        $client->loginUser(UserFactory::createOne());
+
+        $unsorted = $this->firstPrintRow($client->request('GET', '/reports'));
+        $crawler = $client->request('GET', '/reports?sort=label&direction=desc');
+
+        self::assertCount(0, $crawler->filter('[data-report-panel="print"] [data-sort-link]'));
+        self::assertCount(1, $crawler->filter('[data-report-panel="screen"] [data-sort-link="label"]'));
+
+        // The screen moved Number26 to the top; the paper copy did not.
+        self::assertStringContainsString(
+            'Volunteer Number26',
+            $crawler->filter('[data-report-panel="screen"] table tbody tr')->first()->text(),
+        );
+        self::assertSame($unsorted, $this->firstPrintRow($crawler));
+    }
+
+    private function firstScreenRow(\Symfony\Component\DomCrawler\Crawler $crawler): string
+    {
+        return $crawler->filter('[data-report-panel="screen"] table tbody tr')->first()->text();
+    }
+
+    private function firstPrintRow(\Symfony\Component\DomCrawler\Crawler $crawler): string
+    {
+        return $crawler->filter('[data-report-panel="print"] table tbody tr')->first()->text();
+    }
+
+    /**
      * @param list<string> $volunteerNames
      * @param list<string> $projectNames
      */

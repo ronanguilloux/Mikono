@@ -75,13 +75,18 @@ final class ActivityFormType extends AbstractType
                 'label' => 'If "Other", specify',
                 'help' => 'Only used when "Other" is selected above — e.g. 1h, 2h, 2.5h.',
             ])
-            ->add('accompaniedBy', EntityType::class, [
+            // Multiple: the VM's rosters do say "Accompanied by Edna and
+            // Sam". Her wording stays the label — see ADR 0013.
+            ->add('escorts', EntityType::class, [
                 'class' => Escort::class,
                 'choice_label' => 'name',
                 'query_builder' => static fn($repo) => $repo->createQueryBuilder('e')->orderBy('e.name', 'ASC'),
-                'placeholder' => '— No escort recorded —',
+                'multiple' => true,
+                'expanded' => true,
+                'by_reference' => false,
                 'required' => false,
                 'label' => 'Accompanied by',
+                'help' => 'Leave every box unticked if nobody accompanied the group.',
             ])
             ->add('notes', TextareaType::class, ['required' => false]);
     }

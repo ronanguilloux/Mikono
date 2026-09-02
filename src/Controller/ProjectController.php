@@ -18,6 +18,23 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[Route('/projects', name: 'project_')]
 final class ProjectController extends AbstractController
 {
+    /**
+     * Column key => DQL field(s) for the index's sortable headers; the map is
+     * the whitelist. `location` and `ownership` sort by the enum's stored
+     * backing value, not its label() — which happens to give the same order
+     * for both enums today (kibera < mombasa, partner < ucesco). A future case
+     * whose backing value and label disagree would need its own column.
+     * See ADR 0011.
+     *
+     * @var array<string, non-empty-list<string>>
+     */
+    private const array SORT_MAP = [
+        'name' => ['p.name'],
+        'location' => ['p.location'],
+        'ownership' => ['p.ownership'],
+        'status' => ['p.isActive'],
+    ];
+
     public function __construct(
         private readonly ProjectRepository $projects,
         private readonly EntityManagerInterface $entityManager,
@@ -28,11 +45,10 @@ final class ProjectController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $pagination = $this->paginator->paginateQuery(
-            $this->projects->createOrderedByNameQueryBuilder(),
-            Project::class,
-            $request,
-        );
+        $queryBuilder = $this->projects->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        $pagination = $this->paginator->paginateQuery($queryBuilder, Project::class, $request);
 
         $rows = [];
         foreach ($pagination as $project) {
@@ -65,6 +81,7 @@ final class ProjectController extends AbstractController
             ],
             'rows' => $rows,
             'pagination' => $pagination,
+            'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
     }
 

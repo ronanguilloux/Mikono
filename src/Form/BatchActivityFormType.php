@@ -69,14 +69,15 @@ final class BatchActivityFormType extends AbstractType
                 'label' => 'If "Other", specify',
                 'help' => 'Only used when "Other" is selected above — e.g. 1h, 2h, 2.5h.',
             ])
-            ->add('escort', EntityType::class, [
+            ->add('escorts', EntityType::class, [
                 'class' => Escort::class,
                 'choice_label' => 'name',
                 'query_builder' => static fn($repo) => $repo->createQueryBuilder('e')->orderBy('e.name', 'ASC'),
-                'placeholder' => '— No escort recorded —',
+                'multiple' => true,
+                'expanded' => true,
                 'required' => false,
                 'label' => 'Accompanied by',
-                'help' => 'One staff escort per session — applied to every volunteer logged below.',
+                'help' => 'The staff accompanying this session — applied to every volunteer logged below. Leave empty if nobody did.',
             ])
             ->add('volunteers', EntityType::class, [
                 'class' => Volunteer::class,

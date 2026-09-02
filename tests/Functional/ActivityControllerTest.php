@@ -44,6 +44,33 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     /**
+     * Ticks exactly the given escort checkboxes, by value — the expanded
+     * field's indexes follow the escorts' alphabetical order, which is not
+     * something a test should have to know. Passing an empty list clears
+     * them: handing form() an empty array is a no-op, not a clear.
+     *
+     * @param list<int> $ids
+     */
+    private function checkEscorts(Crawler $crawler, string $field, array $ids): void
+    {
+        $wanted = array_map(static fn(int $id) => (string) $id, $ids);
+        $crawler->filter(sprintf('input[type="checkbox"][name^="%s"]', $field))->each(
+            static function (Crawler $node) use ($wanted): void {
+                $domNode = $node->getNode(0);
+                if (!$domNode instanceof \DOMElement) {
+                    return;
+                }
+
+                if (\in_array($node->attr('value'), $wanted, true)) {
+                    $domNode->setAttribute('checked', 'checked');
+                } else {
+                    $domNode->removeAttribute('checked');
+                }
+            },
+        );
+    }
+
+    /**
      * Re-reads an Activity through a cleared entity manager. The manager
      * still holds the pre-submission object in its identity map, so a
      * plain find() after a form submission can hand back stale state.
@@ -79,7 +106,7 @@ final class ActivityControllerTest extends WebTestCase
             'activity_form[project]' => (string) $project->getId(),
             'activity_form[activityType]' => (string) $activityType->getId(),
             'activity_form[duration]' => 'full_day',
-            'activity_form[accompaniedBy]' => (string) $escort->getId(),
+            'activity_form[escorts]' => [(string) $escort->getId()],
             'activity_form[notes]' => 'Delivered Computer lessons to students',
         ]);
         $client->submit($form);
@@ -93,9 +120,7 @@ final class ActivityControllerTest extends WebTestCase
 
         $loggedActivity = $client->getContainer()->get('doctrine')->getRepository(Activity::class)->findOneBy([]);
         self::assertInstanceOf(Activity::class, $loggedActivity);
-        $loggedEscort = $loggedActivity->getAccompaniedBy();
-        self::assertNotNull($loggedEscort);
-        self::assertSame('Mr Maeba', $loggedEscort->getName());
+        self::assertSame(['Mr Maeba'], $loggedActivity->getEscortNames());
 
         $client->request('GET', '/reports');
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
@@ -137,13 +162,15 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function escortCanBeSetAndClearedFromTheSingleActivityEditForm(): void
+    public function escortsCanBeSetAndClearedFromTheSingleActivityEditForm(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne();
         $project = ProjectFactory::createOne();
         $activityType = ActivityTypeFactory::createOne();
         $escort = EscortFactory::createOne(['name' => 'Mr Maeba']);
+        // Two escorts on one group is a real roster line — see ADR 0013.
+        $secondEscort = EscortFactory::createOne(['name' => 'Ms Njeri']);
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/activities/new');
         $form = $crawler->selectButton('Save')->form([
@@ -158,23 +185,19 @@ final class ActivityControllerTest extends WebTestCase
         $logged = $client->getContainer()->get('doctrine')->getRepository(Activity::class)->findOneBy([]);
         self::assertInstanceOf(Activity::class, $logged);
         $activityId = (int) $logged->getId();
-        self::assertNull($logged->getAccompaniedBy());
+        self::assertSame([], $logged->getEscortNames());
 
         $crawler = $client->request('GET', "/activities/{$activityId}/edit");
-        $client->submit($crawler->selectButton('Save')->form([
-            'activity_form[accompaniedBy]' => (string) $escort->getId(),
-        ]));
+        $this->checkEscorts($crawler, 'activity_form[escorts]', [(int) $escort->getId(), (int) $secondEscort->getId()]);
+        $client->submit($crawler->selectButton('Save')->form());
 
-        $activityEscort = $this->reloadActivity($client, $activityId)->getAccompaniedBy();
-        self::assertNotNull($activityEscort);
-        self::assertSame('Mr Maeba', $activityEscort->getName());
+        self::assertSame(['Mr Maeba', 'Ms Njeri'], $this->reloadActivity($client, $activityId)->getEscortNames());
 
         $crawler = $client->request('GET', "/activities/{$activityId}/edit");
-        $client->submit($crawler->selectButton('Save')->form([
-            'activity_form[accompaniedBy]' => '',
-        ]));
+        $this->checkEscorts($crawler, 'activity_form[escorts]', []);
+        $client->submit($crawler->selectButton('Save')->form());
 
-        self::assertNull($this->reloadActivity($client, $activityId)->getAccompaniedBy());
+        self::assertSame([], $this->reloadActivity($client, $activityId)->getEscortNames());
     }
 
     #[Test]
@@ -243,7 +266,7 @@ final class ActivityControllerTest extends WebTestCase
             'batch_activity_form[project]' => (string) $project->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
-            'batch_activity_form[escort]' => (string) $escort->getId(),
+            'batch_activity_form[escorts]' => [(string) $escort->getId()],
         ]);
         $client->submit($form);
 
@@ -256,11 +279,9 @@ final class ActivityControllerTest extends WebTestCase
         self::assertCount(2, $activities);
         foreach ($activities as $activity) {
             $activityProject = $activity->getProject();
-            $activityEscort = $activity->getAccompaniedBy();
             self::assertNotNull($activityProject);
-            self::assertNotNull($activityEscort);
             self::assertSame('Beyond Zero clinic', $activityProject->getName());
-            self::assertSame('Mr Maeba', $activityEscort->getName());
+            self::assertSame(['Mr Maeba'], $activity->getEscortNames());
         }
     }
 
@@ -466,5 +487,104 @@ final class ActivityControllerTest extends WebTestCase
         // be capped at one page with no way forward.
         self::assertCount(0, $crawler->filter('.md\\:hidden [data-pagination-bar]'));
         self::assertCount(1, $crawler->filter('[data-pagination-bar]'));
+    }
+
+    /**
+     * Volunteer, Project and Activity type all sort on a joined name. The
+     * three joins are to-one, so the page size still means what it says.
+     */
+    #[Test]
+    public function theIndexSortsOnAJoinedColumn(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng'])]);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma'])]);
+
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/activities?sort=volunteer&direction=asc');
+        self::assertStringContainsString('Aisha Achieng', $crawler->filter('table tbody tr')->first()->text());
+
+        $crawler = $client->request('GET', '/activities?sort=volunteer&direction=desc');
+        self::assertStringContainsString('Zawadi Zuma', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    /**
+     * Duration is stored as the enum values half_day/full_day/other alongside
+     * a free-text durationOther, so any ORDER BY on it is arbitrary — it stays
+     * out of the sort map, and the header stays plain text.
+     */
+    #[Test]
+    public function theDurationHeaderIsNotSortable(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne();
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities');
+
+        self::assertCount(1, $crawler->filter('[data-sort-link="date"]'));
+        self::assertCount(0, $crawler->filter('[data-sort-link="duration"]'));
+        self::assertSame('Duration', $crawler->filter('thead th')->eq(4)->text());
+    }
+
+    #[Test]
+    public function theIndexShrugsOffAnUnknownSortColumn(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne(['date' => new \DateTimeImmutable('2026-01-05')]);
+        ActivityFactory::createOne(['date' => new \DateTimeImmutable('2026-02-05')]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities?sort=duration&direction=asc');
+
+        self::assertResponseIsSuccessful();
+        // Untouched default order: newest first.
+        self::assertStringContainsString('5 Feb 2026', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    /**
+     * The cards have no header row to click, so the mobile control has to
+     * emit the same two params — and it has to live outside the table's
+     * `hidden md:block` wrapper, like the pagination bar does.
+     */
+    #[Test]
+    public function theMobileSortControlOffersTheSameColumnsAsTheHeaders(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne();
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities');
+
+        self::assertCount(1, $crawler->filter('[data-sort-select]'));
+        self::assertCount(0, $crawler->filter('.hidden.md\\:block [data-sort-select]'));
+
+        // The four sortable columns plus the "Newest first" default, and never
+        // Duration — the desktop headers and this control offer the same set.
+        $options = $crawler->filter('[data-sort-select] select[name="sort"] option')->each(
+            static fn(Crawler $option) => $option->attr('value'),
+        );
+        self::assertSame(['', 'date', 'volunteer', 'project', 'activityType'], $options);
+
+        self::assertCount(1, $crawler->filter('[data-sort-select] select[name="direction"]'));
+    }
+
+    /**
+     * Both renderings read the same rows, so a sort that moved one and not the
+     * other would be a silent desktop/mobile split.
+     */
+    #[Test]
+    public function theMobileCardsFollowTheSameSortAsTheTable(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng'])]);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma'])]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities?sort=volunteer&direction=desc');
+
+        self::assertStringContainsString('Zawadi Zuma', $crawler->filter('table tbody tr')->first()->text());
+        self::assertStringContainsString('Zawadi Zuma', $crawler->filter('[data-activity-cards] > li')->first()->text());
     }
 }

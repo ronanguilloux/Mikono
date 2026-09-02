@@ -1,5 +1,10 @@
 {#
-    Windowed page controls, registered as knp_paginator.template.pagination.
+    Windowed page controls, included directly by PaginationBar rather than
+    registered as knp_paginator.template.pagination — that key is deliberately
+    absent from config/packages/knp_paginator.yaml, because reaching this file
+    through knp_pagination_render() would need a TranslatorInterface this
+    single-locale app doesn't have.
+
     Not the bundle's own tailwindcss_pagination.html.twig — that one renders
     arrows only, in stock blue/gray. This is the design validated in the
     2026-08-28 mockup review: « 1 2 3 … 66 67 », brand palette, two sentinels

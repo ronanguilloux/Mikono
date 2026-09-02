@@ -18,6 +18,17 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[Route('/escorts', name: 'escort_')]
 final class EscortController extends AbstractController
 {
+    /**
+     * Column key => DQL field(s) for the index's sortable headers; the map is
+     * the whitelist. See ADR 0011.
+     *
+     * @var array<string, non-empty-list<string>>
+     */
+    private const array SORT_MAP = [
+        'name' => ['e.name'],
+        'status' => ['e.isActive'],
+    ];
+
     public function __construct(
         private readonly EscortRepository $escorts,
         private readonly EntityManagerInterface $entityManager,
@@ -28,11 +39,10 @@ final class EscortController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $pagination = $this->paginator->paginateQuery(
-            $this->escorts->createOrderedByNameQueryBuilder(),
-            Escort::class,
-            $request,
-        );
+        $queryBuilder = $this->escorts->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        $pagination = $this->paginator->paginateQuery($queryBuilder, Escort::class, $request);
 
         $rows = [];
         foreach ($pagination as $escort) {
@@ -61,6 +71,7 @@ final class EscortController extends AbstractController
             ],
             'rows' => $rows,
             'pagination' => $pagination,
+            'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
     }
 

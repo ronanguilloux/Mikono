@@ -30,14 +30,14 @@ final class RosterBuilderTest extends KernelTestCase
             'date' => $date,
             'project' => $clinic,
             'activityType' => $support,
-            'accompaniedBy' => $escort,
+            'escorts' => [$escort],
             'volunteer' => VolunteerFactory::createOne(['firstName' => 'Rahel', 'lastName' => 'Atieno']),
         ]);
         ActivityFactory::createOne([
             'date' => $date,
             'project' => $clinic,
             'activityType' => $support,
-            'accompaniedBy' => $escort,
+            'escorts' => [$escort],
             'volunteer' => VolunteerFactory::createOne(['firstName' => 'James', 'lastName' => 'Otieno']),
         ]);
 
@@ -95,7 +95,7 @@ final class RosterBuilderTest extends KernelTestCase
             'volunteer' => VolunteerFactory::createOne(['firstName' => 'Grace', 'lastName' => 'Wanjiru']),
             'project' => ProjectFactory::createOne(['name' => 'Peggy Lucas school']),
             'activityType' => ActivityTypeFactory::createOne(['name' => 'School support']),
-            'accompaniedBy' => EscortFactory::createOne(['name' => 'Ms Njeri']),
+            'escorts' => [EscortFactory::createOne(['name' => 'Ms Njeri'])],
         ]);
 
         $text = $this->builder()->buildFor($date)->toWhatsAppText();
@@ -113,6 +113,31 @@ final class RosterBuilderTest extends KernelTestCase
     }
 
     #[Test]
+    public function joinsTwoEscortsTheWayTheVolunteerManagerWritesThem(): void
+    {
+        self::bootKernel();
+        $date = new \DateTimeImmutable('2026-08-31');
+        // "Accompanied by Edna and Sam" — the real 30/08 and 31/08 rosters.
+        $escorts = [
+            EscortFactory::createOne(['name' => 'Edna']),
+            EscortFactory::createOne(['name' => 'Sam']),
+        ];
+
+        ActivityFactory::createOne([
+            'date' => $date,
+            'volunteer' => VolunteerFactory::createOne(['firstName' => 'Daphne', 'lastName' => null]),
+            'project' => ProjectFactory::createOne(['name' => 'Peggy Lucas school']),
+            'activityType' => ActivityTypeFactory::createOne(['name' => 'School support']),
+            'escorts' => $escorts,
+        ]);
+
+        $roster = $this->builder()->buildFor($date);
+
+        self::assertSame('Edna and Sam', $roster->groups[0]->escortLine());
+        self::assertStringContainsString('Accompanied by: Edna and Sam', $roster->toWhatsAppText());
+    }
+
+    #[Test]
     public function leavesOutTheEscortLineWhenNobodyIsAccompanyingTheGroup(): void
     {
         self::bootKernel();
@@ -121,9 +146,9 @@ final class RosterBuilderTest extends KernelTestCase
         ActivityFactory::createOne([
             'date' => $date,
             'volunteer' => VolunteerFactory::createOne(['firstName' => 'Susan', 'lastName' => 'Njoki']),
-            'project' => ProjectFactory::createOne(['name' => 'Mombasa Home Visits']),
+            'project' => ProjectFactory::createOne(['name' => 'Home Visits']),
             'activityType' => ActivityTypeFactory::createOne(['name' => 'Home visit']),
-            'accompaniedBy' => null,
+            'escorts' => [],
         ]);
 
         $roster = $this->builder()->buildFor($date);

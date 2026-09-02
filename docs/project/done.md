@@ -6,6 +6,99 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-01 — The dev dataset is the VM's real August
+
+`AppStory` no longer generates anything. The whole dev and demo dataset
+— 15 volunteers, 5 escorts, 13 sites, 90 activities — is transcribed
+from a month of Edna's own WhatsApp roster messages (03/08 → 01/09/2026)
+into [`docs/fixtures/rosters.yaml`](../fixtures/rosters.yaml), read by
+`App\Fixture\RosterArchive`. The rule and its privacy boundary are
+[ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md);
+this entry records what the ADRs don't.
+
+- **The real data caught two model gaps in the first hour.** The rosters
+  of 30 and 31/08 read "Accompanied by Edna and Sam", which a single
+  `ManyToOne` escort could not hold —
+  [ADR 0013](../adr/0013-record-every-escort-on-an-activity.md), now a
+  `ManyToMany` with a migration that carries existing escorts across.
+  And every volunteer in every roster is a first name only, which a
+  `NotBlank` surname could not hold —
+  [ADR 0014](../adr/0014-make-a-volunteers-last-name-optional.md). Both
+  had survived to "v0.1 feature-complete" behind generated fixtures that
+  could not contradict them.
+- **The raw exports are gitignored** (`docs/fixtures/*_dumps.txt`) and
+  the committed extract carries no sponsored child, donor, or contact
+  detail. This repo is public; the exports name minors with their school
+  and grade.
+- **The extract is maintained by hand, and a test guards it.**
+  `tests/Integration/Fixture/RosterArchiveTest.php` fails if a roster
+  names someone not declared at the top of the file, if a site has no
+  volunteers, if the today/tomorrow anchors go missing, or if the
+  two-escort roster behind ADR 0013 ever disappears from the archive.
+  The transcription rules it can't check are written down in
+  [`docs/fixtures/README.md`](../fixtures/README.md).
+- **Three fields are documented defaults, not archive data**: duration
+  (always a half day — the rosters never state one), `loggedBy` (the one
+  admin account), and the anchoring of the last two archive days onto
+  today/tomorrow so the home screen's roster panels aren't empty. Said
+  out loud in the ADR and the fixtures README rather than hidden in the
+  story class.
+- **The dev database's migration history was broken** — the schema
+  existed but `doctrine_migration_versions` was empty, so
+  `doctrine:migrations:migrate` failed on "table user already exists".
+  Fixed by marking the six existing migrations as applied
+  (`doctrine:migrations:version --add`) before running the new one; the
+  schema then validated clean. Worth knowing if another checkout does
+  the same.
+- **The roster's escort line now reads the way Edna writes it** —
+  "Accompanied by Edna and Sam", not "Edna, Sam". `RosterGroup::escortLine()`
+  joins the last pair with "and" and feeds both the home screen panel and
+  the WhatsApp preview text, which exist to be copied into the group
+  verbatim.
+- Verified end to end: 175 tests green (7 of them new), `composer
+  quality` clean (PHPStan max, PHPat, cs-fixer, audit), and the home
+  screen screenshot shows the real roster — "Peggy Lucas school ·
+  Daphne, Marco · Accompanied by Edna and Sam".
+
+## 2026-09-01 — Sortable columns on all seven list views
+
+Every column header on the six CRUD indexes and both `/reports`
+breakdowns is now a link: ascending on the first click, descending on
+the second, with the active column showing its direction. The mechanism
+is
+[ADR 0011](../adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md)
+— our own sort resolution in `App\Pagination\ListPaginator`, with Knp's
+sortable support switched off — so this entry records only what the ADR
+doesn't.
+
+Four things worth knowing:
+
+- **The design in `next-steps.md` was followed with two deviations**,
+  both found by checking the vendor code rather than its README.
+  Sortability lives *only* in each controller's `SORT_MAP`, not also as
+  a flag on the column definition, so the two can't drift; and Knp's
+  sorting is disabled by passing `SORT_FIELD_PARAMETER_NAME => null`
+  rather than an unused-looking parameter name, which would still be
+  forgeable by hand in the URL bar.
+- **The boolean column is `isActive`, not `active`.** Every Status
+  column maps to `v.isActive` / `p.isActive` / `e.isActive` /
+  `u.isActive`. `v.active` would have been a silent DQL error on four
+  views at once.
+- **Volunteer's `name` maps to two fields.** `getFullName()` has no
+  single column behind it, so the map holds `['v.lastName',
+  'v.firstName']` and both flip together — which is why `applySort()`
+  takes a list of fields per key rather than one.
+- **Doctrine echoes the ORDER BY direction verbatim**, so `applySort()`
+  uppercases it on the way into DQL. Without that the generated query
+  reads `ORDER BY v.isActive asc, v.lastName ASC` — valid, but a
+  needless inconsistency with every repository's own ordering.
+
+Verified beyond the 51 new tests: `/volunteers` sorted by Status pages
+without repeating a row (the tie-break), the Activities mobile card list
+sorts through its own select, `/reports` sorted by Most recent orders
+the whole list with empty cells last, and the print panel ignores the
+sort entirely.
+
 ## 2026-09-01 — Reports tabs + unified pagination across every list view
 
 Slice 2 of mockup 5, and the last of the five validated 2026-08-28
