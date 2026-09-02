@@ -46,10 +46,21 @@ These are consequences of decisions already made, not preferences:
   measured in megabytes. 10 GB leaves room for several image versions
   and a local backup rotation.
 
-**Software prerequisites:** Linux (x86_64 or arm64), Docker Engine, and
-the Compose v2 plugin at **2.30 or newer** — [`compose.yaml`](../../compose.yaml)
+**Software prerequisites:** Linux **x86_64**, Docker Engine, and the
+Compose v2 plugin at **2.30 or newer** — [`compose.yaml`](../../compose.yaml)
 uses the long-form `ports:` syntax with a `name:` key, which older
 Compose versions reject.
+
+**x86_64 and not arm64, because of how the image is built.**
+[`build-image.yml`](../../.github/workflows/build-image.yml) passes no
+`platforms:` to `docker/build-push-action`, so CI builds for the runner's
+architecture and publishes that alone — amd64. The application source is
+architecture-neutral; *the image the server pulls* is not. An arm64 host
+(AWS Graviton `t4g.*`, Ampere, an Apple-silicon test box) needs
+`platforms: linux/amd64,linux/arm64` added to that workflow first, which
+also roughly doubles build time. Not worth paying for while the shortlist
+in §5 is x86 anyway — recorded so an arm64 instance is never chosen on
+price and then found unable to start the container.
 
 **If you build on the server instead** (the fallback path, not the
 recommended one): 4 GB RAM and ~20 GB disk. Note this used to be worse:
@@ -120,6 +131,17 @@ which snapshots the live database with SQLite's `VACUUM INTO` through
 `pdo_sqlite` — no downtime, and no `sqlite3` binary needed (the slim
 production image has none). It verifies the snapshot with
 `PRAGMA integrity_check` before copying it out.
+
+**An off-site copy inherits §5's residency question.** The obvious
+destinations — Cloudflare R2, Backblaze B2 — are attractive because
+egress is free, and neither has a Kenyan region. But that copy is the
+whole volunteer database in one file: every name, contact detail and work
+record the app holds, concentrated in the single artifact most worth
+protecting. Shipping it abroad reopens exactly the data-transfer question
+§5 picks the server's region to close. Wherever the server lands, the
+backup destination has to answer the same question —
+[`deployment-plan.md`](deployment-plan.md) §7 is where the destination is
+actually chosen.
 
 A backup that has never been restored is a hope, not a backup. The
 restore drill is written out as steps in
@@ -199,10 +221,15 @@ rather than assuming them:
    protection question. Nairobi hosts carrier-neutral datacentre
    capacity (iColo/Digital Realty), so credible providers exist; the
    selection criteria above are how you tell them apart.
-2. **Johannesburg** — roughly 60–90 ms from Nairobi, with a
+2. **South Africa** — roughly 60–90 ms from Nairobi, with a
    substantially more mature provider ecosystem (major clouds have South
    African regions). The fallback if no Kenyan provider clears the bar
-   above. Reopens the cross-border data question.
+   above; concretely, **Vultr Cloud Compute in Johannesburg** or **AWS
+   `af-south-1` in Cape Town**, both of which satisfy §1–§3 without
+   argument and answer all four questions below on their public
+   documentation. Caveat on the second: AWS's cheap instances in that
+   region are Graviton/arm64 (`t4g.*`), which the amd64-only image in §2
+   cannot run as built. Reopens the cross-border data question.
 3. **Europe** — cheapest and most mature, worst on both latency and data
    residency. Last resort.
 
@@ -275,6 +302,14 @@ answered on its own terms rather than assumed away.
 
 ## 6. Open decisions
 
+- **A disposable test deploy is outside all of the above.** The first
+  server this app runs on is a throwaway that exercises the runbook and
+  holds no volunteer data — so §5's region argument, which is entirely
+  about personal data, does not apply to it. It goes wherever is
+  cheapest and quickest to delete (Hetzner, hourly-billed, on a DuckDNS
+  name; see [`next-steps.md`](next-steps.md) item 0 under *Getting it
+  hosted*). Noted here so that box is never mistaken for this decision
+  having been made, or for the Kenyan ranking having been abandoned.
 - **Provider and region** — narrowed, not settled. Shared hosting is
   eliminated (§5); the shortlist is HostPinnacle SM VPS 1 and Truehost
   VPS Kenya, subject to the four questions and the measurements above.

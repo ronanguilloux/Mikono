@@ -6,6 +6,39 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-01 — Hosting docs: three gaps closed, one recommendation held
+
+A second opinion on [`hosting-plan.md`](hosting-plan.md) arrived arguing
+for Vultr Johannesburg, Hetzner, AWS Cape Town, or DigitalOcean. It was
+reasoning from latency and had not read §5, where latency is explicitly
+the *weaker* argument and Kenya's Data Protection Act 2019 is the
+deciding one — so every option it ranked first is one the plan already
+ranks second or third. **The recommendation stands unchanged:** a KVM VPS
+in Nairobi, shortlist HostPinnacle and Truehost, pending the measurements
+§5 still asks for. What it did surface was three things the docs had not
+written down:
+
+- **The published image is amd64-only** — §2 claimed "x86_64 or arm64",
+  true of the source but not of the artifact. `build-image.yml` passes no
+  `platforms:` to `docker/build-push-action`, so an AWS `t4g.*` Graviton
+  instance — exactly the cost-efficient choice someone would reach for —
+  cannot start the container. §2 now says x86_64 and explains what an
+  arm64 host would cost to enable.
+- **An off-site backup inherits the residency question.** The free-egress
+  defaults (R2, B2) have no Kenyan region, and that copy is the entire
+  volunteer database in one file. `deployment-plan.md` §7 already said to
+  choose the destination on residency grounds; §4 of the hosting plan now
+  says so too, where the backup design is actually described.
+- **UFW does not gate the container.** Docker publishes ports through its
+  own iptables chain, consulted before UFW's INPUT rules, so the firewall
+  block in `deployment-plan.md` §3 was not doing what its position in the
+  runbook implies. Harmless as configured — 80 and 443 are meant to be
+  open — and now annotated rather than silently misleading.
+
+The §5 ranking gained named providers for its second choice (Vultr
+Johannesburg, AWS `af-south-1`), so the fallback is actionable if neither
+Kenyan candidate clears the four questions.
+
 ## 2026-09-01 — The dev dataset is the VM's real August
 
 `AppStory` no longer generates anything. The whole dev and demo dataset

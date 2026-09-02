@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-01 (real-data fixtures shipped)
+**Last updated:** 2026-09-01 (test-deploy plan added under Getting it hosted)
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -86,24 +86,93 @@ architecture requires of a server, and where that server should be) and
 build-and-ship shape. The defects that review found are fixed
 (`done.md`, 2026-09-01). What is left is genuinely forward work:
 
-1. **Choose the provider and region — needs measurement first.** The
+0. **Throwaway test deploy first, deliberately not in Kenya.** Before
+   any of the below, and before UCESCO is contacted, the runbook needs
+   exercising end to end against a real server with a real certificate.
+   That box holds no volunteer data, so none of the §5 reasoning applies
+   to it and it must not be read as pre-empting the decision in item 1.
+   The cheapest shape:
+
+   - **Hetzner Cloud CX22** (2 vCPU / 4 GB, Falkenstein or Nuremberg),
+     billed hourly at ~€4/month — a week of testing costs under €1 and
+     the server is deleted afterwards. DigitalOcean's $6 droplet is the
+     substitute if Hetzner's new-account ID verification stalls.
+     **Not CAX11**: it is arm64, and the published image is amd64-only
+     ([`hosting-plan.md`](hosting-plan.md) §2). Choosing it on price is
+     precisely the trap that section records.
+   - **A DuckDNS subdomain** (`hosting-plan.md` §3), pointed at the
+     server *before* first boot so Caddy's ACME challenge succeeds on
+     the first attempt. Watch Let's Encrypt's duplicate-certificate
+     limit — five per week for the same hostname — if the box is
+     destroyed and rebuilt repeatedly without preserving `caddy_data`.
+     A fresh subdomain per rebuild sidesteps it.
+   - **Check the GHCR package is public** before starting, or the
+     server's `docker compose pull` needs a token that
+     [`deployment-plan.md`](deployment-plan.md) §5 does not set up.
+   - The box comes up **empty by construction**: Foundry is a
+     `require-dev` dependency and is absent from the production image,
+     so `foundry:load-fixtures` does not exist there. The August roster
+     cannot reach a public server by accident. Create the account with
+     `app:user:create` and click through.
+   - **Run the restore drill there** ([`deployment-plan.md`](deployment-plan.md)
+     §7). It is the only part of the runbook never exercised, and a
+     disposable server is the right place to discover it is wrong.
+
+1. **Choose the provider and region — the four questions decide it, not
+   the stopwatch.** The
    stated goal is hosting in Kenya for latency. That points at the right
    country for the wrong reason: latency plausibly saves well under a
    second per working session once the mobile access leg is accounted
    for, while the *stronger* argument is that this app holds personal
    data about Kenyan volunteers and Kenya's Data Protection Act 2019
    constrains taking that data out of the country. Before this is locked
-   into an ADR, run the `mtr` / `curl -w` protocol in
-   [`hosting-plan.md`](hosting-plan.md#5-where-to-host) from a real
-   device on a real network in Nairobi and Mombasa, and record the
-   numbers there. The ranking to test against is Nairobi, then
-   Johannesburg, then Europe — and *not* a European VPS behind
-   Cloudflare, for the reasons given in that section.
+   into an ADR, get the four questions in
+   [`hosting-plan.md`](hosting-plan.md#5-where-to-host) answered in
+   writing by the shortlisted providers — plus a fifth the list is
+   missing: **are snapshots offered, and has anyone restored one?**
+   Those are a pre-sales email, not fieldwork, and they are what can
+   actually flip the choice. The `mtr` / `curl -w` protocol in that same
+   section is worth running for the record if someone is already in
+   Mombasa, but it should not block: §5 argues latency is not the
+   deciding factor, so latency numbers cannot decide it. The ranking to
+   test against is Nairobi, then South Africa, then Europe — and *not* a
+   European VPS behind Cloudflare, for the reasons given in that section.
+
+   Two arguments that belong in the ADR when it is written. **The choice
+   is cheaply reversible** — migrating is a `docker compose pull`, one
+   SQLite file and a DNS record, which the restore drill mostly
+   rehearses; so it does not warrant being de-risked like a one-way
+   door. And **provider maturity is a weaker argument against Nairobi
+   than it looks**, for the mirror of §5's own reason about latency: at
+   one user logging volunteer activity, a six-hour outage means a day
+   written on paper. The risk that matters is data loss, which backups
+   address and provider maturity barely touches.
+
+   State the legal argument at its real size, too: Kenya's DPA Part VI
+   permits transfer abroad with appropriate safeguards or consent, and
+   the localisation provision targets strategic and public-service
+   categories that NGO volunteer records almost certainly fall outside.
+   So hosting in Kenya is choosing not to have to document a safeguard,
+   not compliance-by-necessity. The smaller true claim makes a more
+   durable ADR. Not legal advice — if UCESCO has counsel or a DPO, that
+   sentence is the one to show them.
 2. **Then do the first deployment**, following
    [`deployment-plan.md`](deployment-plan.md): domain, server bootstrap,
    `deploy.env`, backup cron, and the restore drill. The drill is not
    optional — an untested backup of the one file holding all of the VM's
-   data is a hope, not a backup.
+   data is a hope, not a backup. **Prefer an encrypted off-site copy**
+   (`rclone` with a crypt remote, key held off the server) over an
+   unencrypted one or none: it is the difference between a defensible
+   safeguard and a second copy of every volunteer's details sitting
+   unprotected in another country. `hosting-plan.md` §4 covers why the
+   destination is not a free choice.
+
+   The **domain** is coupled to this and is discussed with UCESCO, not
+   decided here. `hosting-plan.md` §6 makes the case for a `.co.ke` over
+   a free DuckDNS subdomain once real data is involved: a few hundred
+   shillings against an ~$100/year hosting bill, and it keeps the
+   project's namespace out of a third party's hands. The DuckDNS name in
+   item 0 is for the disposable test box only.
 3. **Sessions are lost on every deploy.** They live in
    `var/cache/prod/sessions`, which is not a volume, so a redeploy signs
    everyone out. At one user this is a shrug; it is recorded so it isn't

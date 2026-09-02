@@ -61,7 +61,15 @@ sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
 systemctl reload ssh
 
-# 3. Firewall — 443/udp is HTTP/3, 80/tcp is required for ACME
+# 3. Firewall — 443/udp is HTTP/3, 80/tcp is required for ACME.
+#    Note what this does NOT do: Docker publishes a container port by
+#    writing its own iptables chain, which is consulted before UFW's
+#    INPUT rules, so a published port is reachable whether or not UFW
+#    allows it. Harmless here — the only published ports are 80 and 443,
+#    which are meant to be open — but do not read these rules as if they
+#    were gating the container. Anything that must actually be blocked
+#    belongs in the provider's own firewall, or must not be published in
+#    compose.prod.yaml in the first place.
 ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw allow 443/udp
 ufw --force enable
 
