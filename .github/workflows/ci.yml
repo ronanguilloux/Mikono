@@ -34,11 +34,20 @@ jobs:
           cache-to: type=gha,mode=max
 
       # The same commands documented in AGENTS.md, run where they cannot
-      # be skipped. --no-scripts: the image already ran post-install-cmd.
+      # be skipped.
+      #
+      # Deliberately NOT --no-scripts, though the image did run
+      # post-install-cmd during its build. `-v "$PWD:/app"` mounts the
+      # checkout *over* the image's own /app, so everything that build
+      # produced outside vendor/ is hidden — including assets/vendor/, which
+      # importmap:install populates and .gitignore excludes. Skipping the
+      # scripts left it missing, every page rendering base.html.twig threw
+      # "The @hotwired/stimulus vendor asset is missing", and the suite died
+      # on the size of the resulting exception pages.
       - name: Install dependencies
         run: |
           docker run --rm -v "$PWD:/app" -w /app app-php-dev:ci \
-            composer install --no-interaction --no-progress --no-scripts
+            composer install --no-interaction --no-progress
 
       # phpstan-symfony reads the dev container XML named by
       # phpstan.dist.neon (symfony.containerXmlPath), and aborts the whole
@@ -59,8 +68,24 @@ jobs:
           docker run --rm -v "$PWD:/app" -w /app app-php-dev:ci \
             composer quality
 
+      # base.html.twig pulls assets/styles/app.css through AssetMapper, and
+      # its `@import "tailwindcss"` only resolves once var/tailwind/ holds a
+      # built stylesheet. var/ is gitignored, so a fresh checkout has none and
+      # every page 500s with `Unable to find asset "tailwindcss"`. Same
+      # requirement, and the same reason, as the Dockerfile's prod builder.
+      - name: Build the Tailwind stylesheet
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app --entrypoint php app-php-dev:ci \
+            bin/console tailwind:build
+
+      # mkdir: var/ is gitignored, so there is no var/data/ for SQLite to
+      # create the database file in, and the entrypoint's database wait dies
+      # with "unable to open database file". The entrypoint is left in place
+      # on purpose — it migrates a database that starts empty, which is what
+      # a deployment does and nothing else here covers.
       - name: Tests
         run: |
+          mkdir -p var/data
           docker run --rm -v "$PWD:/app" -w /app app-php-dev:ci \
             php bin/phpunit
 

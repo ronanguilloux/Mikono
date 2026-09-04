@@ -21,7 +21,13 @@ final class ActivityFactory extends PersistentObjectFactory
     protected function defaults(): array
     {
         return [
-            'date' => \DateTimeImmutable::createFromMutable(self::faker()->dateTimeBetween('-3 months', 'now')),
+            // Midnight, not the time faker hands back: Activity::$date is a
+            // `date_immutable` column, so the time never survives the round
+            // trip. Left on, a just-created entity carries a time its own
+            // hydrated row does not, and the two disagree — which flipped
+            // /reports' "Planned" badge (mostRecent > today, today being
+            // midnight) for any activity faker happened to date today.
+            'date' => \DateTimeImmutable::createFromMutable(self::faker()->dateTimeBetween('-3 months', 'now'))->setTime(0, 0),
             'volunteer' => VolunteerFactory::new(),
             'project' => ProjectFactory::new(),
             'activityType' => ActivityTypeFactory::new(),
