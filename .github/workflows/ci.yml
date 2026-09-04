@@ -40,6 +40,20 @@ jobs:
           docker run --rm -v "$PWD:/app" -w /app app-php-dev:ci \
             composer install --no-interaction --no-progress --no-scripts
 
+      # phpstan-symfony reads the dev container XML named by
+      # phpstan.dist.neon (symfony.containerXmlPath), and aborts the whole
+      # run with "Container ... does not exist" when it is absent. On a
+      # developer's machine the running dev container has already warmed
+      # it; a fresh CI checkout mounts an empty var/, so it has not.
+      # Without this step every run of this workflow failed — see
+      # docs/project/done.md, 2026-09-03.
+      # --entrypoint php skips the image entrypoint, which would try to
+      # reach a database that does not exist in this bare `docker run`.
+      - name: Warm the dev container for PHPStan
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app --entrypoint php app-php-dev:ci \
+            bin/console cache:warmup
+
       - name: Quality (cs-check + phpstan + phpat + security audit)
         run: |
           docker run --rm -v "$PWD:/app" -w /app app-php-dev:ci \
