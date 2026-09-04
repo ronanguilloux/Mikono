@@ -6,6 +6,49 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-04 — CI is green, for the first time since it was added
+
+[ADR 0010](../adr/0010-build-in-ci-and-deploy-by-image-pull.md) made
+`ci.yml` the quality gate "somewhere it cannot be skipped"; it had been
+red on every run since. It now passes: quality clean, 194 tests, 844
+assertions. The deploy is no longer gated on it.
+
+Found by replicating CI's exact `docker run -v "$PWD:/app"` against a
+clone with no `var/` and no `assets/vendor/` — none of it reproduces
+under `docker compose exec`. Three causes, plus one real bug they hid:
+
+1. **`composer install --no-scripts` skipped `importmap:install`**, so
+   `assets/vendor/` was never populated. The flag's comment reasoned that
+   "the image already ran post-install-cmd" — true, and irrelevant: the
+   bind mount lands *on top of* the image's own `/app`, hiding everything
+   that build wrote outside `vendor/`. Dropping the flag fixes it.
+2. **`var/tailwind/` held no built stylesheet**, so AssetMapper could not
+   resolve `@import "tailwindcss"` out of `assets/styles/app.css`. A
+   `tailwind:build` step now runs before the tests, for the same reason
+   the prod builder stage in the `Dockerfile` already has one.
+3. **`var/data/` did not exist**, so SQLite could not create the database
+   file and the entrypoint's readiness check failed. `mkdir -p var/data`.
+
+**The memory limit was a symptom, and `next-steps.md` was right to
+forbid raising it.** Either of the first two causes makes every page
+rendering `base.html.twig` return a 500, and Symfony's exception pages
+are big enough that `dom-crawler` exhausts 128 MB partway through the
+suite — surfacing as `Premature end of PHP process` in whichever test
+happened to be running (hence the wandering culprit: `ReportControllerTest`
+one run, `UserControllerTest` the next). With the assets present the
+suite peaks at 95 MB. `memory_limit` was never touched.
+
+**The bug underneath.** With the suite finally running end to end, one
+genuine failure remained: `ActivityFactory` dated activities with
+faker's time component, but `Activity::$date` is a `date_immutable`
+column that drops it on the way to SQLite. A just-created entity
+therefore disagreed with its own hydrated row — and since `/reports`
+computes `Planned` as `mostRecent > today` against midnight, any
+activity faker happened to date *today* got badged `Planned` on the
+first request and not on the second. 4 of 15 runs failed before,
+0 of 25 after normalising the factory to `->setTime(0, 0)`. Not a CI
+problem at all; CI just ran often enough to catch it.
+
 ## 2026-09-03 — The partner-organization field appears only when it applies
 
 `next-steps.md` had this down as "needs light JS or a LiveComponent". It

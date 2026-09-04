@@ -1,11 +1,9 @@
 # Next steps
 
-**Last updated:** 2026-09-03 (test-suite repeatability fixed, item
-removed; item 0 rehearsal reshaped — no disposable second server; the
-timezone regression test is written, item removed; the Reports
-"Planned" badge, the proactive delete-guard notice, the escort
-checkbox styling and the conditional partner-organization field all
-shipped, items removed; CI found to have never been green, item added)
+**Last updated:** 2026-09-04 (CI is green, item removed — its lasting
+lesson moved down to *Known conventions to not violate*, along with the
+factory rule the fix turned up; hosting is now the only thing between
+here and a deploy)
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -38,9 +36,10 @@ and the seam they left behind — `DataTable` plus
 and `direction` — is where any future cross-cutting list behaviour
 belongs.
 
-What remains is genuinely open: a red CI pipeline that gates everything
-below it, hosting, and escort display/reporting — plus the follow-ups
-the real-data fixtures left behind.
+What remains is genuinely open: hosting and escort display/reporting,
+plus the follow-ups the real-data fixtures left behind. The quality gate
+that used to sit in front of all of it is green as of 2026-09-04
+(`done.md`), so the deploy is now blocked only on choosing a server.
 
 ### Follow-ups from the real-data fixtures (2026-09-01)
 
@@ -62,65 +61,6 @@ fixed ([ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archiv
    convention absorbs it ("Uganda - ..."); whether `ProjectLocation`
    should grow a third case is the question to reopen then, and it is a
    scope question for the VM, not a modelling one.
-
-### CI has never been green — blocks the deploy (2026-09-03)
-
-[ADR 0010](../adr/0010-build-in-ci-and-deploy-by-image-pull.md) made
-`ci.yml` the quality gate "somewhere it cannot be skipped". It has been
-**red on every run since it was added** — 2026-09-01 twice and
-2026-09-02, i.e. every push to `main`
-(`gh run list --workflow=ci.yml`). `build-image.yml` is green
-throughout, so the published image is fine; it is the *gate* that has
-never gated anything. Any deployment starts by fixing this, because the
-runbook assumes you deploy a commit that passed.
-
-Three separate problems, found by replicating CI's exact `docker run`
-invocation locally rather than reading the workflow:
-
-1. **PHPStan aborts before analysing anything.** phpstan-symfony reads
-   the dev container XML named in
-   [`phpstan.dist.neon`](../../phpstan.dist.neon)
-   (`symfony.containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml`)
-   and throws `Container ... does not exist` when it is absent. On a
-   developer's machine the running dev container warmed it long ago; CI
-   mounts a fresh checkout with an empty `var/`. **A fix is written into
-   [`ci.yml`](../../.github/workflows/ci.yml) but is uncommitted and has
-   never run in CI** — a `cache:warmup` step before `composer quality`.
-   It needs `--entrypoint php`, because this image's entrypoint runs
-   `dbal:run-sql` to wait for a database and fails in a bare
-   `docker run`. That flag is worth remembering for any such invocation.
-2. **The test step needs `var/data/` to exist.** Never observed before
-   because it sits downstream of problem 1 and so has never executed.
-   Without the directory the entrypoint dies with
-   `SQLSTATE[HY000] [14] unable to open database file`. `mkdir -p
-   var/data` before the run fixes it; **not yet added to the workflow.**
-3. **The suite then exhausts PHP's 128 MB memory limit** — a fatal in
-   `symfony/dom-crawler` during
-   `ReportControllerTest::badgesOnlyTheRowsThatEarnedIt`, reported as
-   `Premature end of PHP process`. **This one is unexplained and must
-   not be papered over.** The same suite passes under
-   `docker compose exec php php bin/phpunit` (194 tests, 844
-   assertions). The obvious hypothesis — that the compose stack grants a
-   larger limit through the bind-mounted
-   [`20-app.dev.ini`](../../frankenphp/conf.d/20-app.dev.ini) — was
-   tested and is **wrong**: both report `memory_limit=128M`. Untested
-   candidates: `APP_ENV` and `XDEBUG_MODE`, which
-   [`compose.override.yaml`](../../compose.override.yaml) sets and a
-   bare `docker run` does not; and `/app/var` being a container-local
-   anonymous volume under compose against a macOS bind mount here.
-   **Do not raise `memory_limit` to make it pass** until the cause is
-   known — the failure may be genuine and specific to
-   `ReportControllerTest`, which is itself recently changed.
-
-The general lesson, worth keeping even after this is fixed: **CI's bare
-`docker run -v "$PWD:/app"` is not the environment anyone develops in.**
-It has no `compose.override.yaml`, so no bind-mounted dev ini, no
-`APP_ENV`/`XDEBUG_MODE`, and no named volumes — `var/` is whatever the
-checkout contains. A command that works via `docker compose exec` proves
-nothing about CI. **When this item is fixed and deleted from this file,
-that paragraph outlives it** — move it to *Known conventions to not
-violate* below, or to `AGENTS.md`, rather than dropping it with the
-rest.
 
 ### Getting it hosted (2026-08-31 hosting review)
 
@@ -294,6 +234,24 @@ conditional partner-organization field — all shipped on 2026-09-03,
 
 ## Known conventions to not violate (see `AGENTS.md` for the full list)
 
+- **CI's bare `docker run -v "$PWD:/app"` is not the environment anyone
+  develops in.** It has no `compose.override.yaml`, so no bind-mounted
+  dev ini, no `APP_ENV`/`XDEBUG_MODE`, and no named volumes — and the
+  mount lands *on top of* the image's own `/app`, hiding everything the
+  image build wrote outside `vendor/`. `var/` and `assets/vendor/` are
+  whatever the checkout contains, which is nothing: both are gitignored.
+  A command that works via `docker compose exec` proves nothing about
+  CI. Replicate the bare `docker run` against a clean clone instead.
+  (Kept from the CI item this replaced; see `done.md`, 2026-09-04 for
+  the three failures this cost.)
+- `--entrypoint php` is needed for any bare `docker run` of a console
+  command: the image entrypoint runs `dbal:run-sql` to wait for a
+  database, and fails outside compose.
+- Factories must produce values a round trip through the database would
+  return — `ActivityFactory` dates to midnight because `Activity::$date`
+  is a `date_immutable` column. A time component there made a created
+  entity disagree with its own hydrated row and flipped `/reports`'
+  "Planned" badge at random.
 - `static::createClient()` must be the first call in every
   `WebTestCase` test method, before any Foundry factory call.
 - Login throttling is inert in the test environment on purpose
