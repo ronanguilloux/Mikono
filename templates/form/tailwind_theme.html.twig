@@ -1,7 +1,10 @@
 {% use 'form_div_layout.html.twig' %}
 
+{# `row_attr` is honoured so a field can carry Stimulus targets without the
+   template having to render every row by hand — see ProjectFormType. #}
 {% block form_row %}
-    <div class="mb-4">
+    {% set row_attr = row_attr|merge({class: (row_attr.class|default('') ~ ' mb-4')|trim}) %}
+    <div {% with { attr: row_attr } %}{{ block('attributes') }}{% endwith %}>
         {{ form_label(form) }}
         {{ form_widget(form) }}
         {{ form_errors(form) }}
@@ -11,9 +14,28 @@
     </div>
 {% endblock %}
 
+{#
+    Two things this fixes that the earlier version got wrong, both of which
+    only became visible once Escort turned into five expanded checkboxes:
+
+    - It sets `for`, which the base theme sets and this override had dropped.
+      Every label in the app was unassociated: not clickable, and announced by
+      nothing. Compound fields (the expanded Duration/Escort groups) label a
+      container rather than an input, so they still get none.
+    - The class is a *default* the caller can replace, not a second `class`
+      attribute after the caller's. The old markup emitted two and relied on
+      browsers honouring the first — which worked, but silently, and made
+      `block` unremovable for the choice children that must sit inline.
+#}
 {% block form_label %}
     {% if label is not same as(false) %}
-        <label {% if label_attr %}{% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}{% endif %} class="mb-1 block text-sm font-medium text-slate-700">
+        {% set label_attr = label_attr|merge({
+            class: label_attr.class|default('mb-1 block text-sm font-medium text-slate-700'),
+        }) %}
+        {% if not (compound is defined and compound) %}
+            {% set label_attr = label_attr|merge({for: id}) %}
+        {% endif %}
+        <label {% with { attr: label_attr } %}{{ block('attributes') }}{% endwith %}>
             {{- block('form_label_content') -}}
         </label>
     {% endif %}
@@ -55,6 +77,31 @@
         {{ form_label(form, null, {label_attr: {class: 'text-sm font-medium text-slate-700'}}) }}
         {{ form_errors(form) }}
     </div>
+{% endblock %}
+
+{#
+    Expanded choices — Duration's radios, Escort's checkboxes — as inline
+    pairs that wrap, rather than one stacked row per option. Each input and
+    its label share a flex item so a wrap never splits them apart.
+#}
+{% block choice_widget_expanded %}
+    {% set attr = attr|merge({class: (attr.class|default('') ~ ' flex flex-wrap gap-x-5 gap-y-2')|trim}) %}
+    <div {{ block('widget_container_attributes') }}>
+        {%- for child in form %}
+            <div class="flex items-center gap-2">
+                {{- form_widget(child) -}}
+                {{- form_label(child, null, {
+                    translation_domain: choice_translation_domain,
+                    label_attr: {class: 'text-sm text-slate-700'},
+                }) -}}
+            </div>
+        {% endfor -%}
+    </div>
+{% endblock %}
+
+{% block radio_widget %}
+    {% set attr = attr|merge({class: (attr.class|default('') ~ ' h-4 w-4 border-slate-300')|trim}) %}
+    {{ parent() }}
 {% endblock %}
 
 {% block checkbox_widget %}

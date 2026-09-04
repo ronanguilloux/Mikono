@@ -49,8 +49,23 @@ final class VolunteerController extends AbstractController
 
         $pagination = $this->paginator->paginateQuery($queryBuilder, Volunteer::class, $request);
 
+        /** @var list<Volunteer> $volunteersOnPage */
+        $volunteersOnPage = iterator_to_array($pagination, false);
+        // One query for the whole page. The delete-guard's own count stays
+        // per-entity in delete() — this is the same rule read ahead of time so
+        // the index can show Delete as unavailable rather than let the reader
+        // discover it from a flash after confirming.
+        $activityCounts = $this->volunteers->countReferencingActivitiesFor($volunteersOnPage);
+
         $rows = [];
-        foreach ($pagination as $volunteer) {
+        $guardedCount = 0;
+        foreach ($volunteersOnPage as $volunteer) {
+            $id = $volunteer->getId();
+            $referencingCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
+            if ($referencingCount > 0) {
+                ++$guardedCount;
+            }
+
             $rows[] = [
                 'cells' => [
                     'name' => $volunteer->getFullName(),
@@ -59,15 +74,17 @@ final class VolunteerController extends AbstractController
                     'status' => $volunteer->isActive() ? 'Active' : 'Inactive',
                 ],
                 'actions' => [
-                    ['label' => 'View', 'url' => $this->generateUrl('volunteer_show', ['id' => $volunteer->getId()])],
-                    ['label' => 'Edit', 'url' => $this->generateUrl('volunteer_edit', ['id' => $volunteer->getId()])],
-                    [
-                        'label' => 'Delete',
-                        'url' => $this->generateUrl('volunteer_delete', ['id' => $volunteer->getId()]),
-                        'method' => 'post',
-                        'confirm' => sprintf('Delete %s?', $volunteer->getFullName()),
-                        'csrfToken' => $this->csrfToken($volunteer),
-                    ],
+                    ['label' => 'View', 'url' => $this->generateUrl('volunteer_show', ['id' => $id])],
+                    ['label' => 'Edit', 'url' => $this->generateUrl('volunteer_edit', ['id' => $id])],
+                    $referencingCount > 0
+                        ? ['label' => 'Delete', 'disabledReason' => $this->guardReason($volunteer, $referencingCount)]
+                        : [
+                            'label' => 'Delete',
+                            'url' => $this->generateUrl('volunteer_delete', ['id' => $id]),
+                            'method' => 'post',
+                            'confirm' => sprintf('Delete %s?', $volunteer->getFullName()),
+                            'csrfToken' => $this->csrfToken($volunteer),
+                        ],
                 ],
             ];
         }
@@ -82,6 +99,7 @@ final class VolunteerController extends AbstractController
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
+            'guardedCount' => $guardedCount,
         ]);
     }
 
@@ -162,13 +180,7 @@ final class VolunteerController extends AbstractController
 
         $referencingCount = $this->volunteers->countReferencingActivities($volunteer);
         if ($referencingCount > 0) {
-            $this->addFlash('error', sprintf(
-                'Cannot delete %s — %d activit%s reference%s them. Mark them inactive instead.',
-                $volunteer->getFullName(),
-                $referencingCount,
-                1 === $referencingCount ? 'y' : 'ies',
-                1 === $referencingCount ? 's' : '',
-            ));
+            $this->addFlash('error', $this->guardReason($volunteer, $referencingCount));
 
             return $this->redirectToRoute('volunteer_index');
         }
@@ -179,6 +191,22 @@ final class VolunteerController extends AbstractController
         $this->addFlash('success', sprintf('%s was deleted.', $volunteer->getFullName()));
 
         return $this->redirectToRoute('volunteer_index');
+    }
+
+    /**
+     * Why this volunteer can't be deleted, in one sentence. Shared by the
+     * index's greyed-out Delete and the flash raised if a delete is attempted
+     * anyway, so the warning and the refusal can't drift apart.
+     */
+    private function guardReason(Volunteer $volunteer, int $referencingCount): string
+    {
+        return sprintf(
+            'Cannot delete %s — %d activit%s reference%s them. Mark them inactive instead.',
+            $volunteer->getFullName(),
+            $referencingCount,
+            1 === $referencingCount ? 'y' : 'ies',
+            1 === $referencingCount ? 's' : '',
+        );
     }
 
     private function csrfTokenId(Volunteer $volunteer): string

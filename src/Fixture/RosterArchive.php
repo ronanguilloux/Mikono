@@ -97,14 +97,38 @@ final readonly class RosterArchive
                 );
             }
 
+            $anchor = self::nullableString($row, 'anchor');
+            if (null !== $anchor && !in_array($anchor, ['today', 'tomorrow'], true)) {
+                throw new \RuntimeException(sprintf('Unknown roster anchor "%s".', $anchor));
+            }
+
             $rosters[] = new ArchivedRoster(
                 self::date($row, 'date'),
-                self::nullableString($row, 'anchor'),
+                $anchor,
                 $sites,
             );
         }
 
         return new self($volunteers, self::strings($parsed, 'escorts'), $projects, $rosters);
+    }
+
+    /**
+     * The archive day that `anchor: today` pins onto the day the fixtures load.
+     *
+     * Every roster shifts by that one offset, so the archive keeps its own
+     * shape. Moving only the anchored days instead would tear a hole in the
+     * timeline (and stack two rosters on one day) as soon as the fixtures are
+     * loaded on any date but the anchor's own.
+     */
+    public function anchorDay(): \DateTimeImmutable
+    {
+        foreach ($this->rosters as $roster) {
+            if ('today' === $roster->anchor) {
+                return $roster->date;
+            }
+        }
+
+        throw new \RuntimeException('No roster in the archive carries "anchor: today".');
     }
 
     /**

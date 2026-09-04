@@ -29,3 +29,7 @@
 # Only the derived roster extract in docs/fixtures/ is committed.
 /docs/fixtures/*_dumps.txt
 ###< app fixtures ###
+
+# Deployment env files (docs/project/deployment-plan.md §4 and §10):
+# they hold a real APP_SECRET, and this repository is public.
+/deploy.env*

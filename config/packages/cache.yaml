@@ -17,3 +17,32 @@ framework:
         # Namespaced pools use the above "app" backend by default
         #pools:
             #my.dedicated.cache: null
+
+when@test:
+    framework:
+        cache:
+            pools:
+                # Login throttling (security.yaml) counts failed attempts in
+                # cache.rate_limiter, which the framework defines as a child of
+                # cache.app — files under var/cache/test/pools, keyed stably by
+                # username + IP, that no test resets. The limiter is peekable,
+                # so a successful login never clears them and only failures
+                # count: SecurityControllerTest's wrong-password case added one
+                # token per suite run, and the fifth run inside the 15-minute
+                # window locked out its own correct-credentials case.
+                #
+                # An in-memory pool ends that: nothing survives the process.
+                # Overriding the name works because FrameworkExtension registers
+                # cache pools *after* the rate limiter's own definition and ends
+                # with setDefinition(), so this replaces it.
+                #
+                # Side effect worth knowing before writing a test against
+                # throttling: it makes throttling inert here. Every cache pool
+                # is tagged kernel.reset and ArrayAdapter::reset() clears the
+                # array, so the services resetter empties the counters at each
+                # request boundary of the test client — $client->disableReboot()
+                # does not prevent it. Failed logins therefore never accumulate
+                # in the test environment. Throttling itself is unchanged in
+                # dev and prod.
+                cache.rate_limiter:
+                    adapter: cache.adapter.array

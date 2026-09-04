@@ -13,5 +13,24 @@
         </a>
     </div>
 
+    {#
+        The rule behind the greyed-out Delete links below, said once in words.
+        Scoped to this page on purpose: the count comes from the same single
+        query that builds the rows, so claiming a figure for every project
+        would be a number nothing measured. Kept as a note rather than a flash
+        because it describes a standing state, not the outcome of an action.
+    #}
+    {% if guardedCount > 0 %}
+        <p
+            class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900"
+            data-delete-guard-note
+        >
+            {{ guardedCount }} {{ guardedCount == 1 ? 'project' : 'projects' }} on this page
+            {{ guardedCount == 1 ? 'has' : 'have' }} logged activity, so Delete is unavailable
+            for {{ guardedCount == 1 ? 'it' : 'those rows' }} —
+            mark {{ guardedCount == 1 ? 'it' : 'them' }} inactive instead.
+        </p>
+    {% endif %}
+
     <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No projects yet — add the first one above." />
 {% endblock %}

@@ -1,7 +1,7 @@
 # UCESCO roster archive — the fixture dataset.
 #
 # Transcribed by hand from the volunteers' WhatsApp group (03/08/2026 →
-# 01/09/2026), where the Volunteer Manager posts each afternoon the schedule
+# 03/09/2026), where the Volunteer Manager posts each afternoon the schedule
 # for the following day. The raw export stays out of git; see README.md in
 # this directory for the transcription rules and ADR 0012 for why fixtures
 # come from here rather than from a generator.
@@ -418,7 +418,6 @@ rosters:
   - date: 2026-09-01
     posted: 2026-08-31
     truncated: true
-    anchor: today
     sites:
       - project: peggy_lucas
         volunteers: [{name: Daphne}, {name: Marco}]
@@ -430,6 +429,27 @@ rosters:
   - date: 2026-09-02
     posted: 2026-09-01
     truncated: true
+    sites:
+      - project: peggy_lucas
+        volunteers: [{name: Daphne}, {name: Marco}]
+        escorts: [Hassan]
+      - project: mt_hermon
+        volunteers: [{name: Hellen}, {name: Hannah}]
+        escorts: [Ofright]
+
+  - date: 2026-09-03
+    posted: 2026-09-02
+    anchor: today
+    sites:
+      - project: peggy_lucas
+        volunteers: [{name: Daphne}, {name: Marco}]
+        escorts: [Hassan]
+      - project: mt_hermon
+        volunteers: [{name: Hellen}, {name: Hannah}]
+        escorts: [Ofright]
+
+  - date: 2026-09-04
+    posted: 2026-09-03
     anchor: tomorrow
     sites:
       - project: peggy_lucas

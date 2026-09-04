@@ -50,8 +50,23 @@ final class ProjectController extends AbstractController
 
         $pagination = $this->paginator->paginateQuery($queryBuilder, Project::class, $request);
 
+        /** @var list<Project> $projectsOnPage */
+        $projectsOnPage = iterator_to_array($pagination, false);
+        // One query for the whole page. The delete-guard's own count stays
+        // per-entity in delete() — this is the same rule read ahead of time so
+        // the index can show Delete as unavailable rather than let the reader
+        // discover it from a flash after confirming.
+        $activityCounts = $this->projects->countReferencingActivitiesFor($projectsOnPage);
+
         $rows = [];
-        foreach ($pagination as $project) {
+        $guardedCount = 0;
+        foreach ($projectsOnPage as $project) {
+            $id = $project->getId();
+            $referencingCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
+            if ($referencingCount > 0) {
+                ++$guardedCount;
+            }
+
             $rows[] = [
                 'cells' => [
                     'name' => $project->getName(),
@@ -60,14 +75,16 @@ final class ProjectController extends AbstractController
                     'status' => $project->isActive() ? 'Active' : 'Inactive',
                 ],
                 'actions' => [
-                    ['label' => 'Edit', 'url' => $this->generateUrl('project_edit', ['id' => $project->getId()])],
-                    [
-                        'label' => 'Delete',
-                        'url' => $this->generateUrl('project_delete', ['id' => $project->getId()]),
-                        'method' => 'post',
-                        'confirm' => sprintf('Delete %s?', $project->getName()),
-                        'csrfToken' => $this->csrfToken($project),
-                    ],
+                    ['label' => 'Edit', 'url' => $this->generateUrl('project_edit', ['id' => $id])],
+                    $referencingCount > 0
+                        ? ['label' => 'Delete', 'disabledReason' => $this->guardReason($project, $referencingCount)]
+                        : [
+                            'label' => 'Delete',
+                            'url' => $this->generateUrl('project_delete', ['id' => $id]),
+                            'method' => 'post',
+                            'confirm' => sprintf('Delete %s?', $project->getName()),
+                            'csrfToken' => $this->csrfToken($project),
+                        ],
                 ],
             ];
         }
@@ -82,6 +99,7 @@ final class ProjectController extends AbstractController
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
+            'guardedCount' => $guardedCount,
         ]);
     }
 
@@ -133,13 +151,7 @@ final class ProjectController extends AbstractController
 
         $referencingCount = $this->projects->countReferencingActivities($project);
         if ($referencingCount > 0) {
-            $this->addFlash('error', sprintf(
-                'Cannot delete %s — %d activit%s reference%s it. Mark it inactive instead.',
-                $project->getName(),
-                $referencingCount,
-                1 === $referencingCount ? 'y' : 'ies',
-                1 === $referencingCount ? 's' : '',
-            ));
+            $this->addFlash('error', $this->guardReason($project, $referencingCount));
 
             return $this->redirectToRoute('project_index');
         }
@@ -150,6 +162,22 @@ final class ProjectController extends AbstractController
         $this->addFlash('success', sprintf('%s was deleted.', $project->getName()));
 
         return $this->redirectToRoute('project_index');
+    }
+
+    /**
+     * Why this project can't be deleted, in one sentence. Shared by the
+     * index's greyed-out Delete and the flash raised if a delete is attempted
+     * anyway, so the warning and the refusal can't drift apart.
+     */
+    private function guardReason(Project $project, int $referencingCount): string
+    {
+        return sprintf(
+            'Cannot delete %s — %d activit%s reference%s it. Mark it inactive instead.',
+            $project->getName(),
+            $referencingCount,
+            1 === $referencingCount ? 'y' : 'ies',
+            1 === $referencingCount ? 's' : '',
+        );
     }
 
     private function csrfTokenId(Project $project): string

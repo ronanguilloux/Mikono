@@ -1,6 +1,6 @@
 # Deployment plan
 
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-03
 
 The runbook for getting Mikono onto a server and keeping it there. A
 living document, edited in place. What the server itself must provide —
@@ -43,6 +43,13 @@ alias mikono='docker compose --env-file /opt/mikono/deploy.env -f compose.yaml -
 ```
 
 Every command below is written out in full; `mikono …` is the short form.
+
+The `export COMPOSE="docker compose …"` / `$COMPOSE …` shorthand used
+from §5 onward is a **bash** idiom — it depends on word splitting of an
+unquoted expansion. The deploy user's shell on the server is bash, so it
+is fine there, but it silently fails under zsh (`command not found:
+docker compose -p …`), which is what §10's local dry run runs in on
+macOS. Use a shell function if in doubt; it behaves the same in both.
 
 ## 3. Server bootstrap (once)
 
@@ -137,6 +144,11 @@ invalidates every existing session and any signed URL.
 
 ## 5. First deployment
 
+Do §10 first. The dry run rehearses everything below that does not need a
+real server, on the dev machine, for nothing — including the restore
+drill in §7, whose volume-name and ownership steps have never been
+observed to be correct.
+
 ```bash
 cd /opt/mikono
 export COMPOSE="docker compose --env-file deploy.env -f compose.yaml -f compose.prod.yaml"
@@ -227,16 +239,36 @@ docker run --rm -v mikono_db_data:/data -v "$PWD/backups:/backups" \
     debian:13-slim \
     cp /backups/<chosen-backup>.db /data/data_prod.db
 
-# 4. Restore ownership expected by the image, then start
+# 4. Remove any stale SQLite sidecar files. A clean `down` leaves none,
+#    but a crashed container can leave a journal (or -wal/-shm if WAL is
+#    ever enabled), and SQLite would try to replay it onto the file you
+#    just restored.
+docker run --rm -v mikono_db_data:/data debian:13-slim \
+    sh -c 'rm -f /data/data_prod.db-journal /data/data_prod.db-wal /data/data_prod.db-shm'
+
+# 5. Restore ownership expected by the image, then start
 docker run --rm -v mikono_db_data:/data debian:13-slim \
     chown 33:0 /data/data_prod.db     # 33 = www-data
 $COMPOSE up -d --wait
 
-# 5. Log in and confirm the data is there
+# 6. Log in and confirm the data is there
 ```
 
 Check the volume's real name first with `docker volume ls` — Compose
 prefixes it with the project directory name.
+
+**A drill only proves anything if something is lost.** Take the backup,
+then make a change the backup cannot contain — a second
+`app:user:create` is the cheapest — then restore and confirm that change
+is *gone*. A restore that leaves the database looking identical has
+demonstrated nothing. Confirm too that the entrypoint logs
+*"Already at the latest version"* on the restart rather than trying to
+replay migrations; the alternative is the `table "user" already exists`
+failure recorded in [`done.md`](done.md) for 2026-09-01.
+
+These steps were executed for the first time on 2026-09-03 against the
+dry-run stack in §10 and worked as written, apart from the journal step
+above, which was missing.
 
 ## 8. Monitoring and logs
 
@@ -266,3 +298,138 @@ prefixes it with the project directory name.
 - [ ] Backup cron installed, off-site copy configured, **restore drill
       performed at least once**.
 - [ ] External uptime monitor configured.
+- [ ] The §10 local dry run was run first, and this file was corrected
+      wherever it turned out to be wrong.
+
+## 10. Rehearsal: a local dry run of the production stack
+
+Everything above had never been executed anywhere when it was written.
+This section is how most of it gets exercised before a server is
+involved, at no cost — the substitution that replaced the disposable
+test box originally planned in
+[`next-steps.md`](next-steps.md) item 0.
+
+**It exercises:** the GHCR pull, the entrypoint's migrations against an
+empty `db_data` volume, whether a built Tailwind bundle is actually in
+the published image, `app:user:create`, and the whole restore drill in
+§7 including the two things nobody has verified — the Compose volume
+name and the `chown 33:0` step.
+
+**It cannot exercise:** ACME certificate issuance, port 80 reachability
+from outside, HTTP/3 on 443/udp, DNS, or the Docker/UFW iptables
+interaction. Those need a real server, which is why the first days on
+the production box are still run on a throwaway hostname (again,
+`next-steps.md` item 0).
+
+**Use a separate Compose project name.** The volumes in
+[`compose.yaml`](../../compose.yaml) are declared unqualified, so Compose
+prefixes them with the project name — which defaults to the directory,
+`mikono`. Run this without `-p` and the production container attaches to
+the **dev** `mikono_db_data` volume, and the restore drill in §7 then
+overwrites the development database. Stop the dev stack first, too, or
+ports 80/443 collide.
+
+**Use a function, not `export COMPOSE=`.** §2's and §5's
+`export COMPOSE="docker compose …"` then `$COMPOSE pull` is a *bash*
+idiom: it relies on word splitting of an unquoted expansion, which **zsh
+does not do**, and zsh is the default shell on macOS where this dry run
+is run. There it fails with `command not found: docker compose -p …`.
+A function behaves the same in both shells:
+
+```bash
+docker compose down                     # free 80/443 and avoid confusion
+
+umask 077
+cat > deploy.env.dryrun <<ENV
+SERVER_NAME=localhost
+APP_SECRET=$(openssl rand -hex 16)
+DEFAULT_URI=https://localhost
+IMAGES_PREFIX=ghcr.io/ronanguilloux/
+IMAGE_TAG=latest
+ENV
+
+dryrun() {
+    docker compose -p mikono-dryrun --env-file deploy.env.dryrun \
+        -f compose.yaml -f compose.prod.yaml "$@"
+}
+
+# On an arm64 host (any Apple-silicon Mac), the published image is
+# amd64-only — hosting-plan.md §2 — so ask for it explicitly and let
+# Docker Desktop emulate. It runs correctly; it is only slower, and
+# nothing this dry run checks is timing-sensitive.
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
+
+dryrun pull                    # proves the GHCR package is public
+dryrun up -d --wait
+dryrun ps                      # STATUS must read "healthy"
+dryrun logs php | head -40     # migrations ran, no stack traces
+dryrun exec php bin/console app:user:create \
+    --email=dryrun@example.org --full-name="Dry Run" --admin
+```
+
+Then, at `https://localhost` (Caddy serves its own internal certificate
+here — the browser warning is expected, and is *not* the §5 check for a
+real one):
+
+- The login page renders **styled**. Unstyled means the image was built
+  without `tailwind:build`. Check the stylesheet actually *resolves*,
+  not merely that the `<link>` is in the HTML — a missing bundle still
+  emits the tag:
+  `curl -sk https://localhost/login | grep -o '/assets/styles/[^"]*'`,
+  then fetch that path and expect a couple of dozen KB, not a 404.
+- Log in, create an activity, see it in the list and in `/reports`.
+
+**Logging in cannot be scripted with `curl`.** This app uses stateless
+CSRF ([`config/packages/csrf.yaml`](../../config/packages/csrf.yaml):
+`stateless_token_ids` for `submit`, `authenticate`, `logout`), so the
+login form ships the literal placeholder `value="csrf-token"` and a
+Stimulus controller replaces it in the browser. Posting the form without
+a browser gives 400, and each attempt spends one of the five that
+`login_throttling` allows per 15 minutes. The production image has no
+Panther or Chromium either — both are `require-dev`. What does work is
+driving the dry-run stack from the *dev* image as a sibling container on
+its network, reaching it by service name over plain HTTP (`compose.yaml`
+gives Caddy a `php:80` site for exactly this):
+
+```bash
+docker run --rm --network mikono-dryrun_default \
+    -v "$PWD":/app -w /app --entrypoint php app-php-dev \
+    scripts/panther-screenshot.php --base-url=http://php \
+    --login --email=dryrun@example.org --password=<the-one-you-set> \
+    --path=/reports --wait-selector='header' --out=dryrun-reports.png
+```
+
+The bind mount puts the screenshot straight on the host under
+`var/screenshots/`, no `docker compose cp` needed.
+
+Now run the §7 restore drill against this stack, substituting
+`mikono-dryrun_db_data` for the volume name. That is the point of the
+exercise. A restore is only proved if something is *lost*: back up, then
+make a change (a second `app:user:create` is enough), then restore and
+confirm the change is gone. Then tear it down completely:
+
+```bash
+dryrun down -v                 # -v: drop the dry-run volumes
+rm deploy.env.dryrun
+```
+
+**Correct this file wherever the drill proved it wrong.** That is the
+only output of the exercise worth keeping.
+
+### Result of the first run, 2026-09-03
+
+Run on an arm64 macOS host against `ghcr.io/ronanguilloux/app-php-prod:latest`
+(CI build of 2026-09-02). **The runbook was substantially correct.**
+Confirmed working, none of it previously observed: the GHCR pull is
+anonymous, so the package is genuinely public; seven migrations applied
+to an empty `db_data` volume and the container reported healthy on first
+boot; the image really does contain a built Tailwind bundle (~27 KB of
+CSS, served 200); `app:user:create` works in the production image; the
+`-p` guard kept the dev `mikono_db_data` volume untouched; and the whole
+§7 restore drill — volume name, `chown 33:0`, restart — worked exactly as
+written, with the post-backup user correctly absent afterwards and the
+entrypoint reporting *"Already at the latest version"* rather than
+replaying migration 1 onto live tables. Four things it corrected are
+written into §7 and this section above: the zsh word-splitting failure,
+the arm64 platform flag, the impossibility of a `curl` login and the
+sibling-container workaround, and the stale-journal step in §7.

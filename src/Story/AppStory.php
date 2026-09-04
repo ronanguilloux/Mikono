@@ -78,10 +78,12 @@ final class AppStory extends Story
             ]);
         }
 
-        $today = new \DateTimeImmutable('today');
+        // The whole archive slides onto the day the fixtures load: the calendar
+        // moves, the people don't, and the days keep their real spacing.
+        $shift = $archive->anchorDay()->diff(new \DateTimeImmutable('today'));
 
         foreach ($archive->rosters as $roster) {
-            $date = $roster->dateRelativeTo($today);
+            $date = $roster->date->add($shift);
 
             foreach ($roster->sites as $site) {
                 $siteEscorts = array_map(

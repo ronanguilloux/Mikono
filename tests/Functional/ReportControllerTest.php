@@ -437,6 +437,158 @@ final class ReportControllerTest extends WebTestCase
         self::assertSame($unsorted, $this->firstPrintRow($crawler));
     }
 
+    #[Test]
+    public function tagsAFutureDatedMostRecentAsPlanned(): void
+    {
+        $client = static::createClient();
+        $nextWeek = new \DateTimeImmutable('+1 week');
+        $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', $nextWeek);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        self::assertResponseIsSuccessful();
+        $cell = $this->mostRecentCells($crawler);
+        // The badge is a sibling of the cell text, not baked into it — the
+        // date still reads exactly as it does on an unbadged row.
+        self::assertStringContainsString($nextWeek->format('j M Y'), $cell->text());
+        self::assertSame('Planned', trim($cell->filter('span')->text()));
+    }
+
+    #[Test]
+    public function leavesAPastMostRecentUnbadged(): void
+    {
+        $client = static::createClient();
+        $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('-1 week'));
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $this->mostRecentCells($crawler)->filter('span'));
+        self::assertStringNotContainsString('Planned', $this->screenPanel($crawler));
+    }
+
+    /**
+     * Today's own activities are done, not planned — the same boundary the
+     * Activities cards and the "incl. N planned" tile use.
+     */
+    #[Test]
+    public function todayIsNotYetPlanned(): void
+    {
+        $client = static::createClient();
+        $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('today'));
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $this->mostRecentCells($crawler)->filter('span'));
+    }
+
+    /**
+     * A volunteer with history *and* something booked is the ordinary case,
+     * and the badge follows "Most recent" rather than the bucket as a whole.
+     */
+    #[Test]
+    public function aBucketMixingPastAndFutureFollowsItsLatestDate(): void
+    {
+        $client = static::createClient();
+        $grace = VolunteerFactory::createOne(['firstName' => 'Grace', 'lastName' => 'Wanjiru']);
+        $school = ProjectFactory::createOne(['name' => 'Peggy Lucas school']);
+        $activityType = ActivityTypeFactory::createOne();
+        $nextWeek = new \DateTimeImmutable('+1 week');
+
+        foreach ([new \DateTimeImmutable('-1 month'), $nextWeek] as $date) {
+            ActivityFactory::createOne([
+                'volunteer' => $grace,
+                'project' => $school,
+                'activityType' => $activityType,
+                'duration' => ActivityDuration::FullDay,
+                'date' => $date,
+            ]);
+        }
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        self::assertResponseIsSuccessful();
+        $cell = $this->mostRecentCells($crawler);
+        self::assertStringContainsString($nextWeek->format('j M Y'), $cell->text());
+        self::assertSame('Planned', trim($cell->filter('span')->text()));
+    }
+
+    #[Test]
+    public function badgesOnlyTheRowsThatEarnedIt(): void
+    {
+        $client = static::createClient();
+        $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('+1 week'));
+        $this->activityFor('Susan Njoki', 'Beyond Zero clinic', new \DateTimeImmutable('-1 week'));
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        self::assertCount(2, $crawler->filter('[data-report-panel="screen"] table tbody tr'));
+        self::assertCount(1, $this->mostRecentCells($crawler)->filter('span'));
+    }
+
+    #[Test]
+    public function tagsThePlannedRowOnTheProjectBreakdownToo(): void
+    {
+        $client = static::createClient();
+        $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('+1 week'));
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=project');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Peggy Lucas school', $this->screenPanel($crawler));
+        self::assertSame('Planned', trim($this->mostRecentCells($crawler)->filter('span')->text()));
+    }
+
+    /**
+     * The print panel is a second render of the same rows, so it gets the
+     * badge too — and it must land on both breakdowns, not just the tab that
+     * happened to be on screen.
+     */
+    #[Test]
+    public function thePlannedTagReachesBothTablesInThePrintPanel(): void
+    {
+        $client = static::createClient();
+        $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('+1 week'));
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        $printTables = $crawler->filter('[data-report-panel="print"] table');
+        self::assertCount(2, $printTables);
+        foreach ([0, 1] as $index) {
+            self::assertSame(
+                'Planned',
+                trim($printTables->eq($index)->filter('tbody tr td:nth-child(4) span')->text()),
+                sprintf('print table %d', $index),
+            );
+        }
+    }
+
+    /** The "Most recent" cells of the on-screen breakdown — the badge's home. */
+    private function mostRecentCells(\Symfony\Component\DomCrawler\Crawler $crawler): \Symfony\Component\DomCrawler\Crawler
+    {
+        return $crawler->filter('[data-report-panel="screen"] table tbody tr td:nth-child(4)');
+    }
+
+    private function activityFor(string $fullName, string $projectName, \DateTimeImmutable $date): void
+    {
+        [$firstName, $lastName] = explode(' ', $fullName, 2);
+        ActivityFactory::createOne([
+            'volunteer' => VolunteerFactory::createOne(['firstName' => $firstName, 'lastName' => $lastName]),
+            'project' => ProjectFactory::createOne(['name' => $projectName]),
+            'activityType' => ActivityTypeFactory::createOne(),
+            'duration' => ActivityDuration::FullDay,
+            'date' => $date,
+        ]);
+    }
+
     private function firstScreenRow(\Symfony\Component\DomCrawler\Crawler $crawler): string
     {
         return $crawler->filter('[data-report-panel="screen"] table tbody tr')->first()->text();

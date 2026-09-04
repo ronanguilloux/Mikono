@@ -1,6 +1,6 @@
 # Hosting plan
 
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-03
 
 What Mikono's architecture requires of a server, and where that server
 should be. A living document — it is edited in place as the answers firm
@@ -302,14 +302,22 @@ answered on its own terms rather than assumed away.
 
 ## 6. Open decisions
 
-- **A disposable test deploy is outside all of the above.** The first
-  server this app runs on is a throwaway that exercises the runbook and
-  holds no volunteer data — so §5's region argument, which is entirely
-  about personal data, does not apply to it. It goes wherever is
-  cheapest and quickest to delete (Hetzner, hourly-billed, on a DuckDNS
-  name; see [`next-steps.md`](next-steps.md) item 0 under *Getting it
-  hosted*). Noted here so that box is never mistaken for this decision
-  having been made, or for the Kenyan ranking having been abandoned.
+- **The runbook is rehearsed without a second server** (decided
+  2026-09-03). An earlier plan put the first deploy on a disposable
+  box abroad — outside §5's reasoning, which is entirely about personal
+  data — purely to exercise the runbook. That is dropped: the rehearsal
+  is available for free as a local dry run of the production stack
+  ([`deployment-plan.md`](deployment-plan.md) §10), and the rest of it
+  happens on the production box itself, brought up on a throwaway
+  DuckDNS hostname with no real data before the real domain is pointed
+  at it. See [`next-steps.md`](next-steps.md) item 0 under *Getting it
+  hosted*. What the disposable box would have added beyond the rehearsal
+  was a control variable — a server known to be good, so a failure could
+  only be the runbook's — and that is worth less than it looks here,
+  since every provider-specific surprise behind the four questions in
+  §5 surfaces on the Nairobi box either way. The consequence to accept
+  knowingly: the first real deploy debugs two unknowns at once, the
+  runbook and the provider.
 - **Provider and region** — narrowed, not settled. Shared hosting is
   eliminated (§5); the shortlist is HostPinnacle SM VPS 1 and Truehost
   VPS Kenya, subject to the four questions and the measurements above.

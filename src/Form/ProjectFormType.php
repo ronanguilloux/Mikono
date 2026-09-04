@@ -30,11 +30,16 @@ final class ProjectFormType extends AbstractType
                 'class' => ProjectOwnership::class,
                 'choice_label' => static fn(ProjectOwnership $ownership) => $ownership->label(),
                 'placeholder' => 'Choose an ownership type',
+                'attr' => [
+                    'data-partner-field-target' => 'ownership',
+                    'data-action' => 'partner-field#toggle',
+                ],
             ])
             ->add('partnerOrganizationName', TextType::class, [
                 'required' => false,
                 'label' => 'Partner organization name',
                 'help' => 'Required if this is a partner project.',
+                'row_attr' => ['data-partner-field-target' => 'field'],
             ])
             ->add('description', TextareaType::class, ['required' => false])
             ->add('isActive', CheckboxType::class, ['required' => false, 'label' => 'Active']);
@@ -42,6 +47,17 @@ final class ProjectFormType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => Project::class]);
+        $resolver->setDefaults([
+            'data_class' => Project::class,
+            // The partner-organization field is only required for a partner
+            // project. The rule lives in Project::validatePartnerOrganizationName();
+            // this wiring is what lets the form show it before a submit. The
+            // enum's own value is passed through rather than repeated in JS.
+            'attr' => [
+                'class' => 'max-w-lg',
+                'data-controller' => 'partner-field',
+                'data-partner-field-required-for-value' => ProjectOwnership::Partner->value,
+            ],
+        ]);
     }
 }

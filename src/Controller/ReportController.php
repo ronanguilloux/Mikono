@@ -45,6 +45,8 @@ final class ReportController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
+        $today = new \DateTimeImmutable('today');
+
         // Anything but "project" is the volunteer breakdown, so a mistyped or
         // stale ?tab= lands on the default rather than an error page.
         $tab = self::TAB_PROJECT === $request->query->get('tab')
@@ -74,20 +76,20 @@ final class ReportController extends AbstractController
         $pageOfRows = iterator_to_array($pagination, false);
 
         return $this->render('report/index.html.twig', [
-            'metrics' => $this->metrics->calculate(new \DateTimeImmutable('today')),
+            'metrics' => $this->metrics->calculate($today),
             // summarizeByVolunteer() already sorts by total days descending, so the
             // "Top volunteers" card is the head of this same list — no second pass.
             'byVolunteer' => $byVolunteer,
             'tab' => $tab,
             'columns' => $this->columnsFor($tab),
-            'rows' => $this->toRows($pageOfRows),
+            'rows' => $this->toRows($pageOfRows, $today),
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
             // Complete and unpaginated, for the print-only panel. The
             // print-friendly view has always put both breakdowns on paper in
             // full, and tabbing the screen mustn't quietly halve that.
-            'volunteerRows' => $this->toRows($byVolunteer),
-            'projectRows' => $this->toRows($byProject),
+            'volunteerRows' => $this->toRows($byVolunteer, $today),
+            'projectRows' => $this->toRows($byProject, $today),
             'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
             'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
         ]);
@@ -110,12 +112,21 @@ final class ReportController extends AbstractController
      *
      * @param list<SummaryRow> $summaries
      *
-     * @return list<array{cells: array<string, string>}>
+     * @return list<array{cells: array<string, string>, badges: array<string, string>}>
      */
-    private function toRows(array $summaries): array
+    private function toRows(array $summaries, \DateTimeImmutable $today): array
     {
         $rows = [];
         foreach ($summaries as $summary) {
+            $mostRecent = $summary['mostRecent'];
+            // Same rule as the Activities cards, the home screen's tomorrow
+            // roster and the "incl. N planned" tile: dated after today means
+            // planned rather than done. Derived here rather than in
+            // ActivitySummaryCalculator — the calculator already reports the
+            // bucket's latest date, and comparing it to today adds no domain
+            // knowledge, only a label this view happens to draw.
+            $isPlanned = null !== $mostRecent && $mostRecent > $today;
+
             $rows[] = [
                 'cells' => [
                     'label' => $summary['label'],
@@ -124,8 +135,9 @@ final class ReportController extends AbstractController
                     // and the "Total days contributed" tile. Before pagination
                     // this table alone printed the raw float.
                     'totalDays' => number_format($summary['totalDays'], 1),
-                    'mostRecent' => $summary['mostRecent']?->format('j M Y') ?? '—',
+                    'mostRecent' => $mostRecent?->format('j M Y') ?? '—',
                 ],
+                'badges' => $isPlanned ? ['mostRecent' => 'Planned'] : [],
             ];
         }
 

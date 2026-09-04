@@ -46,4 +46,41 @@ class VolunteerRepository extends ServiceEntityRepository
             ->setParameter('volunteer', $volunteer)
             ->getSingleScalarResult();
     }
+
+    /**
+     * The same count as above for a whole page of volunteers in one query. The
+     * index greys out Delete on the rows the delete-guard would block, and
+     * asking per row would be twenty-five COUNT queries a page.
+     *
+     * Volunteers with no activities are absent from the result rather than
+     * present with a zero, so read it with a `?? 0` default.
+     *
+     * @param list<Volunteer> $volunteers
+     *
+     * @return array<int, int> volunteer id => activities referencing them
+     */
+    public function countReferencingActivitiesFor(array $volunteers): array
+    {
+        if ([] === $volunteers) {
+            return [];
+        }
+
+        /** @var list<array{volunteerId: int|string, total: int|string}> $rows */
+        $rows = $this->getEntityManager()
+            ->createQuery(
+                'SELECT IDENTITY(a.volunteer) AS volunteerId, COUNT(a.id) AS total
+                 FROM ' . Activity::class . ' a
+                 WHERE a.volunteer IN (:volunteers)
+                 GROUP BY a.volunteer',
+            )
+            ->setParameter('volunteers', $volunteers)
+            ->getResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['volunteerId']] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
 }

@@ -48,7 +48,21 @@
             {% for row in rows %}
                 <tr>
                     {% for column in columns %}
-                        <td class="px-4 py-2 align-top">{{ row.cells[column.key]|default('') }}</td>
+                        {#
+                            The badge is a sibling of the cell text, not part of
+                            it: the row's `cells` stay the plain formatted value
+                            so sorting and the print panel are unaffected, and
+                            tests that match a cell by its text still do. The
+                            print variants are there because browsers drop
+                            background colours on paper by default — without a
+                            border the pill would vanish from the print panel.
+                        #}
+                        <td class="px-4 py-2 align-top">
+                            {{- row.cells[column.key]|default('') -}}
+                            {%- if row.badges[column.key] is defined %}
+                                <span class="ml-1.5 whitespace-nowrap rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 print:border print:border-slate-400 print:text-slate-700">{{ row.badges[column.key] }}</span>
+                            {%- endif -%}
+                        </td>
                     {% endfor %}
                     {% if withActions %}
                         <td class="px-4 py-2 text-right align-top whitespace-nowrap">

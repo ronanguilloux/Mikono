@@ -13,8 +13,14 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * Projects, Activity Types, Escorts, Users) and by the Reports breakdowns.
  * The caller shapes rows/actions — this component only renders them.
  *
- * @phpstan-type Action array{label: string, url: string, method?: string, confirm?: string, csrfToken?: string}
- * @phpstan-type Row array{cells: array<string, string>, actions?: list<Action>}
+ * An action carrying `disabledReason` is rendered inert instead of linked —
+ * that is how the Volunteers and Projects indexes show Delete as unavailable
+ * on rows the delete-guard would block, rather than letting the reader find
+ * out from a flash after confirming. Such an action needs no `url`, which is
+ * why that key is optional.
+ *
+ * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfToken?: string, disabledReason?: string}
+ * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, actions?: list<Action>}
  */
 #[AsTwigComponent]
 final class DataTable
@@ -22,7 +28,16 @@ final class DataTable
     /** @var list<array{key: string, label: string}> */
     public array $columns = [];
 
-    /** @var list<Row> */
+    /**
+     * A row's optional `badges` key is a column key => badge label map, drawn
+     * as a pill after that cell's text — the Reports breakdowns tag a
+     * future-dated "Most recent" with `Planned`. Keyed by column rather than
+     * per row so a badge lands on the cell it qualifies, and left out of the
+     * cell string itself so sorting, `number_format()` and the print panel all
+     * still see the plain value.
+     *
+     * @var list<Row>
+     */
     public array $rows = [];
 
     public string $emptyMessage = 'Nothing here yet.';

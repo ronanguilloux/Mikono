@@ -7,9 +7,9 @@ namespace App\Fixture;
 /**
  * One evening's schedule: the day it covers, and the sites it sends people to.
  *
- * `anchor` is set on the archive's last two days ("today" / "tomorrow"). The
- * home screen's roster panels are date-relative, so those two are shifted onto
- * the day the fixtures are loaded — the calendar moves, the people don't.
+ * `anchor: today` marks the archive day the fixtures pin onto the day they are
+ * loaded (`anchor: tomorrow` marks the one after it, for readability). Every
+ * roster then shifts by that same offset — see `RosterArchive::anchorDay()`.
  */
 final readonly class ArchivedRoster
 {
@@ -19,14 +19,4 @@ final readonly class ArchivedRoster
         public ?string $anchor,
         public array $sites,
     ) {}
-
-    public function dateRelativeTo(\DateTimeImmutable $today): \DateTimeImmutable
-    {
-        return match ($this->anchor) {
-            'today' => $today,
-            'tomorrow' => $today->modify('+1 day'),
-            null => $this->date,
-            default => throw new \RuntimeException(sprintf('Unknown roster anchor "%s".', $this->anchor)),
-        };
-    }
 }

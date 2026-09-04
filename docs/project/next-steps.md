@@ -1,6 +1,11 @@
 # Next steps
 
-**Last updated:** 2026-09-01 (test-deploy plan added under Getting it hosted)
+**Last updated:** 2026-09-03 (test-suite repeatability fixed, item
+removed; item 0 rehearsal reshaped — no disposable second server; the
+timezone regression test is written, item removed; the Reports
+"Planned" badge, the proactive delete-guard notice, the escort
+checkbox styling and the conditional partner-organization field all
+shipped, items removed)
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -33,8 +38,7 @@ and the seam they left behind — `DataTable` plus
 and `direction` — is where any future cross-cutting list behaviour
 belongs.
 
-What remains is genuinely open: hosting, escort display/reporting, and
-the four "not yet mocked" findings — plus the follow-ups the real-data
+What remains is genuinely open: hosting and escort display/reporting — plus the follow-ups the real-data
 fixtures left behind.
 
 ### Follow-ups from the real-data fixtures (2026-09-01)
@@ -57,22 +61,6 @@ fixed ([ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archiv
    convention absorbs it ("Uganda - ..."); whether `ProjectLocation`
    should grow a third case is the question to reopen then, and it is a
    scope question for the VM, not a modelling one.
-3. **The escort field is now five stacked checkboxes.** The Tailwind
-   form theme renders expanded choices with the label *under* the input
-   (Duration has always looked like this), which made both activity
-   forms noticeably taller. Worth a theme pass if it annoys in use — it
-   is a styling question, not a model one.
-4. **The test suite is not repeatable within 15 minutes** — found while
-   running it several times over during this work, and pre-existing.
-   `security.yaml` sets `login_throttling` to 5 attempts per 15 minutes,
-   and the limiter's storage lives in `var/cache/test`, which no test
-   resets. Run the suite three or four times in a row and
-   `SecurityControllerTest::correctCredentialsAuthenticateAndLandOnTheHomeScreen`
-   starts failing with a redirect back to `/login`;
-   `bin/console cache:pool:clear --all --env=test` fixes it until next
-   time. The proper fix is resetting the rate-limiter pool in the test
-   bootstrap, so a green suite doesn't depend on how recently it last
-   ran.
 
 ### Getting it hosted (2026-08-31 hosting review)
 
@@ -86,37 +74,35 @@ architecture requires of a server, and where that server should be) and
 build-and-ship shape. The defects that review found are fixed
 (`done.md`, 2026-09-01). What is left is genuinely forward work:
 
-0. **Throwaway test deploy first, deliberately not in Kenya.** Before
-   any of the below, and before UCESCO is contacted, the runbook needs
-   exercising end to end against a real server with a real certificate.
-   That box holds no volunteer data, so none of the §5 reasoning applies
-   to it and it must not be read as pre-empting the decision in item 1.
-   The cheapest shape:
+0. **The remaining half of the rehearsal needs the real server.** The
+   local dry run is done — it ran on 2026-09-03, the runbook survived it
+   with four corrections, and the whole restore drill is now proven
+   rather than asserted ([`done.md`](done.md);
+   [`deployment-plan.md`](deployment-plan.md) §10). What it could not
+   cover still stands between here and a production deploy, because it
+   all needs a real machine on the public internet: **ACME certificate
+   issuance, port 80 reachability from outside, HTTP/3 on 443/udp, DNS,
+   and the Docker/UFW iptables interaction**.
 
-   - **Hetzner Cloud CX22** (2 vCPU / 4 GB, Falkenstein or Nuremberg),
-     billed hourly at ~€4/month — a week of testing costs under €1 and
-     the server is deleted afterwards. DigitalOcean's $6 droplet is the
-     substitute if Hetzner's new-account ID verification stalls.
-     **Not CAX11**: it is arm64, and the published image is amd64-only
-     ([`hosting-plan.md`](hosting-plan.md) §2). Choosing it on price is
-     precisely the trap that section records.
-   - **A DuckDNS subdomain** (`hosting-plan.md` §3), pointed at the
-     server *before* first boot so Caddy's ACME challenge succeeds on
-     the first attempt. Watch Let's Encrypt's duplicate-certificate
-     limit — five per week for the same hostname — if the box is
-     destroyed and rebuilt repeatedly without preserving `caddy_data`.
-     A fresh subdomain per rebuild sidesteps it.
-   - **Check the GHCR package is public** before starting, or the
-     server's `docker compose pull` needs a token that
-     [`deployment-plan.md`](deployment-plan.md) §5 does not set up.
-   - The box comes up **empty by construction**: Foundry is a
-     `require-dev` dependency and is absent from the production image,
-     so `foundry:load-fixtures` does not exist there. The August roster
-     cannot reach a public server by accident. Create the account with
-     `app:user:create` and click through.
-   - **Run the restore drill there** ([`deployment-plan.md`](deployment-plan.md)
-     §7). It is the only part of the runbook never exercised, and a
-     disposable server is the right place to discover it is wrong.
+   That happens on the Nairobi box itself once item 1 picks one — but
+   brought up on **a DuckDNS hostname, not the real domain**, with no
+   real data on it. That ordering is the point: it keeps Let's Encrypt's
+   duplicate-certificate budget (five per week for the same hostname)
+   off the real hostname while mistakes are still likely, and that limit
+   is the one failure in this sequence that trying again does not fix.
+   Re-run the restore drill there too — it is cheap now that it is known
+   to work, and the thing being tested on a new machine is the volume
+   and the filesystem, not the steps.
+
+   Two carry-overs, both still unverified against a real provider:
+   **confirm the plan is x86_64** (the published image is amd64-only,
+   [`hosting-plan.md`](hosting-plan.md) §2 — the dry run only proved it
+   runs *emulated* on arm, which says nothing about a server), and
+   remember the box comes up **empty by construction**, since Foundry is
+   `require-dev` and absent from the production image, so the August
+   roster cannot reach a public server by accident. The dry run
+   confirmed the second of those directly: a freshly pulled production
+   image reports zero volunteers, projects and activities.
 
 1. **Choose the provider and region — the four questions decide it, not
    the stopwatch.** The
@@ -183,34 +169,15 @@ build-and-ship shape. The defects that review found are fixed
    `PRAGMA` and is the cheapest first move on the single-writer limit
    ADR 0003 flagged — worth doing when a second `User` account appears,
    not before.
-5. **No regression test pins the timezone behaviour.** The home screen's
-   rosters resolve `new \DateTimeImmutable('today')` against the PHP
-   `date.timezone`, which is now `Africa/Nairobi`; nothing fails if that
-   silently reverts to UTC. A test asserting the roster boundary at,
-   say, 01:00 EAT would catch it.
 
 ### Not yet mocked — still open
 
-Four findings weren't part of the five priority mockups and still
-need their own design pass before implementation:
+One finding wasn't part of the five priority mockups and still needs
+its own design pass before implementation (the other three — the
+Reports "Planned" badge, the proactive delete-guard notice and the
+conditional partner-organization field — all shipped on 2026-09-03,
+`done.md`):
 
-- **The "Planned" badge on the Reports breakdowns.** The mockup-5
-  artifact tags a future-dated "Most recent" cell with a `Planned`
-  badge, the way the Activities cards and the home screen's tomorrow
-  roster do. Slice 2 shipped the tabs and pagination without it
-  (`done.md`, 2026-09-01) because it isn't a template tweak:
-  `ActivitySummaryCalculator` would have to track whether a bucket's
-  most-recent date is in the future, which changes a class inside the
-  Infection scope. Small, but it deserves its own pass with its own
-  integration tests rather than riding along.
-- Proactively surface the volunteer/project delete-guard message
-  (today only shown as a flash *after* a blocked delete attempt) — an
-  inline note near volunteers/projects with activity history, before
-  delete is attempted, in `templates/volunteer/index.html.twig` and
-  `templates/project/index.html.twig`.
-- Enforce/highlight Project's conditional `partnerOrganizationName`
-  requirement (currently static help text only) — needs light JS or a
-  LiveComponent, more than a template tweak.
 - **Escort display and reporting.** Distinct from the write-path
   parity fix, which has shipped (`done.md`, 2026-08-31): *where* escort
   should be read back out is genuinely open, and none of it was part of
@@ -266,6 +233,10 @@ need their own design pass before implementation:
 
 - `static::createClient()` must be the first call in every
   `WebTestCase` test method, before any Foundry factory call.
+- Login throttling is inert in the test environment on purpose
+  (`cache.rate_limiter` is an array pool under `when@test`, and the
+  services resetter empties it between requests) — don't write a test
+  asserting it fires, and don't move that pool back to the filesystem.
 - Every required `TextType`/`EmailType` form field needs
   `'empty_data' => ''` if its entity property is a non-nullable
   `string`.

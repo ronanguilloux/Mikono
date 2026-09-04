@@ -131,20 +131,103 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'No volunteers yet');
     }
 
+    /**
+     * The index no longer offers Delete once a volunteer has activity, so the
+     * way to reach the server guard is the way a reader would in real life:
+     * with a page rendered before the activity existed. That stale-tab case is
+     * exactly why the guard stays in the controller rather than moving into
+     * the view.
+     */
     #[Test]
     public function deleteIsBlockedWhenAnActivityReferencesTheVolunteer(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
-        ActivityFactory::createOne(['volunteer' => $volunteer]);
         $client->loginUser(UserFactory::createOne());
         $client->request('GET', '/volunteers');
+
+        ActivityFactory::createOne(['volunteer' => $volunteer]);
         $client->submitForm('Delete');
 
         self::assertResponseRedirects('/volunteers');
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'Cannot delete Aisha Njoroge');
         self::assertSelectorTextContains('body', 'Aisha Njoroge');
+    }
+
+    #[Test]
+    public function theIndexShowsDeleteAsUnavailableForAVolunteerWithActivity(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        ActivityFactory::createOne(['volunteer' => $volunteer]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers');
+
+        self::assertResponseIsSuccessful();
+        // No form to submit, so nothing to confirm and then be refused.
+        self::assertCount(0, $crawler->filter('table tbody form'));
+
+        $inert = $crawler->filter('table tbody [aria-disabled="true"]');
+        self::assertCount(1, $inert);
+        self::assertStringContainsString('Delete', $inert->text());
+        // The same sentence the flash would have shown, ahead of the attempt.
+        self::assertStringContainsString(
+            'Cannot delete Aisha Njoroge — 1 activity references them.',
+            (string) $inert->attr('title'),
+        );
+    }
+
+    #[Test]
+    public function theIndexKeepsDeleteForAVolunteerWithNoActivity(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers');
+
+        self::assertCount(1, $crawler->filter('table tbody form'));
+        self::assertCount(0, $crawler->filter('table tbody [aria-disabled="true"]'));
+        self::assertCount(0, $crawler->filter('[data-delete-guard-note]'));
+    }
+
+    #[Test]
+    public function theDeleteGuardNoteCountsOnlyTheGuardedRows(): void
+    {
+        $client = static::createClient();
+        foreach (['Aisha Njoroge', 'Grace Wanjiru'] as $fullName) {
+            [$firstName, $lastName] = explode(' ', $fullName, 2);
+            ActivityFactory::createOne([
+                'volunteer' => VolunteerFactory::createOne(['firstName' => $firstName, 'lastName' => $lastName]),
+            ]);
+        }
+        VolunteerFactory::createOne(['firstName' => 'Susan', 'lastName' => 'Njoki']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers');
+
+        $note = $crawler->filter('[data-delete-guard-note]');
+        self::assertCount(1, $note);
+        self::assertStringContainsString('2 volunteers on this page have logged activity', $note->text());
+        self::assertCount(2, $crawler->filter('table tbody [aria-disabled="true"]'));
+        self::assertCount(1, $crawler->filter('table tbody form'));
+    }
+
+    #[Test]
+    public function theDeleteGuardNoteReadsAsSingularForOneRow(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne()]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers');
+
+        self::assertStringContainsString(
+            '1 volunteer on this page has logged activity',
+            $crawler->filter('[data-delete-guard-note]')->text(),
+        );
     }
 
     #[Test]

@@ -69,4 +69,41 @@ class ProjectRepository extends ServiceEntityRepository
             ->setParameter('project', $project)
             ->getSingleScalarResult();
     }
+
+    /**
+     * The same count as above for a whole page of projects in one query. The
+     * index greys out Delete on the rows the delete-guard would block, and
+     * asking per row would be twenty-five COUNT queries a page.
+     *
+     * Projects with no activities are absent from the result rather than
+     * present with a zero, so read it with a `?? 0` default.
+     *
+     * @param list<Project> $projects
+     *
+     * @return array<int, int> project id => activities referencing it
+     */
+    public function countReferencingActivitiesFor(array $projects): array
+    {
+        if ([] === $projects) {
+            return [];
+        }
+
+        /** @var list<array{projectId: int|string, total: int|string}> $rows */
+        $rows = $this->getEntityManager()
+            ->createQuery(
+                'SELECT IDENTITY(a.project) AS projectId, COUNT(a.id) AS total
+                 FROM ' . Activity::class . ' a
+                 WHERE a.project IN (:projects)
+                 GROUP BY a.project',
+            )
+            ->setParameter('projects', $projects)
+            ->getResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['projectId']] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
 }

@@ -93,6 +93,13 @@ reason.
 
 The home screen's rosters cover today and tomorrow, so a fixed archive
 date would leave it empty on every day but one. The two most recent
-archive days carry `anchor: today` and `anchor: tomorrow`, and are
-shifted onto the day the fixtures are loaded. Only the calendar moves —
-the sites, people, escorts and notes on those days stay the real ones.
+archive days carry `anchor: today` and `anchor: tomorrow`, and the whole
+archive is shifted so that `anchor: today` lands on the day the fixtures
+are loaded. Every other day moves by that same offset — shifting only the
+anchored pair would leave a gap where the rest of the archive stops. Only
+the calendar moves; the sites, people, escorts and notes stay the real
+ones.
+
+Note the day the fixtures load is Nairobi's, not the host's: the app runs
+on `Africa/Nairobi` (ADR 0003, `frankenphp/conf.d/10-app.ini`), so a
+machine in the Americas will seed "tomorrow" for part of its evening.

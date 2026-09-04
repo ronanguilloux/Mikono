@@ -7,11 +7,26 @@
 {% props
     actions = [],
     linkClass = 'text-slate-700 hover:underline',
-    buttonClass = 'text-red-700 hover:underline'
+    buttonClass = 'text-red-700 hover:underline',
+    disabledClass = 'cursor-not-allowed text-slate-400'
 %}
 
 {% for action in actions %}
-    {% if action.method|default('get') == 'get' %}
+    {#
+        An action the app already knows will be refused is shown inert rather
+        than hidden: a Delete that silently disappears reads as a missing
+        feature, while a greyed one reads as "not for this row". The reason is
+        both a `title` for pointer users and screen-reader text, since a
+        non-interactive element takes no focus and the tooltip alone would
+        reach nobody else. The index that sets this also prints the same rule
+        above the table, which is what actually explains it to a keyboard user.
+    #}
+    {% if action.disabledReason is defined %}
+        <span class="{{ disabledClass }}" aria-disabled="true" title="{{ action.disabledReason }}">
+            {{- action.label -}}
+            <span class="sr-only"> — {{ action.disabledReason }}</span>
+        </span>
+    {% elseif action.method|default('get') == 'get' %}
         <a href="{{ action.url }}" class="{{ linkClass }}">{{ action.label }}</a>
     {% else %}
         <form

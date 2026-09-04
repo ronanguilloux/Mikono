@@ -6,6 +6,317 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-03 — The partner-organization field appears only when it applies
+
+`next-steps.md` had this down as "needs light JS or a LiveComponent". It
+is light JS: `assets/controllers/partner_field_controller.js` hides the
+partner-organization row unless Ownership is Partner, and sets `required`
+on it while it is shown. A LiveComponent would be a server round-trip to
+show and hide a div.
+
+**Nothing about the rule moved.** `Project::validatePartnerOrganizationName()`
+already enforced it and its test already existed; this is the hint, not
+the guard. That is also why the field ships *visible* and the controller
+hides it on connect rather than the markup shipping it hidden — with
+JavaScript off the form still works, the field is simply always there and
+its help text ("Required if this is a partner project") is exactly right.
+For the same reason the form option stays `required: false`: making it
+required server-side would give the label its asterisk, but would also
+stop a no-JS reader saving a UCESCO-owned project.
+
+Two supporting changes:
+
+- The theme's `form_row` now honours `row_attr`, which it had been
+  discarding along with the label's `for`. That is what lets a field carry
+  a Stimulus target without `_form.html.twig` rendering every row by hand.
+- The value the controller compares against is passed from
+  `ProjectOwnership::Partner->value` through the form's `attr`, so the
+  enum's backing string is not repeated in JavaScript. The form's width
+  class moved there too, since `form_start(form, {attr: …})` would
+  otherwise replace the wiring.
+
+The controller also clears the input when it hides it: a name typed
+before switching to UCESCO-owned would otherwise be saved on a project
+with no partner, and the server rule only checks the partner case.
+
+One functional test holds the wiring — controller attached, select
+reporting changes, row findable, value coming from the enum. The show and
+hide themselves are Stimulus, so they were verified in a real browser
+instead.
+
+## 2026-09-03 — Expanded choices go inline, and every label gets its `for` back
+
+`next-steps.md` had the five stacked escort checkboxes down as a styling
+annoyance. It was, but the cause was a real defect one level up.
+
+The theme's `form_label` override had dropped the base theme's
+`label_attr.for`, so **no label anywhere in the app was associated with
+its input** — none clickable, none announced. It also emitted a second
+`class` attribute after the caller's and relied on browsers honouring the
+first, which worked but made the hardcoded `block` impossible to remove
+for the choice children that need to sit inline. Fixing `form_label`
+fixes every field, not just Escort; compound fields (the Duration and
+Escort groups themselves) still get no `for`, since they label a
+container rather than an input.
+
+With that fixed, `choice_widget_expanded` renders each option as an
+input/label pair inside its own flex item, wrapping horizontally. Both
+activity forms lose four rows of height: Duration and Escort are one line
+each. `radio_widget` also picked up the `h-4 w-4` sizing the checkboxes
+already had — radios were rendering with no class at all.
+
+## 2026-09-03 — The delete guard is visible before it fires
+
+`next-steps.md` asked for the volunteer/project delete-guard rule to be
+surfaced *before* a blocked delete, not only as a flash afterwards. Both
+indexes now render Delete as inert on rows with logged activity, with the
+guard's own sentence as the tooltip, plus a note above the table saying
+the rule in words.
+
+- **The server guard did not move.** `delete()` still counts and still
+  refuses; the index only reads the same rule ahead of time. The two
+  existing "delete is blocked" tests now reach it the way a real reader
+  would — a page rendered *before* the activity existed, then submitted —
+  which is a better test than the old one and documents why the
+  controller check stays.
+- **One sentence, one place.** Each controller grew a private
+  `guardReason()` used by both the tooltip and the flash, so the warning
+  and the refusal cannot drift apart.
+- **One query, not twenty-five.** `countReferencingActivitiesFor()` on
+  both repositories returns counts keyed by id for a whole page.
+  Entities with no activities are absent rather than zero, so callers
+  read it with `?? 0`.
+- `RowActions` gained `disabledReason`: an action carrying it renders as
+  an `aria-disabled` span with the reason in `title` *and* in `sr-only`
+  text, since a non-interactive element takes no focus and a tooltip
+  alone reaches nobody else. The note above the table is what actually
+  explains it to a keyboard user — that is why both exist.
+
+The note's count is page-scoped and says so ("on this page"), because it
+comes from the same single query that builds the rows; a roster-wide
+figure would be a number nothing measured.
+
+## 2026-09-03 — The Reports breakdowns tag what hasn't happened yet
+
+The last of the five mockup-5 findings: a future-dated "Most recent"
+cell now carries a `Planned` pill, the way the Activities cards, the
+home screen's tomorrow roster and the "incl. N planned" tile already do.
+
+**`ActivitySummaryCalculator` did not need to change**, contrary to what
+`next-steps.md` predicted — and that is the finding worth keeping. The
+calculator already reports each bucket's latest date; comparing it to
+today adds no domain knowledge, only a label this one view draws. So the
+boolean is derived in `ReportController::toRows()`, which now takes the
+`$today` the KPI tiles were already computing, and the class inside the
+Infection scope is untouched. The planned integration tests were not
+written for the same reason: there is nothing new in `src/Report/` to
+test, so the coverage is functional, in `ReportControllerTest`.
+
+The one shared-component change is
+[`DataTable`](../../src/Twig/Components/DataTable.php), which grew an
+optional per-row `badges` map — column key => badge label, drawn as a
+pill after that cell's text. Keyed by column so a badge lands on the
+cell it qualifies, and deliberately *not* concatenated into the cell
+string: `cells` stay the plain formatted value, so sorting,
+`number_format()` and the tests that match a cell by its text are all
+unaffected. Additive and null-safe — the other six lists pass no
+`badges` and render exactly as before. This is the seam `next-steps.md`
+names for cross-cutting list behaviour, so the next list-wide tag
+(Inactive, say) has somewhere to go.
+
+Two details that are easy to get wrong:
+
+- **The badge carries print variants** (`print:border print:text-slate-700`).
+  Browsers drop background colours on paper by default, so without a
+  border the pill would simply vanish from the print panel — which
+  renders both breakdowns in full and therefore gets badges too.
+- **Today is not planned.** The boundary is `> $today`, matching the
+  Activities index and the KPI tile, and a test pins it.
+
+Seven functional tests in
+[`ReportControllerTest`](../../tests/Functional/ReportControllerTest.php)
+cover both tabs, both print tables, the today boundary, a bucket mixing
+past and future dates (the badge follows "Most recent", not the bucket),
+and that unbadged rows on the same page stay unbadged. Verified visually
+against the dev fixtures as well: four badged rows, matching the
+"incl. 4 planned" tile above them.
+
+## 2026-09-03 — A test now holds the Nairobi day boundary
+
+`next-steps.md` hosting item 5: `date.timezone = Africa/Nairobi` in
+[`frankenphp/conf.d/10-app.ini`](../../frankenphp/conf.d/10-app.ini) was
+the only thing making the home screen's rosters resolve
+`new \DateTimeImmutable('today')` to the Kenyan calendar date, and
+nothing failed if it reverted to UTC — the app would keep passing every
+test while showing *yesterday's* roster between 00:00 and 03:00 EAT,
+which is exactly when a VM checks the schedule before an early start.
+[`tests/Integration/Report/RosterDayBoundaryTest.php`](../../tests/Integration/Report/RosterDayBoundaryTest.php)
+now holds it: five tests, three of which fail under
+`php -d date.timezone=UTC` (verified).
+
+The design point worth keeping. None of the four `'today'` call sites
+takes an injectable clock, and adding one was more change than this
+warranted, so the test uses a private `todayAt(instant)` stand-in —
+wall-clock date in `date_default_timezone_get()`, truncated to midnight,
+which is what `'today'` does. Two things keep that from being circular:
+it reads the ambient default timezone rather than naming Nairobi, so it
+moves when the setting moves; and a separate test asserts the stand-in
+agrees with a real `new \DateTimeImmutable('today')`, so it fails if the
+two ever diverge. The rosters are then built through the real
+`RosterBuilder` against seeded activities on both adjacent days, so the
+assertion is on the schedule the VM would actually see, not on a date
+string.
+
+One caveat is recorded in the test's docblock: `10-app.ini` is copied
+into the image rather than bind-mounted, so an edit to it only reaches
+this test after a `docker compose build php`.
+
+## 2026-09-03 — The pre-production rehearsal drops its second server
+
+`next-steps.md` item 0 required the runbook to be exercised end to end on
+a disposable Hetzner box before UCESCO was contacted. Reviewed and
+narrowed: the box bought a *rehearsal* and a *control variable* — a
+server known-good, so any failure had to be the runbook's — and only the
+first is worth a second server.
+
+- The rehearsal is now a **local dry run of the production stack**,
+  [`deployment-plan.md`](deployment-plan.md) §10: both compose files, a
+  separate `-p mikono-dryrun` project name, `SERVER_NAME=localhost`. It
+  covers the GHCR pull, migrations onto an empty volume, whether the
+  image really contains a built Tailwind bundle, and — the reason it
+  exists — the §7 restore drill, whose Compose volume name and
+  `chown 33:0` step had never been observed to be right.
+- What needs a real server (ACME issuance, port 80 from outside, HTTP/3
+  on 443/udp, DNS, the Docker/UFW iptables interaction) happens on the
+  production box, brought up on **a DuckDNS hostname, not the real
+  domain**, with no real data. That protects Let's Encrypt's
+  duplicate-certificate budget — five per week per hostname — while
+  mistakes are still likely, which is the one failure in the sequence
+  that trying again does not fix.
+- **The control variable is genuinely lost**, and it is written into
+  `hosting-plan.md` §6 rather than glossed: the first real deploy now
+  debugs the runbook and the provider at once. Judged acceptable because
+  every provider-specific surprise behind §5's four questions surfaces on
+  the Nairobi box either way, so the second server only ever separated
+  those two unknowns for the failures the local dry run already catches.
+
+The `-p` flag is not incidental: [`compose.yaml`](../../compose.yaml)
+declares its volumes unqualified, so a dry run without it attaches the
+production container to the dev `mikono_db_data` volume and the restore
+drill overwrites the development database.
+
+### And then it was actually run, the same day
+
+The dry run above is not a plan — it was executed on 2026-09-03, on an
+arm64 macOS host, against the CI image of 2026-09-02. **The runbook was
+substantially right**, which is the useful finding: nothing about the
+deployment shape needed rethinking. Confirmed for the first time, all of
+it previously only asserted:
+
+- The **GHCR pull is anonymous** (no credentials cached), so the package
+  is genuinely public — the one prerequisite `deployment-plan.md` §5
+  does not set up a token for.
+- **Seven migrations applied to an empty `db_data` volume** and the
+  container reported healthy on first boot, in `env: prod`.
+- **The image really contains a built Tailwind bundle** — ~27 KB of CSS
+  served 200, not a `<link>` pointing at a 404. This is the exact defect
+  [ADR 0010](../adr/0010-build-in-ci-and-deploy-by-image-pull.md) exists
+  to prevent, now observed from outside the image rather than trusted.
+- **A freshly pulled production image is empty**: zero volunteers,
+  projects and activities. Foundry being `require-dev` is what stops the
+  August roster reaching a public server, and that now has evidence.
+- **The whole §7 restore drill worked as written** — volume name,
+  `chown 33:0`, restart. Proved properly, by creating a user *after* the
+  backup and confirming it was gone afterwards. The entrypoint reported
+  "Already at the latest version" rather than replaying migration 1 onto
+  live tables, which is the 2026-09-01 failure further down this file.
+
+Four corrections went back into `deployment-plan.md`:
+
+1. **The `export COMPOSE="…"; $COMPOSE pull` shorthand is a bash-ism.**
+   It relies on word splitting of an unquoted expansion, which zsh does
+   not do — and zsh is the default shell on macOS, where §10 runs. It
+   fails as `command not found: docker compose -p …`. Harmless on the
+   server (bash), so §2 flags it and §10 uses a function instead.
+2. **An arm64 host needs `DOCKER_DEFAULT_PLATFORM=linux/amd64`**, since
+   the published image is amd64-only. It runs fine emulated — which
+   proves nothing about a server, and `next-steps.md` item 0 says so.
+3. **Login cannot be scripted with `curl`.** Stateless CSRF
+   (`config/packages/csrf.yaml`) ships the form with the literal
+   placeholder `value="csrf-token"` for Stimulus to replace, so a
+   scripted POST gets 400 and burns one of the five attempts
+   `login_throttling` allows per 15 minutes. The production image has no
+   Panther or Chromium either. The workaround, now in §10: run the *dev*
+   image as a sibling container on the dry-run network and point
+   `scripts/panther-screenshot.php --base-url=http://php` at it, using
+   the `php:80` site `compose.yaml` already defines.
+4. **The restore drill did not remove stale SQLite sidecar files.** A
+   clean `down` leaves none, so the drill passed — but a crashed
+   container can leave a `-journal`, which SQLite would then replay onto
+   the file just restored. §7 grew a step.
+
+`.gitignore` also gained `/deploy.env*`, outside the Flex-managed
+recipe block: §4 and §10 both write a file holding a real `APP_SECRET`
+into the working directory, and this repository is public.
+
+## 2026-09-03 — The test suite is repeatable again: login throttling isolated in test
+
+`next-steps.md` recorded that running the suite three or four times over
+started failing
+`SecurityControllerTest::correctCredentialsAuthenticateAndLandOnTheHomeScreen`,
+with `cache:pool:clear --all --env=test` as the workaround. Fixed in one
+line of configuration, but the mechanism is worth keeping so it isn't
+rediscovered:
+
+- `login_throttling` (5 attempts / 15 minutes, `security.yaml`) stores its
+  counters in `cache.rate_limiter`, which the framework defines as a child
+  of `cache.app` — real files under `var/cache/test/pools`. `cache.yaml`
+  was untouched boilerplate, so that default stood, and nothing in
+  `tests/bootstrap.php`, `phpunit.dist.xml`, or any test reset it.
+- The key is `hash_hmac('sha256', $username.'-'.$clientIp, %container.build_hash%)`,
+  so it is **stable across runs** unless the container is rebuilt, and
+  every functional test shares `127.0.0.1`.
+- `AbstractRequestRateLimiter` is *peekable*, so `LoginThrottlingListener`
+  consumes a token only on **failed** login and **never resets on
+  success**. `wrongPasswordShowsAnErrorAndDoesNotAuthenticate` therefore
+  added exactly one token per run to the `vm@example.org` bucket, and the
+  fifth run inside the window threw before
+  `correctCredentialsAuthenticateAndLandOnTheHomeScreen` — declared right
+  after it, same username — ever reached a password check. The per-IP
+  global bucket (limit 25, +3 per run) was the same bug on a longer fuse.
+  Reproduced exactly: by run 7 the suite showed three failures, including
+  "Too many failed login attempts, please try again in 13 minutes."
+
+The fix is a `when@test` block in
+[`config/packages/cache.yaml`](../../config/packages/cache.yaml) pointing
+`cache.rate_limiter` at `cache.adapter.array`. Overriding the name works
+because `FrameworkExtension::load()` registers cache pools *after* the rate
+limiter's own definition and ends with `setDefinition()`. Verified with
+`debug:container cache.rate_limiter --env=test` (now `ArrayAdapter`) and
+five consecutive full-suite runs, all `OK (175 tests, 767 assertions)`.
+
+**Known consequence, deliberately accepted:** throttling is now *inert*
+in the test environment, not merely isolated. Every cache pool is tagged
+`kernel.reset` and `ArrayAdapter::reset()` clears the array, so the
+services resetter empties the counters at each request boundary of the
+test client — `$client->disableReboot()` does not prevent it. A
+behavioural throttling test was written, failed for exactly this reason,
+and was dropped rather than papered over; the alternative (a filesystem
+pool cleared once per run from the bootstrap) was rejected because it
+reintroduces the same intra-run coupling in miniature. Throttling is
+unchanged in dev and prod. Don't write a test asserting login throttling
+fires — it can't, and the reason is commented in `cache.yaml`.
+
+Unrelated but found while verifying, and worth knowing: the dev container
+had been crash-looping. `foundry:load-fixtures` resets the schema with the
+schema tool, which empties `doctrine_migration_versions`, while the
+entrypoint runs `doctrine:migrations:migrate --all-or-nothing` on every
+boot — so it replayed migration 1 onto live tables and failed with `table
+"user" already exists`. Repaired non-destructively with
+`doctrine:migrations:version --add --all` after `doctrine:schema:validate`
+confirmed the schema was already in sync. If it recurs after loading dev
+fixtures, that is the fix — not a rebuild.
+
 ## 2026-09-01 — Hosting docs: three gaps closed, one recommendation held
 
 A second opinion on [`hosting-plan.md`](hosting-plan.md) arrived arguing

@@ -64,7 +64,7 @@ final class RosterArchiveTest extends TestCase
     }
 
     #[Test]
-    public function theTwoMostRecentDaysAreAnchoredOntoTheDayTheFixturesLoad(): void
+    public function theWholeArchiveShiftsOntoTheDayTheFixturesLoad(): void
     {
         $archive = self::archive();
         $anchors = [];
@@ -78,15 +78,17 @@ final class RosterArchiveTest extends TestCase
         // fixed archive date would leave both of them empty.
         self::assertSame(['today', 'tomorrow'], $anchors);
 
-        $today = new \DateTimeImmutable('2030-01-15');
+        // Every roster moves by the anchor's own offset — shifting only the
+        // anchored pair would tear a hole in the timeline on any other day.
+        $shift = $archive->anchorDay()->diff(new \DateTimeImmutable('2030-01-15'));
         $dates = [];
         foreach ($archive->rosters as $roster) {
-            if (null !== $roster->anchor) {
-                $dates[] = $roster->dateRelativeTo($today)->format('Y-m-d');
-            }
+            $dates[$roster->anchor ?? ''][] = $roster->date->add($shift)->format('Y-m-d');
         }
 
-        self::assertSame(['2030-01-15', '2030-01-16'], $dates);
+        self::assertSame(['2030-01-15'], $dates['today']);
+        self::assertSame(['2030-01-16'], $dates['tomorrow']);
+        self::assertSame('2030-01-14', end($dates['']), 'The day before the anchor must land the day before it.');
     }
 
     #[Test]

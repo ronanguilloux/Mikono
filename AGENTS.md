@@ -64,7 +64,18 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
   below the table), `withActions` (set `false` for a read-only table,
   or it grows a phantom empty actions column) and `sortState` (turns the
   headers into sort links; leave it null for a table with nothing to
-  re-order, like the Reports print panel).
+  re-order, like the Reports print panel). A row may also carry an
+  optional `badges` map — column key => badge label, drawn as a pill
+  after that cell's text, which is how `/reports` tags a future-dated
+  "Most recent" as `Planned`. Put the label there rather than
+  concatenating it into the cell string: `cells` must stay the plain
+  formatted value or sorting, number formatting and every test that
+  matches a cell by its text start seeing the decoration too. An action
+  with `disabledReason` instead of a `url` renders inert (`aria-disabled`
+  span, reason in `title` and `sr-only`) — that is how Volunteers and
+  Projects show Delete as unavailable on rows the delete-guard would
+  block. The server-side guard in `delete()` stays regardless: the index
+  only reads the rule early, it does not enforce it.
 - `src/Pagination/` — `ListPaginator`, the single place `page`,
   `perPage`, `sort` and `direction` are read off the query string for
   all seven list views, plus the `SortState` VO it hands to templates.
@@ -210,6 +221,20 @@ for dev specifically — leave that override in place.
   call in every test method — Foundry factories auto-boot the kernel to
   reach Doctrine, and booting it twice throws. Create the client, then
   create fixtures, not the other way around.
+- **Login throttling does not fire in the test environment, by design —
+  don't write a test asserting that it does.** `security.yaml` throttles
+  logins (5 per 15 minutes) and the counters live in `cache.rate_limiter`,
+  which the framework backs with `cache.app` — files under
+  `var/cache/test/pools`, keyed stably by username + IP and reset by
+  nothing. Since the limiter is peekable, only *failed* logins count and a
+  success never clears them, so the suite used to lock itself out after
+  about five runs inside the window. `config/packages/cache.yaml` now
+  points that pool at `cache.adapter.array` under `when@test`. The
+  side effect is that throttling is inert here, not just isolated: cache
+  pools are tagged `kernel.reset`, `ArrayAdapter::reset()` clears the
+  array, and the services resetter runs at every request boundary of the
+  test client — `$client->disableReboot()` does not prevent it. Throttling
+  is unchanged in dev and prod. See `done.md`, 2026-09-03.
 - Every required `TextType`/`EmailType` form field needs
   `'empty_data' => ''` when its entity property is a non-nullable
   `string` — Symfony transforms a submitted empty string to `null` by
