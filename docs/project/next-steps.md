@@ -38,8 +38,9 @@ and the seam they left behind — `DataTable` plus
 and `direction` — is where any future cross-cutting list behaviour
 belongs.
 
-What remains is genuinely open: hosting and escort display/reporting — plus the follow-ups the real-data
-fixtures left behind.
+What remains is genuinely open: a red CI pipeline that gates everything
+below it, hosting, and escort display/reporting — plus the follow-ups
+the real-data fixtures left behind.
 
 ### Follow-ups from the real-data fixtures (2026-09-01)
 
@@ -116,7 +117,10 @@ The general lesson, worth keeping even after this is fixed: **CI's bare
 It has no `compose.override.yaml`, so no bind-mounted dev ini, no
 `APP_ENV`/`XDEBUG_MODE`, and no named volumes — `var/` is whatever the
 checkout contains. A command that works via `docker compose exec` proves
-nothing about CI.
+nothing about CI. **When this item is fixed and deleted from this file,
+that paragraph outlives it** — move it to *Known conventions to not
+violate* below, or to `AGENTS.md`, rather than dropping it with the
+rest.
 
 ### Getting it hosted (2026-08-31 hosting review)
 
@@ -214,7 +218,10 @@ build-and-ship shape. The defects that review found are fixed
    a free DuckDNS subdomain once real data is involved: a few hundred
    shillings against an ~$100/year hosting bill, and it keeps the
    project's namespace out of a third party's hands. The DuckDNS name in
-   item 0 is for the disposable test box only.
+   item 0 is not a second server and not the long-term name: it is the
+   throwaway hostname the production box is *brought up* on, so that
+   Let's Encrypt's per-hostname certificate budget is not spent on the
+   real domain while the first deploy is still error-prone.
 3. **Sessions are lost on every deploy.** They live in
    `var/cache/prod/sessions`, which is not a volume, so a redeploy signs
    everyone out. At one user this is a shrug; it is recorded so it isn't
