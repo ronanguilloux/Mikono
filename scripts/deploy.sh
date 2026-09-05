@@ -59,6 +59,47 @@ if ! compose up -d --wait --wait-timeout "${WAIT_TIMEOUT}"; then
     exit 1
 fi
 
+# 4. Bootstrap the first admin — ONLY when the database holds no users
+#    at all. That is the case worth protecting against: a new machine, a
+#    wiped volume, a restore from a backup that predates the account. On
+#    every other deploy this does nothing, which is precisely why it can
+#    never reset a password changed later from inside the app.
+#
+#    Set ADMIN_EMAIL (and optionally ADMIN_FULL_NAME, ADMIN_PASSWORD) in
+#    deploy.env. Without ADMIN_EMAIL the whole block is skipped.
+envval() { sed -n "s/^$1=//p" "${ENV_FILE}" | tail -1; }
+ADMIN_EMAIL="$(envval ADMIN_EMAIL)"
+
+if [ -n "${ADMIN_EMAIL}" ]; then
+    USERS="$(compose exec -T php php -r '
+        $db = "/app/var/data/data_prod.db";
+        if (!is_file($db)) { echo "0"; exit; }
+        $pdo = new PDO("sqlite:" . $db);
+        echo (int) $pdo->query("SELECT COUNT(*) FROM \"user\"")->fetchColumn();
+    ' 2>/dev/null | tr -dc '0-9')"
+
+    if [ "${USERS:-0}" = "0" ]; then
+        ADMIN_PASSWORD="$(envval ADMIN_PASSWORD)"
+        GENERATED=""
+        if [ -z "${ADMIN_PASSWORD}" ]; then
+            ADMIN_PASSWORD="$(openssl rand -base64 18)"
+            GENERATED=yes
+        fi
+        echo "==> No accounts exist; creating the first admin"
+        compose exec -T php bin/console app:user:create \
+            --email="${ADMIN_EMAIL}" \
+            --full-name="$(envval ADMIN_FULL_NAME)" \
+            --password="${ADMIN_PASSWORD}" \
+            --admin
+        if [ -n "${GENERATED}" ]; then
+            echo
+            echo "    Password for ${ADMIN_EMAIL} (shown once, not stored): ${ADMIN_PASSWORD}"
+            echo "    Put it in the password manager now."
+            echo
+        fi
+    fi
+fi
+
 echo "==> Deployed"
 compose ps
 compose images php

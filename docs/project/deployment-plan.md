@@ -198,9 +198,26 @@ APP_SECRET=$(openssl rand -hex 16)
 DEFAULT_URI=https://vm.example.org
 IMAGES_PREFIX=ghcr.io/ronanguilloux/
 IMAGE_TAG=latest
+ADMIN_EMAIL=you@example.org
+ADMIN_FULL_NAME=Your Name
 ENV
 chmod 600 /opt/mikono/deploy.env
 ```
+
+The `ADMIN_*` pair is read by
+[`scripts/deploy.sh`](../../scripts/deploy.sh), which creates that
+account **only when the database holds no users at all** — a new
+machine, a wiped volume, a restore predating the account. It is what
+guarantees a fresh deployment is never unreachable. Omit `ADMIN_EMAIL`
+and the whole step is skipped.
+
+The password is generated and printed once unless you also set
+`ADMIN_PASSWORD`. **Prefer the generated one.** A stored
+`ADMIN_PASSWORD` is a plaintext admin password living permanently
+beside the app, and it would be re-applied on any future rebuild — so a
+password you later changed from inside the app would silently revert.
+These values belong here and not in the repository: this one is public,
+and a different deployment wants a different administrator.
 
 Two rules that matter:
 

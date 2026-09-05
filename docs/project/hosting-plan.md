@@ -427,9 +427,11 @@ three unsettled ones.
   question 5, and it is the one where an answer in writing matters. Note
   it is a maturity signal here rather than a dependency: §4's backups are
   `backup-db.sh` plus an off-site copy, never the provider's snapshots.
-- **UDP on 443 unpublished**, so HTTP/3 is unverified (§3) — though the
-  §3 argument for HTTP/3 was resilience on a *Kenyan mobile* network, and
-  hosting in France has already conceded that ground.
+- ~~UDP on 443 unpublished~~ — **answered empirically on 2026-09-05:
+  Gandi does not filter it.** Caddy advertised `alt-svc: h3=":443"` and
+  Chrome negotiated `h3` against `deploy.mikono.guilloux.org` on the
+  second load. Question 4 no longer needs asking of this provider; it
+  still does of the four Kenyan ones.
 - **Support is email-only, six days a week, 08:00–24:00 Paris.** That is
   better than it sounds from Nairobi — roughly 09:00–01:00 East Africa
   Time — but the maturity criterion above is specifically "when the

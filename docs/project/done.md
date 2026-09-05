@@ -6,6 +6,80 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-05 — First real deployment: the pilot is live on GandiCloud VPS
+
+`srv-mikono` — GandiCloud VPS V-R1, Debian 13 trixie, Paris SD6 — was
+provisioned on 2026-09-04 and deployed on 2026-09-05, serving
+`https://deploy.mikono.guilloux.org` with **no real data on it**. Machine
+specifics are in the gitignored `server.local.md`; this entry records
+what it settled.
+
+**All five things [`next-steps.md`](next-steps.md) item 0 said could only
+be tested on a real machine now pass**, and none of them needed a second
+attempt:
+
+- **ACME certificate issuance** — Let's Encrypt, valid 2026-09-05 to
+  2026-12-04. Which also proves **port 80 is reachable from outside**,
+  since HTTP-01 could not have completed otherwise.
+- **HTTP/3 on 443/udp** — Caddy advertises `alt-svc: h3=":443"`, and
+  Chrome negotiated `h3` on the second load. So **Gandi does not filter
+  UDP 443** — question 4 of the five in `hosting-plan.md` §5, answered by
+  measurement rather than by a sales desk.
+- **DNS** and **the Docker/UFW interaction** — the latter harmless
+  exactly as `deployment-plan.md` §3 predicted.
+
+The image pulled and started clean: `linux/amd64`, 583 MB, healthy in
+7.9 s, migrations applied by the entrypoint. The login page renders
+**styled** (`tailwindcss v4.3.3`, 27 KB, versioned by AssetMapper), which
+is the check that catches a missing `tailwind:build` in the image.
+
+**Three runbook defects the real machine exposed**, all fixed in
+[`deployment-plan.md`](deployment-plan.md) §3:
+
+1. **You do not log in as root on a cloud image.** Gandi's Debian admits
+   `debian` with passwordless sudo, and root's `authorized_keys` wraps
+   the key in a forced command. §3's step 1 copied *root's*
+   `authorized_keys` to the `deploy` user — which would have carried that
+   forced command across and locked `deploy` out, on a box whose password
+   authentication the next step disables. The key now comes from the
+   admin user's file, with a verification line after it.
+2. **Never `sed` `/etc/ssh/sshd_config`.** It begins with
+   `Include /etc/ssh/sshd_config.d/*.conf`, and OpenSSH keeps the *first*
+   value it obtains — so a cloud image's `50-cloud-init.conf` wins and the
+   sed silently changes nothing. Replaced by a `01-mikono.conf` drop-in
+   plus `sshd -T` to assert the effective config rather than the edit.
+   (This image ships no cloud-init drop-in, so the hazard did not bite
+   here — the fix stands anyway.)
+3. **Step ordering.** `usermod -aG docker deploy` in step 1 needs a group
+   that step 5 creates. Recorded rather than renumbered.
+
+Two additions the 1 GB plan forced: a **2 GB swapfile** (951 MB usable
+and no swap at all — FrankenPHP in worker mode with a 256 MB opcache
+leaves nothing for an image pull, and those get OOM-killed rather than
+slowed), and the concrete Docker apt-repository steps in place of a
+pointer to docs.docker.com.
+
+**[`scripts/deploy.sh`](../../scripts/deploy.sh) is new**, and passed its
+first run by being that run. It is §6's three commands plus the two
+things a human gets wrong: it always passes both compose files and
+`--env-file`, and it **backs up before pulling** — §6 says to back up
+before any deploy carrying a migration, and nobody reliably remembers
+which those are. It also creates the first admin account, but **only when
+the database holds no users at all**, so it can never reset a password
+changed later from inside the app. It deliberately does not roll back on
+failure: a migration is not reverted by rolling the image back, so an
+automatic rollback would sometimes leave a new schema under old code.
+
+Deploying from CI over SSH was considered and rejected — it needs a
+GitHub secret that is root-equivalent on the server, and would let any
+commit to `main` reach production unattended, on the machine holding the
+only copy of the volunteer database. At one maintainer, a deploy is a
+decision, not a trigger.
+
+**What this deliberately does not settle:** the box is in Paris, and the
+Kenya-versus-France question stays open until real data goes on it
+(`next-steps.md` item 1). The restore drill has not been run here yet.
+
 ## 2026-09-04 — Domain settled: `mikono.guilloux.org`, no purchase
 
 `hosting-plan.md` §3 had DuckDNS as the way to get a real certificate

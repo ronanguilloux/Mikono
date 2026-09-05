@@ -1,9 +1,9 @@
 # Next steps
 
-**Last updated:** 2026-09-04 (hosting shortlist verified against the
-providers' own pages — two new candidates, and the cheap one is probably
-not in Kenya; item 1 is now down to sending one email. Domain settled:
-`mikono.guilloux.org`, no purchase needed)
+**Last updated:** 2026-09-05 (the pilot server is live on GandiCloud
+VPS at `deploy.mikono.guilloux.org` with no real data; item 0 is down to
+the restore drill and the cutover, and item 1 is now a budget decision
+rather than a shortlist)
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -36,10 +36,11 @@ and the seam they left behind — `DataTable` plus
 and `direction` — is where any future cross-cutting list behaviour
 belongs.
 
-What remains is genuinely open: hosting and escort display/reporting,
-plus the follow-ups the real-data fixtures left behind. The quality gate
-that used to sit in front of all of it is green as of 2026-09-04
-(`done.md`), so the deploy is now blocked only on choosing a server.
+What remains is genuinely open: finishing the deployment, the
+Kenya-versus-France hosting decision it defers, escort
+display/reporting, and the follow-ups the real-data fixtures left
+behind. A pilot server is live as of 2026-09-05 with no real data on it
+(`done.md`); what gates real data is the restore drill, not the code.
 
 ### Follow-ups from the real-data fixtures (2026-09-01)
 
@@ -74,39 +75,32 @@ architecture requires of a server, and where that server should be) and
 build-and-ship shape. The defects that review found are fixed
 (`done.md`, 2026-09-01). What is left is genuinely forward work:
 
-0. **The remaining half of the rehearsal needs the real server.** The
-   local dry run is done — it ran on 2026-09-03, the runbook survived it
-   with four corrections, and the whole restore drill is now proven
-   rather than asserted ([`done.md`](done.md);
-   [`deployment-plan.md`](deployment-plan.md) §10). What it could not
-   cover still stands between here and a production deploy, because it
-   all needs a real machine on the public internet: **ACME certificate
-   issuance, port 80 reachability from outside, HTTP/3 on 443/udp, DNS,
-   and the Docker/UFW iptables interaction**.
+0. **The pilot server is up; what is left on it is the restore drill.**
+   `srv-mikono` (GandiCloud VPS, Paris) was provisioned and deployed on
+   2026-09-04/05 and all five things this item said needed a real machine
+   are verified — ACME issuance, port 80 reachability, HTTP/3 on 443/udp,
+   DNS, and the Docker/UFW interaction ([`done.md`](done.md)). It runs on
+   the throwaway `deploy.mikono.guilloux.org`, with **no real data**.
 
-   That happens on the Nairobi box itself once item 1 picks one — but
-   brought up on **a throwaway hostname, not the real domain**, with no
-   real data on it. The name is settled and free: `guilloux.org` is
-   already owned, so the box comes up on
-   `deploy.mikono.guilloux.org` and the real name is
-   `mikono.guilloux.org` (`hosting-plan.md` §3). No DuckDNS, no
-   registrar purchase. That ordering is the point: it keeps Let's Encrypt's
-   duplicate-certificate budget (five per week for the same hostname)
-   off the real hostname while mistakes are still likely, and that limit
-   is the one failure in this sequence that trying again does not fix.
-   Re-run the restore drill there too — it is cheap now that it is known
-   to work, and the thing being tested on a new machine is the volume
-   and the filesystem, not the steps.
+   Two things remain before it can hold any:
 
-   Two carry-overs, both still unverified against a real provider:
-   **confirm the plan is x86_64** (the published image is amd64-only,
-   [`hosting-plan.md`](hosting-plan.md) §2 — the dry run only proved it
-   runs *emulated* on arm, which says nothing about a server), and
-   remember the box comes up **empty by construction**, since Foundry is
-   `require-dev` and absent from the production image, so the August
-   roster cannot reach a public server by accident. The dry run
-   confirmed the second of those directly: a freshly pulled production
-   image reports zero volunteers, projects and activities.
+   - **Re-run the restore drill here** ([`deployment-plan.md`](deployment-plan.md)
+     §7). The steps are known good from the 2026-09-03 local dry run; what
+     is being tested on a new machine is the volume and the filesystem,
+     not the procedure. Plus the backup cron and an **encrypted off-site
+     copy** — `hosting-plan.md` §4 explains why the destination is not a
+     free choice.
+   - **Then the cutover** to `mikono.guilloux.org`: an added A/AAAA pair
+     at the same IP, `SERVER_NAME` and `DEFAULT_URI` changed, redeploy,
+     and delete the `deploy.` records. The throwaway hostname existed to
+     keep Let's Encrypt's duplicate-certificate budget (five per week per
+     hostname) off the real name while mistakes were still likely — the
+     one failure in this sequence that retrying does not fix.
+
+   Note the standing constraint on this box: **1 GB of RAM is
+   `hosting-plan.md` §2's minimum, not its recommendation**, and a 2 GB
+   swapfile is doing the work of the missing gigabyte. Resize the plan
+   before real volunteer data lands.
 
 1. **Send the pre-sales email, then choose the provider and region.**
    The shortlist is now four, verified against the providers' own pages
