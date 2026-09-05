@@ -84,12 +84,13 @@ build-and-ship shape. The defects that review found are fixed
 
    Two things remain before it can hold any:
 
-   - **Re-run the restore drill here** ([`deployment-plan.md`](deployment-plan.md)
-     §7). The steps are known good from the 2026-09-03 local dry run; what
-     is being tested on a new machine is the volume and the filesystem,
-     not the procedure. Plus the backup cron and an **encrypted off-site
-     copy** — `hosting-plan.md` §4 explains why the destination is not a
-     free choice.
+   - **An encrypted off-site copy of the backups.** The daily cron and
+     the restore drill are both done on this machine as of 2026-09-05
+     ([`done.md`](done.md)), and the drill passed — but every copy still
+     sits on the same disk as the database it protects, which is not a
+     backup. `rclone` with a crypt remote, key held off the server;
+     `hosting-plan.md` §4 explains why the destination is not a free
+     choice, and it is the same residency question as the server's.
    - **Then the cutover** to `mikono.guilloux.org`: an added A/AAAA pair
      at the same IP, `SERVER_NAME` and `DEFAULT_URI` changed, redeploy,
      and delete the `deploy.` records. The throwaway hostname existed to

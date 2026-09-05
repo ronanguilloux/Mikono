@@ -76,9 +76,32 @@ commit to `main` reach production unattended, on the machine holding the
 only copy of the volunteer database. At one maintainer, a deploy is a
 decision, not a trigger.
 
+**Backups and the restore drill, same day.** Three more things the
+minimal cloud image did not provide, all fixed in §7: `cron` was not
+installed at all; `/opt/mikono/backups` did not exist, so cron's own
+`>> backup.log` redirect would have failed *before* the script that
+creates the directory ever ran; and the clock was `Etc/UTC`, making the
+crontab's "02:15 EAT" comment wrong by three hours — the host timezone
+is now `Africa/Nairobi`, matching the `date.timezone` the app already
+uses.
+
+**The drill passed**, with the marker test §7 insists on: an account
+created *after* the backup was gone after the restore, which is the only
+thing that distinguishes a real drill from a restore that changed
+nothing. The entrypoint logged `Already at the latest version` rather
+than replaying migrations. Two findings went back into §7: the restore
+used `debian:13-slim`, which **had to be pulled mid-restore** — a
+restore must not depend on a reachable registry, so it now uses the
+app's own image, already on the machine; and `docker compose exec -T`
+**consumes stdin**, so a drill script piped into `ssh bash -s` had the
+console command silently swallow the rest of the script and skip every
+remaining step with no error.
+
 **What this deliberately does not settle:** the box is in Paris, and the
 Kenya-versus-France question stays open until real data goes on it
-(`next-steps.md` item 1). The restore drill has not been run here yet.
+(`next-steps.md` item 1). Every backup still sits on the same disk as
+the database it protects — the encrypted off-site copy is the one piece
+of §7 still missing.
 
 ## 2026-09-04 — Domain settled: `mikono.guilloux.org`, no purchase
 

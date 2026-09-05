@@ -329,11 +329,50 @@ deployment directory. It snapshots the live database with `VACUUM INTO`
 (no downtime), verifies it with `PRAGMA integrity_check`, copies it to
 the host, and prunes old local copies.
 
+**Three prerequisites the minimal cloud image does not give you** (all
+three found on `srv-mikono`, 2026-09-05). As `debian`:
+
 ```bash
-crontab -e -u deploy
-# Daily at 02:15 EAT, keeping 30 days locally
-15 2 * * * cd /opt/mikono && COMPOSE_FILES="--env-file deploy.env -f compose.yaml -f compose.prod.yaml" KEEP_DAYS=30 scripts/backup-db.sh /opt/mikono/backups >> /opt/mikono/backups/backup.log 2>&1
+# cron is NOT installed on a minimal Debian cloud image.
+sudo apt-get install -y cron && sudo systemctl enable --now cron
+
+# The clock is Etc/UTC out of the box, so "02:15" in a crontab is 02:15
+# UTC — 05:15 in Kenya. Align the host with the timezone every user and
+# the app itself already use (date.timezone is Africa/Nairobi in
+# frankenphp/conf.d/10-app.ini), rather than doing the arithmetic in the
+# crontab where it will be misread later.
+sudo timedatectl set-timezone Africa/Nairobi
 ```
+
+Then as `deploy`:
+
+```bash
+# The backups directory must exist BEFORE the first run: cron opens the
+# `>> …/backup.log` redirect itself, and it does so before the script
+# that would have created the directory ever starts.
+mkdir -p /opt/mikono/backups
+```
+
+Install the entry without opening an editor — `crontab -e` starts `$EDITOR`
+and the lines go *inside it*, which is easy to get wrong when pasting.
+This form is idempotent, so it is safe to re-run:
+
+```bash
+crontab -l 2>/dev/null | grep -v backup-db.sh > /tmp/mikono.cron
+cat >> /tmp/mikono.cron <<'CRON'
+# Daily at 02:15 Africa/Nairobi, keeping 30 days locally
+15 2 * * * cd /opt/mikono && COMPOSE_FILES="--env-file deploy.env -f compose.yaml -f compose.prod.yaml" KEEP_DAYS=30 scripts/backup-db.sh /opt/mikono/backups >> /opt/mikono/backups/backup.log 2>&1
+CRON
+crontab /tmp/mikono.cron && rm /tmp/mikono.cron && crontab -l
+```
+
+`crontab -e -u deploy` is not the command to use here: `-u` is for
+choosing *another* user's crontab and needs root. As `deploy`, editing
+your own crontab takes no flag.
+
+**Then prove it runs**, rather than waiting until 02:15 to find out — run
+the crontab line by hand once and check `backups/` holds a `.db` file
+and the log holds no error.
 
 **A local backup is not a backup.** Copy the directory off the machine —
 `rclone`/`rsync` to object storage or another host, on the same schedule.
@@ -349,28 +388,49 @@ change to the storage setup. It is the only way to know the backups work.
 # 1. Take a backup and note the file
 scripts/backup-db.sh ./backups
 
-# 2. Stop the app so nothing writes during the swap
+# 2. Create a marker the backup CANNOT contain — see the note below on
+#    why a drill without one proves nothing.
+$COMPOSE exec -T php bin/console app:user:create \
+    --email=drill@example.invalid --full-name="Drill Marker" \
+    --password=drill-throwaway </dev/null
+
+# 3. Stop the app so nothing writes during the swap
 $COMPOSE down
 
-# 3. Replace the live database with the backup, inside the volume
+# 4. Replace the file, clear the sidecars and fix ownership, in one
+#    container. Use the APP's OWN IMAGE: it is already on the machine, so
+#    the restore has no network dependency. A restore is exactly when you
+#    cannot assume a registry is reachable. `--entrypoint sh` is required
+#    — the image entrypoint runs `dbal:run-sql` and fails outside compose.
+IMG=$(docker compose --env-file deploy.env -f compose.yaml -f compose.prod.yaml \
+        images -q php | head -1)
 docker run --rm -v mikono_db_data:/data -v "$PWD/backups:/backups" \
-    debian:13-slim \
-    cp /backups/<chosen-backup>.db /data/data_prod.db
+    --entrypoint sh "$IMG" -c '
+        cp /backups/<chosen-backup>.db /data/data_prod.db
+        # A clean `down` leaves no sidecars, but a crashed container can
+        # leave a journal (or -wal/-shm if WAL is ever enabled), and
+        # SQLite would replay it onto the file you just restored.
+        rm -f /data/data_prod.db-journal /data/data_prod.db-wal /data/data_prod.db-shm
+        chown 33:0 /data/data_prod.db      # 33 = www-data
+        ls -l /data/data_prod.db'
 
-# 4. Remove any stale SQLite sidecar files. A clean `down` leaves none,
-#    but a crashed container can leave a journal (or -wal/-shm if WAL is
-#    ever enabled), and SQLite would try to replay it onto the file you
-#    just restored.
-docker run --rm -v mikono_db_data:/data debian:13-slim \
-    sh -c 'rm -f /data/data_prod.db-journal /data/data_prod.db-wal /data/data_prod.db-shm'
-
-# 5. Restore ownership expected by the image, then start
-docker run --rm -v mikono_db_data:/data debian:13-slim \
-    chown 33:0 /data/data_prod.db     # 33 = www-data
+# 5. Start
 $COMPOSE up -d --wait
 
-# 6. Log in and confirm the data is there
+# 6. Confirm the marker is GONE, and that migrations were not replayed
+$COMPOSE exec -T php php -r '
+    $p = new PDO("sqlite:/app/var/data/data_prod.db");
+    foreach ($p->query("SELECT email FROM \"user\"") as $r) { echo $r["email"], "\n"; }
+' </dev/null
+$COMPOSE logs php | grep -i "latest version"
 ```
+
+**`</dev/null` on every `compose exec -T` is not decoration.** `-T`
+attaches stdin, so if you drive these steps from a script piped into
+`ssh bash -s`, the console command silently eats the *rest of the
+script* as its input and everything after it is skipped — with no error.
+That is how the first attempt at this drill failed. Run drills from a
+file on the server, or redirect stdin as above.
 
 Check the volume's real name first with `docker volume ls` — Compose
 prefixes it with the project directory name.
@@ -387,6 +447,19 @@ failure recorded in [`done.md`](done.md) for 2026-09-01.
 These steps were executed for the first time on 2026-09-03 against the
 dry-run stack in §10 and worked as written, apart from the journal step
 above, which was missing.
+
+**Re-run on the real server (`srv-mikono`) on 2026-09-05, and it
+passed.** One account before, a `drill@example.invalid` marker created
+after the backup, `down`, restore, `up -d --wait` healthy — and the
+marker **gone**, leaving only the original account. The entrypoint logged
+`[OK] Already at the latest version` rather than replaying migrations,
+which is the failure recorded in [`done.md`](done.md) for 2026-09-01.
+Restored file owned `www-data:root`, 94 208 bytes.
+
+That run is also why step 4 above no longer uses `debian:13-slim`: it was
+not on the machine and had to be pulled mid-restore. It worked, but it
+put a registry round-trip in the middle of the one procedure that must
+work when things are already going badly.
 
 ## 8. Monitoring and logs
 
