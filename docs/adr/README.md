@@ -44,3 +44,4 @@ drafts and maintains these.
 | [0014](0014-make-a-volunteers-last-name-optional.md) | Make a volunteer's last name optional | Accepted |
 | [0015](0015-keep-a-projects-region-in-its-location-not-its-name.md) | Keep a project's region in its `location`, not in its name | Accepted |
 | [0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md) | Admit Node.js as a test dependency and ancillary tool, never as application code | Accepted |
+| [0017](0017-host-production-on-gandicloud-vps-in-france.md) | Host production on GandiCloud VPS in France, not in Kenya | Accepted |

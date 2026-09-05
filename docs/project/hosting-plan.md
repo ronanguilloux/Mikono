@@ -94,6 +94,17 @@ the `frankenphp_dev` stage only.
 
 ### The name: a subdomain of `guilloux.org` (decided 2026-09-04)
 
+> **Superseded for production on 2026-09-05, still correct for UAT.**
+> `deploy.mikono.guilloux.org` is not a throwaway: it is the **UAT
+> environment** where UCESCO accepts the app, and it stays. Production
+> will run under a **UCESCO subdomain** instead, pending the meeting with
+> Nickson in September 2026 — see [`next-steps.md`](next-steps.md).
+> `mikono.guilloux.org` was never created and probably will not be. The
+> mechanics below still apply to whichever name production ends up with;
+> what changes is that the record is UCESCO's to create, not ours, and
+> two distinct hostnames never contend for the duplicate-certificate
+> budget the throwaway was invented to protect.
+
 A hostname is **required**, not optional — `SERVER_NAME` must be a real
 domain or Caddy never asks for a certificate. But it does not have to be
 bought: the maintainer already owns `guilloux.org`, so the name is two
@@ -187,6 +198,14 @@ restore drill is written out as steps in
 the app carries real data, and after any change to the storage setup.
 
 ## 5. Where to host
+
+> **Decided on 2026-09-05: GandiCloud VPS in France — see ADR 0017.**
+> Kenyan hosting is not being pursued for now, and
+> [`provider-questions.md`](provider-questions.md) was never sent. The
+> evaluation below is kept in full as the ADR's cited evidence and as the
+> starting point if the question is ever reopened; note that it ranks
+> Nairobi first, which ADR 0017 knowingly overrides on cost and on
+> evidence in hand. Read it as research, not as an open question.
 
 The stated reason for hosting in Kenya is network latency for users in
 Kibera and Mombasa. That instinct points at the right country for the
@@ -528,14 +547,9 @@ answered on its own terms rather than assumed away.
   §5 surfaces on the Nairobi box either way. The consequence to accept
   knowingly: the first real deploy debugs two unknowns at once, the
   runbook and the provider.
-- **Provider and region** — narrowed, not settled. Shared hosting is
-  eliminated (§5); the shortlist is now four — Lineserve, Truehost,
-  Hostnali and HostPinnacle — subject to the five questions in §5.
-  Becomes an ADR once decided. The thing that most needs an answer is
-  no longer price but **location**: HostPinnacle's plan is five to ten
-  times cheaper per GB than every provider that names Nairobi, which is
-  the price of European stock, and its page does not say where the
-  machine is.
+- ~~**Provider and region**~~ — **closed on 2026-09-05 by ADR 0017**:
+  GandiCloud VPS in France, with the Kenyan shortlist not pursued. The
+  evaluation that led there is kept in §5 as that ADR's evidence.
 - **Domain name — narrowed, not closed.** The DuckDNS question is
   settled and settled cheaply: `mikono.guilloux.org` (§3) costs nothing,
   keeps the namespace in an account the project controls, and needs no
@@ -547,10 +561,18 @@ answered on its own terms rather than assumed away.
   and it is invisible until the day it matters. That is the same
   objection §3 raised against DuckDNS, weaker in degree but not in kind.
   The coherent end state is a UCESCO-held name, and a `.co.ke` at a few
-  hundred shillings against the ~$275/year hosting bill (§5) is rounding
-  error. Move when the app is UCESCO's rather than a pilot; **the
-  trade-off belongs in the Consequences section of the hosting ADR**,
-  not only here.
+  hundred shillings against the hosting bill (§5) is rounding error.
+
+  **This is now moving, and in the right direction.** Production will run
+  under a **UCESCO subdomain** rather than under `guilloux.org` at all —
+  pending feasibility, to be settled with Nickson, UCESCO's technical
+  contact, in September 2026 (see [`next-steps.md`](next-steps.md)).
+  `deploy.mikono.guilloux.org` stays as the UAT environment, so the
+  maintainer's personal domain keeps serving the box UCESCO tests
+  against, not the one holding their volunteers' data. That retires the
+  domain half of this dependency; the VPS itself remains in a personal
+  Gandi account, which is the half still open, and both are recorded in
+  ADR 0017's Consequences.
 - **SQLite journal mode.** The database runs in SQLite's default
   rollback-journal mode. Switching to WAL (plus a `busy_timeout`) would
   make concurrent readers and a writer coexist far more gracefully, and

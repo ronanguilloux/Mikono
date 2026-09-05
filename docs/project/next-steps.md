@@ -12,85 +12,102 @@ has been built and how it got there — read `done.md`, `git log`, or
 
 ## Before real data can land on the server
 
-The pilot is live at `deploy.mikono.guilloux.org` with **no real data**
-(`done.md`, 2026-09-05). Two things gate putting any on it, in this order:
+Production stays on GandiCloud VPS in France (ADR 0017).
+`deploy.mikono.guilloux.org` is the **UAT environment**, live with **no
+real data** (`done.md`, 2026-09-05); it is where UCESCO accepts the app,
+and it stays after production exists rather than being retired into it.
+Production is a **separate deployment on the same stack and the same
+provider**, under a UCESCO subdomain — see the next section, which is
+where that is still unsettled. Three things gate real data:
 
 1. **An encrypted off-site copy of the backups.** The daily cron runs and
    the restore drill passed, but every copy still sits on the same disk as
    the database it protects, which is not a backup. `rclone` with a crypt
-   remote, key held off the server. [`hosting-plan.md`](hosting-plan.md)
-   §4 explains why the destination is not a free choice — it is the same
-   residency question as the server's.
-2. **Then the cutover** to `mikono.guilloux.org`: an added A/AAAA pair at
-   the same IP, `SERVER_NAME` and `DEFAULT_URI` changed, redeploy, delete
-   the `deploy.` records. The throwaway hostname exists to keep Let's
-   Encrypt's duplicate-certificate budget (five per week per hostname) off
-   the real name — the one failure in this sequence that retrying does not
-   fix.
+   remote, key held off the server. The destination question is settled by
+   ADR 0017 — it follows the server into Europe — so what is left is
+   mechanical: install `rclone`, configure the crypt remote, add the push
+   to the existing cron line in
+   [`deployment-plan.md`](deployment-plan.md) §7, then drill a restore
+   *from the off-site copy* rather than from the local one. Note the crypt
+   layer is what keeps the destination cheaply changeable later: the
+   remote holds ciphertext, and the key never goes on the server.
 
-**Standing constraint on this box:** 1 GB of RAM is
-[`hosting-plan.md`](hosting-plan.md) §2's minimum, not its
-recommendation, and a 2 GB swapfile is doing the work of the missing
-gigabyte. Resize the plan before real volunteer data lands.
+   The copy that has to exist is **production's**, not UAT's — but doing
+   it on the UAT box first is a free rehearsal of exactly the procedure,
+   in the spirit of [`deployment-plan.md`](deployment-plan.md) §10. Give
+   production its own remote and its own key rather than sharing UAT's.
+2. **Resize off the 1 GB plan.** V-R1 is
+   [`hosting-plan.md`](hosting-plan.md) §2's minimum, not its
+   recommendation, and a 2 GB swapfile is doing the work of the missing
+   gigabyte. Price the 2 GB tier and move to it.
+3. **A production hostname that resolves.** Mechanically this is small —
+   A/AAAA records at the production box's IP, `SERVER_NAME` and
+   `DEFAULT_URI` set to that name, deploy — but the name is not ours to
+   create, so it is the item below, not this one.
 
-## The hosting decision, and the ADR it owes
+Let's Encrypt's duplicate-certificate budget (five per week per hostname)
+no longer pits UAT against production — two distinct names never contend
+for it. But it still applies to the **production name itself**, and that
+name will be UCESCO's, which makes exhausting its budget on a fumbled
+first deploy considerably more awkward than burning a throwaway's. So
+keep the pattern that worked in September: bring the production box up on
+a spare `guilloux.org` name we control, get a clean deploy, and only then
+have UCESCO point the real record at it.
 
-Send [`provider-questions.md`](provider-questions.md) — written to go
-unchanged to all four Kenyan candidates (Lineserve, Hostnali, Truehost,
-HostPinnacle) — then read the replies. Nothing has been sent.
+## The meeting with Nickson (September 2026)
 
-The question is no longer "which Kenyan provider". GandiCloud VPS
-(France) clears §1–§4 on everything but a contradicted snapshot answer,
-at roughly a third of the Nairobi cost, on the account that already holds
-`guilloux.org`. So the choice is **~$275/year in Kenya with no
-cross-border paperwork, against ~$78/year in France with a transfer
-safeguard someone has to own**. That is UCESCO's call, not an
-architecture call; [`hosting-plan.md`](hosting-plan.md) §5 states it in
-one sentence to put in front of them. Price Gandi's 2 GB tier before
-comparing — the €6 V-R1 is §2's minimum, not its recommendation.
+**This is what gates production.** Nickson is UCESCO's technical contact,
+and the production hostname is a UCESCO subdomain that only UCESCO can
+create. Nothing below is code; all of it decides where the code runs.
 
-**If the answer is Kenya, question 1 decides it: where is the machine
-physically?** HostPinnacle's 1,100 KSh plan is five to ten times cheaper
-per GB than everything that names Nairobi, which is the price of European
-stock, and its page does not say. Budget for the honest Nairobi number —
-2,600–3,000 KSh/month plus VAT for the §2 recommended box, about
-**$260–290/year**.
+The good news first: a UCESCO-held name is what
+[`hosting-plan.md`](hosting-plan.md) §6 has been asking for. It retires
+half of ADR 0017's governance concern on its own — the domain and DNS
+stop depending on one individual's personal Gandi account, leaving only
+the server there.
 
-Four arguments belong in the ADR when it is written:
+**Ask about the name and the DNS:**
 
-- **Latency points at the right country for the wrong reason.** It
-  plausibly saves well under a second per working session once the mobile
-  access leg is counted. The stronger argument is that this app holds
-  personal data about Kenyan volunteers and Kenya's Data Protection Act
-  2019 constrains taking it out of the country. The `mtr` / `curl -w`
-  protocol in §5 is worth running for the record if someone is already in
-  Mombasa, but it must not block: §5 argues latency is not the deciding
-  factor, so latency numbers cannot decide it. The ranking to test
-  against is Nairobi, then South Africa, then Europe — and *not* a
-  European VPS behind Cloudflare, for the reasons in that section.
-- **State the legal argument at its real size.** Kenya's DPA Part VI
-  permits transfer abroad with appropriate safeguards or consent, and the
-  localisation provision targets strategic and public-service categories
-  that NGO volunteer records almost certainly fall outside. Hosting in
-  Kenya is choosing not to have to document a safeguard, not
-  compliance-by-necessity. The smaller true claim makes a more durable
-  ADR. Not legal advice — if UCESCO has counsel or a DPO, that sentence
-  is the one to show them.
-- **The choice is cheaply reversible** — migrating is a `docker compose
-  pull`, one SQLite file and a DNS record, which the restore drill mostly
-  rehearses. It does not warrant being de-risked like a one-way door.
-- **Provider maturity is a weaker argument against Nairobi than it
-  looks**, for the mirror of §5's own reason about latency: at one user
-  logging volunteer activity, a six-hour outage means a day written on
-  paper. The risk that matters is data loss, which backups address and
-  provider maturity barely touches.
+- What is the parent domain, who administers its DNS, and can they add a
+  subdomain pointing at an IP we control? A `CNAME` is fine if an
+  A/AAAA pair is not on offer.
+- **What is the turnaround on a DNS change, and who can make one?** This
+  is the question that matters most and the one most likely to be
+  waved through. Certificates are issued by Let's Encrypt over HTTP-01,
+  so the name must resolve to the box *before* the first deploy
+  succeeds — and it must keep resolving, because renewal happens
+  unattended every 60 days. A DNS that lives behind someone else's
+  ticket queue is an operational dependency, not a one-off form to fill
+  in.
+- Does UCESCO want the VPS itself in a UCESCO account eventually? That
+  is the other half of ADR 0017's governance concern, and it is a
+  billing conversation more than a technical one.
 
-**Whose name the domain is in is still open.** `guilloux.org` is the
-maintainer's, not UCESCO's, so the app outlives one person's registrar
-renewals only once a UCESCO-held name exists. A `.co.ke` at a few hundred
-shillings against the hosting bill is rounding error — a conversation to
-have with UCESCO when the app is theirs rather than a pilot, per
-[`hosting-plan.md`](hosting-plan.md) §6.
+**Ask about the data-protection safeguard**, which the meeting is the
+natural place to raise even though it is not Nickson's to sign:
+production is in France and holds personal data about Kenyan volunteers.
+Kenya's Data Protection Act 2019 Part VI permits transfer abroad with
+appropriate safeguards or consent, and France is an easy jurisdiction to
+argue one for — so this is defensible, not a problem to fix. But somebody
+at UCESCO has to own the documentation, and UCESCO has no DPO. The
+sentence to put in front of them is in
+[`hosting-plan.md`](hosting-plan.md) §5. Not legal advice; if UCESCO has
+counsel, that is the sentence to show them.
+
+**One decision the meeting does not settle, so make it separately:
+one box or two.** UAT and production are two deployments, and V-R1 at
+1 GB will not host both — a single FrankenPHP worker with a 256 MB
+opcache is already why that box needs a 2 GB swapfile. Either production
+gets its own VPS (a second bill, a second backup cron, and UAT stays
+genuinely isolated from real data), or the boxes are resized and share
+one. Decide before the DNS exists, because the answer is the IP the
+record has to point at.
+
+**If the question ever reopens**, none of the research was thrown away:
+[`hosting-plan.md`](hosting-plan.md) §5 keeps the Nairobi candidates
+table, the five pre-sales questions and the ranking that put Kenya first,
+and [`provider-questions.md`](provider-questions.md) is still the email to
+send. ADR 0017 is what a superseding ADR would have to argue against.
 
 ## Deferred until a second `User` account exists
 

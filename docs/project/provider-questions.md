@@ -2,6 +2,12 @@
 
 **Last updated:** 2026-09-04
 
+> **Dormant since 2026-09-05: this was never sent, and is not going to be
+> for now.** Production is on GandiCloud VPS in France (ADR 0017). Kept
+> ready to send unchanged if the Kenyan option is ever reopened — the
+> candidates it addresses are in
+> [`hosting-plan.md`](hosting-plan.md) §5.
+
 The five questions in
 [`hosting-plan.md`](hosting-plan.md#five-questions-to-ask-before-paying),
 written as one email to send unchanged to every candidate. Send it to
@@ -53,13 +59,13 @@ rather than a guessed mailbox:
 > Two smaller ones, if they are not already on the plan's page: **is
 > IPv6 included**, and **is the CPU x86-64 rather than ARM?** The
 > application image is built for x86-64 only.
+>
+> Thank you,
+> [NAME]
 
 The x86-64 question looks pedantic and is not: `hosting-plan.md` §2
 publishes an amd64-only image, so an arm64 instance chosen on price will
 simply fail to start the container.
->
-> Thank you,
-> [NAME]
 
 ## Recording the answers
 

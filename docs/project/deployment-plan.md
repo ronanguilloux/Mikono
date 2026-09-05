@@ -405,8 +405,13 @@ and the log holds no error.
 
 **A local backup is not a backup.** Copy the directory off the machine —
 `rclone`/`rsync` to object storage or another host, on the same schedule.
-Choose the destination with the same data-residency reasoning as the
-server itself ([`hosting-plan.md`](hosting-plan.md) §5).
+The destination follows the server rather than being chosen freshly:
+production is in France (ADR 0017), so a European remote raises no
+question that decision has not already answered. Use an `rclone` **crypt**
+remote with the key held off the server — the destination then holds
+ciphertext it cannot read, which is both the right posture for a file
+containing every volunteer record and what keeps the destination cheaply
+changeable later.
 
 ### Restore drill
 
