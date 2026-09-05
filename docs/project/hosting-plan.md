@@ -1,6 +1,6 @@
 # Hosting plan
 
-**Last updated:** 2026-09-03
+**Last updated:** 2026-09-04
 
 What Mikono's architecture requires of a server, and where that server
 should be. A living document — it is edited in place as the answers firm
@@ -13,8 +13,11 @@ deferred question gets answered. The *how to ship it* half lives in
 **Still open:** which provider. The *class* of machine is settled — a
 KVM VPS with root, in Nairobi if a provider clears the bar in §5 — and
 shared hosting is ruled out entirely, for reasons set out there. What
-remains is the choice between two named candidates, and that becomes an
-ADR once someone has run the measurements from Nairobi and Mombasa.
+remains is the choice among four named candidates (§5, verified against
+the providers' own pages on 2026-09-04), and that becomes an ADR once
+the five pre-sales questions are answered in writing —
+[`provider-questions.md`](provider-questions.md) is the email that asks
+them.
 
 ## 1. What the architecture forces
 
@@ -89,9 +92,44 @@ the `frankenphp_dev` stage only.
   see the proxy's IP and mis-detect the scheme. That is a config change,
   not a drop-in.
 
-### Getting a name without buying one
+### The name: a subdomain of `guilloux.org` (decided 2026-09-04)
 
-The A record and the real `SERVER_NAME` above are requirements; *paying a
+A hostname is **required**, not optional — `SERVER_NAME` must be a real
+domain or Caddy never asks for a certificate. But it does not have to be
+bought: the maintainer already owns `guilloux.org`, so the name is two
+DNS records and no money.
+
+- `SERVER_NAME=mikono.guilloux.org` — the real one. An A record at the
+  server's IPv4, plus AAAA if the VPS has IPv6.
+- `SERVER_NAME=deploy.mikono.guilloux.org` — the throwaway the box is
+  *brought up* on, per [`next-steps.md`](next-steps.md) item 0. It exists
+  to keep Let's Encrypt's five-duplicate-certificates-per-week budget off
+  the real hostname while the first deploy is still error-prone. Delete
+  the record once the real name is live.
+
+DNS for `guilloux.org` is at **Gandi.net** (LiveDNS), which changes
+nothing technically and helps twice in practice: it has an HTTP API, so
+a record can be created or re-pointed from a script rather than a web
+form, and both records are plain A/AAAA entries — no CNAME flattening or
+proxy layer that would interfere with Caddy's HTTP-01 challenge.
+
+**The cutover is an addition, not a re-point.** `mikono.guilloux.org` is
+a *new* A record at the same IP as `deploy.mikono.guilloux.org`, so
+there is no propagation window to plan around and no TTL to lower
+beforehand: create the record, change `SERVER_NAME` in `deploy.env`,
+redeploy, and Caddy issues a second certificate on first request. Delete
+the `deploy.` record afterwards.
+
+This is strictly better than the free-subdomain route below: same cost
+(nothing), same mechanics, and the namespace stays in a registrar
+account the project controls. See §6 for the part this does *not*
+settle — `guilloux.org` is the maintainer's domain, not UCESCO's.
+
+### Getting a name without buying one — the fallback
+
+Kept for the case where `guilloux.org` is unavailable or the project
+needs a name unattached to any individual before a `.co.ke` exists. The
+A record and the real `SERVER_NAME` above are requirements; *paying a
 registrar* is not. A free subdomain satisfies both:
 
 - **DuckDNS** — the pick of the three: it serves A **and** AAAA records
@@ -231,7 +269,9 @@ rather than assuming them:
    region are Graviton/arm64 (`t4g.*`), which the amd64-only image in §2
    cannot run as built. Reopens the cross-border data question.
 3. **Europe** — cheapest and most mature, worst on both latency and data
-   residency. Last resort.
+   residency. Last resort, but no longer an abstraction: the concrete
+   candidate is **GandiCloud VPS** (evaluated 2026-09-04, below), and it
+   is cheap enough that the ranking now costs real money to obey.
 
 **Not recommended: a European VPS behind Cloudflare.** It looks like the
 clever compromise — a Nairobi edge PoP terminating TLS locally kills most
@@ -243,39 +283,207 @@ trades a settled question for three unsettled ones.
 
 ### Candidates
 
-Two Nairobi providers, both advertising unmanaged KVM — which is a claim
-to check, not a fact, hence the questions below:
+Verified against each provider's own pricing page on **2026-09-04**
+(prices exclude 16% VAT; Truehost's are the three-year billing rate):
 
-| Provider | Plan | Price | Specification |
-| --- | --- | --- | --- |
-| HostPinnacle | SM VPS 1 | ~1,100 KSh/month | 4 vCPU / 6 GB |
-| Truehost | VPS Kenya | ~1,400 KSh/month | not recorded — ask |
+| Provider | Plan | Price/month | Spec | Nairobi? |
+| --- | --- | --- | --- | --- |
+| Lineserve | Cloud Server, built to order | ~2,630 KSh (2 vCPU / 2 GB / 40 GB) | à la carte: 433/vCPU, 306/GB RAM, 25/GB disk, 150/IPv4 | **Stated** — `ke-1a`, Nairobi |
+| Truehost | Kenya Cloud VPS 2 | 2,800 KSh | 1 vCPU / 2 GB / 50 GB SSD | **Stated** — Nairobi |
+| Truehost | Kenya Cloud VPS 3 | 5,600 KSh | 2 vCPU / 4 GB / 100 GB SSD | **Stated** — Nairobi |
+| Hostnali | KE VPS-Plus | 4,360 KSh | 1 vCPU / 2 GB / 40 GB NVMe | **Stated** — Nairobi, KIXP-peered |
+| HostPinnacle | SM-VPS 1 | 1,100 KSh | 4 vCPU / 6 GB / 100 GB NVMe | **Not stated — the open question** |
 
-HostPinnacle's plan is three times the 2 GB recommended in §2, which
-settles the last of the maturity criteria above: the recommended size is
-affordable here, so there is no reason to run this app on the 1 GB
-minimum.
+**The earlier reading of HostPinnacle was wrong, and the correction
+changes the shape of the decision.** §5 previously treated 1,100 KSh for
+4 vCPU / 6 GB as evidence that in-country hosting is cheap enough to
+skip the 1 GB minimum. It is not evidence of that, because nothing on
+that plan's page says where the machine is. Every provider that *does*
+name Nairobi charges five to ten times more per GB of RAM, and the
+providers who sell both are explicit about the split — Truehost's
+Europe/USA "Cloud VPS 1" is 788 KSh for 2 GB against 2,800 KSh for the
+same 2 GB in Nairobi; Hostnali's international Starter is 1,480 KSh for
+8 GB against 4,360 KSh for 2 GB in Nairobi. HostPinnacle's number sits
+squarely in the first column. Its VPS marketing page lists thirteen
+African countries as "locations", which reads as an SEO list rather than
+thirteen datacentres.
 
-Prices and specifications are as quoted on 2026-09-01 and **have not been
-verified against the providers' own pages**. Confirm before paying, and
-replace the numbers here with what was actually quoted.
+So the price question is not "which Kenyan provider is cheapest" but
+**"is this plan Kenyan at all"** — and that is the same question as §5's
+data-residency argument, asked about a price. It is question 1 below for
+that reason.
 
-### Four questions to ask before paying
+The realistic cost of the §2 recommended 2 vCPU / 2 GB box **in Nairobi**
+is 2,600–3,000 KSh/month plus VAT, roughly $22–24/month or **$260–290 a
+year** — not the ~$100/year figure used elsewhere in these documents.
+Two consequences: the recommended size is still affordable, but it is a
+real line item worth naming to UCESCO before committing; and the
+`.co.ke` domain argument in §6 gets stronger, not weaker, since a few
+hundred shillings a year against ~$275 is rounding error.
 
-Each of these maps to a hard requirement above, so ask them of any
-candidate — the answers are rarely on the pricing page:
+**Lineserve and Hostnali are new to this list** and were not considered
+in the 2026-09-01 review. Both publish answers to three of the five
+questions below on their own pages — KVM, full root, native IPv6 /64,
+and in Lineserve's case on-demand snapshots and scheduled backups —
+which is itself a maturity signal that HostPinnacle and Truehost do not
+give. Lineserve's per-unit pricing also means the box can be sized to
+§2 exactly rather than to a plan tier.
 
-1. **KVM or OpenVZ?** An OpenVZ VPS does not run Docker properly.
+### Five questions to ask before paying
+
+Each maps to a hard requirement above, so ask them of any candidate —
+most answers are not on the pricing page. Get them **in writing**; the
+answer to a pre-sales email is also a sample of the support
+responsiveness §5 asks you to evaluate.
+
+1. **Which datacentre is this plan physically in?** The whole of §5
+   rests on the answer. Ask for the facility, not the country — a
+   Nairobi answer should be able to name iColo, PAIX, or Safaricom, and
+   a provider that will not say is answering.
+2. **KVM or OpenVZ?** An OpenVZ VPS does not run Docker properly.
    Require KVM (§2).
-2. **Is the VPS unmanaged?** One shipped with cPanel/CloudLinux will
+3. **Is the VPS unmanaged?** One shipped with cPanel/CloudLinux will
    fight Docker for ports 80 and 443 (§1).
-3. **Is UDP traffic on port 443 filtered, inbound and outbound?** Many
+4. **Is UDP traffic on port 443 filtered, inbound and outbound?** Many
    hosts block UDP by default as an anti-DNS-amplification measure.
    Without it there is no HTTP/3 (§3). The
    `curl -sI --http3` check in [`deployment-plan.md`](deployment-plan.md)
    §5 is how you confirm the answer was true.
-4. **Is IPv6 provided?** It is one of the maturity criteria above, and
-   it is often the weak point of Kenyan VPS offerings.
+5. **Are snapshots offered, and has anyone restored one?** The second
+   half is the point — a snapshot feature nobody has exercised is worth
+   what an untested backup is worth (§4). Ask, too, how long a restore
+   takes and whether it can be self-served from the panel at 2am.
+
+**Not a sixth question: an OpenStack (or any other) provisioning API.**
+It is tempting because it looks like the mark of a real cloud, but it
+maps to no requirement in §1–§4. This is one machine, one container and
+one SQLite file: the entire infrastructure lifecycle is *create the VPS
+once*, *snapshot it*, *restore it*, and *maybe resize it in a year* —
+four panel clicks, not a fleet. Deployment itself is `pull` + `up -d`
+over SSH ([ADR 0010](../adr/0010-build-in-ci-and-deploy-by-image-pull.md)),
+which no infrastructure API touches, and the one thing genuinely worth
+scripting — DNS — is Gandi's LiveDNS API, not the host's (§3).
+
+Its real value is as **evidence, not capability**: a provider exposing an
+OpenStack-compatible API is almost certainly running genuine KVM with
+self-service snapshots, console access, rebuild-from-image and proper
+IPv6 allocation — which are the maturity criteria above. So treat it as
+a tie-breaker that corroborates the answers to questions 2 and 5, never
+as a filter. Making it a requirement would eliminate candidates on a
+criterion this architecture cannot spend.
+
+A sixth question, if IPv6 is not already on the page: **is IPv6
+provided?** It is
+one of the maturity criteria above and often the weak point of Kenyan
+VPS offerings. Lineserve, Hostnali and HostPinnacle all publish a /64;
+Truehost does not say.
+
+The email that asks all of this is drafted in
+[`provider-questions.md`](provider-questions.md) — send it to all four
+and compare the replies side by side.
+
+### The European candidate, named: GandiCloud VPS
+
+Evaluated 2026-09-04 against the five questions. It matters because it
+turns tier 3 of the ranking from a shrug into a priced alternative, and
+because `guilloux.org` is already at Gandi (§3) — one account, one
+invoice, one support channel, DNS and server together. For a project
+with one maintainer that is a real operational simplification, not a
+rounding error.
+
+**Where it passes cleanly.** Unmanaged with full root and no bundled
+control panel, so nothing is holding ports 80 or 443 on delivery (§1).
+IPv4 **and** IPv6 on every plan. The platform is OpenStack with the
+public API exposed and Gandi documents deploying container
+infrastructure over it, which is exactly the corroboration the
+"not a sixth question" note below says an OpenStack API is good for —
+it means KVM in practice, even though Gandi never writes the word.
+Gandi owns and operates its own datacentres rather than reselling rack
+space, which is a stronger chain-of-custody claim than any Kenyan
+candidate has made.
+
+**And it is not the Cloudflare anti-pattern.** A plain VPS in France is
+not "a European VPS behind Cloudflare": there is no proxy terminating
+TLS, Caddy's HTTP-01 challenge works untouched, and
+`framework.trusted_proxies` stays unset. It carries one honest cost, not
+three unsettled ones.
+
+**Where it is weak.**
+
+- **France, and no more precise than that** — the offer does not let you
+  choose a location and the datacentre is named only as `FR-SD6`. Fine
+  for chain of custody, useless if anyone ever wants a named facility on
+  a form.
+- **V-R1 (1 CPU / 1 GB, €6/month incl. VAT) is §2's *minimum*, not its
+  recommendation.** FrankenPHP in worker mode with
+  `opcache.memory_consumption=256` sits at 300–600 MB, and a deploy
+  briefly runs the old and new containers at once. It will probably work
+  and it will have no headroom. **Price the 2 GB tier before comparing
+  anything** — the €6 figure is not the number to put next to Nairobi's
+  2,600–3,000 KSh.
+- **Snapshots are contradicted by Gandi's own page** (spec table says
+  manual and automatic, FAQ still says "coming soon"). Live
+  documentation exists, so the FAQ is probably stale — but this is
+  question 5, and it is the one where an answer in writing matters. Note
+  it is a maturity signal here rather than a dependency: §4's backups are
+  `backup-db.sh` plus an off-site copy, never the provider's snapshots.
+- **UDP on 443 unpublished**, so HTTP/3 is unverified (§3) — though the
+  §3 argument for HTTP/3 was resilience on a *Kenyan mobile* network, and
+  hosting in France has already conceded that ground.
+- **Support is email-only, six days a week, 08:00–24:00 Paris.** That is
+  better than it sounds from Nairobi — roughly 09:00–01:00 East Africa
+  Time — but the maturity criterion above is specifically "when the
+  machine is down at 2am", and 2am Nairobi falls outside it.
+- **Architecture is not documented anywhere, and there is positive
+  reason to think ARM exists in the catalogue.** Checked on 2026-09-04:
+  Gandi's VPS documentation, its FAQ, the GandiCloud API reference, the
+  `gandi.net/cloud` product page and the *Numérique de Confiance*
+  catalogue entry all say nothing about CPU architecture. The one source
+  that does — Cloud Mercato's Public Cloud Reference — states the offer
+  covers "both x86 architecture and arm architecture", while admitting
+  it holds no standardized samples. So this is **unconfirmed, not
+  benign**: §2's amd64-only image will not start on arm64, and §2's own
+  warning is precisely about an arm instance "chosen on price and then
+  found unable to start the container".
+
+  Two things keep it from being a blocker. It is a *selection* risk, not
+  a compatibility one — if both architectures are offered you simply
+  pick the x86 flavour, and `uname -m` on first boot settles it in one
+  second (now the first line of
+  [`deployment-plan.md`](deployment-plan.md) §9). And GandiCloud VPS is
+  OpenStack with the public API exposed, so `openstack flavor list` and
+  the images' `architecture` property answer it definitively the moment
+  an account exists — the API earning its keep as evidence exactly as
+  described below. Ask sales before paying; verify on the box after.
+
+  The permanent fix, if this ever bites twice, is
+  `platforms: linux/amd64,linux/arm64` in
+  [`build-image.yml`](../../.github/workflows/build-image.yml) — §2 notes
+  it roughly doubles build time, which is not worth paying today.
+
+**The verdict is not technical.** GandiCloud VPS clears §1–§4 on
+everything except a snapshot answer and two unasked questions. At
+roughly €72/year against 2,600–3,000 KSh/month (~$275/year) in Nairobi,
+it is about **a third of the cost** — so the choice it forces is the one
+§5 has been circling all along, stated plainly:
+
+> Pay ~$275/year to host in Kenya and never have to document a
+> cross-border transfer, or pay ~$78/year to host in France and own that
+> paperwork.
+
+Kenya's DPA Part VI permits transfer abroad with appropriate safeguards
+or consent, and France is about the easiest jurisdiction in the world to
+argue a safeguard for. So the Gandi option is *defensible*, not
+disqualified — but it converts a settled question into an ongoing
+obligation that a small NGO with no DPO has to actually own. That is a
+budget-and-governance decision for UCESCO, not an architecture decision,
+and it is the sentence to put in front of them.
+
+One thing it makes worse, and it is worth saying out loud: the domain is
+already in the maintainer's personal Gandi account (§6). Putting the
+server there too concentrates the name, the DNS and the machine in one
+individual's account. It does not change the technical picture; it does
+double the governance dependency §6 already flags.
 
 ### Measure before deciding
 
@@ -319,17 +527,28 @@ answered on its own terms rather than assumed away.
   knowingly: the first real deploy debugs two unknowns at once, the
   runbook and the provider.
 - **Provider and region** — narrowed, not settled. Shared hosting is
-  eliminated (§5); the shortlist is HostPinnacle SM VPS 1 and Truehost
-  VPS Kenya, subject to the four questions and the measurements above.
-  Becomes an ADR once decided.
-- **Domain name.** A free DuckDNS subdomain (§3) is enough to get a
-  pilot onto a real certificate, and it costs nothing. But it hands the
-  project's namespace to a third party — for an app holding personal data
-  about Kenyan volunteers, on a server chosen largely to keep that data
-  in Kenya. The day the Data Protection Act is the leading argument
-  rather than a supporting one, a `.ke` domain at a few hundred shillings
-  is the more coherent position than free. **This trade-off belongs in
-  the Consequences section of the hosting ADR**, not only here.
+  eliminated (§5); the shortlist is now four — Lineserve, Truehost,
+  Hostnali and HostPinnacle — subject to the five questions in §5.
+  Becomes an ADR once decided. The thing that most needs an answer is
+  no longer price but **location**: HostPinnacle's plan is five to ten
+  times cheaper per GB than every provider that names Nairobi, which is
+  the price of European stock, and its page does not say where the
+  machine is.
+- **Domain name — narrowed, not closed.** The DuckDNS question is
+  settled and settled cheaply: `mikono.guilloux.org` (§3) costs nothing,
+  keeps the namespace in an account the project controls, and needs no
+  registrar decision from UCESCO to get the pilot onto a real
+  certificate. What it does *not* settle is whose name it is.
+  `guilloux.org` belongs to the maintainer, not to UCESCO — so the app
+  is reachable only as long as one individual keeps renewing a personal
+  domain, which is a governance dependency rather than a technical one,
+  and it is invisible until the day it matters. That is the same
+  objection §3 raised against DuckDNS, weaker in degree but not in kind.
+  The coherent end state is a UCESCO-held name, and a `.co.ke` at a few
+  hundred shillings against the ~$275/year hosting bill (§5) is rounding
+  error. Move when the app is UCESCO's rather than a pilot; **the
+  trade-off belongs in the Consequences section of the hosting ADR**,
+  not only here.
 - **SQLite journal mode.** The database runs in SQLite's default
   rollback-journal mode. Switching to WAL (plus a `busy_timeout`) would
   make concurrent readers and a writer coexist far more gracefully, and

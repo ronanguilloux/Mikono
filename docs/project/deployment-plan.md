@@ -54,19 +54,57 @@ macOS. Use a shell function if in doubt; it behaves the same in both.
 ## 3. Server bootstrap (once)
 
 Run as root on a fresh VPS meeting the requirements in
-[`hosting-plan.md`](hosting-plan.md):
+[`hosting-plan.md`](hosting-plan.md).
+
+**On a cloud image you do not log in as root.** Gandi's Debian 13 image
+(verified on `srv-mikono`, 2026-09-04) admits you as **`debian`** with
+passwordless sudo; Ubuntu images use `ubuntu`. Root's own
+`authorized_keys` holds your key wrapped in a forced command that prints
+*"Please login as the user debian"* and exits. So:
+
+```bash
+ssh debian@<server-ip>
+sudo -i                            # now root, for everything below
+```
+
+**This matters beyond the first login, and it is a trap:** copying
+*root's* `authorized_keys` to the `deploy` user — which is what an
+earlier version of step 1 below did — copies that forced command with
+it, and `deploy` is then locked out with the same message. Take the key
+from the admin user's file, which is clean.
 
 ```bash
 # 1. A non-root user that owns the deployment
 adduser --disabled-password --gecos '' deploy
 usermod -aG docker deploy          # after Docker is installed, below
-mkdir -p /home/deploy/.ssh && cp ~/.ssh/authorized_keys /home/deploy/.ssh/
-chown -R deploy:deploy /home/deploy/.ssh && chmod 700 /home/deploy/.ssh
 
-# 2. SSH: keys only
-sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
-systemctl reload ssh
+# Copy the key from the cloud image's admin user (debian/ubuntu), NOT
+# from /root/.ssh — see the trap above.
+install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
+cp /home/"${SUDO_USER:-debian}"/.ssh/authorized_keys /home/deploy/.ssh/
+chown deploy:deploy /home/deploy/.ssh/authorized_keys
+chmod 600 /home/deploy/.ssh/authorized_keys
+
+# Verify: this must print your key with NO command="..." prefix.
+cat /home/deploy/.ssh/authorized_keys
+
+# 2. SSH: keys only.
+#    Do NOT sed /etc/ssh/sshd_config on a modern Debian/Ubuntu image: it
+#    begins with `Include /etc/ssh/sshd_config.d/*.conf`, and OpenSSH
+#    keeps the FIRST value it obtains for a keyword. A cloud image's
+#    50-cloud-init.conf is therefore read before the main file and wins,
+#    so the sed appears to work and changes nothing. Use a drop-in that
+#    sorts ahead of it, then assert the effective config rather than
+#    trusting the edit.
+cat > /etc/ssh/sshd_config.d/01-mikono.conf <<'SSHD'
+PasswordAuthentication no
+PermitRootLogin prohibit-password
+SSHD
+sshd -t && systemctl reload ssh
+sshd -T | grep -E '^(passwordauthentication|permitrootlogin) '   # must read: no / prohibit-password
+
+# Keep this root session open until a NEW terminal can log in as deploy.
+# Everything below assumes you have not locked yourself out.
 
 # 3. Firewall — 443/udp is HTTP/3, 80/tcp is required for ACME.
 #    Note what this does NOT do: Docker publishes a container port by
@@ -77,14 +115,37 @@ systemctl reload ssh
 #    were gating the container. Anything that must actually be blocked
 #    belongs in the provider's own firewall, or must not be published in
 #    compose.prod.yaml in the first place.
+apt-get install -y ufw            # not present on a minimal Debian image
 ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw allow 443/udp
 ufw --force enable
 
-# 4. Unattended security updates
-apt-get install -y unattended-upgrades && dpkg-reconfigure -plow unattended-upgrades
+# 4. Unattended security updates. dpkg-reconfigure asks a debconf
+#    question, which is awkward in a pasted block; this is the same
+#    thing written directly.
+apt-get install -y unattended-upgrades
+cat > /etc/apt/apt.conf.d/20auto-upgrades <<'APT'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT
 
-# 5. Docker Engine + Compose plugin (see docs.docker.com for the current
-#    apt repository steps for the distribution in use)
+# 5. Docker Engine + Compose plugin, from Docker's own apt repository
+#    (the distribution's docker.io package is too old for the Compose v2
+#    2.30+ that compose.yaml's long-form `ports:` syntax needs).
+apt-get update && apt-get install -y ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  > /etc/apt/sources.list.d/docker.list
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io \
+                   docker-buildx-plugin docker-compose-plugin
+docker compose version             # must be 2.30 or newer
+
+# NOTE ON ORDER: `usermod -aG docker deploy` in step 1 needs the docker
+# group, which only exists once this step has run. On a fresh paste,
+# run this step before step 1 — or simply re-run the usermod after.
 
 # 6. Docker log rotation — the default json-file driver grows without
 #    bound, and this app logs to stderr in production
@@ -96,9 +157,25 @@ cat > /etc/docker/daemon.json <<'JSON'
 JSON
 systemctl restart docker
 
-# 7. The deployment directory
+# 7. Swap — required on a 1 GB plan, harmless on a larger one.
+#    srv-mikono ships 951 MB usable and no swap at all. FrankenPHP in
+#    worker mode with opcache.memory_consumption=256 sits at 300-600 MB
+#    (hosting-plan.md §2), which leaves nothing for an image pull or a
+#    console command. Without swap those do not run slowly, they get
+#    OOM-killed.
+fallocate -l 2G /swapfile && chmod 600 /swapfile
+mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+free -m                            # confirm Swap is no longer 0
+
+# 8. The deployment directory
 mkdir -p /opt/mikono && chown deploy:deploy /opt/mikono
 ```
+
+Before moving on, confirm the two things this bootstrap assumes and
+[§9](#9-pre-flight-checklist) requires: `uname -m` reports `x86_64`, and
+`ss -tulpn` shows nothing but sshd on port 22 — anything already bound to
+80 or 443 fights Caddy for them ([`hosting-plan.md`](hosting-plan.md) §1).
 
 Then, as `deploy`:
 
@@ -189,10 +266,34 @@ CI publishes an image per commit on `main`. To roll forward:
 
 ```bash
 cd /opt/mikono
+scripts/deploy.sh
+```
+
+That is [`scripts/deploy.sh`](../../scripts/deploy.sh), and it is the
+same three commands with two things a human gets wrong:
+
+```bash
 git pull                       # compose files only
 $COMPOSE pull
 $COMPOSE up -d --wait
 ```
+
+It always passes both compose files and `--env-file` (§2), and it
+**takes a backup before pulling** — this section says to back up before
+any deploy carrying a migration, and nobody reliably remembers which
+deploys those are. It skips the backup only when nothing is running yet.
+
+It does **not** roll back on failure, deliberately: a migration is not
+reverted by rolling the image back, so an automatic rollback would
+sometimes leave a new schema under old code. On failure it prints the
+previous image id, the log command, and the restore-first warning.
+
+**Deliberately not automated further.** Deploying from CI over SSH would
+need a GitHub secret that is root-equivalent on the server, and would
+make any commit to `main` reach production unattended — on the machine
+holding the only copy of the volunteer database. Watchtower-style
+auto-pull is the same trade with less visibility. At one maintainer and
+one user, a deploy is a decision, not a trigger.
 
 Pin a specific build by setting `IMAGE_TAG` to the commit's short SHA in
 `deploy.env` instead of `latest` — worth doing in general, so a deploy is
@@ -285,6 +386,14 @@ above, which was missing.
 
 ## 9. Pre-flight checklist
 
+- [ ] **`uname -m` on the fresh server reports `x86_64`.** First command
+      after the first SSH, before anything else is installed: the
+      published image is amd64-only
+      ([`hosting-plan.md`](hosting-plan.md) §2), so an arm64 box cannot
+      start the container at all. Cheap to check, expensive to discover
+      at `docker compose up`. Gandi in particular does not document its
+      architecture anywhere (§5), so the flavour must be confirmed rather
+      than assumed.
 - [ ] Domain resolves to the server (A, and AAAA if IPv6).
 - [ ] 80/tcp, 443/tcp, 443/udp open; nothing else bound to 80/443.
 - [ ] Docker Engine and Compose v2 ≥ 2.30 installed; daemon log rotation set.

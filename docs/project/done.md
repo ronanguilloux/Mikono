@@ -6,6 +6,67 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-04 — Domain settled: `mikono.guilloux.org`, no purchase
+
+`hosting-plan.md` §3 had DuckDNS as the way to get a real certificate
+without paying a registrar, and §6 carried the domain as an open
+decision. Both are resolved more cheaply than either assumed: the
+maintainer already owns **`guilloux.org`**, DNS at Gandi.net, so the
+name is two A records and no money.
+
+- `deploy.mikono.guilloux.org` — the throwaway the production box is
+  *brought up* on, so Let's Encrypt's five-duplicate-certs-per-week
+  budget is not spent on the real name while the first deploy is still
+  error-prone ([`next-steps.md`](next-steps.md) item 0).
+- `mikono.guilloux.org` — the real one. The cutover is an *addition*,
+  not a re-point: same IP, so no propagation window and no TTL to lower
+  first. Create the record, change `SERVER_NAME`, redeploy, delete the
+  `deploy.` record.
+
+DuckDNS is kept in §3 as a labelled fallback rather than deleted. What
+this does **not** settle is whose name it is: `guilloux.org` is the
+maintainer's, not UCESCO's, which is a governance dependency invisible
+until the day it matters. §6 now says so, and a UCESCO-held `.co.ke` —
+a few hundred shillings against the ~$275/year hosting bill — is the
+coherent end state once the app is theirs rather than a pilot.
+
+## 2026-09-04 — Hosting shortlist verified; the cheap candidate is probably not in Kenya
+
+[`hosting-plan.md`](hosting-plan.md) §5 carried prices that had "not been
+verified against the providers' own pages". They are now, and the
+verification changed the decision rather than confirming it.
+
+**HostPinnacle SM-VPS 1 — 1,100 KSh/month for 4 vCPU / 6 GB — does not
+say where the machine is**, and that price is five to ten times cheaper
+per GB of RAM than every provider that does name Nairobi. The providers
+selling both locations are explicit about the gap: Truehost charges
+788 KSh for 2 GB in Europe/USA against 2,800 KSh for 2 GB in Nairobi;
+Hostnali, 1,480 KSh for 8 GB international against 4,360 KSh for 2 GB in
+Nairobi. §5 had used HostPinnacle's spec as evidence that in-country
+hosting is cheap enough to skip the 1 GB minimum. It is not evidence of
+that. "Which datacentre is this plan physically in?" is now question 1
+of five, because it is the same question as §5's data-residency
+argument asked about a price.
+
+**Two providers were added to the shortlist**: Lineserve (Nairobi
+`ke-1a`, per-unit pricing so the box can be sized to §2 exactly,
+on-demand snapshots and scheduled backups published) and Hostnali
+(Nairobi, KIXP-peered, KVM and Docker support stated on the page). Both
+answer more of the five questions on their own pages than either
+original candidate does.
+
+**The real Nairobi cost of the §2 recommended 2 vCPU / 2 GB box is
+2,600–3,000 KSh/month plus VAT — roughly $260–290/year**, not the
+~$100/year assumed elsewhere in these documents. Affordable, but worth
+naming to UCESCO before committing; it also makes the `.co.ke` domain
+argument stronger, since a few hundred shillings against $275 is
+rounding error.
+
+The five questions are now drafted as one sendable email in
+[`provider-questions.md`](provider-questions.md). Nothing has been sent
+and no provider is chosen — that is still
+[`next-steps.md`](next-steps.md) item 1.
+
 ## 2026-09-04 — CI is green, for the first time since it was added
 
 [ADR 0010](../adr/0010-build-in-ci-and-deploy-by-image-pull.md) made

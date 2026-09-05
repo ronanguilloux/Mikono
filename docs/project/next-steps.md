@@ -1,9 +1,9 @@
 # Next steps
 
-**Last updated:** 2026-09-04 (CI is green, item removed — its lasting
-lesson moved down to *Known conventions to not violate*, along with the
-factory rule the fix turned up; hosting is now the only thing between
-here and a deploy)
+**Last updated:** 2026-09-04 (hosting shortlist verified against the
+providers' own pages — two new candidates, and the cheap one is probably
+not in Kenya; item 1 is now down to sending one email. Domain settled:
+`mikono.guilloux.org`, no purchase needed)
 
 Only what's next goes here — forward-looking exclusively. Completed
 work moves out: to an ADR in `docs/adr/` if it was an architectural
@@ -85,8 +85,12 @@ build-and-ship shape. The defects that review found are fixed
    and the Docker/UFW iptables interaction**.
 
    That happens on the Nairobi box itself once item 1 picks one — but
-   brought up on **a DuckDNS hostname, not the real domain**, with no
-   real data on it. That ordering is the point: it keeps Let's Encrypt's
+   brought up on **a throwaway hostname, not the real domain**, with no
+   real data on it. The name is settled and free: `guilloux.org` is
+   already owned, so the box comes up on
+   `deploy.mikono.guilloux.org` and the real name is
+   `mikono.guilloux.org` (`hosting-plan.md` §3). No DuckDNS, no
+   registrar purchase. That ordering is the point: it keeps Let's Encrypt's
    duplicate-certificate budget (five per week for the same hostname)
    off the real hostname while mistakes are still likely, and that limit
    is the one failure in this sequence that trying again does not fix.
@@ -104,25 +108,47 @@ build-and-ship shape. The defects that review found are fixed
    confirmed the second of those directly: a freshly pulled production
    image reports zero volunteers, projects and activities.
 
-1. **Choose the provider and region — the four questions decide it, not
-   the stopwatch.** The
-   stated goal is hosting in Kenya for latency. That points at the right
-   country for the wrong reason: latency plausibly saves well under a
-   second per working session once the mobile access leg is accounted
-   for, while the *stronger* argument is that this app holds personal
-   data about Kenyan volunteers and Kenya's Data Protection Act 2019
-   constrains taking that data out of the country. Before this is locked
-   into an ADR, get the four questions in
-   [`hosting-plan.md`](hosting-plan.md#5-where-to-host) answered in
-   writing by the shortlisted providers — plus a fifth the list is
-   missing: **are snapshots offered, and has anyone restored one?**
-   Those are a pre-sales email, not fieldwork, and they are what can
-   actually flip the choice. The `mtr` / `curl -w` protocol in that same
-   section is worth running for the record if someone is already in
-   Mombasa, but it should not block: §5 argues latency is not the
-   deciding factor, so latency numbers cannot decide it. The ranking to
-   test against is Nairobi, then South Africa, then Europe — and *not* a
-   European VPS behind Cloudflare, for the reasons given in that section.
+1. **Send the pre-sales email, then choose the provider and region.**
+   The shortlist is now four, verified against the providers' own pages
+   on 2026-09-04 ([`done.md`](done.md); `hosting-plan.md` §5):
+   **Lineserve** and **Hostnali** join Truehost and HostPinnacle, and
+   both publish more of the answers than the two originals do. What is
+   left is one email — [`provider-questions.md`](provider-questions.md),
+   written to send unchanged to all four — and a reading of the replies.
+   Nothing has been sent.
+
+   **A fifth candidate changes the shape of the question.** GandiCloud
+   VPS (France) was evaluated on 2026-09-04 and clears §1–§4 on
+   everything but a contradicted snapshot answer — at roughly a third of
+   the Nairobi cost, on the account that already holds `guilloux.org`.
+   So the decision is no longer "which Kenyan provider" but
+   **~$275/year in Kenya with no cross-border paperwork, against
+   ~$78/year in France with a transfer safeguard someone has to own**.
+   That is UCESCO's call, not an architecture call; `hosting-plan.md` §5
+   states it in one sentence to put in front of them. Price Gandi's 2 GB
+   tier before comparing — the €6 V-R1 is §2's minimum, not its
+   recommendation.
+
+   **If the answer is Kenya, question 1 is the one that decides it:
+   where is the machine physically?** HostPinnacle's 1,100 KSh plan is five to ten times
+   cheaper per GB than everything that names Nairobi, which is the price
+   of European stock, and its page does not say. Budget for the honest
+   Nairobi number instead — 2,600–3,000 KSh/month plus VAT for the §2
+   recommended box, about **$260–290/year**, not the ~$100/year these
+   documents used to assume. Worth naming to UCESCO before committing.
+
+   The stated goal was hosting in Kenya for latency. That points at the
+   right country for the wrong reason: latency plausibly saves well
+   under a second per working session once the mobile access leg is
+   accounted for, while the *stronger* argument is that this app holds
+   personal data about Kenyan volunteers and Kenya's Data Protection Act
+   2019 constrains taking that data out of the country. The `mtr` /
+   `curl -w` protocol in `hosting-plan.md` §5 is worth running for the
+   record if someone is already in Mombasa, but it should not block: §5
+   argues latency is not the deciding factor, so latency numbers cannot
+   decide it. The ranking to test against is Nairobi, then South Africa,
+   then Europe — and *not* a European VPS behind Cloudflare, for the
+   reasons given in that section.
 
    Two arguments that belong in the ADR when it is written. **The choice
    is cheaply reversible** — migrating is a `docker compose pull`, one
@@ -153,15 +179,18 @@ build-and-ship shape. The defects that review found are fixed
    unprotected in another country. `hosting-plan.md` §4 covers why the
    destination is not a free choice.
 
-   The **domain** is coupled to this and is discussed with UCESCO, not
-   decided here. `hosting-plan.md` §6 makes the case for a `.co.ke` over
-   a free DuckDNS subdomain once real data is involved: a few hundred
-   shillings against an ~$100/year hosting bill, and it keeps the
-   project's namespace out of a third party's hands. The DuckDNS name in
-   item 0 is not a second server and not the long-term name: it is the
-   throwaway hostname the production box is *brought up* on, so that
-   Let's Encrypt's per-hostname certificate budget is not spent on the
-   real domain while the first deploy is still error-prone.
+   The **domain** no longer blocks anything: `mikono.guilloux.org` is an
+   A record on a domain already owned (`hosting-plan.md` §3), and
+   `deploy.mikono.guilloux.org` is the throwaway the box is brought up
+   on in item 0 — not a second server and not the long-term name, just a
+   hostname whose Let's Encrypt certificate budget is expendable while
+   the first deploy is still error-prone. What is *not* settled is whose
+   name it is: `guilloux.org` is the maintainer's, not UCESCO's, so the
+   app outlives one person's registrar renewals only once a UCESCO-held
+   name exists. A `.co.ke` at a few hundred shillings against the
+   ~$275/year hosting bill is rounding error — a conversation to have
+   with UCESCO when the app is theirs rather than a pilot, per
+   `hosting-plan.md` §6.
 3. **Sessions are lost on every deploy.** They live in
    `var/cache/prod/sessions`, which is not a volume, so a redeploy signs
    everyone out. At one user this is a shrug; it is recorded so it isn't

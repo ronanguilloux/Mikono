@@ -33,3 +33,8 @@
 # Deployment env files (docs/project/deployment-plan.md §4 and §10):
 # they hold a real APP_SECRET, and this repository is public.
 /deploy.env*
+
+# Local-only operational notes (server IDs, addresses, anything that
+# identifies the production box). This repository is public; these files
+# stay on the maintainer's machine. Naming convention: *.local.md
+/docs/project/*.local.md
