@@ -9,6 +9,28 @@ entries), plus a basic per-volunteer/per-project report. See
 for the stack decision and `docs/brainstorm/02-volunteer-manager-v0.1-context.md`
 for the full narrative.
 
+## Working rhythm (read this before starting, apply it before finishing)
+
+- **Start a session by reading
+  [`docs/project/next-steps.md`](docs/project/next-steps.md).** It is the
+  list of what to do next, and it is forward-only: if it describes
+  something already done, that is a bug in the file — fix it.
+- **Finish an item by removing it from `next-steps.md`.** Then, per
+  [`docs/project/README.md`](docs/project/README.md): if it was an
+  architectural decision it gets an ADR in
+  [`docs/adr/`](docs/adr/) (at most a one-line pointer in `done.md`);
+  otherwise append a dated entry to
+  [`docs/project/done.md`](docs/project/done.md). Not both, and never
+  "done" text left behind in `next-steps.md`.
+- **Research or narrative that hasn't settled into a decision** goes in
+  [`docs/brainstorm/`](docs/brainstorm/), not in `next-steps.md` — that
+  file lists actions, and links to the narrative behind them. Don't read
+  that folder at session start: most of it describes decisions already
+  shipped and locked into ADRs. Open a brainstorm file when you pick up
+  the item that links to it.
+- **This file holds conventions; `next-steps.md` does not.** Don't copy
+  rules from here into it.
+
 ## Decision capture
 
 Architectural decisions are recorded as they're made, not reconstructed
@@ -221,6 +243,11 @@ for dev specifically — leave that override in place.
   call in every test method — Foundry factories auto-boot the kernel to
   reach Doctrine, and booting it twice throws. Create the client, then
   create fixtures, not the other way around.
+- Factories must produce values a round trip through the database would
+  return — `ActivityFactory` dates to midnight because `Activity::$date`
+  is a `date_immutable` column. A time component there made a created
+  entity disagree with its own hydrated row and flipped `/reports`'
+  "Planned" badge at random.
 - **Login throttling does not fire in the test environment, by design —
   don't write a test asserting that it does.** `security.yaml` throttles
   logins (5 per 15 minutes) and the counters live in `cache.rate_limiter`,
@@ -321,6 +348,13 @@ docker compose exec php composer rector     # preview refactors — dry-run only
   quality` before every commit — enable it once per checkout with
   `git config core.hooksPath .githooks`. Bypass deliberately with
   `git commit --no-verify`, not by disabling the hook.
+- That same hook prints a **non-blocking warning when
+  `docs/project/next-steps.md` passes 250 lines**. That file is
+  forward-only, so it should stay roughly constant in size — sustained
+  growth is how past-tense history creeps back in (it reached 449 lines
+  that way once). Don't raise the cap to silence it: re-read the file and
+  move what's done to `done.md` or an ADR. It never fails a commit, so a
+  genuinely large new item passes.
 
 **Deployment** (see
 [ADR 0010](docs/adr/0010-build-in-ci-and-deploy-by-image-pull.md),
@@ -332,6 +366,18 @@ the runbook):
 - CI builds the production image and pushes it to GHCR
   (`.github/workflows/`); the server only pulls. Nothing is built on the
   production host.
+- **CI's bare `docker run -v "$PWD:/app"` is not the environment anyone
+  develops in.** It has no `compose.override.yaml`, so no bind-mounted dev
+  ini, no `APP_ENV`/`XDEBUG_MODE`, and no named volumes — and the mount
+  lands *on top of* the image's own `/app`, hiding everything the image
+  build wrote outside `vendor/`. `var/` and `assets/vendor/` are whatever
+  the checkout contains, which is nothing: both are gitignored. A command
+  that works via `docker compose exec` proves nothing about CI. Replicate
+  the bare `docker run` against a clean clone instead (see `done.md`,
+  2026-09-04, for the three failures this cost).
+- `--entrypoint php` is needed for any bare `docker run` of a console
+  command: the image entrypoint runs `dbal:run-sql` to wait for a
+  database, and fails outside compose.
 - **Always pass both compose files** —
   `docker compose -f compose.yaml -f compose.prod.yaml …`. A bare
   `docker compose up -d` silently loads `compose.override.yaml` and would

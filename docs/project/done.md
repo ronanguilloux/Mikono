@@ -6,6 +6,80 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-05 — `next-steps.md` cleaned back to forward-only, and the rule moved where agents read it
+
+A re-read of [`next-steps.md`](next-steps.md) against
+[`README.md`](README.md)'s own rule found the file had drifted: 449 lines,
+of which roughly 130 were retrospective and one whole item was stale
+enough to be actively misleading.
+
+**What was wrong:**
+
+- **Item 2, "Then do the first deployment"** — domain, server bootstrap,
+  `deploy.env`, backup cron and the restore drill — was fully done as of
+  2026-09-05, and item 0 said so ten lines above it. A session reading
+  top-to-bottom would have redeployed. Only the "whose name is the domain
+  in" paragraph survived.
+- **The header contradicted the body**: it claimed item 0 was "down to the
+  restore drill and the cutover" while the body recorded the drill as
+  passed.
+- **Three retrospective preambles** ("Open work", the fixtures section,
+  item 0's first paragraph) duplicated `done.md` entries that already
+  existed.
+- **A 35-line "Known conventions to not violate" section** violated
+  `README.md`'s "`AGENTS.md` stays stateless on purpose — it documents
+  stable facts and conventions". It even admitted the duplication in its
+  own heading. Three of its bullets turned out to exist *only* there —
+  the bare-`docker run` CI gotcha, `--entrypoint php`, and
+  `ActivityFactory`'s midnight dates — so they were moved into `AGENTS.md`
+  rather than deleted.
+- **Two research sections** (monkey testing, usage analytics — 132 lines,
+  30 % of the file) were pre-decision narrative, which by this repo's own
+  rule belongs in `docs/brainstorm/`. They became
+  [`05-exercising-the-app-and-the-panther-question.md`](../brainstorm/05-exercising-the-app-and-the-panther-question.md)
+  and
+  [`06-usage-analytics-cockpit.md`](../brainstorm/06-usage-analytics-cockpit.md),
+  each fitted with the four sections that folder's README requires, and
+  `next-steps.md` now links to them in four lines.
+
+**The root cause, and the actual fix.** The rule was correct and complete
+— in [`docs/project/README.md`](README.md), a 38-line file no session ever
+opens. In `AGENTS.md`, the file loaded into every session, the
+next-steps/done split appeared only as an annotation on the directory map,
+and the "What's next" pointer sat on the last line, phrased as a
+reference rather than an instruction. Nothing said *read this at the
+start* or *remove it when you finish*. So the half that was prescribed
+(ADRs, `done.md`) kept working, and the half that was merely implied (the
+purge) drifted.
+
+`AGENTS.md` now opens with a **Working rhythm** block, immediately after
+the intro and before "Decision capture": read `next-steps.md` first,
+remove the item when it's done, ADR-or-`done.md` but not both, narrative
+goes to `docs/brainstorm/`, and conventions live in `AGENTS.md` and are
+not copied into `next-steps.md`.
+
+`next-steps.md`: 449 → 205 lines, no retrospective content, no stale item.
+The ADR side of the process needed nothing — 16 records, index current,
+0007 correctly marked as partially superseded by 0016.
+
+**One mechanical guard, because the instruction alone is what already
+drifted.** `.githooks/pre-commit` now prints a non-blocking warning when a
+staged `next-steps.md` passes 250 lines. Accumulation *is* the failure
+mode — history cannot be added without making the file longer — so a
+`wc -l` catches it with none of the false positives a past-tense word
+grep would produce ("the restore drill passed" and "nothing has been
+sent" are both legitimate forward-looking sentences). It warns and exits
+0; a genuinely large new item is allowed through. The file is 205 lines,
+so there is ~45 lines of headroom before it speaks.
+
+**And `docs/brainstorm/` is deliberately *not* read at session start.**
+It is 55 KB against `next-steps.md`'s 11 KB, and four of its six files
+describe decisions already locked into ADRs and shipped — a dead-to-live
+ratio that only worsens, since the folder is immutable and append-only.
+`next-steps.md` is the index; a brainstorm file is opened when its item is
+picked up, via the link the item carries. Reading the folder wholesale
+would pay a growing cost for a shrinking payload.
+
 ## 2026-09-05 — First real deployment: the pilot is live on GandiCloud VPS
 
 `srv-mikono` — GandiCloud VPS V-R1, Debian 13 trixie, Paris SD6 — was

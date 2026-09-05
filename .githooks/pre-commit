@@ -1,10 +1,29 @@
 #!/bin/sh
-# Runs the quality toolchain (PHP-CS-Fixer, PHPStan, PHPat, composer audit)
-# before every commit. Enable once with:
+# Two things before every commit:
+#   1. a non-blocking size check on docs/project/next-steps.md
+#   2. the quality toolchain (PHP-CS-Fixer, PHPStan, PHPat, composer audit)
+# Enable once with:
 #   git config core.hooksPath .githooks
 # Bypass deliberately with `git commit --no-verify`.
 
 set -e
+
+# next-steps.md is forward-only, so it should stay roughly constant in size:
+# finished items leave it as fast as new ones arrive. Sustained growth is how
+# history creeps back in — it reached 449 lines that way once (done.md,
+# 2026-09-05). A warning, never a failure: a genuinely large new item is
+# allowed through. Past tense in there belongs in done.md or an ADR.
+NEXT_STEPS=docs/project/next-steps.md
+NEXT_STEPS_CAP=250
+
+if git diff --cached --name-only | grep -qx "$NEXT_STEPS"; then
+    lines=$(git show ":$NEXT_STEPS" | wc -l | tr -d ' ')
+    if [ "$lines" -gt "$NEXT_STEPS_CAP" ]; then
+        printf '\n⚠  %s is %s lines (soft cap %s).\n' \
+            "$NEXT_STEPS" "$lines" "$NEXT_STEPS_CAP"
+        printf '   Re-read it: anything already done moves to done.md or an ADR.\n\n'
+    fi
+fi
 
 echo "Running quality checks (docker compose exec php composer quality)..."
 docker compose exec -T php composer quality
