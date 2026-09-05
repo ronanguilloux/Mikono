@@ -279,12 +279,41 @@ Then verify by hand:
 
 ## 6. Routine deployment
 
-CI publishes an image per commit on `main`. To roll forward:
+Three steps from a code change to it being live, two of them automatic.
+
+**1. Push to `main`.** CI builds and publishes the image
+([`build-image.yml`](../../.github/workflows/build-image.yml)) — recent
+builds take 30 to 60 seconds. Two tags come out of each push: `latest`,
+and `sha-<short commit>` (e.g. `sha-527b12c`). The `sha-` tags are what
+you pin or roll back to.
+
+**2. Wait for that build to finish.** This is the one trap in the whole
+loop: `deploy.sh` pulls whatever `latest` points at *at that moment*, so
+deploying thirty seconds early redeploys the **previous** image, reports
+success, and leaves you looking for a change that was never shipped.
 
 ```bash
-cd /opt/mikono
-scripts/deploy.sh
+gh run list --workflow=build-image.yml --limit 1
 ```
+
+**3. Deploy** — one command from the workstation, no session needed:
+
+```bash
+ssh deploy@<server> 'cd /opt/mikono && ./scripts/deploy.sh'
+```
+
+Migrations run themselves at container start, and Tailwind is already
+built into the image by CI. Nothing else to do.
+
+**Two things to know while doing it.**
+
+- **Every deploy signs everyone out.** Sessions live in
+  `var/cache/prod/sessions`, which is not a volume
+  ([`hosting-plan.md`](hosting-plan.md) §4). Harmless at one user, but
+  worth timing around if someone is mid-task.
+- **If `git pull` fails**, it is `--ff-only`, so something was committed
+  on the server. That should never happen — the checkout exists only for
+  the compose files and scripts.
 
 That is [`scripts/deploy.sh`](../../scripts/deploy.sh), and it is the
 same three commands with two things a human gets wrong:
