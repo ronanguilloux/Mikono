@@ -29,7 +29,7 @@ final class ListPaginatorTest extends KernelTestCase
     ];
 
     /** The DQL VolunteerRepository::createOrderedByNameQueryBuilder() produces untouched. */
-    private const string DEFAULT_DQL = 'SELECT v FROM App\Entity\Volunteer v ORDER BY v.lastName ASC, v.firstName ASC';
+    private const string DEFAULT_DQL = 'SELECT v FROM App\Entity\Volunteer v ORDER BY v.isActive DESC, v.lastName ASC, v.firstName ASC';
 
     #[Test]
     public function defaultsToTwentyFiveRowsPerPage(): void
@@ -256,8 +256,13 @@ final class ListPaginatorTest extends KernelTestCase
     {
         // Without the trailing tie-break, every row falls into one of two
         // isActive buckets and SQLite may repeat a page-1 row on page 2.
+        //
+        // isActive appears twice because it is both the requested column and
+        // part of the view's own active-first default. The second term is
+        // inert — SQL settles on the first key — and the same harmless
+        // duplication already shows up under `sort=name` below.
         self::assertSame(
-            'SELECT v FROM App\Entity\Volunteer v ORDER BY v.isActive ASC, v.lastName ASC, v.firstName ASC',
+            'SELECT v FROM App\Entity\Volunteer v ORDER BY v.isActive ASC, v.isActive DESC, v.lastName ASC, v.firstName ASC',
             $this->dqlAfterSort(['sort' => 'status']),
         );
     }
@@ -268,7 +273,7 @@ final class ListPaginatorTest extends KernelTestCase
         // `name` has no single column behind it — getFullName() is lastName
         // plus firstName, and both have to flip together.
         self::assertSame(
-            'SELECT v FROM App\Entity\Volunteer v ORDER BY v.lastName DESC, v.firstName DESC, v.lastName ASC, v.firstName ASC',
+            'SELECT v FROM App\Entity\Volunteer v ORDER BY v.lastName DESC, v.firstName DESC, v.isActive DESC, v.lastName ASC, v.firstName ASC',
             $this->dqlAfterSort(['sort' => 'name', 'direction' => 'desc']),
         );
     }

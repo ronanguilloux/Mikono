@@ -27,6 +27,25 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Aisha Njoroge');
     }
 
+    /**
+     * Volunteers leave after a few weeks, so someone who finished their stint
+     * shouldn't sit between two people working this week. Nobody is hidden —
+     * active status only decides the default order.
+     */
+    #[Test]
+    public function theIndexListsActiveVolunteersBeforeInactiveOnes(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::new()->inactive()->create(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers');
+
+        // Zuma sorts after Achieng by name; active-first is what puts her top.
+        self::assertStringContainsString('Zawadi Zuma', $crawler->filter('table tbody tr')->first()->text());
+    }
+
     #[Test]
     public function newWithValidDataPersistsAndRedirects(): void
     {

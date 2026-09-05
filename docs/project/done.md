@@ -6,6 +6,34 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-05 — Volunteers list the active ones first
+
+`/volunteers` ordered by surname alone, so someone who finished their
+stint three weeks ago sat between two people working this week.
+Volunteers leave after a few weeks — the reason the activity forms
+already filter their picker to active volunteers — and the index now
+reflects the same reality without hiding anyone.
+
+One line: `VolunteerRepository::createOrderedByNameQueryBuilder()` puts
+`v.isActive DESC` ahead of the name order. Nothing else moved. Sorting
+composes for free — `ListPaginator::applySort` puts the reader's chosen
+column first and keeps the repository's own `ORDER BY` only as a
+tie-break
+([ADR 0011](../adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md))
+— so clicking any header still re-orders the whole list and active-first
+decides only ties. No `SORT_MAP` entry, no sortability flag, no template
+change. The other caller, `findAllOrderedByName()`, feeds only
+`ReportMetricsCalculator`'s counters, where order is irrelevant.
+
+The Status column's own sort was the thing to check, and it behaves:
+`?sort=status` now emits `ORDER BY v.isActive ASC, v.isActive DESC,
+v.lastName ASC, v.firstName ASC`. The duplicate term is inert — SQL
+settles on the first key — and it is the same harmless duplication
+`?sort=name&direction=desc` has produced since ADR 0011, so
+`applySort` needed no de-duplication. Three DQL strings in
+`ListPaginatorTest` grew the term; one new functional test asserts an
+active volunteer outranks an inactive one who sorts ahead of her by name.
+
 ## 2026-09-05 — `next-steps.md` cleaned back to forward-only, and the rule moved where agents read it
 
 A re-read of [`next-steps.md`](next-steps.md) against

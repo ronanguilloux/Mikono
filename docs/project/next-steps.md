@@ -122,28 +122,6 @@ absorbs it ("Uganda - ..."); whether `ProjectLocation` should grow a third
 case is the question to reopen then, and it is a scope question for the
 VM, not a modelling one.
 
-## Small, well-defined improvements
-
-- **Volunteers should list the active ones first by default.** Opening
-  `/volunteers` from the menu orders by surname alone
-  (`VolunteerRepository`, `orderBy('v.lastName', 'ASC')`), so someone who
-  has finished their stint sits between two people working this week.
-  Volunteers leave after a few weeks, which is exactly why the activity
-  forms already filter the picker to active volunteers — the index should
-  reflect the same reality without hiding anything.
-
-  The change is the repository's base order: `v.isActive DESC` before
-  `v.lastName ASC`. It composes correctly with the existing sorting for
-  free: `ListPaginator::applySort` puts the reader's chosen column first
-  and keeps the repository's own `ORDER BY` only as a tie-break
-  ([ADR 0011](../adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md)).
-  So clicking any column header still re-orders the whole list as the
-  reader expects; active-first only decides ties. No new sort flag, no
-  change to `SORT_MAP`, no template change.
-
-  Check that the Status column's own sort still behaves — it maps to
-  `v.isActive`, so it would now share a field with the tie-break.
-
 ## Needs a design pass before implementation
 
 - **Escort display and reporting.** The write path shipped; *where*

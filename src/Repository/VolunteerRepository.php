@@ -21,13 +21,21 @@ class VolunteerRepository extends ServiceEntityRepository
     }
 
     /**
+     * Active volunteers first, then by name. Volunteers leave after a few
+     * weeks, which is why the activity forms already filter their picker to
+     * active ones — by surname alone the index drops someone who finished
+     * their stint between two people working this week. Nobody is hidden, and
+     * clicking any column header still re-orders the whole list: ListPaginator
+     * keeps this ORDER BY only as a tie-break (ADR 0011).
+     *
      * The paginated index builds on this; findAllOrderedByName() is the same
      * query without a LIMIT, for the callers that genuinely need every row.
      */
     public function createOrderedByNameQueryBuilder(): QueryBuilder
     {
         return $this->createQueryBuilder('v')
-            ->orderBy('v.lastName', 'ASC')
+            ->orderBy('v.isActive', 'DESC')
+            ->addOrderBy('v.lastName', 'ASC')
             ->addOrderBy('v.firstName', 'ASC');
     }
 
