@@ -197,6 +197,162 @@ build-and-ship shape. The defects that review found are fixed
    ADR 0003 flagged — worth doing when a second `User` account appears,
    not before.
 
+### Small, well-defined improvements
+
+- **Volunteers should list the active ones first by default.** Opening
+  `/volunteers` from the menu currently orders by surname alone
+  (`VolunteerRepository`, `orderBy('v.lastName', 'ASC')`), so someone who
+  has finished their stint sits between two people working this week.
+  Volunteers leave after a few weeks, which is exactly why the activity
+  forms already filter the picker to active volunteers — the index should
+  reflect the same reality without hiding anything.
+
+  The change is the repository's base order: `v.isActive DESC` before
+  `v.lastName ASC`. It composes correctly with the existing sorting for
+  free, and that is worth knowing before touching anything else:
+  `ListPaginator::applySort` puts the reader's chosen column first and
+  keeps the repository's own `ORDER BY` only as a tie-break
+  ([ADR 0011](../adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md)).
+  So clicking any column header still re-orders the whole list as the
+  reader expects; active-first only decides ties. No new sort flag, no
+  change to `SORT_MAP`, no template change.
+
+  Check that the Status column's own sort still behaves — it maps to
+  `v.isActive`, so it would now share a field with the tie-break.
+
+### Exercising the app: monkey testing, and the Panther question
+
+Researched 2026-09-05, nothing decided or installed. The want is to let
+an agent loose on the app in a test environment and see what breaks.
+
+**The cheapest useful thing needs nothing new.**
+[`scripts/panther-screenshot.php`](../../scripts/panther-screenshot.php)
+already logs in and drives a real Chromium against the running app
+([ADR 0007](../adr/0007-adopt-panther-for-adhoc-visual-verification.md)).
+Given credentials to a test environment, that is already a usable driver
+for *directed* exploration — walk the batch activity form and report what
+breaks. Not random, but on a five-area CRUD app that usually finds more
+than randomness does.
+
+**The actual monkey-testing library is
+[gremlins.js](https://github.com/marmelab/gremlins.js)** (Marmelab, ~9k
+stars, still alive). It is a single `dist` file injected into the page —
+no npm install, no Node, no new PHP dependency; it documents Playwright
+integration via `addInitScript()`, and the Panther equivalent is
+`executeScript()`. Two things to know before running it here: **Turbo
+Drive** replaces the body under the horde on every link click, which
+works but makes the logs hard to read; and **the horde will click
+Delete**. That is fine on fixtures, and it is exactly why this must never
+be pointed at the box someone is testing on.
+
+**A route-walking smoke test would probably find more, for less.**
+[`http-smoke-testing`](https://github.com/BlueTeaNL/http-smoke-testing)
+or [`Pierstoval/SmokeTesting`](https://github.com/Pierstoval/SmokeTesting)
+request every route in the router and assert no 5xx — around thirty
+routes here, no browser, inside the existing PHPUnit suite. A monkey
+finds crashes that come from *sequences*; a route walk finds crashes that
+come from *coverage*, and coverage is what leaks in an app this size.
+**The trap:** `WebTestCase` swallows exceptions and renders the error
+page instead of failing, so a naive crawl stays green while pages return
+500. Use `$client->catchExceptions(false)` or assert status codes
+explicitly.
+
+**Separately, and more important than any of the above: Panther has been
+deprecated in Zenstruck Browser** in favour of
+[`playwright-php/playwright`](https://packagist.org/packages/playwright-php/playwright)
+(v1.4.0, August 2026), which runs the Symfony kernel *in the test
+process* — container access, profiler, DAMA rollback, and parallel runs,
+none of which Panther can offer because the browser and the app sit in
+different processes. That is a real improvement over what
+[ADR 0007](../adr/0007-adopt-panther-for-adhoc-visual-verification.md)
+and `tests/E2E/` do today.
+
+**It requires Node.js 20+, and that is no longer an objection.**
+[ADR 0016](../adr/0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)
+(2026-09-05) admits Node as a test dependency and ancillary tool, never
+as application code, and partially supersedes
+[ADR 0007](../adr/0007-adopt-panther-for-adhoc-visual-verification.md) —
+specifically the "the project never needs Node" premise and the ground on
+which it rejected Playwright. The production image and the server keep no
+Node at all; a test dependency is not a runtime dependency.
+
+So the remaining question is a straight tooling judgement, unblocked:
+**migrate `tests/E2E/VolunteerManagerSmokeTest.php` and
+`scripts/panther-screenshot.php` to `playwright-php`, or stay on
+Panther?** What migration would buy: DAMA rollback in E2E tests like
+every other test in the suite (dropping `#[SkipDatabaseRollback]`),
+container and profiler access, and parallel runs. What it costs: an npm
+supply-chain surface that `composer audit` does not see, a bigger dev
+image, and the migration itself.
+
+Nothing forces it — deprecated is not broken, Panther works in this
+codebase today, and for monkey testing specifically Playwright's
+advantages matter far less than they do for a test suite. ADR 0016
+deliberately did not decide this.
+
+### Usage analytics — an observability cockpit for the app
+
+The want is real and currently unmet: **which screens get used, which
+actions actually get performed, and how the app is used in practice**
+rather than how it was imagined. Nothing in the app records this today.
+The ask was specifically Google Analytics with JavaScript instrumentation
+"here and there". Four things to settle before writing that snippet.
+
+**1. Half of it is already being collected, for free.** Caddy writes a
+JSON access log for every request
+([`frankenphp/Caddyfile`](../../frankenphp/Caddyfile)), and Docker now
+rotates it at 10 MB × 5 files. So "most frequent URLs" is a `docker
+compose logs php | jq` away — no code, no third party, no consent
+question. **Do that first.** At one or two users on a five-area CRUD app,
+it may answer the whole question, and it costs an afternoon of `jq`
+rather than a permanent dependency. What it genuinely cannot tell you is
+what happens *inside* a page: which filter got used, whether the batch
+form is preferred over the single one, where someone abandoned a form.
+That gap is the honest case for instrumentation.
+
+**2. Turbo Drive breaks the default GA snippet, silently.** This app uses
+Turbo Drive, so navigations replace the body without a full page load.
+The standard `gtag` snippet fires `page_view` **once**, on the first
+load, and never again — the cockpit would show one pageview per session
+and look broken for reasons that have nothing to do with the
+configuration. Page views must be sent on the `turbo:load` event, and
+custom events wired through Stimulus controllers rather than inline
+`onclick`. Anyone implementing this without knowing that will lose an
+afternoon to it.
+
+**3. It needs an ADR, because it is a data-protection decision as much as
+a technical one.** Every page in this app is behind a login, so every
+event is *an identified staff member's behaviour*, and a URL like
+`/volunteers/12/edit` carries a record identifier. Sending that stream to
+Google means transferring behavioural data about named Kenyan staff to a
+US provider — which reopens precisely the question
+[`hosting-plan.md`](hosting-plan.md) §5 spent the whole hosting decision
+closing. State it at its real size, as §5 does: this is not a blocker, it
+is an obligation to document, and at one or two users **consent is a
+conversation with Edna, not a cookie banner**. But it should be a
+decision on the record rather than a side effect of a `<script>` tag.
+
+That ADR should weigh the lighter options rather than assume GA4:
+Plausible or a self-hosted Matomo are cookieless, keep the data out of
+the US, and answer "which screens, which actions" perfectly well at this
+scale — while GA4's strength (funnels, audiences, attribution over large
+traffic) is precisely what a one-user app has no use for.
+
+**4. Implementation notes for whoever does it.**
+
+- The snippet belongs in `templates/base.html.twig`, inside
+  `{% block javascripts %}`, and must be **gated on an environment
+  variable** holding the measurement ID. Unset in dev, test and CI: a
+  local click should never reach the production dashboard, and the
+  functional tests assert on rendered page content.
+- There is **no Content-Security-Policy** on this app today, so nothing
+  needs allowlisting — but if one is ever added, third-party analytics is
+  the first thing it will break.
+- Events are worth naming deliberately rather than instrumenting
+  everything: activity logged, batch form used, report viewed, roster
+  copied. A cockpit showing twenty events nobody chose is noise, and the
+  interesting question here is a short list.
+
 ### Not yet mocked — still open
 
 One finding wasn't part of the five priority mockups and still needs

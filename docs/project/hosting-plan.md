@@ -27,7 +27,7 @@ These are consequences of decisions already made, not preferences:
 | --- | --- |
 | FrankenPHP with Caddy embedded | The container **is** the web server and terminates TLS itself. No nginx, Apache, or PHP-FPM in front — and nothing else on the machine may hold ports 80 or 443. |
 | SQLite ([ADR 0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)) | **One machine, one container.** No load balancer, no second replica, no managed database service. All state is one file. |
-| Tailwind through AssetMapper | No Node.js runtime, in the image or on the host. |
+| Tailwind through AssetMapper | No Node.js runtime **in the production image or on the server**. Node as a dev/test dependency is a separate question and is not excluded (`next-steps.md`, the Panther/Playwright note). |
 | No Messenger, Mercure, Redis, or mailer | No message broker, no cache server, and **no SMTP relay** to arrange. There is no password-reset-by-email flow: accounts are created over SSH with `bin/console app:user:create`, so shell access is part of running this app. |
 | Migrations run at container start ([`docker-entrypoint.sh`](../../frankenphp/docker-entrypoint.sh)) | Deployment is self-migrating. Convenient, but it means a schema rollback is a restore-from-backup, not a `docker compose` flag. |
 

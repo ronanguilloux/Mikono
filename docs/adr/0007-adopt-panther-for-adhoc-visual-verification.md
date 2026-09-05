@@ -4,7 +4,13 @@ Date: 2026-08-26
 
 ## Status
 
-Accepted
+Accepted — **partially superseded by
+[ADR 0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)**
+(2026-09-05). The decision below, adopting Panther for ad-hoc visual
+verification, stands. What ADR 0016 supersedes is narrower: the premise
+in the Context that "the project never needs Node", and the ground on
+which *Alternatives considered* §1 rejected Playwright. Neither the
+Decision nor the Consequences has been edited.
 
 ## Context
 

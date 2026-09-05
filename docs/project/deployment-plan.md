@@ -461,6 +461,43 @@ not on the machine and had to be pulled mid-restore. It worked, but it
 put a registry round-trip in the middle of the one procedure that must
 work when things are already going badly.
 
+### Seeding a server from a local dataset
+
+Foundry is `require-dev` and absent from the production image
+([`hosting-plan.md`](hosting-plan.md) §2), deliberately — the roster
+archive cannot reach a public server by accident. So
+`foundry:load-fixtures` is not available there, and the way to put a
+dataset on a server is to build it locally and ship the file through the
+restore path above:
+
+```bash
+# On the dev machine
+docker compose exec php bin/console foundry:load-fixtures --no-interaction
+docker compose exec php bin/console doctrine:migrations:sync-metadata-storage --no-interaction
+docker compose exec php bin/console doctrine:migrations:version --add --all --no-interaction   # ← see below
+COMPOSE_FILES="-f compose.yaml -f compose.override.yaml" APP_ENV_NAME=dev \
+    scripts/backup-db.sh ./seed
+
+# Then scp the file to the server and follow the restore steps above.
+```
+
+**The two `doctrine:migrations:*` lines are the whole trick, and without
+them the server will not start.** `foundry:load-fixtures` rebuilds the
+schema with the schema tool, which drops `doctrine_migration_versions`
+entirely. The resulting file has every table but looks completely
+un-migrated, so the production entrypoint's
+`doctrine:migrations:migrate` tries to replay from the first migration
+and dies on `table "user" already exists` — the exact failure recorded
+in [`done.md`](done.md) for 2026-09-01, and again on 2026-09-05 when a
+dev snapshot was first shipped to `srv-mikono`. Marking every migration
+as applied before snapshotting fixes it at source.
+
+**Reset every password afterwards.** The accounts arrive with whatever
+passwords the dev database had, and dev passwords are not secrets —
+`CLAUDE.md` says so explicitly. Re-run `app:user:create` for each
+account, omitting `--password` so it prompts, before the URL goes to
+anyone.
+
 ## 8. Monitoring and logs
 
 - **Health:** the image ships a `HEALTHCHECK` polling Caddy's metrics
