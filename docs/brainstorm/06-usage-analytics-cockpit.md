@@ -2,6 +2,12 @@
 
 **Date:** 2026-09-05
 **Author:** ronan.guilloux@gmail.com
+**Decided (2026-09-06):**
+[ADR 0018](../adr/0018-answer-usage-questions-from-the-caddy-access-log.md)
+— the Caddy access log only, no third-party analytics. One correction to
+§1 below: the log is *not* `jq`-able as written (Caddy's console format
+with a JSON tail); the working recipe is in the ADR. This file is kept as
+the reasoning behind the decision.
 **Related:** [`AGENTS.md`](../../AGENTS.md),
 [`docs/project/hosting-plan.md`](../project/hosting-plan.md),
 [`docs/project/next-steps.md`](../project/next-steps.md),

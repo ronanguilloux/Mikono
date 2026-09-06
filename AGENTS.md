@@ -278,6 +278,38 @@ for dev specifically — leave that override in place.
   selectable even once deactivated; any future "active only" picker on a
   form that edits existing rows needs the same escape hatch, or old
   records become uneditable.
+- `tests/Functional/RouteSmokeTest.php` walks **every GET route the
+  router reports**, so a screen nobody wrote a test for still can't 500
+  or lose its login requirement unnoticed — a new route joins both passes
+  for free. Two things there are load-bearing, don't "simplify" them: it
+  runs with `catchExceptions(false)` (otherwise `WebTestCase` renders the
+  error page and the failure arrives with no stack trace), and it asserts
+  **2xx**, not "below 500" — a route whose fixture is missing 404s, which
+  a `< 500` assertion would wave through while hiding the server errors
+  the walk exists to find. `{id}` comes from an explicit map of the
+  seeded entities' ids, matched longest-prefix-first (`activity_type_`
+  before `activity_`); don't assume id `1`, DAMA's rollback doesn't
+  reliably reset SQLite's rowid sequence. It logs in as an **admin**
+  because `/users*` is `#[IsGranted('ROLE_ADMIN')]`.
+- `scripts/gremlins.php` unleashes a **gremlins.js horde** on the running
+  dev app — random clicking, typing and scrolling, for crashes that come
+  from *sequences* rather than from coverage. Standalone Panther script
+  like `panther-screenshot.php` below, no npm and no Composer package:
+  the horde is one pinned dist file loaded from unpkg into the page.
+  **It refuses any host but the local container, and there is no override
+  flag — the horde clicks Delete.** Reseed afterwards with
+  `foundry:load-fixtures`. It reports how many events actually landed as
+  well as what it caught, because a clean run only means something if the
+  horde wasn't inert. Exits non-zero on a finding; the `--seed` in the
+  summary reproduces it.
+
+  ```bash
+  docker compose exec php php scripts/gremlins.php --login \
+    --email=ronan.guilloux@gmail.com --password=<dev-password> \
+    --path=/activities/new-batch --seed=1 --gremlins=500
+  docker compose exec php bin/console foundry:load-fixtures --no-interaction
+  ```
+
 - `tests/E2E/` holds one real-browser Symfony Panther smoke test
   (login → create Volunteer → create Activity → see it in the list and
   `/reports` → mobile-nav check). It's excluded from the default
@@ -300,7 +332,11 @@ for dev specifically — leave that override in place.
   `var/screenshots/` (already covered by the blanket `/var/` gitignore
   entry — pull it to the host with `docker compose cp`, since `var/`
   is excluded from the dev bind-mount). See
-  [ADR 0007](docs/adr/0007-adopt-panther-for-adhoc-visual-verification.md).
+  [ADR 0007](docs/adr/0007-adopt-panther-for-adhoc-visual-verification.md)
+  — and [ADR 0019](docs/adr/0019-stay-on-panther-rather-than-migrate-to-playwright-php.md)
+  for why this stays on Panther now that
+  [ADR 0016](docs/adr/0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)
+  has retired the "no Node" reason it originally gave.
   Example:
 
   ```bash
@@ -396,6 +432,21 @@ the runbook):
   changing it needs a `docker compose build php`.
 - Backups: `scripts/backup-db.sh` (host-side, hot `VACUUM INTO`, no
   downtime, no `sqlite3` binary needed).
+- **Which screens actually get used** is answered from Caddy's access
+  log, not from analytics — no `gtag`, Plausible or Matomo goes into this
+  app ([ADR 0018](docs/adr/0018-answer-usage-questions-from-the-caddy-access-log.md),
+  which also records the reopen trigger). The lines are Caddy's console
+  format with a JSON tail, so a bare `| jq` fails on every one of them;
+  strip the prefix first:
+
+  ```bash
+  docker compose logs php --no-log-prefix \
+    | grep 'handled request' \
+    | sed 's/.*handled request[[:space:]]*//' \
+    | jq -r '.request.uri' | sed 's/?.*//' \
+    | grep -Ev '^/(assets|brand)/|favicon' \
+    | sort | uniq -c | sort -rn | head -20
+  ```
 
 **What's next:** see
 [`docs/project/next-steps.md`](docs/project/next-steps.md) (forward-only).

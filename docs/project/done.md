@@ -6,6 +6,70 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — Two ways to break the app before Edna does
+
+The "Researched, nothing decided" section of `next-steps.md` is gone: its
+two items are now decided
+([ADR 0018](../adr/0018-answer-usage-questions-from-the-caddy-access-log.md),
+[ADR 0019](../adr/0019-stay-on-panther-rather-than-migrate-to-playwright-php.md))
+and the exercise tooling from
+[brainstorm 05](../brainstorm/05-exercising-the-app-and-the-panther-question.md)
+is built. A route walk finds crashes that come from *coverage*; a horde
+finds crashes that come from *sequences*. Both, because they miss
+different things.
+
+**`tests/Functional/RouteSmokeTest.php`** — walks every GET route the
+router reports (23 today) in two passes: authenticated as an admin,
+asserting each one renders; and anonymous, asserting each one redirects
+to `/login`. A route added tomorrow joins both for free.
+
+- **No new dependency.** `http-smoke-testing` and
+  `Pierstoval/SmokeTesting` were both weighed and skipped: the router
+  already hands over the list, and the whole thing is ~70 lines. Not an
+  ADR — nothing installed, nothing structural.
+- `catchExceptions(false)`, because `WebTestCase` otherwise renders the
+  error page and returns a 500 that reads as a bare failed assertion with
+  no stack trace. This is the trap the brainstorm flagged.
+- It asserts **2xx**, not "below 500". A missing fixture 404s, and a
+  `< 500` assertion would pass vacuously while hiding the very server
+  errors the walk exists to find.
+- `{id}` comes from an explicit map of Foundry-created entities' ids,
+  matched longest-prefix-first (`activity_type_` before `activity_`). Not
+  from assuming id `1`: DAMA's transaction rollback does not reliably
+  reset SQLite's rowid sequence between tests.
+- The admin login is not incidental — `/users*` is
+  `#[IsGranted('ROLE_ADMIN')]`, so a `ROLE_USER` walk would assert four
+  403s and prove nothing about those screens.
+- Verified by canary: a temporary `throw` in `EscortController::index()`
+  failed the walk naming that route, with the real stack trace.
+
+**`scripts/gremlins.php`** — a gremlins.js horde on the running dev app,
+riding the same Panther client as
+[`panther-screenshot.php`](../../scripts/panther-screenshot.php) (whose
+`getopt` normalizer, login flow and `var/screenshots/` block it reuses
+rather than reinvents).
+
+- **No npm, no Composer package, nothing vendored.** The horde is one
+  pinned dist file (`gremlins.js@2.2.0`) loaded from unpkg into the page
+  at run time. Nothing reaches the production image.
+- **It refuses any host but the local container, with no override flag.**
+  The horde clicks Delete; a run against real data is not a mistake worth
+  making convenient.
+- Turbo Drive is pinned for the run by cancelling `turbo:before-visit`,
+  so the body is not swapped out from under the horde and findings stay
+  attributable to one page.
+- Findings come from `window.onerror`, `unhandledrejection`, a patched
+  `console.error`, gremlins' own mogwai alarms, and a check for a Symfony
+  error page at the end. Non-zero exit when anything is caught, and the
+  `--seed` in the summary reproduces it.
+- It also reports how many events actually landed — a clean run is only
+  reassuring if the horde wasn't inert. First runs: 227 events landed of
+  400 attacks on `/activities`, nothing caught. Verified by canary: a
+  temporary throwing click listener in `base.html.twig` was reported.
+
+Reseed after a run:
+`docker compose exec php bin/console foundry:load-fixtures --no-interaction`.
+
 ## 2026-09-05 — Volunteers list the active ones first
 
 `/volunteers` ordered by surname alone, so someone who finished their

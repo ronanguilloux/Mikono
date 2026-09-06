@@ -34,7 +34,7 @@ drafts and maintains these.
 | [0004](0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md) | Adopt PHPUnit, PHPat, Infection, and Panther for the Volunteer Manager app's test suite | Accepted |
 | [0005](0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md) | Adopt PHPStan, PHP-CS-Fixer, Rector, and composer audit for the Volunteer Manager app | Accepted |
 | [0006](0006-adopt-ucesco-theme-for-brand-identity.md) | Adopt "ucesco-theme" for the Volunteer Manager's brand identity | Accepted |
-| [0007](0007-adopt-panther-for-adhoc-visual-verification.md) | Adopt Panther (not Playwright) for ad-hoc, Claude-session-driven visual verification | Accepted (partially superseded by [0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)) |
+| [0007](0007-adopt-panther-for-adhoc-visual-verification.md) | Adopt Panther (not Playwright) for ad-hoc, Claude-session-driven visual verification | Accepted (partially superseded by [0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md); re-decided and confirmed by [0019](0019-stay-on-panther-rather-than-migrate-to-playwright-php.md)) |
 | [0008](0008-add-other-activity-duration-with-free-text-companion-field.md) | Add an `Other` `ActivityDuration` case with a free-text companion field | Accepted |
 | [0009](0009-adopt-knppaginatorbundle-for-list-pagination.md) | Adopt KnpPaginatorBundle for list pagination across every index view | Accepted |
 | [0010](0010-build-in-ci-and-deploy-by-image-pull.md) | Build the production image in CI and deploy by pulling it | Accepted |
@@ -45,3 +45,5 @@ drafts and maintains these.
 | [0015](0015-keep-a-projects-region-in-its-location-not-its-name.md) | Keep a project's region in its `location`, not in its name | Accepted |
 | [0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md) | Admit Node.js as a test dependency and ancillary tool, never as application code | Accepted |
 | [0017](0017-host-production-on-gandicloud-vps-in-france.md) | Host production on GandiCloud VPS in France, not in Kenya | Accepted |
+| [0018](0018-answer-usage-questions-from-the-caddy-access-log.md) | Answer usage questions from the Caddy access log, not from third-party analytics | Accepted |
+| [0019](0019-stay-on-panther-rather-than-migrate-to-playwright-php.md) | Stay on Symfony Panther rather than migrate to `playwright-php` | Accepted |

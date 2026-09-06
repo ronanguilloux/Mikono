@@ -35,5 +35,7 @@ agent that drafts these.
 | [02](02-volunteer-manager-v0.1-context.md) | UCESCO Volunteer Manager (VM) v0.1 | [0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md), [0004](../adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md) |
 | [03](03-test-hardening-and-next-steps.md) | Test Hardening Decisions (phase 11) | [0004](../adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md) |
 | [04](04-system-of-work-for-the-volunteer-manager.md) | A System of Work for the Volunteer Manager | |
-| [05](05-exercising-the-app-and-the-panther-question.md) | Exercising the app: monkey testing, and the Panther question | |
-| [06](06-usage-analytics-cockpit.md) | Usage analytics: an observability cockpit | |
+| [05](05-exercising-the-app-and-the-panther-question.md) | Exercising the app: monkey testing, and the Panther question | [0019](../adr/0019-stay-on-panther-rather-than-migrate-to-playwright-php.md) |
+| [06](06-usage-analytics-cockpit.md) | Usage analytics: an observability cockpit | [0018](../adr/0018-answer-usage-questions-from-the-caddy-access-log.md) |
+| [07](07-ponytail-audit.md) | Ponytail analytics: what could be simplified | |
+| [08](08-off-site-encrypted-backups.md) | Off-site encrypted backups: who can decrypt, who can delete | [0017](../adr/0017-host-production-on-gandicloud-vps-in-france.md) |

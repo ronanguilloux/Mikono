@@ -161,22 +161,6 @@ VM, not a modelling one.
   only today and tomorrow and render escort as a text line, not a column
   or a metric — so they settle neither question.
 
-## Researched, nothing decided
-
-The narrative for both lives in `docs/brainstorm/`; each needs a decision
-before any code:
-
-- [**Exercising the app: monkey testing, and the Panther
-  question**](../brainstorm/05-exercising-the-app-and-the-panther-question.md)
-  — a route-walking smoke test, gremlins.js, and the separate
-  `playwright-php` migration question that
-  [ADR 0016](../adr/0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)
-  unblocked but deliberately did not decide.
-- [**Usage analytics: an observability
-  cockpit**](../brainstorm/06-usage-analytics-cockpit.md) — read the
-  Caddy access log first; anything beyond it is a data-protection
-  decision that needs an ADR, not a `<script>` tag.
-
 ## Flagged for a future ADR (needs new infrastructure)
 
 - **Automated outbound reminders** — needs an outbound channel, and given
