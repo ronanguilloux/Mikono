@@ -47,3 +47,4 @@ drafts and maintains these.
 | [0017](0017-host-production-on-gandicloud-vps-in-france.md) | Host production on GandiCloud VPS in France, not in Kenya | Accepted |
 | [0018](0018-answer-usage-questions-from-the-caddy-access-log.md) | Answer usage questions from the Caddy access log, not from third-party analytics | Accepted |
 | [0019](0019-stay-on-panther-rather-than-migrate-to-playwright-php.md) | Stay on Symfony Panther rather than migrate to `playwright-php` | Accepted |
+| [0020](0020-keep-sessions-on-the-database-volume-in-files.md) | Keep sessions on the database volume, in files, rather than in the cache directory | Accepted |

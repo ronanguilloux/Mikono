@@ -305,12 +305,8 @@ ssh deploy@<server> 'cd /opt/mikono && ./scripts/deploy.sh'
 Migrations run themselves at container start, and Tailwind is already
 built into the image by CI. Nothing else to do.
 
-**Two things to know while doing it.**
+**One thing to know while doing it.**
 
-- **Every deploy signs everyone out.** Sessions live in
-  `var/cache/prod/sessions`, which is not a volume
-  ([`hosting-plan.md`](hosting-plan.md) §4). Harmless at one user, but
-  worth timing around if someone is mid-task.
 - **If `git pull` fails**, it is `--ff-only`, so something was committed
   on the server. That should never happen — the checkout exists only for
   the compose files and scripts.
@@ -445,6 +441,10 @@ docker run --rm -v mikono_db_data:/data -v "$PWD/backups:/backups" \
         # leave a journal (or -wal/-shm if WAL is ever enabled), and
         # SQLite would replay it onto the file you just restored.
         rm -f /data/data_prod.db-journal /data/data_prod.db-wal /data/data_prod.db-shm
+        # Sessions live on this volume too (ADR 0020). A restored database
+        # is a different world from the one those sessions were issued in;
+        # drop them and let everyone log in again.
+        rm -rf /data/sessions
         chown 33:0 /data/data_prod.db      # 33 = www-data
         ls -l /data/data_prod.db'
 

@@ -15,7 +15,8 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
-      # Named volume for the SQLite file only — survives `down`/`up`/rebuild,
+      # Named volume for the SQLite file and the session files — survives
+      # `down`/`up`/rebuild and, more to the point, a redeploy,
       # unlike the anonymous volume compose.override.yaml uses to exclude the
       # rest of var/ (cache/log) from the dev bind-mount for performance.
       - db_data:/app/var/data

@@ -164,16 +164,25 @@ see §6.
 
 ## 4. Storage and backup
 
-All persistent state is two Docker named volumes:
+All persistent state is three Docker named volumes:
 
-- `db_data` → `/app/var/data/data_prod.db` — the entire application
-  database.
+- `db_data` → `/app/var/data/` — the entire application database
+  (`data_prod.db`), **and** the session files in `sessions/`
+  ([ADR 0020](../adr/0020-keep-sessions-on-the-database-volume-in-files.md)):
+  `framework.yaml` points `session.save_path` there precisely so a
+  redeploy does not sign everyone out, which it did while sessions sat
+  in `var/cache/prod`. Two consequences worth knowing. The backups below
+  cover the database file only — `backup-db.sh` names it explicitly — so
+  this volume is no longer "the database and nothing else", and a restore
+  should drop `sessions/` (the §7 drill in
+  [`deployment-plan.md`](deployment-plan.md) does). And nothing needs
+  cleaning up: PHP's own GC (probability 1/1000, 8-hour lifetime) prunes
+  expired files.
 - `caddy_data` → certificates.
+- `caddy_config` → Caddy's autosaved config. Small, and Caddy recreates
+  it, but it is a named volume like the other two.
 
-Everything else (`var/cache`, `var/log`) is disposable. One consequence
-worth knowing: **sessions live in `var/cache/prod/sessions`, which is not
-a volume**, so every redeploy signs users out. At one user that is a
-shrug; it is recorded here so nobody rediscovers it as a bug.
+Everything else (`var/cache`, `var/log`) is disposable.
 
 **Backups** use [`scripts/backup-db.sh`](../../scripts/backup-db.sh),
 which snapshots the live database with SQLite's `VACUUM INTO` through
@@ -437,8 +446,9 @@ three unsettled ones.
   recommendation.** FrankenPHP in worker mode with
   `opcache.memory_consumption=256` sits at 300–600 MB, and a deploy
   briefly runs the old and new containers at once. It will probably work
-  and it will have no headroom. **Price the 2 GB tier before comparing
-  anything** — the €6 figure is not the number to put next to Nairobi's
+  and it will have no headroom. **Answered by doing it: the UAT box was
+  resized to V-R2 (1 CPU / 2 GB) on 2026-09-06**, so V-R2 — not the €6
+  V-R1 figure — is the number to put next to Nairobi's
   2,600–3,000 KSh.
 - **Snapshots are contradicted by Gandi's own page** (spec table says
   manual and automatic, FAQ still says "coming soon"). Live

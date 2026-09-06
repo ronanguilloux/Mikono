@@ -6,6 +6,27 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — Sessions survive a deploy
+
+Sessions moved off the cache directory and onto the `db_data` volume, and
+their idle lifetime went from 24 minutes to 8 hours:
+[ADR 0020](../adr/0020-keep-sessions-on-the-database-volume-in-files.md).
+
+## 2026-09-06 — UAT server resized to V-R2 (2 GB)
+
+`srv-mikono` moved from GandiCloud **V-R1 (1 CPU / 1 GB)** to **V-R2
+(1 CPU / 2 GB)**, same 25 GB disk, same addresses. The 2 GB swapfile
+stays in place — harmless on the larger plan, and the deploy overlap
+still briefly runs two containers.
+
+This closes half of `next-steps.md`'s "resize off the 1 GB plan" gate:
+the box that exists is off it, and production has to be ordered on V-R2
+rather than V-R1 when it exists. The CPU is still 1 against
+`hosting-plan.md` §2's recommended 2 vCPU / 2 GB, so that half is not
+closed. [ADR 0017](../adr/0017-host-production-on-gandicloud-vps-in-france.md)
+records the V-R1 sizing as it stood when the decision was made; it is
+immutable, and this entry is the update.
+
 ## 2026-09-06 — Two ways to break the app before Edna does
 
 The "Researched, nothing decided" section of `next-steps.md` is gone: its

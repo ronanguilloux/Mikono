@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-05
+**Last updated:** 2026-09-06
 
 Only what's next goes here — forward-looking exclusively. Completed work
 moves out: to an ADR in `docs/adr/` if it was an architectural decision,
@@ -36,10 +36,13 @@ where that is still unsettled. Three things gate real data:
    it on the UAT box first is a free rehearsal of exactly the procedure,
    in the spirit of [`deployment-plan.md`](deployment-plan.md) §10. Give
    production its own remote and its own key rather than sharing UAT's.
-2. **Resize off the 1 GB plan.** V-R1 is
+2. **Size production off the 1 GB plan.** The UAT box moved to
+   **V-R2 — 1 CPU / 2 GB** on 2026-09-06, so the swapfile is no longer
+   standing in for a missing gigabyte there. Production has to be
+   ordered on the same tier rather than on V-R1, which is
    [`hosting-plan.md`](hosting-plan.md) §2's minimum, not its
-   recommendation, and a 2 GB swapfile is doing the work of the missing
-   gigabyte. Price the 2 GB tier and move to it.
+   recommendation. Note the CPU is still 1: the §2 recommendation is
+   2 vCPU / 2 GB, and a deploy briefly runs two containers.
 3. **A production hostname that resolves.** Mechanically this is small —
    A/AAAA records at the production box's IP, `SERVER_NAME` and
    `DEFAULT_URI` set to that name, deploy — but the name is not ours to
@@ -95,9 +98,11 @@ sentence to put in front of them is in
 counsel, that is the sentence to show them.
 
 **One decision the meeting does not settle, so make it separately:
-one box or two.** UAT and production are two deployments, and V-R1 at
-1 GB will not host both — a single FrankenPHP worker with a 256 MB
-opcache is already why that box needs a 2 GB swapfile. Either production
+one box or two.** UAT and production are two deployments. At 2 GB
+sharing is no longer arithmetically impossible the way it was on V-R1 —
+but two FrankenPHP workers with a 256 MB opcache each, plus the deploy
+overlap, is most of the box, and it would put real volunteer data on the
+same disk as the environment we deliberately keep empty. Either production
 gets its own VPS (a second bill, a second backup cron, and UAT stays
 genuinely isolated from real data), or the boxes are resized and share
 one. Decide before the DNS exists, because the answer is the IP the
@@ -111,11 +116,6 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
 
 ## Deferred until a second `User` account exists
 
-- **Sessions are lost on every deploy.** They live in
-  `var/cache/prod/sessions`, which is not a volume, so a redeploy signs
-  everyone out. At one user this is a shrug; recorded so it isn't
-  rediscovered as a bug. The fix is a volume or a different session
-  handler.
 - **SQLite journal mode.** The database uses the default rollback
   journal. Switching to WAL plus a `busy_timeout` is a one-time `PRAGMA`
   and the cheapest first move on the single-writer limit ADR 0003

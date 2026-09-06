@@ -3,7 +3,25 @@ framework:
     secret: '%env(APP_SECRET)%'
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    session:
+        # Not the default (%kernel.cache_dir%/sessions): the cache dir is
+        # rebuilt in a fresh container on every deploy, which signed everyone
+        # out. var/data is the one named volume that survives — see
+        # compose.yaml. Setting save_path also switches the handler to
+        # native_file, which creates the directory itself.
+        save_path: '%kernel.project_dir%/var/data/sessions'
+        # PHP's default is 1440 (24 minutes), which is shorter than a VM's
+        # working day — and persisting sessions across a deploy is worth
+        # little if they expire over lunch. This one *slides*: the native
+        # file handler's GC keys off the session file's mtime, which every
+        # request touches.
+        gc_maxlifetime: 28800
+        # Explicitly PHP's default, not an oversight: a browser-session
+        # cookie. A non-zero value here would NOT slide — PHP only sends
+        # Set-Cookie when it creates the session id — so it would be an
+        # absolute deadline from login, signing a VM out mid-task. Set it
+        # only if surviving a browser restart ever matters more than that.
+        cookie_lifetime: 0
 
     #esi: true
     #fragments: true
