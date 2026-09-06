@@ -124,6 +124,121 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
   colleague. The `User` entity is already scoped to grow beyond one user;
   nothing to build until a second one exists.
 
+## Ready to build (independent of the production gates above)
+
+The first three are one feature and two doors into it — build the filter
+first, then the links, or the links have nowhere to go.
+
+- **Filter `/activities` by a single volunteer.** The index has sorting
+  and pagination but no filtering at all, so this is new ground rather
+  than an extra clause. Decide the URL shape first, because the next two
+  items are links to it (`?volunteer=<id>` is the obvious one) and it has
+  to survive paging and sorting — the filter belongs in the query string
+  alongside `page`/`sort`, and every pagination and sort link has to
+  carry it or the filter drops on the second page. `ListPaginator` is
+  where the query string is already read for all seven lists; the
+  volunteer id reaches DQL as a bound parameter, never interpolated. Open:
+  whether the screen also grows a volunteer picker to set the filter from
+  the page itself, or stays link-only to start with, and what the header
+  says when a filter is active ("Activities — Grace Achieng", with a
+  clear-filter affordance).
+- **Make the "Top volunteers" names on `/reports` link to that filtered
+  view.** Note the constraint before starting: `DataTable`'s `cells` are
+  `array<string, string>` and render as plain text on purpose — the class
+  docblock explains that decoration in a cell string breaks sorting,
+  `number_format()` and the print panel. So this is a `links` map keyed
+  by column, mirroring how `badges` already works, not HTML injected into
+  a cell. Whether the print panel should render the link as text is worth
+  a thought.
+- **A shortcut from `/volunteers/{id}/edit` to that volunteer's
+  activities**, filtered on them. The volunteers *index* row is the other
+  candidate spot; pick one rather than both to start with.
+- **A reveal/hide toggle on the password field of `/users/{id}/edit`**,
+  hidden by default as now. One clarification that changes what gets
+  built: the field is `plainPassword` on `UserFormType` — unmapped, and a
+  *new* password being typed. The stored password is a hash and cannot be
+  revealed; nothing on that screen ever knows the current one. So this is
+  the ordinary "show what I am typing" affordance, which is worth having
+  on a phone keyboard. A Stimulus controller flipping the input's `type`
+  is the whole of it (Symfony UX is already installed, ADR 0003); the
+  button needs a real accessible name and `aria-pressed`, and the
+  field is rendered through the Tailwind form theme, so that is where the
+  markup goes rather than in one template.
+
+## Simplification backlog (from the ponytail audit)
+
+One line each; the reasoning, line counts and file paths are in
+[`docs/brainstorm/07-ponytail-audit.md`](../brainstorm/07-ponytail-audit.md).
+Independent of each other — take them in any order, or none. The audit
+deliberately left `/reports` walking every activity three times alone as a
+performance question, not a simplification one; that is still unexamined.
+
+The audit's "dead code" bullets were verified and folded into the lists
+below; its file carries the corrections. One was wrong:
+`ProjectFactory::partner()` has two live callers, so don't re-propose it.
+
+**Shrink — same behaviour, less code:**
+
+- **Make `createOrderedByNameQueryBuilder()` the single ordered-name query.**
+  `ActivityFormType` and `BatchActivityFormType` hand-roll it inline four
+  times (`ActivityFormType.php:63`, `:83`, `BatchActivityFormType.php:51`,
+  `:75`); point them at the repository method instead. Then drop
+  `EscortRepository::findAllOrderedByName()` and
+  `ActivityTypeRepository::findAllOrderedByName()`, which nothing calls — but
+  note the `VolunteerRepository`/`ProjectRepository` twins **are** live
+  (`ReportMetricsCalculator`), so either fix the shared docblock or accept a
+  deliberately asymmetric quartet.
+- **`CreateUserCommand`: use `$io->ask()`/`$io->askHidden()`** instead of
+  `getHelper('question')` and three `Question` objects.
+- **Hand the delete token to Twig's `csrf_token()`** and build the id in
+  `RowActions`, retiring the `csrfTokenId()`/`csrfToken()` pair and the
+  `CsrfTokenManagerInterface` constructor arg copy-pasted into six controllers.
+- **One anonymous component for the five byte-identical `_form.html.twig`
+  shells**, taking `cancelUrl` — that is the only thing that differs.
+- **Filter the existing checkbox labels in
+  `batch_activity_form_controller.js`** rather than hand-rolling a listbox over
+  them (arrow-key highlight, `aria-expanded`, the mousedown-vs-blur race). Keep
+  the keyboard and screen-reader behaviour that hand-roll currently provides —
+  that is the part worth checking before deleting, not the line count.
+- **Write the "Other needs `durationOther`" rule once.** It exists twice today:
+  `Activity::validateDurationOther()` and an identical `Assert\Callback` in
+  `BatchActivityFormType::configureOptions()`.
+- **Thin `RosterArchive`'s hand-rolled type layer** — ~110 lines of
+  `rows`/`string`/`nullableString`/`bool`/`date` plus five one-caller readonly
+  VOs, guarding a YAML file this repo owns and a maintainer hand-writes. Not a
+  trust boundary. `RosterArchiveTest` enforces the transcription rules and
+  stays either way ([ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
+
+**Needs a decision before a diff:**
+
+- **Cut `symfony/ux-live-component`** — zero `AsLiveComponent`, zero
+  `data-live`, but `live_controller.js` and `live.min.css` ship eagerly on
+  every page load. Touches `composer.json`, `config/bundles.php`,
+  `config/routes/ux_live_component.yaml`, the importmap and
+  `assets/controllers.json`. ADR 0003 records it as "installed, not yet used",
+  so removing it revises that record rather than merely deleting code.
+- **Drop `/activities/new`**, the single-volunteer form, now that
+  `/activities/new-batch` handles N≥1 and is what the home screen links to
+  everywhere. `ActivityFormType` stays — `/edit` uses it. Confirm nothing
+  bookmarked or documented points at the old route first.
+- **Decide what `Escort::$isActive` is for.** Today it is a checkbox and a
+  Status column with no reader, and both activity pickers list inactive
+  escorts unlabelled. Either it filters those pickers — which is what the
+  volunteer picker already does — or it goes. Read it as a missing filter and
+  it is a normal review item, not a deletion.
+  Settle it before touching `EscortFactory::inactive()`: uncalled today, but
+  exactly the fixture a test for that filter needs. `ProjectFactory::inactive()`
+  is the same shape and rides along.
+- **Reconsider `knplabs/knp-paginator-bundle`** — the honest caveat first: it
+  is [ADR 0009](../adr/0009-adopt-knppaginatorbundle-for-list-pagination.md)
+  and [ADR 0011](../adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md),
+  and cutting it *adds* ~40 lines. But `ListPaginator` already parses
+  `page`/`perPage`/`sort`/`direction` itself, switches the bundle's sorting off
+  with `SORT_FIELD_PARAMETER_NAME => null`, and `PaginationBar` bypasses
+  `knp_pagination_render()` for want of a translator. What is left is a count,
+  a slice and a page window. Only worth doing behind a superseding ADR; lowest
+  priority here.
+
 ## Questions for Edna
 
 - Are "Ellen" (early August) and "Hellen" (September) the same volunteer?

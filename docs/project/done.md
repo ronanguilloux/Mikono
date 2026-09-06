@@ -6,6 +6,53 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — Untracked the generated `config/reference.php`
+
+1,691 lines of generated PHP came out of git. `PhpConfigReferenceDumpPass`
+writes the file at container compile
+(`vendor/symfony/framework-bundle/FrameworkBundle.php:224`), registered only
+under `kernel.debug` — dev and test, never prod. Nothing loads it: it is the
+only file under `config/` referencing `Loader\Configurator`, and PHPStan
+scans `src/` and `tests/`. Seven commits had touched it, each one a bundle or
+dependency change. Bonus: `.dockerignore` doesn't exclude `config/`, so it
+was also shipping 102 KB into the production image.
+
+**The php-cs-fixer exclusion stayed, and that is the non-obvious part.** The
+[ponytail audit](../brainstorm/07-ponytail-audit.md) said to drop it "with
+it"; that would have broken CI. The `notPath` entry in
+`.php-cs-fixer.dist.php` exists because the file sits *on disk in dev*, not
+because it was committed — and gitignoring changes nothing about that. CI
+runs `bin/console cache:warmup` in the dev container before
+`composer quality`, so on a clean checkout the generator has put all 1,691
+lines back before `cs-check` reads them. Both the fixer config and
+`.gitignore` now carry a comment saying so.
+
+Safe by construction on the read-only path: the dump pass is guarded by
+`is_dir($dir) && is_writable($dir)`, so it skips silently rather than
+failing when it can't write.
+
+The audit's two neighbouring "dead code" bullets did **not** survive the
+same check — `ProjectFactory::partner()` has two live callers, and the
+repository-finder deletion is smaller than advertised. Corrections are in
+the audit file; the surviving work moved into `next-steps.md`'s Shrink and
+decision lists.
+
+## 2026-09-06 — Merged the duplicate `twig-components` skill pack
+
+`.agents/skills/` carried two packs on the same subject, both loaded:
+`twig-component/` (a real pack — a triggering description plus
+`references/api.md`, `gotchas.md`, `patterns.md`) and `twig-components/`,
+whose `SKILL.md` was generic "establish boundaries / propose smallest
+adjustment" boilerplate and whose `reference.md` had lost most of its PHP
+method bodies to a broken generation pass.
+
+Kept the singular pack; ported the three things only the plural one had —
+the `readonly`-on-props caveat (into `gotchas.md`), CVA variants and
+`InteractsWithTwigComponents` testing (into `patterns.md`) — and deleted
+`twig-components/` along with its row in `.agents/skills/README.md`. First
+item off the `.agents/skills/` list in
+[`docs/brainstorm/07-ponytail-audit.md`](../brainstorm/07-ponytail-audit.md).
+
 ## 2026-09-06 — `deploy.sh` refuses to run as the wrong user
 
 A deploy attempted as `debian@` rather than `deploy@` failed on git's

@@ -38,3 +38,12 @@
 # identifies the production box). This repository is public; these files
 # stay on the maintainer's machine. Naming convention: *.local.md
 /docs/project/*.local.md
+
+###> auto-generated config ###
+# FrameworkBundle regenerates this at container compile, under kernel.debug
+# only (FrameworkBundle.php:224) — so dev and test, never prod. It is an
+# IDE/static-analysis assist (array shapes for App::config()); nothing loads
+# it. It stays excluded in .php-cs-fixer.dist.php regardless: untracking it
+# does not remove it from disk in dev. See done.md, 2026-09-06.
+/config/reference.php
+###< auto-generated config ###

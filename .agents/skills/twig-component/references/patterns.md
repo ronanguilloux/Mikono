@@ -521,3 +521,43 @@ Combining multiple components:
     </twig:block>
 </twig:Card>
 ```
+
+## CVA Variants (symfony/ux-twig-component + tailwind-merge)
+
+```twig
+{# templates/components/Badge.html.twig #}
+{% set badge = html_cva(
+    base: 'inline-flex items-center rounded px-2 py-1 text-xs font-medium',
+    variants: {
+        color: { gray: 'bg-gray-100 text-gray-800', red: 'bg-red-100 text-red-800' },
+        size:  { sm: 'text-xs', md: 'text-sm' },
+    }
+) %}
+<span class="{{ badge.apply({color, size}, attributes.render('class'))|tailwind_merge }}">
+    {{ label }}
+</span>
+```
+
+## Testing a Component
+
+```php
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
+
+final class AlertTest extends KernelTestCase
+{
+    use InteractsWithTwigComponents;
+
+    public function testMount(): void
+    {
+        $component = $this->mountTwigComponent(name: 'Alert', data: ['message' => 'Hi']);
+        self::assertSame('info', $component->type);
+    }
+
+    public function testRender(): void
+    {
+        $rendered = $this->renderTwigComponent(name: 'Alert', data: ['message' => 'Hi']);
+        self::assertStringContainsString('Hi', (string) $rendered);
+    }
+}
+```

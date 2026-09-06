@@ -101,7 +101,6 @@ security/voters, TDD, DDD):
 | `tdd-with-pest` | RED-GREEN-REFACTOR with Pest v4 |
 | `tdd-with-phpunit` | RED-GREEN-REFACTOR with PHPUnit 10/11 |
 | `test-doubles-mocking` | PHPUnit mocks for unit test isolation |
-| `twig-components` | Reusable UI components (props, slots, CVA) |
 | `using-symfony-superpowers` | Entry point / command map for this package |
 | `value-objects-and-dtos` | Immutable Value Objects and DTOs |
 | `writing-plans` | Structured implementation plans for Symfony features |

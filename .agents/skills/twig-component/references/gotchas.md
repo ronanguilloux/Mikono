@@ -320,3 +320,24 @@ Lists all registered components, their class, template path, and type (live or n
 3. Check the class has `#[AsTwigComponent]`
 4. Check the `defaults` config maps the namespace correctly
 5. Clear the cache: `php bin/console cache:clear`
+
+---
+
+## `readonly` on a Component Class or Props
+
+Props are assigned *after* instantiation, so a `readonly` public prop throws.
+
+```php
+#[AsTwigComponent]
+class Alert
+{
+    public function __construct(
+        private readonly LoggerInterface $logger,   // services: readonly OK
+    ) {}
+
+    public string $type = 'info';   // props: must stay mutable, no readonly
+    public string $message = '';
+}
+```
+
+If the class itself must be `readonly`, assign the props inside `mount()`.
