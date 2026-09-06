@@ -6,6 +6,66 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — The migration-history wipe, fixed at the cause after four hand-repairs
+
+The dev container's restart loop — `doctrine_migration_versions` empty while
+the full schema and all 102 activities sat there, so the entrypoint replayed
+migration 1 onto live tables and died on `table "user" already exists` — has
+now happened **four times**: 2026-08-31, 2026-09-02, 2026-09-03 and today.
+Each time it was repaired by hand with `doctrine:migrations:version --add`
+and written up as a curiosity. The 2026-09-03 entry had already found the
+mechanism and even predicted the recurrence ("if it recurs after loading dev
+fixtures, that is the fix"); what nobody had done was stop it happening.
+
+**The cause, precisely.** `foundry:load-fixtures` resets the database through
+`resetBeforeFirstTest()`, and Foundry's default `schema` reset mode runs
+`doctrine:schema:drop --force --full-database`
+(`SchemaDatabaseResetter.php:54`). `--full-database` is the operative word: it
+drops *every* table, not just the mapped ones, so the unmapped
+`doctrine_migration_versions` goes with them — and `schema:update` then
+rebuilds only what the entity metadata describes. The versions table comes
+back empty, and the entrypoint's
+`doctrine:migrations:migrate --all-or-nothing`
+([`frankenphp/docker-entrypoint.sh:38`](../../frankenphp/docker-entrypoint.sh))
+does exactly what it is told with a history that says nothing has ever been
+applied.
+
+**The fix is one config key.** Foundry ships a second reset mode whose
+resetter drops the SQLite file and runs `doctrine:migrations:migrate` instead
+of the schema tool, which leaves the version history correct by construction
+rather than by repair. `config/packages/zenstruck_foundry.yaml` now sets
+`orm.reset.mode: migrate`, under the existing `when@dev`/`when@test` anchor
+so both environments get it. Note the key sits under a top-level `orm` node,
+*not* under `persistence` beside `flush_once` — the obvious guess is rejected
+by the config tree.
+
+Rejected: patching the entrypoint, which is shared with production where this
+bug does not exist and where replaying migrations on boot is the entire point;
+and a wrapper script or composer alias around `load-fixtures`, which is new
+surface for something a config key already solves.
+
+**Verified, in the order that makes the claim mean something.** A reseed now
+leaves all eight migrations `migrated` — and the timestamps show they were
+applied *by that reseed*, which is the actual proof, since the old failure
+mode was an empty table rather than a stale one. Then `docker compose restart
+php` came back `healthy` with no `already exists` in the logs, and the seeded
+data is intact at 15 volunteers / 13 sites / 5 escorts / 102 activities on a
+from-scratch rebuild. Suite green at 230 tests / 1050 assertions in 13.9 s;
+the added cost is one `migrations:migrate` per run, not per test, because DAMA
+makes `ResetDatabaseManager::canSkipSchemaReset()` true and the per-test reset
+is skipped. `composer quality` clean, `doctrine:schema:validate` in sync.
+
+Two side effects worth knowing. Migrations are now the source of truth for the
+dev and test schema, so a migration that drifts from the entity metadata will
+surface as a failing test run rather than as a silent divergence — a feature,
+but it means a broken migration now breaks the suite. And `AGENTS.md` said the
+archive seeds 90 activities; the real number is 102, corrected while adding
+the note there that warns against setting the mode back to `schema`.
+
+Cleanup: `data_dev.db.bak-before-version-repair`, the backup taken before
+today's hand-repair, was deleted from the `db_data` volume once the eight
+migrations were confirmed tracked.
+
 ## 2026-09-06 — The suspected Turbo/422 bug wasn't one; the `/usage` metric it was about was
 
 `next-steps.md` carried a suspected live bug, written up honestly as an

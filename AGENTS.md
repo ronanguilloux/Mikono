@@ -216,13 +216,25 @@ nothing about it is shared with production, and no real password
 belongs in this file — this repo is public.
 
 Seed the dev data — the real August 2026 roster archive: 15 volunteers,
-13 sites, 5 escorts and 90 activities, with the last two days anchored
+13 sites, 5 escorts and 102 activities, with the last two days anchored
 onto today and tomorrow so the home screen's roster panels have
 something to show:
 
 ```bash
 docker compose exec php bin/console foundry:load-fixtures --no-interaction
 ```
+
+That command **rebuilds the schema by replaying migrations**, not with the
+schema tool — `config/packages/zenstruck_foundry.yaml` sets Foundry's
+`orm.reset.mode` to `migrate`. Don't set it back to `schema`: that mode
+runs `doctrine:schema:drop --full-database`, which takes the unmapped
+`doctrine_migration_versions` table with it, after which the entrypoint's
+`doctrine:migrations:migrate --all-or-nothing` finds zero applied versions,
+replays migration 1 onto a live schema, and restart-loops the container. It
+cost four hand-repairs before that config line existed. If you do meet the
+loop, the non-destructive fix is `doctrine:migrations:version --add --all`
+after `doctrine:schema:validate` confirms the schema is already in sync —
+see `done.md`, 2026-09-06.
 
 **After changing an entity:**
 
