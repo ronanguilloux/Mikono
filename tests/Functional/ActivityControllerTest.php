@@ -682,4 +682,33 @@ final class ActivityControllerTest extends WebTestCase
         // Outside the `hidden md:block` wrapper, like the pagination bar.
         self::assertCount(0, $crawler->filter('.hidden.md\\:block [data-volunteer-filter]'));
     }
+
+    /**
+     * The return trip for the show page's "See in Activities" link. Only a
+     * filtered list has one profile to point at — unfiltered, there is no
+     * volunteer to view.
+     */
+    #[Test]
+    public function theFilterOffersAProfileLinkOnlyWhileAVolunteerIsSelected(): void
+    {
+        $client = static::createClient();
+        $aisha = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        ActivityFactory::createOne(['volunteer' => $aisha]);
+        $client->loginUser(UserFactory::createOne());
+
+        self::assertCount(
+            0,
+            $client->request('GET', '/activities')->filter('[data-volunteer-filter] a'),
+            'The unfiltered list has no volunteer to view.',
+        );
+
+        $crawler = $client->request('GET', '/activities?volunteer=' . $aisha->getId());
+        $link = $crawler->filter('[data-volunteer-filter] a');
+        self::assertCount(1, $link);
+        self::assertSame("/volunteers/{$aisha->getId()}", $link->attr('href'));
+
+        $client->click($link->link());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Aisha Achieng');
+    }
 }

@@ -23,6 +23,10 @@ existing URL rather than inventing a second shape:
   breakdown link each name to that volunteer's filtered list. The "By
   project" breakdown does not: there is no `?project=` filter to link to.
 
+The trip back exists too: the Activities index shows a "View profile →"
+link beside the volunteer filter, but **only while a volunteer is
+selected** — an unfiltered list has no one profile to point at.
+
 Two things fell out of doing it:
 
 - `ActivitySummaryCalculator` now **buckets by id, not by label**, which is

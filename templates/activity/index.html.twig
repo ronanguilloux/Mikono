@@ -68,6 +68,19 @@
         </select>
 
         <button type="submit" class="sr-only">Apply</button>
+
+        {# Only once the list is narrowed to one person is there a profile to
+           go to — the return trip for the show page's "See in Activities".
+           Inside the form so it sits on the same flex row as the select; it
+           submits nothing. The name is sr-only because the heading above
+           already says it on screen, but "View profile" alone is poor link
+           text out of context. #}
+        {% if volunteer %}
+            <a
+                href="{{ path('volunteer_show', {id: volunteer.id}) }}"
+                class="text-brand-600 hover:underline"
+            >View profile<span class="sr-only"> for {{ volunteer.fullName }}</span> →</a>
+        {% endif %}
     </form>
 
     {% set empty_message = volunteer
