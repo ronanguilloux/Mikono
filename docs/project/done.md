@@ -6,6 +6,21 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — `deploy.sh` refuses to run as the wrong user
+
+A deploy attempted as `debian@` rather than `deploy@` failed on git's
+*"dubious ownership"* — but only after printing *"Nothing running yet;
+skipping the pre-deploy backup"*, because `debian` is not in the `docker`
+group and the `PREVIOUS` lookup swallows that error. Had the git step
+come later, that is a deploy without its backup.
+
+`scripts/deploy.sh` now compares `id -un` against the owner of the
+checkout and exits with the correct `ssh` line if they differ — the
+directory's owner rather than a hard-coded `deploy`, so a second server
+with a different user needs no edit. `deployment-plan.md` §6 and
+`AGENTS.md` now say which user is which: §3's `debian` is host admin
+only, §6's `deploy` owns `/opt/mikono`.
+
 ## 2026-09-06 — Sessions survive a deploy
 
 Sessions moved off the cache directory and onto the `db_data` volume, and

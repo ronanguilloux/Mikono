@@ -418,6 +418,13 @@ the runbook):
   `docker compose -f compose.yaml -f compose.prod.yaml …`. A bare
   `docker compose up -d` silently loads `compose.override.yaml` and would
   run production in `APP_ENV=dev` with Xdebug and a bind mount.
+- **SSH as `deploy` for anything in `/opt/mikono`, never as `debian`.**
+  `debian` is the Gandi image's admin login (`apt`, `cron`, `sudo`) and
+  owns nothing there; `deploy` owns the checkout and is in the `docker`
+  group. As `debian` a deploy fails on git's "dubious ownership" and, but
+  for the owner check at the top of `scripts/deploy.sh`, would report
+  "Nothing running yet" and skip its pre-deploy backup. `deployment-plan.md`
+  §3 is about `debian`; §6, the routine deploy, is about `deploy`.
 - `APP_SECRET` is a **runtime** variable, never a build argument: the
   published image is public, and `composer dump-env prod` bakes
   build-time environment into it.

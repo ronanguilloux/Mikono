@@ -305,7 +305,24 @@ ssh deploy@<server> 'cd /opt/mikono && ./scripts/deploy.sh'
 Migrations run themselves at container start, and Tailwind is already
 built into the image by CI. Nothing else to do.
 
-**One thing to know while doing it.**
+**`deploy@`, not `debian@`.** `debian` is the Gandi image's login from §3
+and it is *only* for host-level administration — `apt`, `cron`, the
+timezone, `sudo`. It owns nothing in `/opt/mikono` and is not in the
+`docker` group, so a deploy run as `debian` fails twice over and says so
+badly: `git pull` refuses with *"dubious ownership"*, and `docker
+compose` is unreachable in a way the `PREVIOUS` lookup swallows, so the
+script announces *"Nothing running yet; skipping the pre-deploy
+backup"* — a deploy that would skip its own backup. Neither is worth
+diagnosing twice, so `deploy.sh` now refuses up front unless the user
+running it owns the checkout. Worth a `Host` entry on the workstation
+too, so the name alone is enough:
+
+```text
+Host deploy.mikono.guilloux.org
+    User deploy
+```
+
+**One more thing to know while doing it.**
 
 - **If `git pull` fails**, it is `--ff-only`, so something was committed
   on the server. That should never happen — the checkout exists only for

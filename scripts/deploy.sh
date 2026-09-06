@@ -22,6 +22,22 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Deploy as the user that OWNS this checkout — `deploy`, per
+# deployment-plan.md §3. As anyone else (`debian` is the tempting one: it
+# is the Gandi image's login and has passwordless sudo) two things go
+# wrong and neither says so clearly: git refuses the pull with "dubious
+# ownership", and `docker compose` is unreachable without the docker
+# group, which the PREVIOUS lookup below swallows into "nothing running
+# yet" — i.e. a deploy that skips its own backup. Compare against the
+# directory's owner rather than a hard-coded name, so a second server
+# with a different deploy user needs no edit here.
+OWNER="$(stat -c '%U' .)"
+if [ "$(id -un)" != "${OWNER}" ]; then
+    echo "Run this as ${OWNER}, not $(id -un):" >&2
+    echo "  ssh ${OWNER}@<server> 'cd $(pwd) && ./scripts/deploy.sh'" >&2
+    exit 1
+fi
+
 ENV_FILE="${ENV_FILE:-deploy.env}"
 COMPOSE_FILES="--env-file ${ENV_FILE} -f compose.yaml -f compose.prod.yaml"
 WAIT_TIMEOUT="${WAIT_TIMEOUT:-120}"
