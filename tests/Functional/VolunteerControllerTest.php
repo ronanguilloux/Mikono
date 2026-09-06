@@ -117,6 +117,26 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function showLinksToTheVolunteersFilteredActivityList(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => new \DateTimeImmutable('yesterday')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        $link = $crawler->selectLink('See in Activities →');
+
+        self::assertCount(1, $link);
+        self::assertSame("/activities?volunteer={$volunteer->getId()}", $link->attr('href'));
+
+        // The timeline is read-only; the point of the link is the editable list.
+        $client->click($link->link());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Activities — Aisha Njoroge');
+    }
+
+    #[Test]
     public function editUpdatesTheVolunteer(): void
     {
         $client = static::createClient();

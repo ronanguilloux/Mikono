@@ -6,6 +6,40 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — Doors into the `?volunteer=` activity filter
+
+`/activities?volunteer=<id>` shipped earlier the same day with nothing
+linking to it — the filter was only reachable from the select on the
+Activities index itself. Two doors now lead there, both pointing at that
+existing URL rather than inventing a second shape:
+
+- **The volunteer show page.** `/volunteers/{id}` already rendered a
+  read-only activity timeline; its "Activity history" heading gained a
+  "See in Activities →" link to the editable, paginated list, in the same
+  heading/link layout the Notes section above it already used. Chosen over
+  the two spots `next-steps.md` named — the edit form is a bare form, and
+  the index row already has three actions plus a View that leads here.
+- **`/reports`.** Both the "Top volunteers" card and the "By volunteer"
+  breakdown link each name to that volunteer's filtered list. The "By
+  project" breakdown does not: there is no `?project=` filter to link to.
+
+Two things fell out of doing it:
+
+- `ActivitySummaryCalculator` now **buckets by id, not by label**, which is
+  what makes a row linkable — and fixes a latent bug on the way: two
+  volunteers sharing a full name used to merge into one row with double the
+  days. `tests/Functional/ReportControllerTest.php` pins that. The
+  no-volunteer bucket keeps a null id and so renders unlinked rather than
+  pointing somewhere wrong.
+- `DataTable` rows gained an optional `links` map — column key => URL,
+  mirroring how `badges` already works. The URL stays out of the cell
+  string for the same reason a badge does: `cells` must remain the plain
+  formatted value that sorting, `number_format()` and every text-matching
+  test still see. No print variant was needed — an `<a>` prints as its own
+  text, so the print panel takes the same rows.
+
+`composer infection` still reports 100% MSI on the calculator.
+
 ## 2026-09-06 — Show/hide toggle on the password field
 
 `/users/new` and `/users/{id}/edit` grew the ordinary "show what I am typing"

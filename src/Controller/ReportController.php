@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * @phpstan-type SummaryRow array{label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}
+ * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}
  */
 #[Route('/reports', name: 'report_')]
 final class ReportController extends AbstractController
@@ -82,14 +82,14 @@ final class ReportController extends AbstractController
             'byVolunteer' => $byVolunteer,
             'tab' => $tab,
             'columns' => $this->columnsFor($tab),
-            'rows' => $this->toRows($pageOfRows, $today),
+            'rows' => $this->toRows($pageOfRows, $today, self::TAB_PROJECT !== $tab),
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
             // Complete and unpaginated, for the print-only panel. The
             // print-friendly view has always put both breakdowns on paper in
             // full, and tabbing the screen mustn't quietly halve that.
-            'volunteerRows' => $this->toRows($byVolunteer, $today),
-            'projectRows' => $this->toRows($byProject, $today),
+            'volunteerRows' => $this->toRows($byVolunteer, $today, true),
+            'projectRows' => $this->toRows($byProject, $today, false),
             'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
             'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
         ]);
@@ -110,15 +110,21 @@ final class ReportController extends AbstractController
      * Summary rows in DataTable's shape. No 'actions' key — these rows are
      * read-only, which is what DataTable's withActions=false is for.
      *
+     * $linkVolunteers is what the caller knows and this method doesn't: which
+     * breakdown these rows are. Only the volunteer one has somewhere to link
+     * to — there is no `/activities?project=` filter — and even there the
+     * Unknown bucket carries no id, so it stays plain text.
+     *
      * @param list<SummaryRow> $summaries
      *
-     * @return list<array{cells: array<string, string>, badges: array<string, string>}>
+     * @return list<array{cells: array<string, string>, badges: array<string, string>, links: array<string, string>}>
      */
-    private function toRows(array $summaries, \DateTimeImmutable $today): array
+    private function toRows(array $summaries, \DateTimeImmutable $today, bool $linkVolunteers): array
     {
         $rows = [];
         foreach ($summaries as $summary) {
             $mostRecent = $summary['mostRecent'];
+            $id = $summary['id'];
             // Same rule as the Activities cards, the home screen's tomorrow
             // roster and the "incl. N planned" tile: dated after today means
             // planned rather than done. Derived here rather than in
@@ -138,6 +144,9 @@ final class ReportController extends AbstractController
                     'mostRecent' => $mostRecent?->format('j M Y') ?? '—',
                 ],
                 'badges' => $isPlanned ? ['mostRecent' => 'Planned'] : [],
+                'links' => $linkVolunteers && null !== $id
+                    ? ['label' => $this->generateUrl('activity_index', ['volunteer' => $id])]
+                    : [],
             ];
         }
 

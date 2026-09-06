@@ -124,30 +124,6 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
   colleague. The `User` entity is already scoped to grow beyond one user;
   nothing to build until a second one exists.
 
-## Ready to build (independent of the production gates above)
-
-The first two are doors into `/activities?volunteer=<id>`, which now
-exists (`done.md`, 2026-09-06) — link to that URL rather than inventing a
-second shape.
-
-- **Make the "Top volunteers" names on `/reports` link to that filtered
-  view.** Blocker to solve first: `ActivitySummaryCalculator` buckets by
-  `getFullName()` and throws the entity away, so the rows carry a name
-  string and no id. Carrying an id through also exposes a latent bug —
-  two volunteers sharing a full name currently merge into one bucket —
-  and raises what the `'Unknown'` bucket links to.
-
-  Then the rendering constraint: `DataTable`'s `cells` are
-  `array<string, string>` and render as plain text on purpose — the class
-  docblock explains that decoration in a cell string breaks sorting,
-  `number_format()` and the print panel. So this is a `links` map keyed
-  by column, mirroring how `badges` already works, not HTML injected into
-  a cell. Whether the print panel should render the link as text is worth
-  a thought.
-- **A shortcut from `/volunteers/{id}/edit` to that volunteer's
-  activities**, filtered on them. The volunteers *index* row is the other
-  candidate spot; pick one rather than both to start with.
-
 ## Simplification backlog (from the ponytail audit)
 
 One line each; the reasoning, line counts and file paths are in

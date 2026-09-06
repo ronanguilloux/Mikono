@@ -62,7 +62,17 @@
                     <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3">
                         <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold {{ medals[loop.index]|default('bg-slate-100 text-slate-400') }}"
                               aria-hidden="true">{{ loop.index }}</span>
-                        <span class="min-w-0 flex-1 truncate text-sm font-semibold">{{ row.label }}</span>
+                        {# The truncation stays on the span, so wrapping the
+                           name in a link doesn't change how a long one is cut.
+                           An id-less row — the Unknown bucket — has nothing to
+                           filter by, so it renders as plain text. #}
+                        <span class="min-w-0 flex-1 truncate text-sm font-semibold">
+                            {%- if row.id -%}
+                                <a href="{{ path('activity_index', {volunteer: row.id}) }}" class="text-brand-600 hover:underline">{{ row.label }}</a>
+                            {%- else -%}
+                                {{ row.label }}
+                            {%- endif -%}
+                        </span>
                         <span class="w-full pl-10 text-xs tabular-nums text-slate-500 sm:w-auto sm:pl-0 sm:text-sm">
                             {{ row.totalDays|number_format(1) }} days · {{ row.count }} {{ row.count == 1 ? 'activity' : 'activities' }}
                         </span>

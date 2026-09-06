@@ -58,7 +58,17 @@
                             border the pill would vanish from the print panel.
                         #}
                         <td class="px-4 py-2 align-top">
-                            {{- row.cells[column.key]|default('') -}}
+                            {#
+                                The link wraps the cell text only, never the
+                                badge — and it needs no print variant: an <a>
+                                prints as its own text, so the print panel gets
+                                the same rows without a second code path.
+                            #}
+                            {%- if row.links[column.key] is defined -%}
+                                <a href="{{ row.links[column.key] }}" class="text-brand-600 hover:underline">{{- row.cells[column.key]|default('') -}}</a>
+                            {%- else -%}
+                                {{- row.cells[column.key]|default('') -}}
+                            {%- endif -%}
                             {%- if row.badges[column.key] is defined %}
                                 <span class="ml-1.5 whitespace-nowrap rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 print:border print:border-slate-400 print:text-slate-700">{{ row.badges[column.key] }}</span>
                             {%- endif -%}

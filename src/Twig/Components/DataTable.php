@@ -20,7 +20,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * why that key is optional.
  *
  * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfToken?: string, disabledReason?: string}
- * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, actions?: list<Action>}
+ * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, links?: array<string, string>, actions?: list<Action>}
  */
 #[AsTwigComponent]
 final class DataTable
@@ -35,6 +35,13 @@ final class DataTable
      * per row so a badge lands on the cell it qualifies, and left out of the
      * cell string itself so sorting, `number_format()` and the print panel all
      * still see the plain value.
+     *
+     * A row's optional `links` key works the same way — column key => URL,
+     * wrapping that cell's text in an anchor — and exists for the same reason:
+     * `/reports` links a volunteer's name to `/activities?volunteer=<id>`, and
+     * putting the markup in the cell string would break every one of those
+     * things. A column key absent from the map renders as plain text, which is
+     * how the Unknown bucket and the whole By-project breakdown stay unlinked.
      *
      * @var list<Row>
      */

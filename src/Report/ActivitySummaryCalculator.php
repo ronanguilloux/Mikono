@@ -17,36 +17,53 @@ final class ActivitySummaryCalculator
 {
     public function __construct(private readonly ActivityRepository $activities) {}
 
-    /** @return list<array{label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}> */
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}> */
     public function summarizeByVolunteer(): array
     {
-        return $this->summarize(static fn(Activity $a) => $a->getVolunteer()?->getFullName() ?? 'Unknown');
+        return $this->summarize(
+            static fn(Activity $a) => $a->getVolunteer()?->getId(),
+            static fn(Activity $a) => $a->getVolunteer()?->getFullName() ?? 'Unknown',
+        );
     }
 
-    /** @return list<array{label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}> */
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}> */
     public function summarizeByProject(): array
     {
-        return $this->summarize(static fn(Activity $a) => $a->getProject()?->getName() ?? 'Unknown');
+        return $this->summarize(
+            static fn(Activity $a) => $a->getProject()?->getId(),
+            static fn(Activity $a) => $a->getProject()?->getName() ?? 'Unknown',
+        );
     }
 
     /**
+     * Buckets by id, not by label: two volunteers sharing a full name are two
+     * rows, not one merged row with double the days. The id is carried out so
+     * a caller can link a row back to the thing it summarizes — `/reports`
+     * links volunteer rows to `/activities?volunteer=<id>`.
+     *
+     * Activities with no volunteer (or no project) share one 'unknown' bucket
+     * with a null id, which is what makes such a row unlinkable rather than
+     * pointing somewhere wrong.
+     *
+     * @param callable(Activity): ?int   $idFn
      * @param callable(Activity): string $labelFn
      *
-     * @return list<array{label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}>
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}>
      */
-    private function summarize(callable $labelFn): array
+    private function summarize(callable $idFn, callable $labelFn): array
     {
         $buckets = [];
 
         foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
-            $label = $labelFn($activity);
-            $buckets[$label] ??= ['label' => $label, 'count' => 0, 'totalDays' => 0.0, 'mostRecent' => null];
-            ++$buckets[$label]['count'];
-            $buckets[$label]['totalDays'] += $activity->getDuration()?->toDays() ?? 0.0;
+            $id = $idFn($activity);
+            $key = $id ?? 'unknown';
+            $buckets[$key] ??= ['id' => $id, 'label' => $labelFn($activity), 'count' => 0, 'totalDays' => 0.0, 'mostRecent' => null];
+            ++$buckets[$key]['count'];
+            $buckets[$key]['totalDays'] += $activity->getDuration()?->toDays() ?? 0.0;
 
             $date = $activity->getDate();
-            if (null !== $date && (null === $buckets[$label]['mostRecent'] || $date > $buckets[$label]['mostRecent'])) {
-                $buckets[$label]['mostRecent'] = $date;
+            if (null !== $date && (null === $buckets[$key]['mostRecent'] || $date > $buckets[$key]['mostRecent'])) {
+                $buckets[$key]['mostRecent'] = $date;
             }
         }
 

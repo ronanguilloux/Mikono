@@ -142,6 +142,105 @@ final class ReportControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function theTopVolunteersCardLinksEachNameToThatVolunteersActivities(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
+        ActivityFactory::createOne([
+            'volunteer' => $volunteer,
+            'project' => ProjectFactory::createOne(),
+            'activityType' => ActivityTypeFactory::createOne(),
+            'duration' => ActivityDuration::FullDay,
+        ]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        $link = $crawler->filter('[aria-labelledby="top-volunteers-heading"] li a');
+        self::assertCount(1, $link);
+        self::assertSame('Ronan Guilloux', trim($link->text()));
+        self::assertSame(
+            sprintf('/activities?volunteer=%d', $volunteer->getId()),
+            $link->attr('href'),
+        );
+    }
+
+    #[Test]
+    public function theVolunteerBreakdownLinksEachNameToThatVolunteersActivities(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
+        ActivityFactory::createOne([
+            'volunteer' => $volunteer,
+            'project' => ProjectFactory::createOne(['name' => 'Bright Achievers']),
+            'activityType' => ActivityTypeFactory::createOne(),
+            'duration' => ActivityDuration::FullDay,
+        ]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        $link = $crawler->filter('[data-report-panel="screen"] table tbody a');
+        self::assertCount(1, $link);
+        self::assertSame('Ronan Guilloux', trim($link->text()));
+        self::assertSame(
+            sprintf('/activities?volunteer=%d', $volunteer->getId()),
+            $link->attr('href'),
+        );
+
+        // The link is followable, and lands on that volunteer's filtered list.
+        $client->click($link->link());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Activities — Ronan Guilloux');
+    }
+
+    #[Test]
+    public function theProjectBreakdownLeavesItsNamesUnlinked(): void
+    {
+        $client = static::createClient();
+        $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=project');
+
+        self::assertStringContainsString('Bright Achievers', $this->screenPanel($crawler));
+        // There is no /activities?project= filter to link to, so nothing in
+        // this breakdown's rows may be an anchor.
+        self::assertCount(0, $crawler->filter('[data-report-panel="screen"] table tbody a'));
+    }
+
+    #[Test]
+    public function twoVolunteersSharingAFullNameStaySeparateRows(): void
+    {
+        $client = static::createClient();
+        $project = ProjectFactory::createOne();
+        $activityType = ActivityTypeFactory::createOne();
+
+        // Same first and last name, two different people — the summary buckets
+        // by id, so this is two rows of 1.0 day, not one row of 2.0.
+        for ($i = 0; $i < 2; ++$i) {
+            ActivityFactory::createOne([
+                'volunteer' => VolunteerFactory::createOne(['firstName' => 'Hellen', 'lastName' => 'Muthoni']),
+                'project' => $project,
+                'activityType' => $activityType,
+                'duration' => ActivityDuration::FullDay,
+            ]);
+        }
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports');
+
+        $rows = $crawler->filter('[data-report-panel="screen"] table tbody tr');
+        self::assertCount(2, $rows);
+        self::assertStringContainsString('1.0', $rows->eq(0)->text());
+        self::assertStringContainsString('1.0', $rows->eq(1)->text());
+        // …and each row links to its own volunteer, not to a shared one.
+        $hrefs = $crawler->filter('[data-report-panel="screen"] table tbody a')
+            ->each(static fn(\Symfony\Component\DomCrawler\Crawler $a) => $a->attr('href'));
+        self::assertCount(2, array_unique($hrefs));
+    }
+
+    #[Test]
     public function thePrintButtonIsOfferedAndHiddenOnPaper(): void
     {
         $client = static::createClient();
