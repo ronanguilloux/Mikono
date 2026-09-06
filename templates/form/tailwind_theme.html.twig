@@ -108,3 +108,27 @@
     {% set attr = attr|merge({class: (attr.class|default('') ~ ' h-4 w-4 rounded border-slate-300')|trim}) %}
     {{ parent() }}
 {% endblock %}
+
+{#
+    A password field carries a Show/Hide toggle. The visible word changes and
+    `aria-pressed` follows it; the sr-only suffix is what makes the accessible
+    name "Show password" rather than a bare "Show".
+
+    JavaScript off leaves an inert button and a normal password field — no
+    behaviour depends on it.
+#}
+{% block password_widget %}
+    {% set type = type|default('password') %}
+    {% set attr = attr|merge({
+        class: (attr.class|default('') ~ ' pr-16')|trim,
+        'data-password-toggle-target': 'input',
+    }) %}
+    <div class="relative" data-controller="password-toggle">
+        {{ block('form_widget_simple') }}
+        <button type="button"
+                class="absolute inset-y-0 right-0 flex items-center px-3 text-xs font-medium text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+                data-action="password-toggle#toggle"
+                aria-pressed="false"
+        ><span data-password-toggle-target="label">Show</span><span class="sr-only">&nbsp;password</span></button>
+    </div>
+{% endblock %}

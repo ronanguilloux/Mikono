@@ -6,6 +6,30 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — Show/hide toggle on the password field
+
+`/users/new` and `/users/{id}/edit` grew the ordinary "show what I am typing"
+affordance on `plainPassword` — a button inside the field flipping the input's
+`type`, worth having on a phone keyboard. It reveals nothing stored: that field
+is unmapped and always a *new* password; the saved one is a hash and no screen
+ever knows it.
+
+The markup is a `password_widget` override in
+`templates/form/tailwind_theme.html.twig`, not a hand-edited template, so it
+follows `PasswordType` wherever one is added. `/login` is untouched — its
+markup is hand-rolled, not themed.
+
+Accessibility: the visible word flips Show/Hide and `aria-pressed` follows it,
+with an `sr-only` suffix making the accessible name "Show password" rather than
+a bare "Show" — visible text rather than `aria-label`, so voice control still
+matches what is on screen. JavaScript off leaves an inert button beside a
+normal password field.
+
+Verified both ways: `UserControllerTest` asserts the wiring renders, and a
+`scripts/panther-screenshot.php --click` run confirmed the label actually
+flips in a real browser (the five-line Stimulus controller has no test of its
+own).
+
 ## 2026-09-06 — The roster archive can end past its anchored pair
 
 Monday 2026-09-07's roster was transcribed in, and arrived carrying

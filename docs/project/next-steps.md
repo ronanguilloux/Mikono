@@ -147,17 +147,6 @@ second shape.
 - **A shortcut from `/volunteers/{id}/edit` to that volunteer's
   activities**, filtered on them. The volunteers *index* row is the other
   candidate spot; pick one rather than both to start with.
-- **A reveal/hide toggle on the password field of `/users/{id}/edit`**,
-  hidden by default as now. One clarification that changes what gets
-  built: the field is `plainPassword` on `UserFormType` — unmapped, and a
-  *new* password being typed. The stored password is a hash and cannot be
-  revealed; nothing on that screen ever knows the current one. So this is
-  the ordinary "show what I am typing" affordance, which is worth having
-  on a phone keyboard. A Stimulus controller flipping the input's `type`
-  is the whole of it (Symfony UX is already installed, ADR 0003); the
-  button needs a real accessible name and `aria-pressed`, and the
-  field is rendered through the Tailwind form theme, so that is where the
-  markup goes rather than in one template.
 
 ## Simplification backlog (from the ponytail audit)
 

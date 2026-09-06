@@ -66,6 +66,22 @@ final class UserControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function thePasswordFieldCarriesAShowHideToggle(): void
+    {
+        $client = static::createClient();
+        $target = UserFactory::createOne();
+        $client->loginUser(UserFactory::new()->admin()->create());
+
+        $crawler = $client->request('GET', "/users/{$target->getId()}/edit");
+
+        $toggle = $crawler->filter('[data-controller="password-toggle"]');
+        self::assertCount(1, $toggle);
+        self::assertCount(1, $toggle->filter('input[type="password"][data-password-toggle-target="input"]'));
+        self::assertSame('false', $toggle->filter('button[data-action="password-toggle#toggle"]')->attr('aria-pressed'));
+        self::assertSame('Show password', str_replace("\u{a0}", ' ', $toggle->filter('button')->text()));
+    }
+
+    #[Test]
     public function deactivatingAUserBlocksTheirNextLogin(): void
     {
         $client = static::createClient();
