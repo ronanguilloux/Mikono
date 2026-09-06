@@ -26,16 +26,28 @@ class ActivityRepository extends ServiceEntityRepository
      * same query without a LIMIT, for the callers that genuinely need every
      * row. All three joins are to-one, so a LIMIT can't multiply rows and the
      * page size means what it says.
+     *
+     * A volunteer narrows the result to that person's activities — the index's
+     * `?volunteer=<id>` filter and the volunteer screen's activity history are
+     * the same query. It reaches DQL as a bound parameter, never interpolated.
      */
-    public function createOrderedByDateDescQueryBuilder(): QueryBuilder
+    public function createOrderedByDateDescQueryBuilder(?Volunteer $volunteer = null): QueryBuilder
     {
-        return $this->createQueryBuilder('a')
+        $queryBuilder = $this->createQueryBuilder('a')
             ->addSelect('v', 'p', 't')
             ->join('a.volunteer', 'v')
             ->join('a.project', 'p')
             ->join('a.activityType', 't')
             ->orderBy('a.date', 'DESC')
             ->addOrderBy('a.id', 'DESC');
+
+        if (null !== $volunteer) {
+            $queryBuilder
+                ->andWhere('a.volunteer = :volunteer')
+                ->setParameter('volunteer', $volunteer);
+        }
+
+        return $queryBuilder;
     }
 
     /** @return Activity[] */
@@ -78,15 +90,7 @@ class ActivityRepository extends ServiceEntityRepository
     /** @return Activity[] */
     public function findByVolunteerOrderedByDateDesc(Volunteer $volunteer): array
     {
-        return $this->createQueryBuilder('a')
-            ->addSelect('v', 'p', 't')
-            ->join('a.volunteer', 'v')
-            ->join('a.project', 'p')
-            ->join('a.activityType', 't')
-            ->where('a.volunteer = :volunteer')
-            ->setParameter('volunteer', $volunteer)
-            ->orderBy('a.date', 'DESC')
-            ->addOrderBy('a.id', 'DESC')
+        return $this->createOrderedByDateDescQueryBuilder($volunteer)
             ->getQuery()
             ->getResult();
     }

@@ -587,4 +587,99 @@ final class ActivityControllerTest extends WebTestCase
         self::assertStringContainsString('Zawadi Zuma', $crawler->filter('table tbody tr')->first()->text());
         self::assertStringContainsString('Zawadi Zuma', $crawler->filter('[data-activity-cards] > li')->first()->text());
     }
+
+    /**
+     * Both renderings read the same rows, so a filter that narrowed one and
+     * not the other would be a silent desktop/mobile split.
+     */
+    #[Test]
+    public function theIndexFiltersByASingleVolunteer(): void
+    {
+        $client = static::createClient();
+        $aisha = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        ActivityFactory::createMany(2, ['volunteer' => $aisha]);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma'])]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities?volunteer=' . $aisha->getId());
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(2, $crawler->filter('table tbody tr'));
+        self::assertCount(2, $crawler->filter('[data-activity-cards] > li'));
+        self::assertStringNotContainsString('Zawadi Zuma', $crawler->filter('table')->text());
+        // The heading says whose activities these are.
+        self::assertStringContainsString('Aisha Achieng', $crawler->filter('h1')->text());
+    }
+
+    /**
+     * Same contract as the sort and page params: bad input never 400s or 404s,
+     * it just leaves the list alone. `volunteer[]=1` is the one that would
+     * throw if the controller read it through InputBag::get()/getInt().
+     */
+    #[Test]
+    public function theIndexShrugsOffAnUnusableVolunteerFilter(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createMany(3);
+
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (['abc', '0', '999999', ''] as $value) {
+            $crawler = $client->request('GET', '/activities?volunteer=' . $value);
+            self::assertResponseIsSuccessful();
+            self::assertCount(3, $crawler->filter('table tbody tr'), sprintf('?volunteer=%s should not filter', $value));
+        }
+
+        $crawler = $client->request('GET', '/activities?volunteer[]=1');
+        self::assertResponseIsSuccessful();
+        self::assertCount(3, $crawler->filter('table tbody tr'));
+    }
+
+    /**
+     * The filter lives in the query string beside `page` and `sort`, so every
+     * other control has to carry it — drop it and the filter dies on the
+     * second page or the first sort click.
+     */
+    #[Test]
+    public function theVolunteerFilterSurvivesSortingAndPaging(): void
+    {
+        $client = static::createClient();
+        $aisha = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        ActivityFactory::createMany(26, ['volunteer' => $aisha]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities?volunteer=' . $aisha->getId());
+
+        $needle = 'volunteer=' . $aisha->getId();
+        self::assertStringContainsString($needle, (string) $crawler->filter('[data-sort-link="date"]')->attr('href'));
+        self::assertStringContainsString($needle, (string) $crawler->filter('[data-pagination] a')->first()->attr('href'));
+        self::assertCount(1, $crawler->filter('[data-sort-select] input[name="volunteer"]'));
+        self::assertCount(1, $crawler->filter('[data-pagination-bar] input[name="volunteer"]'));
+
+        // ...and the filter still holds once you actually follow one.
+        $crawler = $client->request('GET', '/activities?volunteer=' . $aisha->getId() . '&page=2');
+        self::assertCount(1, $crawler->filter('table tbody tr'));
+    }
+
+    /**
+     * Unlike the activity forms, which offer active volunteers only: this
+     * reads history, so someone who has finished their stint stays findable.
+     */
+    #[Test]
+    public function theVolunteerFilterOffersInactiveVolunteersToo(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma', 'isActive' => false]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities');
+
+        $options = $crawler->filter('[data-volunteer-filter] select[name="volunteer"] option')->each(
+            static fn(Crawler $option) => trim($option->text()),
+        );
+        self::assertSame(['All volunteers', 'Aisha Achieng', 'Zawadi Zuma (inactive)'], $options);
+        // Outside the `hidden md:block` wrapper, like the pagination bar.
+        self::assertCount(0, $crawler->filter('.hidden.md\\:block [data-volunteer-filter]'));
+    }
 }

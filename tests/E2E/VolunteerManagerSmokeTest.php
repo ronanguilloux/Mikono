@@ -79,6 +79,20 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
         self::assertSelectorTextContains('body', 'Bright Achievers');
         self::assertSelectorTextContains('body', 'Computer lessons');
 
+        // The volunteer filter, which only exists once JavaScript runs: the
+        // picker auto-submits on change. Clearing it has to leave NO empty
+        // `?volunteer=` behind — every other control on the page carries the
+        // query string through, so an empty param would be copied into all of
+        // their links and never go away. Only a real browser can catch that.
+        $filterOn = static fn(RemoteWebDriver $driver) => str_contains($driver->getCurrentURL(), 'volunteer=');
+        (new WebDriverSelect($client->findElement(WebDriverBy::id('volunteer-filter'))))
+            ->selectByValue((string) $volunteer->getId());
+        $client->wait()->until($filterOn);
+        self::assertSelectorTextContains('body', 'Ronan Guilloux');
+
+        (new WebDriverSelect($client->findElement(WebDriverBy::id('volunteer-filter'))))->selectByValue('');
+        $client->wait()->until(static fn(RemoteWebDriver $driver) => !$filterOn($driver));
+
         $client->request('GET', '/reports');
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
 

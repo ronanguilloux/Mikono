@@ -8,11 +8,13 @@ use App\Dto\BatchActivityInput;
 use App\Entity\Activity;
 use App\Entity\Project;
 use App\Entity\User;
+use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
 use App\Form\ActivityFormType;
 use App\Form\BatchActivityFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ActivityRepository;
+use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -44,6 +46,7 @@ final class ActivityController extends AbstractController
 
     public function __construct(
         private readonly ActivityRepository $activities,
+        private readonly VolunteerRepository $volunteers,
         private readonly EntityManagerInterface $entityManager,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ListPaginator $paginator,
@@ -54,7 +57,9 @@ final class ActivityController extends AbstractController
     {
         $today = new \DateTimeImmutable('today');
 
-        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder();
+        $volunteer = $this->requestedVolunteer($request);
+
+        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder($volunteer);
         $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
 
         $pagination = $this->paginator->paginateQuery($queryBuilder, Activity::class, $request);
@@ -105,7 +110,30 @@ final class ActivityController extends AbstractController
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
+            'volunteer' => $volunteer,
+            // Every volunteer, not just the active ones the activity forms
+            // offer: this reads history, and someone who finished their stint
+            // has to stay findable.
+            'volunteers' => $this->volunteers->findAllOrderedByName(),
         ]);
+    }
+
+    /**
+     * The index's `?volunteer=<id>` filter, read the way ListPaginator reads
+     * its own params: through query->all(), because InputBag::get() throws on
+     * `?volunteer[]=1` and getInt() throws on `?volunteer=abc`. Anything
+     * unusable — blank, non-numeric, an array, an id that no longer exists —
+     * means no filter rather than a 400 or a 404.
+     */
+    private function requestedVolunteer(Request $request): ?Volunteer
+    {
+        $raw = $request->query->all()['volunteer'] ?? null;
+
+        if (!is_scalar($raw) || (int) $raw < 1) {
+            return null;
+        }
+
+        return $this->volunteers->find((int) $raw);
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

@@ -86,9 +86,36 @@ final class RosterArchiveTest extends TestCase
             $dates[$roster->anchor ?? ''][] = $roster->date->add($shift)->format('Y-m-d');
         }
 
+        // The pair has to be adjacent, not merely present: one offset moves the
+        // whole archive, so a `tomorrow` any further out than the day after
+        // `today` would leave the home screen's tomorrow panel empty.
         self::assertSame(['2030-01-15'], $dates['today']);
         self::assertSame(['2030-01-16'], $dates['tomorrow']);
-        self::assertSame('2030-01-14', end($dates['']), 'The day before the anchor must land the day before it.');
+
+        // The archive runs Monday to Friday, so the anchored pair is the last
+        // adjacent pair rather than necessarily the last two days: a roster
+        // posted over a weekend for the Monday sits after them, seeding a
+        // future-dated day that /reports badges as "Planned".
+        self::assertContains('2030-01-14', $dates[''], 'The day before the anchor must land the day before it.');
+    }
+
+    /**
+     * A transcription appends the newest roster to the end of the file, so an
+     * out-of-order date is the tell that one was dropped into the wrong place.
+     */
+    #[Test]
+    public function theArchiveRunsInDateOrder(): void
+    {
+        $dates = array_map(
+            static fn($roster) => $roster->date->format('Y-m-d'),
+            self::archive()->rosters,
+        );
+
+        $sorted = $dates;
+        sort($sorted);
+
+        self::assertSame($sorted, $dates);
+        self::assertSame(array_values(array_unique($dates)), $dates, 'Two rosters share a date.');
     }
 
     #[Test]

@@ -6,6 +6,82 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — The roster archive can end past its anchored pair
+
+Monday 2026-09-07's roster was transcribed in, and arrived carrying
+`anchor: tomorrow` beside the one Friday 09-04 already had. Only one thing was
+actually wrong there — the anchor, not the roster. The archive runs Monday to
+Friday, so a roster posted over a weekend is the archive's last day without
+being adjacent to the day before it, and the anchored pair has to be two
+consecutive calendar days: one offset shifts the whole archive, so a
+`tomorrow` three days past `today` leaves the home screen's tomorrow panel
+empty.
+
+So the new day seeds un-anchored, a few days out, and the pair stays
+03/09 + 04/09. Seeded on 2026-09-06 that puts four activities on 2026-09-10 —
+a future-dated roster, which `/reports` badges as "Planned" and nothing else
+in the fixtures produced. Both home-screen panels still fill.
+
+`RosterArchiveTest` had encoded the stronger invariant: the last un-anchored
+roster must land the day before the anchor, i.e. the archive ends at the pair.
+Relaxed to "the day before the anchor exists", with the adjacency of the pair
+itself still asserted exactly. Added `theArchiveRunsInDateOrder()`, since an
+out-of-order date is now the tell that a hand-transcription landed in the
+wrong place — the check the old end-of-file assumption used to give for free.
+`docs/fixtures/README.md` says all of this too; it claimed the pair was always
+the last two days.
+
+## 2026-09-06 — `/activities` filters by a single volunteer
+
+`?volunteer=<id>` on the Activities index, with a picker beside the heading.
+The URL shape is the point: it is what the two remaining "doors into it" items
+(the `/reports` Top-volunteers links, the shortcut from the volunteer screens)
+will link to, and it had to survive paging and sorting.
+
+Almost none of that survival needed code. The sort headers
+(`templates/components/DataTable.html.twig`), the page links (Knp's own
+`pagination.getQuery()`), the page-size form and the mobile sort selects
+already carry every scalar query param through allow-everything-except loops,
+so the filter rides along untouched — the only new URL-building is the picker
+form itself. `ListPaginator::applySort()` resets the `orderBy` DQL part and
+nothing else, so an `andWhere` added before it is safe, and PaginationBar's
+"Showing X–Y of N" reads the filtered count for free.
+
+- `ActivityRepository::createOrderedByDateDescQueryBuilder()` grew an optional
+  `?Volunteer`, bound as a parameter. `findByVolunteerOrderedByDateDesc()` was
+  a byte-identical hand-rolled copy of that query plus the same `WHERE`; it now
+  delegates, a net deletion.
+- `ActivityController::requestedVolunteer()` reads the param through
+  `query->all()`, not `InputBag::get()`/`getInt()` — the same reason
+  `ListPaginator` does: `?volunteer[]=1` and `?volunteer=abc` each throw a
+  `BadRequestException` through those. Blank, non-numeric, an array, or an id
+  that no longer exists all mean "no filter", never a 400 or a 404, matching
+  the paginator's documented bad-input contract. Note `requestedProject()` on
+  the same controller still uses `getInt()`; it serves `/activities/new-batch`
+  and was left alone.
+- The picker lists **all** volunteers, inactive ones suffixed `(inactive)` —
+  deliberately unlike the activity forms, which offer active volunteers only.
+  Those write new rows; this reads history, and a volunteer who finished their
+  stint has to stay findable.
+- A GET form submits every named control, so choosing "All volunteers" would
+  have put an empty `?volunteer=` in the URL — and because the carry loops
+  copy every scalar param into every other control's links, an empty param
+  once created is never dropped again. Fixed at the source instead of in the
+  three shared templates: `auto_submit_controller.js` disables empty controls
+  for the duration of `requestSubmit()` (the browser omits disabled controls
+  and serializes the form synchronously, so they are re-enabled immediately
+  after). That also retires the same noise `?sort=` had since SortSelect
+  shipped, from its own "Newest first" option. With JavaScript off the sr-only
+  Apply button still submits the empty param; harmless, and it filters nothing.
+- The check for that lives in the E2E smoke test, since it only exists once
+  JavaScript runs: filter, then clear, then assert the URL has no `volunteer=`.
+  Run it with
+  `docker compose exec php php bin/phpunit --testsuite="End-to-End Test Suite"`.
+- Four functional tests, including the desktop/mobile pair (that file treats a
+  split between the two renderings as a bug class) and the one that asserts a
+  sort link and a page link still carry `volunteer=<id>` — the proof the
+  carry-through holds without any code of its own.
+
 ## 2026-09-06 — Untracked the generated `config/reference.php`
 
 1,691 lines of generated PHP came out of git. `PhpConfigReferenceDumpPass`

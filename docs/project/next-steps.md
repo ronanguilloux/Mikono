@@ -126,24 +126,18 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
 
 ## Ready to build (independent of the production gates above)
 
-The first three are one feature and two doors into it — build the filter
-first, then the links, or the links have nowhere to go.
+The first two are doors into `/activities?volunteer=<id>`, which now
+exists (`done.md`, 2026-09-06) — link to that URL rather than inventing a
+second shape.
 
-- **Filter `/activities` by a single volunteer.** The index has sorting
-  and pagination but no filtering at all, so this is new ground rather
-  than an extra clause. Decide the URL shape first, because the next two
-  items are links to it (`?volunteer=<id>` is the obvious one) and it has
-  to survive paging and sorting — the filter belongs in the query string
-  alongside `page`/`sort`, and every pagination and sort link has to
-  carry it or the filter drops on the second page. `ListPaginator` is
-  where the query string is already read for all seven lists; the
-  volunteer id reaches DQL as a bound parameter, never interpolated. Open:
-  whether the screen also grows a volunteer picker to set the filter from
-  the page itself, or stays link-only to start with, and what the header
-  says when a filter is active ("Activities — Grace Achieng", with a
-  clear-filter affordance).
 - **Make the "Top volunteers" names on `/reports` link to that filtered
-  view.** Note the constraint before starting: `DataTable`'s `cells` are
+  view.** Blocker to solve first: `ActivitySummaryCalculator` buckets by
+  `getFullName()` and throws the entity away, so the rows carry a name
+  string and no id. Carrying an id through also exposes a latent bug —
+  two volunteers sharing a full name currently merge into one bucket —
+  and raises what the `'Unknown'` bucket links to.
+
+  Then the rendering constraint: `DataTable`'s `cells` are
   `array<string, string>` and render as plain text on purpose — the class
   docblock explains that decoration in a cell string breaks sorting,
   `number_format()` and the print panel. So this is a `links` map keyed

@@ -3,8 +3,13 @@
 {% block title %}Activities — UCESCO Volunteer Manager{% endblock %}
 
 {% block body %}
-    <div class="mb-4 flex items-center justify-between">
-        <h1 class="text-xl font-semibold">Activities</h1>
+    {# flex-wrap because the heading grows a volunteer's name when the list is
+       filtered, which on a phone otherwise squeezes the two buttons to a
+       three-line stack. #}
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold">
+            Activities{% if volunteer %} — {{ volunteer.fullName }}{% endif %}
+        </h1>
         <div class="flex items-center gap-3">
             <a
                 href="{{ path('activity_new_batch') }}"
@@ -21,7 +26,54 @@
         </div>
     </div>
 
-    {% set empty_message = 'No activities logged yet — log the first one above.' %}
+    {#
+        The one filter on any index. It sits above both renderings rather than
+        inside either, for the reason PaginationBar is hoisted below: the table
+        is in `hidden md:block`, so a control rendered there is invisible on a
+        phone. Structure copied from PaginationBar's page-size form, down to
+        the sr-only submit button that keeps it working with JavaScript off.
+
+        Nothing else needs to know about `volunteer`: the sort headers, the
+        page links, the page-size form and the mobile sort selects all carry
+        every scalar query param through already, so the filter survives a
+        sort click and page 2 on its own.
+    #}
+    <form
+        method="get"
+        class="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600 print:hidden"
+        data-controller="auto-submit"
+        data-volunteer-filter
+    >
+        {# `page` is dropped on purpose: a new filter means a new page 1. #}
+        {% for key, value in app.request.query.all %}
+            {% if key not in ['page', 'volunteer'] and value is not iterable %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
+
+        <label for="volunteer-filter" class="sr-only">Filter by volunteer</label>
+        <span aria-hidden="true">Volunteer</span>
+        <select
+            id="volunteer-filter"
+            name="volunteer"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            <option value="">All volunteers</option>
+            {% for option in volunteers %}
+                <option value="{{ option.id }}" {{ volunteer and volunteer.id == option.id ? 'selected' : '' }}>
+                    {{ option.fullName }}{% if not option.isActive %} (inactive){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="sr-only">Apply</button>
+    </form>
+
+    {% set empty_message = volunteer
+        ? 'No activities recorded for ' ~ volunteer.fullName ~ '.'
+        : 'No activities logged yet — log the first one above.'
+    %}
 
     {# Same rows, two renderings: the horizontal-scroll table stays as-is on
        desktop, while narrow screens get one card per activity so a full row

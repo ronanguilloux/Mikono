@@ -458,3 +458,20 @@ rosters:
       - project: mt_hermon
         volunteers: [{name: Hellen}, {name: Hannah}]
         escorts: [Ofright]
+
+  # Deliberately not anchored, though it is the archive's last day. The
+  # anchored pair has to be two consecutive calendar days — the whole archive
+  # shifts by the single `anchor: today` offset, so a `tomorrow` three days
+  # further on would leave the home screen's tomorrow panel empty. This
+  # archive runs Monday to Friday, and 04/09 is a Friday, so the pair stays
+  # 03/09 + 04/09 and this Monday seeds a few days out instead: a genuinely
+  # future roster, which is what /reports badges as "Planned".
+  - date: 2026-09-07
+    posted: 2026-09-06
+    sites:
+      - project: peggy_lucas
+        volunteers: [{name: Daphne}, {name: Marco}]
+        escorts: [Hassan]
+      - project: mt_hermon
+        volunteers: [{name: Hellen}, {name: Hannah}]
+        escorts: [Ofright]
