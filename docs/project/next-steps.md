@@ -213,35 +213,6 @@ absorbs it ("Uganda - ..."); whether `ProjectLocation` should grow a third
 case is the question to reopen then, and it is a scope question for the
 VM, not a modelling one.
 
-## Suspected bug: form validation errors may never render
-
-Every `new`/`edit` action ends an invalid submission with
-`return $this->render(...)`, i.e. **HTTP 200**, and `grep -rn '422' src/
-config/` finds nothing. But Turbo Drive is enabled globally
-(`assets/controllers.json`, `turbo-core`), no form opts out with
-`data-turbo="false"`, and the vendored Turbo carries the string *"Form
-responses must redirect to another location"* — it refuses to render a
-non-redirect 2xx form response. Successful saves redirect, so the happy
-path is fine; the **invalid** path looks like it renders nothing in a real
-browser.
-
-Not caught by anything today: `WebTestCase` is not a browser, so the
-functional suite sees the re-rendered HTML and passes, and the one E2E
-test only covers successful submissions.
-
-- Confirm it first in a real browser — submit the activity form with a
-  required field empty and watch what happens. It is possible something
-  else is intercepting; the inference above is from code and the vendored
-  bundle, not from a reproduction.
-- If confirmed: return `Response::HTTP_UNPROCESSABLE_ENTITY` from the
-  invalid branch of the seven `new`/`edit` actions, and add an E2E
-  assertion on a rejected submission, since only a real browser can see
-  the regression.
-- Doing so also upgrades `/usage`'s **Rejected** column from an inference
-  ("a non-GET answering exactly 200 must be a redisplayed form") to a
-  plain 422 count — see
-  [ADR 0021](../adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md).
-
 ## Needs a design pass before implementation
 
 - **Escort display and reporting.** The write path shipped; *where*

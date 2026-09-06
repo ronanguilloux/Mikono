@@ -97,19 +97,36 @@ final class AccessLogReaderTest extends KernelTestCase
     }
 
     /**
-     * Every successful write in this app redirects, so a POST answering 2xx is
-     * a redisplayed form. This is the substitute for a 422 count, which this
-     * app cannot provide — see ADR 0021.
+     * Symfony's AbstractController::render() answers 422 when a submitted form
+     * among the parameters is invalid, so a redisplayed form is measured, not
+     * inferred — see ADR 0021.
      */
     #[Test]
-    public function aPostAnsweringTwoHundredCountsAsARejectedSubmission(): void
+    public function aFourTwentyTwoCountsAsARejectedSubmission(): void
     {
         $report = self::read();
         $row = self::row($report, 'POST', '/volunteers/new');
 
         self::assertSame(2, $row['views']);
-        self::assertSame(1, $row['rejected'], 'the 302 saved, the 200 was redisplayed');
+        self::assertSame(1, $row['rejected'], 'the 302 saved, the 422 was redisplayed');
         self::assertSame(1, $report['rejected']);
+    }
+
+    /**
+     * The 422 branch sits above the >= 400 one, and this is what says so. Move
+     * it below and every assertion here still passes except these: `rejected`
+     * goes to a constant zero and `clientErrors` quietly absorbs every
+     * rejection, which is what the screen shipped with.
+     */
+    #[Test]
+    public function aRejectedSubmissionIsNotAlsoCountedAsAClientError(): void
+    {
+        $report = self::read();
+
+        self::assertSame(0, self::row($report, 'POST', '/volunteers/new')['clientErrors']);
+        // The only 4xx left in the fixture is /favicon.ico, which has no route
+        // behind it and so never reaches a bucket at all.
+        self::assertSame(0, $report['clientErrors']);
     }
 
     /**
@@ -130,13 +147,14 @@ final class AccessLogReaderTest extends KernelTestCase
 
     /**
      * A 204 is a successful write with nothing to say, not a redisplayed form.
-     * Counting every non-GET 2xx as rejected reported the recorder's own
-     * traffic as a wall of failed submissions.
+     * Trivial against an exact-422 rule, and kept for the version of the rule
+     * that isn't: counting every non-GET 2xx as rejected reported the
+     * recorder's own traffic as a wall of failed submissions.
      */
     #[Test]
     public function aTwoOhFourIsNotARejectedSubmission(): void
     {
-        // The 200 on /volunteers/new is the only rejection in the fixture; the
+        // The 422 on /volunteers/new is the only rejection in the fixture; the
         // 204 on /usage/event and the 302 are both successes.
         self::assertSame(1, self::read()['rejected']);
     }

@@ -71,6 +71,21 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
             ->selectByValue((string) $project->getId());
         (new WebDriverSelect($client->findElement(WebDriverBy::name('activity_form[activityType]'))))
             ->selectByValue((string) $activityType->getId());
+        // Reject the form once before saving it. Turbo Drive renders a 4xx
+        // response but refuses a non-redirect 200 ("Form responses must
+        // redirect to another location") — so if the invalid branch ever stops
+        // answering 422 the page goes silent here and the VM sees nothing at
+        // all. Only a real browser can catch that: WebTestCase reads the
+        // re-rendered HTML either way.
+        //
+        // "Other" with a blank durationOther is the failure a browser can
+        // actually submit: the field is required: false, so no HTML5
+        // constraint blocks it, and Activity::validateDurationOther() rejects
+        // it server-side.
+        $client->findElement(WebDriverBy::cssSelector('input[value="other"]'))->click();
+        $client->findElement(WebDriverBy::cssSelector('button[type=submit]'))->click();
+        $client->waitForElementToContain('body', 'Please specify the duration when choosing "Other".');
+
         $client->findElement(WebDriverBy::cssSelector('input[value="full_day"]'))->click();
         $client->findElement(WebDriverBy::cssSelector('button[type=submit]'))->click();
         $client->wait()->until(static fn(RemoteWebDriver $driver) => !str_contains($driver->getCurrentURL(), '/new'));

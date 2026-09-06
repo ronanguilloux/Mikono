@@ -6,6 +6,53 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — The suspected Turbo/422 bug wasn't one; the `/usage` metric it was about was
+
+`next-steps.md` carried a suspected live bug, written up honestly as an
+inference from code rather than a reproduction: invalid submissions return
+200, Turbo Drive is on globally with no opt-out, and Turbo refuses to
+render a non-redirect 2xx form response — so validation errors might never
+reach the screen.
+
+**The mechanism was right; the premise wasn't.** The app does not return
+200. Symfony 6.2 moved the 422 out of the deprecated `renderForm()` and
+into `render()` itself: framework-bundle's `AbstractController.php:480-486`
+sets 422 whenever a submitted, invalid `FormInterface` is among the render
+parameters, and all thirteen `new`/`edit` actions pass `'form' => $form`
+rather than a `FormView` (there is no `createView()` call anywhere in `src/`
+or `templates/`). The grep that started it —
+`grep -rn '422' src/ config/` finding nothing — was true and misleading:
+the 422 comes from the framework, not from app code. Three confirmations
+before touching anything: that source, five `assertResponseStatusCodeSame(422)`
+assertions the functional suite had been making all along, and the live dev
+access log, which held zero non-GET 200s across 98 requests.
+`SecurityController` needed nothing either — `form_login` has no
+`failure_path`, so a failed login redirects rather than re-rendering.
+
+No controller changed. What was added is the guard, because the mechanism
+really is that unforgiving: the E2E smoke test now submits the activity
+form once with duration **Other** and the "specify" field blank before
+saving it properly. That is the failure a real browser can actually send —
+`durationOther` is `required: false`, so no HTML5 constraint blocks the
+submit, while `Activity::validateDurationOther()` rejects it server-side.
+Forcing that branch back to 200 as a probe makes the test hang for its full
+30-second timeout and fail: Turbo renders **nothing**, exactly as predicted.
+`WebTestCase` cannot see this — it reads the re-rendered HTML either way.
+
+The investigation then found a real bug in `/usage`, hours old, in the code
+from the entry below. `AccessLogReader` classified statuses `>= 500`, then
+`>= 400`, then "non-GET answering exactly 200" — so a 422 was caught by the
+`>= 400` branch and the third never fired. In production the **Rejected**
+column was a constant `—` and its KPI tile a constant 0, while every
+rejected submission inflated **Errors** instead. The integration test missed
+it because its fixture asserted against a `POST … 200` this app cannot
+produce: a dead branch exercised by a synthetic event, passing. Fixed by
+testing 422 above `>= 400` — friction is not breakage, and the two tiles say
+different things — with the fixture flipped to 422 and a new
+`aRejectedSubmissionIsNotAlsoCountedAsAClientError`, since `clientErrors`
+had no coverage at all, which is precisely how the ordering slipped through.
+ADR 0021 carries the correction; it had recorded the false premise as fact.
+
 ## 2026-09-06 — A `/usage` screen over the Caddy access log
 
 Decision and reasoning live in
@@ -14,7 +61,8 @@ Two things it turned up that are recorded elsewhere rather than here: the
 migration-version repair this needed on the dev database (the schema was
 current but `doctrine_migration_versions` was empty, so the entrypoint
 tried to replay every migration and the container restart-looped), and a
-suspected Turbo/422 bug now sitting in `next-steps.md`.
+suspected Turbo/422 bug — which turned out not to exist, though chasing it
+found the Rejected-column bug in this same screen. See the entry above.
 
 ## 2026-09-06 — Doors into the `?volunteer=` activity filter
 

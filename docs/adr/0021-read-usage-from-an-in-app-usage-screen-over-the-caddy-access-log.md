@@ -85,19 +85,28 @@ Three corrections the live log forced, all verified on 2026-09-06:
 - **Turbo Drive prefetches on hover** (`X-Sec-Purpose: prefetch`).
   Unfiltered, hovering a link counts as a page view. The reader skips
   those and reports how many it skipped.
-- **This app returns 200, not 422, on an invalid form.** Every controller
-  ends an invalid submit with `return $this->render(...)`, and a grep for
-  `422` across `src/` and `config/` finds nothing — so the usual
-  "422 = validation friction" metric would measure nothing here. The
-  substitute: every successful write in this app ends in
-  `redirectToRoute()`, so a non-GET answering **exactly 200** is a
-  redisplayed form, i.e. a rejected submission. That is an inference, not
-  a measurement, and it becomes a plain 422 count — more accurate, not
-  less — once the Turbo/422 item now in
-  [`next-steps.md`](../project/next-steps.md) is done. "Exactly 200, not
-  any 2xx" matters: a 204 is a successful write with nothing to say, and
-  counting those made the recorder's own traffic look like a wall of
-  failed submissions.
+- **A rejected submission is a 422, and the reader must test for it
+  *before* `>= 400`.** This ADR first claimed the opposite — that the app
+  answers 200 on an invalid form, since every controller ends one with a
+  bare `return $this->render(...)` and a grep for `422` across `src/` and
+  `config/` finds nothing — and built the metric on the inference "a
+  non-GET answering exactly 200 is a redisplayed form". That premise was
+  wrong. The 422 is not in `src/` because Symfony supplies it:
+  `AbstractController::render()` sets it whenever a submitted, invalid
+  `FormInterface` is among the parameters (framework-bundle
+  `AbstractController.php:480-486`), and every `new`/`edit` action here
+  passes `'form' => $form` rather than a `FormView`. The functional suite
+  had been asserting `assertResponseStatusCodeSame(422)` all along.
+
+  The status classification is therefore a measurement, not an inference —
+  but the ordering is load-bearing. `422` has to be tested above the
+  `>= 400` branch, not below it, or every rejection is silently swallowed
+  as a client error, `rejected` stays a constant zero, and the friction
+  the column exists to show is reported as breakage instead. It shipped
+  that way for a few hours on 2026-09-06;
+  `AccessLogReaderTest::aRejectedSubmissionIsNotAlsoCountedAsAClientError`
+  is what now holds the order in place. No 204 caveat is needed once the
+  test is an exact 422: `/usage/event`'s own traffic falls out for free.
 - **The Docker `HEALTHCHECK` hits Caddy's admin port `:2019/metrics`, not
   the logged site.** Happy accident: unlike most Caddy setups, this log
   carries zero health-check noise.
@@ -147,10 +156,10 @@ promised.
   `deployment-plan.md` §8 had to be rewritten, since `docker compose logs
   php` no longer carries request lines. Dev traffic is polluted by
   browser-automation tooling (Panther, the screenshot script, the
-  gremlins horde). The "rejected submission" column is an inference from
-  "non-GET answering exactly 200" until the 422 item lands. And it is one
-  more table, one more endpoint and one more Stimulus controller to
-  maintain.
+  gremlins horde). The "rejected submission" column depends on a branch
+  ordering that reads as arbitrary and isn't — see the 422 correction
+  above. And it is one more table, one more endpoint and one more Stimulus
+  controller to maintain.
 - **Reversibility:** cheap, and separable. Dropping the `usage_event`
   half is a migration, an enum, a controller and a Stimulus file — the
   `/usage` screen keeps working without it. Dropping the whole thing

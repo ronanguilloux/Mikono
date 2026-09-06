@@ -149,26 +149,23 @@ final class AccessLogReader
                 if ($status >= 500) {
                     ++$buckets[$key]['serverErrors'];
                     ++$serverErrors;
+                } elseif (422 === $status) {
+                    // A redisplayed form. Symfony's AbstractController::render()
+                    // sets 422 by itself when a submitted form among the
+                    // parameters is invalid, so this is a measurement rather
+                    // than an inference — see ADR 0021.
+                    //
+                    // Above the >= 400 branch deliberately, not below it: a
+                    // form sent back for correction is friction, not an error,
+                    // and the two tiles on /usage say different things. Move
+                    // this under >= 400 and `rejected` silently becomes a
+                    // constant zero while `clientErrors` absorbs every
+                    // rejection.
+                    ++$buckets[$key]['rejected'];
+                    ++$rejected;
                 } elseif ($status >= 400) {
                     ++$buckets[$key]['clientErrors'];
                     ++$clientErrors;
-                } elseif ('GET' !== $method && 200 === $status) {
-                    // Every successful write in this app ends in
-                    // redirectToRoute(), so a non-GET answering 200 has
-                    // re-rendered its form instead: a rejected submission.
-                    //
-                    // Exactly 200, not "any 2xx": a 204 is a successful write
-                    // with nothing to say, which is what /usage/event itself
-                    // answers, and counting those would report this feature as
-                    // a wall of rejected forms.
-                    //
-                    // Deliberately NOT a 422 check: this app returns 200 from
-                    // $this->render() on an invalid form, so there are no 422s
-                    // to count. See ADR 0021 and the Turbo item in
-                    // next-steps.md — if that is fixed, this becomes a plain
-                    // 422 count and gets more accurate, not less.
-                    ++$buckets[$key]['rejected'];
-                    ++$rejected;
                 }
 
                 if (self::isMobile($headers)) {
