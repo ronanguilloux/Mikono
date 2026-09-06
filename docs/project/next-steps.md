@@ -124,6 +124,46 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
   colleague. The `User` entity is already scoped to grow beyond one user;
   nothing to build until a second one exists.
 
+## `/usage`: date filters
+
+- **Filter the Usage screen by date range** — a custom `from`/`to` pair plus
+  presets for last 7 / 30 / 90 days and year to date. Today
+  `AccessLogReader::read()` aggregates the whole file and the screen reports
+  one `since`/`until` span, so "did anyone use what I shipped last week" can
+  only be answered by eyeballing `lastSeen`. Three things to keep in mind
+  before writing the diff: the range has to be applied while streaming (skip
+  a line whose `ts` falls outside it, not filter rows afterwards, since the
+  per-row counters and p95 are computed in that same pass); the 60-second
+  `usage.access_log` cache key has to include the resolved range or every
+  filter serves the previous one; and the range must bound the `usage_event`
+  table too (`UsageEventRepository::summarize()` groups over all rows), or the
+  two halves of the screen will describe different periods. Note the ceiling:
+  `roll_size 10MiB` / `roll_keep 3` means the log only reaches back as far as
+  the rotation does, so a "year to date" preset will often be honest about a
+  shorter window — say so on screen rather than implying a full year.
+
+## Volunteers: move the delete-guard note to the edit screen
+
+- **Drop the page-level banner on `/volunteers` and say it per volunteer on
+  `/volunteers/{id}/edit` instead.** Today
+  `templates/volunteer/index.html.twig` opens with "15 volunteers on this page
+  have logged activity, so Delete is unavailable for those rows — mark them
+  inactive instead", counted by `$guardedCount` in
+  `VolunteerController::index()`. On a full page that sentence is noise: the
+  rows already render Delete inert via `disabledReason`, and a reader who
+  wants to delete *one* volunteer is on that volunteer's screen, not the list.
+  Move it to the edit page, personalised — "Delete is unavailable for
+  {{ volunteer.fullName }}: they have logged activities" plus a link to
+  `path('activity_index', {volunteer: volunteer.id})`, the same filtered list
+  `volunteer/show.html.twig:97` already links to. Two things to settle while
+  writing it: the edit controller doesn't currently ask the repository for the
+  count, so it needs the same `countReferencingActivities()` call the index
+  makes; and `/projects` carries the byte-identical twin banner
+  (`templates/project/index.html.twig`, `ProjectController::index()`) — either
+  it follows volunteers or the two screens stop matching, so decide rather
+  than leaving it half-done. Keep the server-side guard in `delete()` either
+  way; this is wording, not enforcement.
+
 ## Simplification backlog (from the ponytail audit)
 
 One line each; the reasoning, line counts and file paths are in
