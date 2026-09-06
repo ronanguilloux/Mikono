@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Usage — UCESCO Volunteer Manager{% endblock %}
+
+{# The tile markup is /reports'. Twig resolves macros independently of
+   {% extends %}, so importing it beats a second copy of the same eight lines. #}
+{% import 'report/index.html.twig' as report_macros %}
+
+{% block body %}
+    <div class="mb-1 flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold">Usage</h1>
+    </div>
+    <p class="mb-6 text-sm text-slate-500">
+        Read from the web server's own access log — no third-party analytics, no tracking script.
+        See <span class="font-mono text-xs">ADR 0018</span> and <span class="font-mono text-xs">ADR 0021</span>.
+    </p>
+
+    {% if not report.exists %}
+        {# The CI path, and the path on a server that has not been redeployed
+           since access logging was turned on. An empty table would read as
+           "nobody used the app", which is a different and much scarier claim. #}
+        <div class="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            <p class="font-semibold">No access log yet.</p>
+            <p class="mt-1">
+                Usage is read from <span class="font-mono text-xs">var/log/access.log</span>, which the web
+                server writes once <span class="font-mono text-xs">CADDY_SERVER_LOG_OPTIONS</span> is set and
+                the app has served a request. It appears after the next deploy.
+            </p>
+        </div>
+    {% else %}
+        <div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4" data-kpi-tiles>
+            {{ report_macros.kpi_tile(
+                'Page views',
+                report.views|number_format,
+                report.prefetched > 0 ? report.prefetched|number_format ~ ' hover-prefetches ignored' : 'hover-prefetches ignored'
+            ) }}
+            {{ report_macros.kpi_tile(
+                'Rejected submissions',
+                report.rejected|number_format,
+                'forms sent back for correction'
+            ) }}
+            {{ report_macros.kpi_tile(
+                'Errors',
+                (report.clientErrors + report.serverErrors)|number_format,
+                report.serverErrors > 0 ? report.serverErrors ~ ' server-side' : 'none server-side'
+            ) }}
+            {{ report_macros.kpi_tile(
+                'On a phone',
+                report.views > 0 ? (report.mobile / report.views * 100)|round ~ '%' : '—',
+                'of page views'
+            ) }}
+        </div>
+
+        <p class="mb-3 text-xs text-slate-500">
+            {% if report.since and report.until %}
+                Covering {{ report.since|date('j M Y, H:i') }} to {{ report.until|date('j M Y, H:i') }}.
+            {% endif %}
+            {{ report.unrouted|number_format }} requests for assets and unrouted paths are not listed.
+            Phone detection relies on a browser hint that Chromium sends and Safari does not, so it under-counts.
+        </p>
+
+        <twig:DataTable
+            :columns="columns"
+            :rows="rows"
+            :pagination="pagination"
+            :sortState="sortState"
+            :withActions="false"
+            emptyMessage="Nothing in the access log matches a screen in this app yet."
+        />
+    {% endif %}
+
+    <section class="mt-10" aria-labelledby="in-page-heading">
+        <h2 id="in-page-heading" class="font-semibold">In-page actions</h2>
+        <p class="mb-3 mt-0.5 text-xs text-slate-500">
+            Things that happen entirely in the browser and send no request, so the table above cannot see them —
+            copying a roster to WhatsApp, searching the volunteer list, leaving a form unsaved.
+            Counted without recording who did them.
+        </p>
+
+        {# No pagination and no sortState: there are four possible rows, and
+           sortable headers on a four-row table are decoration. #}
+        <twig:DataTable
+            :columns="eventColumns"
+            :rows="eventRows"
+            :withActions="false"
+            emptyMessage="No in-page actions recorded yet."
+        />
+    </section>
+{% endblock %}

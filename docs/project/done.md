@@ -6,6 +6,16 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-06 — A `/usage` screen over the Caddy access log
+
+Decision and reasoning live in
+[ADR 0021](../adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md).
+Two things it turned up that are recorded elsewhere rather than here: the
+migration-version repair this needed on the dev database (the schema was
+current but `doctrine_migration_versions` was empty, so the entrypoint
+tried to replay every migration and the container restart-looped), and a
+suspected Turbo/422 bug now sitting in `next-steps.md`.
+
 ## 2026-09-06 — Doors into the `?volunteer=` activity filter
 
 `/activities?volunteer=<id>` shipped earlier the same day with nothing

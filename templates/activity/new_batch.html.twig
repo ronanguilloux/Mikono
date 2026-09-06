@@ -13,9 +13,16 @@
     {{ form_start(form, {
         attr: {
             class: 'max-w-2xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm',
-            'data-controller': 'batch-activity-form',
+            'data-controller': 'batch-activity-form usage-event',
             'data-batch-activity-form-today-value': todayIso,
             'data-batch-activity-form-tomorrow-value': tomorrowIso,
+            # Whether the typeahead is used at all, or everyone just scrolls
+            # the checkbox list, decides if it earns its keep. The search never
+            # touches the server, so /usage cannot see it otherwise (ADR 0021).
+            'data-usage-event-url-value': path('usage_event'),
+            'data-usage-event-token-value': csrf_token('usage_event'),
+            'data-usage-event-name-value': 'activity_form_abandoned',
+            'data-action': 'input->usage-event#markDirty submit->usage-event#markSaved turbo:before-visit@window->usage-event#recordIfAbandoned',
         },
     }) }}
         {{ form_errors(form) }}
@@ -70,7 +77,8 @@
                 <input
                     type="text"
                     data-batch-activity-form-target="search"
-                    data-action="input->batch-activity-form#onSearchInput focus->batch-activity-form#onSearchFocus blur->batch-activity-form#onSearchBlur keydown->batch-activity-form#onSearchKeydown"
+                    data-action="input->batch-activity-form#onSearchInput input->usage-event#recordNamed focus->batch-activity-form#onSearchFocus blur->batch-activity-form#onSearchBlur keydown->batch-activity-form#onSearchKeydown"
+                    data-usage-event-name-param="volunteer_search_used"
                     placeholder="Search volunteers to add…"
                     autocomplete="off"
                     role="combobox"

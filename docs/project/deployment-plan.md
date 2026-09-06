@@ -557,10 +557,17 @@ anyone.
 - **External uptime check** against `https://vm.example.org/login` from a
   third-party monitor. The healthcheck only knows the container is alive;
   it cannot tell you the certificate expired or DNS broke.
-- **Logs:** the application logs to `stderr` in production
+- **Logs, in two places since
+  [ADR 0021](../adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md):**
+  the *application* logs to `stderr` in production
   (`config/packages/monolog.yaml`, JSON formatted), so
-  `$COMPOSE logs -f php` carries both Caddy's access log and the app's
-  errors. Rotation is the Docker daemon's job — configured in §3.
+  `$COMPOSE logs -f php` carries its errors, rotated by the Docker daemon
+  as configured in §3. The *Caddy access log* no longer goes to stderr —
+  `CADDY_SERVER_LOG_OPTIONS` in `compose.yaml` sends it to
+  `/app/var/log/access.log` on the `log_data` volume, rolled by Caddy
+  itself at 10 MiB × 3. So `$COMPOSE logs -f php` shows no request lines;
+  read them at `/usage` in the app, or with
+  `$COMPOSE exec php cat /app/var/log/access.log | jq …`.
 
 ## 9. Pre-flight checklist
 

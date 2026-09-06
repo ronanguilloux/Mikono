@@ -133,6 +133,21 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
   readonly value objects behind the home screen. `QuietProjectFinder`
   covers projects only and never volunteers — that's deliberate and
   evidence-based, so read its class docblock before "completing" it.
+- `src/Usage/` — `AccessLogReader`, which streams Caddy's own JSON access
+  log (`var/log/access.log`, the `log_data` volume) and aggregates it per
+  route for the admin-only `/usage` screen. Two things there are
+  load-bearing, don't "simplify" them: it matches each logged URI to a
+  **route pattern** (`/volunteers/{id}/edit`, never `/volunteers/12/edit`),
+  which is both the asset filter and what keeps record identifiers off the
+  screen; and it skips requests carrying `X-Sec-Purpose: prefetch`, because
+  Turbo Drive fetches links on hover and counting those inflates every
+  number. A missing log file must stay an empty report rather than an
+  exception — CI has no Caddy log and `RouteSmokeTest` walks this route.
+  The companion `usage_event` table covers only gestures that send no
+  request at all (clipboard copy, typeahead, form abandonment); its
+  `UsageEventName` enum is the whitelist, and the row deliberately records
+  no user, IP or context. See
+  [ADR 0021](docs/adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md).
 - `src/Factory/` — Foundry v2 factories (`PersistentObjectFactory`, real
   objects) for every entity, used by both tests and dev fixtures
   (`src/Story/AppStory.php`).
@@ -152,7 +167,13 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
 - `tests/Functional/` — WebTestCase functional tests, one per
   controller area plus `SecurityControllerTest`.
 - `tests/Integration/` — KernelTestCase tests for `src/Report/` services
-  that need the database but no HTTP layer.
+  that need the database but no HTTP layer, plus
+  `tests/Integration/Usage/`, which asserts what `/usage` claims against a
+  committed sample log rather than against whatever the dev container
+  happened to serve. Everything about the numbers is tested there; the
+  functional test covers only the screen and its admin gate, because
+  `%kernel.logs_dir%` is the same path under `test`, so a content
+  assertion would read the real dev log locally and nothing in CI.
 
 ## Stack
 
@@ -442,18 +463,28 @@ the runbook):
 - **Which screens actually get used** is answered from Caddy's access
   log, not from analytics — no `gtag`, Plausible or Matomo goes into this
   app ([ADR 0018](docs/adr/0018-answer-usage-questions-from-the-caddy-access-log.md),
-  which also records the reopen trigger). The lines are Caddy's console
-  format with a JSON tail, so a bare `| jq` fails on every one of them;
-  strip the prefix first:
+  which also records the reopen trigger). Normally you just open
+  **`/usage`** (Settings → Usage, admin only), which is that same log read
+  in-app — see ADR 0021. For an ad-hoc question the screen doesn't answer,
+  the log is real NDJSON at `var/log/access.log` (the `log_data` volume),
+  so `jq` reads it directly — keep the prefetch filter, without which
+  Turbo's hover prefetching inflates every count:
 
   ```bash
-  docker compose logs php --no-log-prefix \
-    | grep 'handled request' \
-    | sed 's/.*handled request[[:space:]]*//' \
-    | jq -r '.request.uri' | sed 's/?.*//' \
+  docker compose exec php cat /app/var/log/access.log \
+    | jq -r 'select(.request.headers["X-Sec-Purpose"] == null) | .request.uri' \
+    | sed 's/?.*//' \
     | grep -Ev '^/(assets|brand)/|favicon' \
     | sort | uniq -c | sort -rn | head -20
   ```
+
+  `CADDY_SERVER_LOG_OPTIONS` in `compose.yaml` is what sends the log to
+  that file rather than to stderr, so **`docker compose logs php` no
+  longer carries request lines** — it still carries the app's own Monolog
+  errors. It lives in compose rather than in `frankenphp/Caddyfile`
+  deliberately: the Caddyfile is copied into the image, so changing it
+  would need a CI image rebuild to reach production, while an env var
+  ships with a `git pull`.
 
 **What's next:** see
 [`docs/project/next-steps.md`](docs/project/next-steps.md) (forward-only).

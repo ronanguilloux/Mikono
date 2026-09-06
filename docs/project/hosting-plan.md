@@ -164,7 +164,7 @@ see §6.
 
 ## 4. Storage and backup
 
-All persistent state is three Docker named volumes:
+All persistent state is four Docker named volumes:
 
 - `db_data` → `/app/var/data/` — the entire application database
   (`data_prod.db`), **and** the session files in `sessions/`
@@ -181,8 +181,18 @@ All persistent state is three Docker named volumes:
 - `caddy_data` → certificates.
 - `caddy_config` → Caddy's autosaved config. Small, and Caddy recreates
   it, but it is a named volume like the other two.
+- `log_data` → `/app/var/log/` — Caddy's JSON access log, which is what
+  the `/usage` screen reads
+  ([ADR 0021](../adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md)).
+  A volume only so that usage history survives a redeploy; Caddy rolls it
+  itself at 10 MiB × 3, so it is bounded at roughly 30 MB and needs no
+  `logrotate`. **Deliberately not backed up, and deliberately not inside
+  `db_data`**: `db_data` is the artifact `backup-db.sh` snapshots, the
+  off-site copy ships and the §7 restore drill replaces, and request logs
+  have no business riding along. Losing this volume loses usage history,
+  not data.
 
-Everything else (`var/cache`, `var/log`) is disposable.
+Everything else (`var/cache`) is disposable.
 
 **Backups** use [`scripts/backup-db.sh`](../../scripts/backup-db.sh),
 which snapshots the live database with SQLite's `VACUUM INTO` through

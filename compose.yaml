@@ -12,6 +12,25 @@ services:
       # SQLite: one file, no separate database service needed.
       # See docs/adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md
       DATABASE_URL: sqlite:///%kernel.project_dir%/var/data/data_%kernel.environment%.db
+      # Caddy's access log as a rolling JSON file instead of console-format
+      # stderr. FrankenPHP *is* Caddy — same container, same process — so
+      # /usage reads this file directly, with no sidecar and no log shipper.
+      # See ADR 0021.
+      #
+      # frankenphp/Caddyfile already has `log { {$CADDY_SERVER_LOG_OPTIONS} }`
+      # and nothing defined this until now, which is why Caddy fell back to
+      # stderr. Set here rather than in the Caddyfile because that file is
+      # COPY'd into the image: an env var ships with a `git pull`, a Caddyfile
+      # edit would need a CI image rebuild to reach production.
+      #
+      # roll_size/roll_keep are explicit because Caddy's defaults are
+      # 100 MiB x 10 — 1 GB, on a 2 GB VPS.
+      CADDY_SERVER_LOG_OPTIONS: |
+        output file /app/var/log/access.log {
+          roll_size 10MiB
+          roll_keep 3
+        }
+        format json
     volumes:
       - caddy_data:/data
       - caddy_config:/config
@@ -20,6 +39,11 @@ services:
       # unlike the anonymous volume compose.override.yaml uses to exclude the
       # rest of var/ (cache/log) from the dev bind-mount for performance.
       - db_data:/app/var/data
+      # The access log behind /usage, kept out of db_data on purpose: that
+      # volume is what backup-db.sh snapshots and what a restore drill
+      # replaces, and request logs have no business riding along. Not backed
+      # up — losing this loses usage history, not data.
+      - log_data:/app/var/log
     ports:
       - name: http
         target: 80
@@ -38,3 +62,4 @@ volumes:
   caddy_data:
   caddy_config:
   db_data:
+  log_data:

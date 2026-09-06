@@ -39,7 +39,10 @@
                 {label: 'Escorts', route: 'escort_index'},
             ] %}
             {% if is_granted('ROLE_ADMIN') %}
-                {% set settings_items = settings_items|merge([{label: 'Users', route: 'user_index'}]) %}
+                {% set settings_items = settings_items|merge([
+                    {label: 'Users', route: 'user_index'},
+                    {label: 'Usage', route: 'usage_index'},
+                ]) %}
             {% endif %}
             {% set current_route = app.request.attributes.get('_route') %}
             <header class="bg-brand-900 text-white print:hidden" data-controller="nav" data-action="click@window->nav#closeSettings keydown.esc@window->nav#closeSettings">

@@ -1,4 +1,14 @@
-{{ form_start(form, {attr: {class: 'max-w-lg'}}) }}
+{# Shared by new and edit, so both count as "the activity form". Whether people
+   start logging an activity and give up is the one form question the access
+   log cannot answer — an abandoned form sends no request. ADR 0021. #}
+{{ form_start(form, {attr: {
+    class: 'max-w-lg',
+    'data-controller': 'usage-event',
+    'data-usage-event-url-value': path('usage_event'),
+    'data-usage-event-token-value': csrf_token('usage_event'),
+    'data-usage-event-name-value': 'activity_form_abandoned',
+    'data-action': 'input->usage-event#markDirty submit->usage-event#markSaved turbo:before-visit@window->usage-event#recordIfAbandoned',
+}}) }}
     {{ form_widget(form) }}
 
     <div class="flex items-center gap-3">
