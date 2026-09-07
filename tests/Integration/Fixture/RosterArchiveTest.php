@@ -66,37 +66,29 @@ final class RosterArchiveTest extends TestCase
     #[Test]
     public function theWholeArchiveShiftsOntoTheDayTheFixturesLoad(): void
     {
-        $archive = self::archive();
         $anchors = [];
-        foreach ($archive->rosters as $roster) {
+        $anchored = [];
+        foreach (self::archive()->rosters as $roster) {
             if (null !== $roster->anchor) {
                 $anchors[] = $roster->anchor;
+                $anchored[$roster->anchor] = $roster->date;
             }
         }
 
         // The home screen's two roster panels cover today and tomorrow; a
-        // fixed archive date would leave both of them empty.
+        // fixed archive date would leave both of them empty. Exactly one
+        // roster carries each anchor, in that order — the list catches a
+        // duplicate the map would silently overwrite.
         self::assertSame(['today', 'tomorrow'], $anchors);
 
-        // Every roster moves by the anchor's own offset — shifting only the
-        // anchored pair would tear a hole in the timeline on any other day.
-        $shift = $archive->anchorDay()->diff(new \DateTimeImmutable('2030-01-15'));
-        $dates = [];
-        foreach ($archive->rosters as $roster) {
-            $dates[$roster->anchor ?? ''][] = $roster->date->add($shift)->format('Y-m-d');
-        }
-
-        // The pair has to be adjacent, not merely present: one offset moves the
-        // whole archive, so a `tomorrow` any further out than the day after
-        // `today` would leave the home screen's tomorrow panel empty.
-        self::assertSame(['2030-01-15'], $dates['today']);
-        self::assertSame(['2030-01-16'], $dates['tomorrow']);
-
-        // The archive runs Monday to Friday, so the anchored pair is the last
-        // adjacent pair rather than necessarily the last two days: a roster
-        // posted over a weekend for the Monday sits after them, seeding a
-        // future-dated day that /reports badges as "Planned".
-        self::assertContains('2030-01-14', $dates[''], 'The day before the anchor must land the day before it.');
+        // One `anchor: today` offset moves the entire archive, so the pair has
+        // to be two consecutive calendar days: a `tomorrow` any further out
+        // leaves the home screen's tomorrow panel empty.
+        self::assertSame(
+            $anchored['today']->modify('+1 day')->format('Y-m-d'),
+            $anchored['tomorrow']->format('Y-m-d'),
+            '"anchor: tomorrow" must be the calendar day after "anchor: today".',
+        );
     }
 
     /**

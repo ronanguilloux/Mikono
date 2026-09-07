@@ -101,11 +101,14 @@ calendar moves; the sites, people, escorts and notes stay the real ones.
 
 **The pair has to be two consecutive calendar days**, since one offset
 moves everything: a `tomorrow` further out than the day after `today`
-leaves the tomorrow panel empty. That is usually the last two days in the
-file, but not necessarily — this archive runs Monday to Friday, so a
-roster posted over a weekend for the Monday goes in after the anchored
-Thursday/Friday pair and seeds a few days out, as a future-dated roster
-that `/reports` badges as "Planned". Don't move the anchors onto it.
+leaves the tomorrow panel empty. It is the archive's last two days. Note
+that consecutive means consecutive on the calendar, not merely adjacent in
+the file — this archive runs Monday to Friday, so a Friday followed by the
+next Monday is not a valid pair.
+
+Any roster sitting after the anchored pair seeds a future-dated day, which
+is what `/reports` badges as "Planned". The pair's own `tomorrow` is
+future-dated too, so that badge is exercised either way.
 
 Note the day the fixtures load is Nairobi's, not the host's: the app runs
 on `Africa/Nairobi` (ADR 0003, `frankenphp/conf.d/10-app.ini`), so a

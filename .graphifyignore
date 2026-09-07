@@ -1,0 +1,77 @@
+# .graphifyignore — gitignore syntax; .gitignore is already respected and
+# merged in, so this file only ever *excludes more*. Rebuild after editing:
+#   graphify . --update
+#
+# Sizes below are what the 2026-09-07 graph actually ingested (346 files,
+# per graphify-out/manifest.json), not guesses.
+
+# ── Vendored / generated: no project signal, huge volume ──────────────
+# All gitignored already; repeated here because `--update --no-gitignore`
+# would otherwise pull ~10k vendor files into the graph.
+/vendor/
+/var/
+/public/assets/
+/assets/vendor/
+/graphify-out/
+/.phpunit.cache/
+
+# 104 KB of auto-generated array shapes for App::config(). Nothing loads it;
+# it is an IDE assist. Largest single file the last build ingested.
+/config/reference.php
+
+# ── Portable agent skills: generic Symfony/PHP guidance, not this app ──
+# 142 files (41% of the last build) documenting API Platform, Messenger,
+# Pest… none of which Mikono uses. They drown the real domain nodes.
+/.agents/skills/
+/.claude/skills/
+/.codex/skills/
+/.gemini/skills/
+
+# ── Editor / machine-local state ──────────────────────────────────────
+/.vscode/
+/.claude/settings.local.json
+
+# ── Symlink duplicates of AGENTS.md ───────────────────────────────────
+# CLAUDE.md and GEMINI.md are symlinks to AGENTS.md; indexing all three
+# triples the same 29 KB and creates three nodes for one document.
+# AGENTS.md itself stays — it is the richest description of the project.
+/CLAUDE.md
+/GEMINI.md
+
+# ── Brand assets ──────────────────────────────────────────────────────
+# ~51 KB each of raw SVG path data. Zero extractable meaning.
+/public/brand/
+
+# ── docs/: keep the decisions, drop the archaeology ───────────────────
+# docs/adr/ stays. It is the "why" behind the code and is the single most
+# valuable thing in the repo for a knowledge graph — do not exclude it.
+/docs/adr/template.md
+
+# Brainstorms are pre-decision narrative, superseded by the ADRs they led
+# to. AGENTS.md itself says "Don't read that folder at session start: most
+# of it describes decisions already shipped and locked into ADRs." In a
+# graph, rejected alternatives read as current fact.
+# Flip this if you ever want to query "why did we *not* do X".
+/docs/brainstorm/
+
+# 97 KB dated changelog — the largest doc in the repo and entirely past
+# tense. Its durable conclusions are already in ADRs or AGENTS.md.
+# next-steps.md, deployment-plan.md and hosting-plan.md stay: current.
+/docs/project/done.md
+
+# Roster data, not structure: 15 volunteer names, 13 sites, 102 activity
+# rows. Adds ~30 person/place nodes that look like architecture but aren't.
+# docs/fixtures/README.md stays — it holds the transcription rules.
+/docs/fixtures/rosters.yaml
+
+# ── Generated schema DDL ──────────────────────────────────────────────
+# make:migration output — ALTER TABLE strings that restate src/Entity/,
+# which is the source of truth and stays indexed.
+/migrations/
+
+# ── Lockfiles / tool baselines ────────────────────────────────────────
+# 436 KB of resolved dependency hashes; composer.json stays.
+/composer.lock
+/phpstan-baseline.neon
+/.php-cs-fixer.cache
+/LICENSE

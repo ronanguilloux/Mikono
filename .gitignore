@@ -47,3 +47,10 @@
 # does not remove it from disk in dev. See done.md, 2026-09-06.
 /config/reference.php
 ###< auto-generated config ###
+
+###> graphify ###
+# Derived knowledge-graph output: regenerate with `graphify . --update`.
+# Also holds an AST/semantic cache and absolute local interpreter paths
+# (.graphify_python, .graphify_root), which are machine-specific.
+/graphify-out/
+###< graphify ###
