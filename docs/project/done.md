@@ -6,6 +6,62 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-07 — Six query params answered a malformed URL with an error page
+
+`ListPaginator`'s docblock and the CLAUDE.md paragraph about it both promise
+the same thing: bad query input degrades to a default, it never errors. Four
+readers in that class already honoured it — `sort` and `direction` go through
+`query->all()` precisely because `InputBag::get()` throws a
+`BadRequestException` on a non-scalar, and `perPage` casts rather than calling
+`getInt()` because that throws on anything non-numeric. Six other readers of
+the same query string did not, and each one answered a malformed URL with an
+error page instead:
+
+| URL | was |
+| --- | --- |
+| `?page[]=2`, `?perPage[]=25` (every list) | 400 |
+| `/reports?tab[]=project` | 400 |
+| `/activities/new-batch?project=abc`, `?project[]=1`, `?date[]=x` | 400 |
+
+Two of them were the interesting ones.
+[`ActivityController::requestedProject()`](../../src/Controller/ActivityController.php)
+used `getInt()` while sitting four methods below `requestedVolunteer()`, whose
+docblock warns in as many words that "getInt() throws on `?volunteer=abc`" —
+the rule written down immediately adjacent to its own violation. And
+[`ReportController`](../../src/Controller/ReportController.php)'s `?tab=`
+read threw on `?tab[]=`, on the very line whose comment says a stale tab should
+land on the default "rather than an error page".
+
+This is not only a hand-edited-URL problem: the home screen links straight to
+`?project=<id>` and `?date=<Y-m-d>`
+([`templates/dashboard/index.html.twig`](../../templates/dashboard/index.html.twig)),
+so a truncated or stale bookmark of a link the app itself hands out was the
+realistic way in.
+
+**The one that only showed up under real HTTP.** Fixing the controllers made
+`?perPage[]=25` *worse* before it made it better — 500 instead of 400. The
+same throwing `query.get('perPage')` also lived in
+[`PaginationBar.html.twig`](../../templates/components/PaginationBar.html.twig),
+and previously the controller threw first so the template was never reached;
+once the controller survived, the exception moved into rendering, where it is a
+500. Every other query-string read in `templates/` already went through `.all`
+with an `is not iterable` guard — that line was the lone outlier. A unit test
+on `perPage()` stayed green throughout and would never have caught it; walking
+the routes over real HTTP after each edit did.
+
+All six now read through `query->all()` and guard with `is_scalar()`, matching
+the readers that were already right. Regression cases went in beside the
+existing ones rather than into a new file: the array shape joins
+`rejectedPageSizes` and `nonPositivePages` in `ListPaginatorTest` (both
+widened to `mixed`, as `unusableSortParams` already was), `?tab[]=project`
+joins the tab-fallback test, and `theBatchFormShrugsOffUnusablePrefillParams`
+covers all six malformed prefills on `/activities/new-batch`.
+
+Found by building a graphify knowledge graph over the repo, which linked
+`SORT_MAP`-as-whitelist to `UsageEventName`-as-whitelist as the same "a
+server-side map is the trust boundary" pattern, and asking whether that
+pattern was actually applied everywhere. It was not.
+
 ## 2026-09-06 — The migration-history wipe, fixed at the cause after four hand-repairs
 
 The dev container's restart loop — `doctrine_migration_versions` empty while

@@ -636,6 +636,27 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     /**
+     * The batch form's two prefill params get the same contract as the index's
+     * filter. These matter more than they look: the home screen links straight
+     * to `?project=<id>` and `?date=<Y-m-d>`, so a truncated or hand-edited
+     * bookmark of a real link is the failure mode, and `getInt()`/`get()` would
+     * answer it with a 400.
+     */
+    #[Test]
+    public function theBatchFormShrugsOffUnusablePrefillParams(): void
+    {
+        $client = static::createClient();
+        ProjectFactory::createOne(['name' => 'Kibera Library']);
+
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (['?project=abc', '?project[]=1', '?project=0', '?project=999999', '?date[]=x', '?date=nonsense'] as $query) {
+            $client->request('GET', '/activities/new-batch' . $query);
+            self::assertResponseIsSuccessful(sprintf('%s should render the form, not fail', $query));
+        }
+    }
+
+    /**
      * The filter lives in the query string beside `page` and `sort`, so every
      * other control has to carry it — drop it and the filter dies on the
      * second page or the first sort click.

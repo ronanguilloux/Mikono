@@ -48,8 +48,10 @@ final class ReportController extends AbstractController
         $today = new \DateTimeImmutable('today');
 
         // Anything but "project" is the volunteer breakdown, so a mistyped or
-        // stale ?tab= lands on the default rather than an error page.
-        $tab = self::TAB_PROJECT === $request->query->get('tab')
+        // stale ?tab= lands on the default rather than an error page. Read
+        // through all(), because InputBag::get() throws on `?tab[]=project`,
+        // which would be the error page this line exists to avoid.
+        $tab = self::TAB_PROJECT === ($request->query->all()['tab'] ?? null)
             ? self::TAB_PROJECT
             : self::TAB_VOLUNTEER;
 

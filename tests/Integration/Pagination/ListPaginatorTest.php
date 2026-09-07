@@ -63,16 +63,19 @@ final class ListPaginatorTest extends KernelTestCase
 
     #[Test]
     #[DataProvider('rejectedPageSizes')]
-    public function fallsBackToTheDefaultForAnyUnlistedPageSize(string $requested): void
+    public function fallsBackToTheDefaultForAnyUnlistedPageSize(mixed $requested): void
     {
         self::assertSame(25, $this->paginator()->perPage($this->requestWith(['perPage' => $requested])));
     }
 
-    /** @return iterable<string, array{string}> */
+    /** @return iterable<string, array{mixed}> */
     public static function rejectedPageSizes(): iterable
     {
         yield 'off-list number' => ['7'];
         yield 'non-numeric' => ['abc'];
+        // Reaches perPage() through query->all(), never InputBag::get(), which
+        // would turn `?perPage[]=25` into a 400.
+        yield 'an array' => [['25']];
         yield 'negative' => ['-1'];
         yield 'zero' => ['0'];
         yield 'empty' => [''];
@@ -89,17 +92,20 @@ final class ListPaginatorTest extends KernelTestCase
 
     #[Test]
     #[DataProvider('nonPositivePages')]
-    public function clampsANonPositivePageToTheFirst(string $requested): void
+    public function clampsANonPositivePageToTheFirst(mixed $requested): void
     {
         self::assertSame(1, $this->paginator()->page($this->requestWith(['page' => $requested])));
     }
 
-    /** @return iterable<string, array{string}> */
+    /** @return iterable<string, array{mixed}> */
     public static function nonPositivePages(): iterable
     {
         yield 'zero' => ['0'];
         yield 'negative' => ['-3'];
         yield 'non-numeric' => ['abc'];
+        // Reaches page() through query->all(), never InputBag::get(), which
+        // would turn `?page[]=2` into a 400.
+        yield 'an array' => [['2']];
     }
 
     #[Test]
@@ -424,7 +430,7 @@ final class ListPaginatorTest extends KernelTestCase
         return trim((string) preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($html))));
     }
 
-    /** @param array<string, string> $query */
+    /** @param array<string, mixed> $query */
     private function requestWith(array $query): Request
     {
         return new Request($query);

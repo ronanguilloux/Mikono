@@ -17,7 +17,10 @@
 
 {% set total = pagination.getTotalItemCount() %}
 {% set data = pagination.getPaginationData() %}
-{% set current_per_page = app.request.query.get('perPage')|default('') %}
+{# Read through .all like every other query-string read in these templates:
+   app.request.query.get() throws a BadRequestException on `?perPage[]=25`,
+   which renders as a 500 from inside a template rather than a 400. #}
+{% set current_per_page = app.request.query.all['perPage']|default('') %}
 
 <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600 print:hidden" data-pagination-bar>
     <p>

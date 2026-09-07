@@ -292,8 +292,16 @@ final class ReportControllerTest extends WebTestCase
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=bogus');
 
+        // `tab[]=project` is the shape that throws if the controller reads the
+        // param through InputBag::get() rather than query->all().
+        foreach (['bogus', ''] as $value) {
+            $crawler = $client->request('GET', '/reports?tab=' . $value);
+            self::assertResponseIsSuccessful(sprintf('?tab=%s should fall back, not fail', $value));
+            self::assertSame('By volunteer', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
+        }
+
+        $crawler = $client->request('GET', '/reports?tab[]=project');
         self::assertResponseIsSuccessful();
         self::assertSame('By volunteer', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
     }

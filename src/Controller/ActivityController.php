@@ -244,9 +244,14 @@ final class ActivityController extends AbstractController
         return $this->redirectToRoute('activity_index');
     }
 
+    /**
+     * The batch form's `?date=<Y-m-d>` prefill, read through query->all() for
+     * the same reason as requestedVolunteer(): InputBag::get() throws on
+     * `?date[]=x`. An unusable date means today's default, not a 400.
+     */
     private function requestedDate(Request $request): ?\DateTimeImmutable
     {
-        $raw = $request->query->get('date');
+        $raw = $request->query->all()['date'] ?? null;
         if (!is_string($raw)) {
             return null;
         }
@@ -256,11 +261,21 @@ final class ActivityController extends AbstractController
         return false === $date ? null : $date;
     }
 
+    /**
+     * The batch form's `?project=<id>` prefill. Read exactly like
+     * requestedVolunteer() above: getInt() throws on `?project=abc` and
+     * InputBag::get() throws on `?project[]=1`, and neither belongs on a link
+     * the home screen hands out. Anything unusable means no prefill.
+     */
     private function requestedProject(Request $request): ?Project
     {
-        $id = $request->query->getInt('project');
+        $raw = $request->query->all()['project'] ?? null;
 
-        return 0 === $id ? null : $this->entityManager->find(Project::class, $id);
+        if (!is_scalar($raw) || (int) $raw < 1) {
+            return null;
+        }
+
+        return $this->entityManager->find(Project::class, (int) $raw);
     }
 
     private function loggedByUser(): ?User

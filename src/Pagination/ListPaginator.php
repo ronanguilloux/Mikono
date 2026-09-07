@@ -206,7 +206,15 @@ final class ListPaginator
 
     public function perPage(Request $request): int
     {
-        $requested = $request->query->get('perPage');
+        // Read through all() rather than InputBag::get(), which throws a
+        // BadRequestException on a non-scalar — `?perPage[]=25` would then be a
+        // 400 instead of the harmless fallback this class promises. Same reason
+        // as sortKey() and sortDirection() below.
+        $requested = $request->query->all()['perPage'] ?? null;
+
+        if (!is_scalar($requested)) {
+            return self::DEFAULT_PER_PAGE;
+        }
 
         if ('all' === $requested) {
             return self::ALL_PER_PAGE;
@@ -223,8 +231,11 @@ final class ListPaginator
 
     public function page(Request $request): int
     {
-        // Same reason as perPage() for casting instead of getInt().
-        return max(1, (int) $request->query->get('page'));
+        // Same reasons as perPage(): all() so `?page[]=2` is not a 400, and a
+        // cast rather than getInt() so `?page=abc` is not one either.
+        $requested = $request->query->all()['page'] ?? null;
+
+        return is_scalar($requested) ? max(1, (int) $requested) : 1;
     }
 
     /**

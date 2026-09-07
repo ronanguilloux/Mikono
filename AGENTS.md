@@ -102,13 +102,20 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
   `perPage`, `sort` and `direction` are read off the query string for
   all seven list views, plus the `SortState` VO it hands to templates.
   Page sizes are whitelisted 25/50/100/All, default 25. Bad input never
-  404s: an unknown size falls back to the default, `page` below 1 clamps
-  to 1, `page` past the end serves the last page, and an unknown `sort`
-  leaves the view's own order alone. Don't reach for
+  404s *or 400s*: an unknown size falls back to the default, `page` below
+  1 clamps to 1, `page` past the end serves the last page, and an unknown
+  `sort` leaves the view's own order alone. Don't reach for
   `InputBag::getInt()` here — in Symfony 8 it throws on non-numeric
-  input, which turns `?page=abc` into a 400; `sort`/`direction` are read
-  through `query->all()` for the same reason, since `InputBag::get()`
-  throws on `?sort[]=x`. See
+  input, which turns `?page=abc` into a 400 — and don't reach for
+  `InputBag::get()` either, which throws on a non-scalar like `?sort[]=x`
+  or `?perPage[]=25`. **Every** query param the app reads goes through
+  `query->all()` guarded by `is_scalar()`, and that rule does not stop at
+  this class: it also covers `?tab=` on `/reports`, `?project=`/`?date=`
+  on `/activities/new-batch` (both linked from the home screen, so a stale
+  bookmark is the realistic bad URL), and the Twig side — a
+  `app.request.query.get()` in a template throws during rendering, which
+  is a 500 rather than a 400. Read through `app.request.query.all` there,
+  as every template already does. See `done.md`, 2026-09-07. See
   [ADR 0009](docs/adr/0009-adopt-knppaginatorbundle-for-list-pagination.md)
   and
   [ADR 0011](docs/adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md).
