@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-06
+**Last updated:** 2026-09-07
 
 Only what's next goes here — forward-looking exclusively. Completed work
 moves out: to an ADR in `docs/adr/` if it was an architectural decision,
@@ -141,6 +141,44 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
   `roll_size 10MiB` / `roll_keep 3` means the log only reaches back as far as
   the rotation does, so a "year to date" preset will often be honest about a
   shorter window — say so on screen rather than implying a full year.
+
+## `/usage`: report login attempts, with the login and the outcome
+
+- **Show sign-ins on `/usage`: who (the submitted email), when, and whether it
+  succeeded or failed.** Neither existing source can answer this. The Caddy
+  access log has `POST /login` rows but Symfony redirects on both outcomes, so
+  success and failure look alike, and the log carries no credentials — by
+  design. The `usage_event` table is the other half of the screen and is
+  explicitly *not* where this goes: `UsageEvent`'s docblock records that it has
+  no user, IP or session column on purpose, and that adding one is "a new
+  data-protection decision and needs its own ADR" (ADR 0021, ADR 0018).
+  **So this item is an ADR before it is a diff** — a login audit trail names an
+  identified colleague and, on a failed attempt, an arbitrary string somebody
+  typed into the email box. Decide before writing code: retention (this is the
+  first thing here that should expire), whether a failed attempt stores the
+  submitted identifier verbatim or a masked form, whether the row records an
+  IP, and whether the screen showing it stays admin-only like the rest of
+  `/usage`.
+  Mechanically it is small once decided: Symfony's `LoginSuccessEvent` and
+  `LoginFailureEvent` (the failure event carries the passport, hence the
+  attempted identifier) into a new listener and its own table — not
+  `usage_event`, whose whole point is being non-personal. Note it also lands
+  the one thing the throttler currently swallows silently: repeated failures
+  against a real address. Whatever ships must be bounded by the date range
+  from the filters item above, or the two halves of the screen will again
+  describe different periods.
+
+## `/reports`: point the Top volunteers link at the volunteer
+
+- **Link each name in the Top volunteers card to `volunteer_show`, not to the
+  filtered activity list.** `templates/report/index.html.twig:71` renders
+  `path('activity_index', {volunteer: row.id})`; it should be
+  `path('volunteer_show', {id: row.id})` — a recognition card names a person,
+  so the click should land on that person. The `{% if row.id %}` guard stays:
+  the Unknown bucket has no id and must keep rendering as plain text.
+  `volunteer/show.html.twig` already links on to the filtered activity list,
+  so nothing is lost. Check whether any functional test asserts the current
+  href before changing it.
 
 ## Volunteers: move the delete-guard note to the edit screen
 

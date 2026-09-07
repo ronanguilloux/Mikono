@@ -1,6 +1,23 @@
 # Deployment plan
 
-**Last updated:** 2026-09-03
+**Last updated:** 2026-09-07
+
+## In a nutshell
+
+```bash
+# 1. push on main branch then CI builds and publish new image (30-60 s)
+git push
+
+# 2. wait for build, otherwise deploy.sh repull previous image : must show a '✓' status
+gh run list --workflow=build-image.yml --limit 1
+
+# 3. deploy - always use deploy@
+ssh deploy@deploy.mikono.guilloux.org 'cd /opt/mikono && ./scripts/deploy.sh'
+
+# 4. Upsert an admin user
+ssh deploy@deploy.mikono.guilloux.org 'cd /opt/mikono && docker compose --env-file deploy.env -f compose.yaml -f compose.prod.yaml exec php bin/console app:user:create  --email=me@domain.org --full-name="My Full Name" --admin --password=XXXYYYZZZ'
+
+```
 
 The runbook for getting Mikono onto a server and keeping it there. A
 living document, edited in place. What the server itself must provide —
