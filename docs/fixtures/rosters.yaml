@@ -439,7 +439,6 @@ rosters:
 
   - date: 2026-09-03
     posted: 2026-09-02
-    anchor: today
     sites:
       - project: peggy_lucas
         volunteers: [{name: Daphne}, {name: Marco}]
@@ -450,7 +449,6 @@ rosters:
 
   - date: 2026-09-04
     posted: 2026-09-03
-    anchor: tomorrow
     sites:
       - project: peggy_lucas
         volunteers: [{name: Daphne}, {name: Marco}]
@@ -468,6 +466,17 @@ rosters:
   # future roster, which is what /reports badges as "Planned".
   - date: 2026-09-07
     posted: 2026-09-06
+    anchor: today
+    sites:
+      - project: peggy_lucas
+        volunteers: [{name: Daphne}, {name: Marco}]
+        escorts: [Hassan]
+      - project: mt_hermon
+        volunteers: [{name: Hellen}, {name: Hannah}]
+        escorts: [Ofright]
+  - date: 2026-09-08
+    posted: 2026-09-06
+    anchor: tomorrow
     sites:
       - project: peggy_lucas
         volunteers: [{name: Daphne}, {name: Marco}]
