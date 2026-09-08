@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-08
 
 Only what's next goes here — forward-looking exclusively. Completed work
 moves out: to an ADR in `docs/adr/` if it was an architectural decision,
@@ -167,18 +167,6 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
   against a real address. Whatever ships must be bounded by the date range
   from the filters item above, or the two halves of the screen will again
   describe different periods.
-
-## `/reports`: point the Top volunteers link at the volunteer
-
-- **Link each name in the Top volunteers card to `volunteer_show`, not to the
-  filtered activity list.** `templates/report/index.html.twig:71` renders
-  `path('activity_index', {volunteer: row.id})`; it should be
-  `path('volunteer_show', {id: row.id})` — a recognition card names a person,
-  so the click should land on that person. The `{% if row.id %}` guard stays:
-  the Unknown bucket has no id and must keep rendering as plain text.
-  `volunteer/show.html.twig` already links on to the filtered activity list,
-  so nothing is lost. Check whether any functional test asserts the current
-  href before changing it.
 
 ## Volunteers: move the delete-guard note to the edit screen
 

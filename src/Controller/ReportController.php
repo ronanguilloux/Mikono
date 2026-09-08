@@ -114,8 +114,9 @@ final class ReportController extends AbstractController
      *
      * $linkVolunteers is what the caller knows and this method doesn't: which
      * breakdown these rows are. Only the volunteer one has somewhere to link
-     * to — there is no `/activities?project=` filter — and even there the
-     * Unknown bucket carries no id, so it stays plain text.
+     * to — a project has no show page, only an edit form, which is not where a
+     * report name should land — and even there the Unknown bucket carries no
+     * id, so it stays plain text.
      *
      * @param list<SummaryRow> $summaries
      *
@@ -147,7 +148,7 @@ final class ReportController extends AbstractController
                 ],
                 'badges' => $isPlanned ? ['mostRecent' => 'Planned'] : [],
                 'links' => $linkVolunteers && null !== $id
-                    ? ['label' => $this->generateUrl('activity_index', ['volunteer' => $id])]
+                    ? ['label' => $this->generateUrl('volunteer_show', ['id' => $id])]
                     : [],
             ];
         }

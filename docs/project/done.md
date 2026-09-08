@@ -6,6 +6,41 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-08 — A volunteer's name on `/reports` led to a list, not to the volunteer
+
+`/reports` prints the same volunteer name twice — once in the Top volunteers
+card, once in the "By volunteer" breakdown table — and both linked to
+`/activities?volunteer=<id>`. The card is the odd one out: it ranks people by
+days contributed and hands out medals, so it recognises a *person*, and a click
+on a person's name should land on that person rather than on a filtered log.
+
+Both now point at `volunteer_show`
+([`templates/report/index.html.twig`](../../templates/report/index.html.twig)
+for the card,
+[`ReportController::toRows()`](../../src/Controller/ReportController.php) for
+the table). The breakdown followed the card deliberately rather than being left
+alone: one page offering two destinations for the same name is the kind of
+inconsistency nobody remembers the reason for six months later.
+
+Nothing was lost. `volunteer/show.html.twig` already carries a "See in
+Activities →" link to exactly the old destination, so the filtered list is one
+click further on from either name.
+
+Two things stayed put. The `{% if row.id %}` guard in the card and the
+`null !== $id` guard in `toRows()` both remain — the Unknown bucket is nobody in
+particular and keeps rendering as plain text. And the project breakdown stays
+unlinked: `toRows()`'s `$linkVolunteers` flag is unchanged, though its docblock
+needed a new reason for the asymmetry. It used to say projects have nowhere to
+link because there is no `/activities?project=` filter; the honest reason now is
+that a project has no show page at all, only `/projects/{id}/edit`, which is not
+where a report name should land.
+
+`ReportControllerTest` asserted both hrefs, so both tests moved with the code
+(and lost the now-wrong `…ToThatVolunteersActivities` in their names). The
+breakdown test's click-through landing assertion changed from
+`h1` = "Activities — Ronan Guilloux" to just the name, which is what
+`volunteer/show.html.twig` renders.
+
 ## 2026-09-07 — Six query params answered a malformed URL with an error page
 
 `ListPaginator`'s docblock and the CLAUDE.md paragraph about it both promise

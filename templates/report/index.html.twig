@@ -64,11 +64,11 @@
                               aria-hidden="true">{{ loop.index }}</span>
                         {# The truncation stays on the span, so wrapping the
                            name in a link doesn't change how a long one is cut.
-                           An id-less row — the Unknown bucket — has nothing to
-                           filter by, so it renders as plain text. #}
+                           An id-less row — the Unknown bucket — is nobody in
+                           particular, so it renders as plain text. #}
                         <span class="min-w-0 flex-1 truncate text-sm font-semibold">
                             {%- if row.id -%}
-                                <a href="{{ path('activity_index', {volunteer: row.id}) }}" class="text-brand-600 hover:underline">{{ row.label }}</a>
+                                <a href="{{ path('volunteer_show', {id: row.id}) }}" class="text-brand-600 hover:underline">{{ row.label }}</a>
                             {%- else -%}
                                 {{ row.label }}
                             {%- endif -%}

@@ -142,7 +142,7 @@ final class ReportControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function theTopVolunteersCardLinksEachNameToThatVolunteersActivities(): void
+    public function theTopVolunteersCardLinksEachNameToThatVolunteer(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
@@ -159,14 +159,17 @@ final class ReportControllerTest extends WebTestCase
         $link = $crawler->filter('[aria-labelledby="top-volunteers-heading"] li a');
         self::assertCount(1, $link);
         self::assertSame('Ronan Guilloux', trim($link->text()));
+        // A recognition card names a person, so the click lands on that person
+        // — not on the filtered activity list, which volunteer/show.html.twig
+        // then offers as "See in Activities →".
         self::assertSame(
-            sprintf('/activities?volunteer=%d', $volunteer->getId()),
+            sprintf('/volunteers/%d', $volunteer->getId()),
             $link->attr('href'),
         );
     }
 
     #[Test]
-    public function theVolunteerBreakdownLinksEachNameToThatVolunteersActivities(): void
+    public function theVolunteerBreakdownLinksEachNameToThatVolunteer(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
@@ -183,15 +186,17 @@ final class ReportControllerTest extends WebTestCase
         $link = $crawler->filter('[data-report-panel="screen"] table tbody a');
         self::assertCount(1, $link);
         self::assertSame('Ronan Guilloux', trim($link->text()));
+        // Same destination as the Top volunteers card above it: one name, one
+        // place to land.
         self::assertSame(
-            sprintf('/activities?volunteer=%d', $volunteer->getId()),
+            sprintf('/volunteers/%d', $volunteer->getId()),
             $link->attr('href'),
         );
 
-        // The link is followable, and lands on that volunteer's filtered list.
+        // The link is followable, and lands on that volunteer's own page.
         $client->click($link->link());
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Activities — Ronan Guilloux');
+        self::assertSelectorTextContains('h1', 'Ronan Guilloux');
     }
 
     #[Test]
