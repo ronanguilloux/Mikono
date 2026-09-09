@@ -12,24 +12,36 @@ for the full narrative.
 ## Working rhythm (read this before starting, apply it before finishing)
 
 - **Start a session by reading
-  [`docs/project/next-steps.md`](docs/project/next-steps.md).** It is the
-  list of what to do next, and it is forward-only: if it describes
-  something already done, that is a bug in the file — fix it.
-- **Finish an item by removing it from `next-steps.md`.** Then, per
+  [`docs/project/next-steps.md`](docs/project/next-steps.md), then the one
+  card you're picking up** from
+  [`docs/project/backlog/`](docs/project/backlog/). `next-steps.md` is an
+  ordered index, nothing more — Now / Next / Later, one link per item. The
+  card holds the actual why, the acceptance criteria and the links. Read
+  one card, not the folder.
+- **A new request becomes a card**, not a line in `next-steps.md`: copy
+  [`docs/project/backlog/template.md`](docs/project/backlog/template.md),
+  fill the frontmatter, add one link to the index.
+  [`docs/project/backlog/README.md`](docs/project/backlog/README.md) has
+  the field vocabulary. Never write an item's description into
+  `next-steps.md` — the index describes nothing, and two mutable lists of
+  the same work is how that file reached 449 lines once.
+- **Finish an item by deleting its card** and removing its line from the
+  index. Then, per
   [`docs/project/README.md`](docs/project/README.md): if it was an
   architectural decision it gets an ADR in
   [`docs/adr/`](docs/adr/) (at most a one-line pointer in `done.md`);
   otherwise append a dated entry to
   [`docs/project/done.md`](docs/project/done.md). Not both, and never
-  "done" text left behind in `next-steps.md`.
+  "done" text left behind in a card or the index.
 - **Research or narrative that hasn't settled into a decision** goes in
-  [`docs/brainstorm/`](docs/brainstorm/), not in `next-steps.md` — that
-  file lists actions, and links to the narrative behind them. Don't read
-  that folder at session start: most of it describes decisions already
-  shipped and locked into ADRs. Open a brainstorm file when you pick up
-  the item that links to it.
-- **This file holds conventions; `next-steps.md` does not.** Don't copy
-  rules from here into it.
+  [`docs/brainstorm/`](docs/brainstorm/), not in a card — a card says what
+  to do and how you'll know it's done, and links to the narrative behind
+  it. A card growing an "Options considered" section wants a brainstorm
+  file. Don't read that folder at session start: most of it describes
+  decisions already shipped and locked into ADRs. Open a brainstorm file
+  when you pick up the card that links to it.
+- **This file holds conventions; the backlog does not.** Don't copy rules
+  from here into a card or the index.
 
 ## Decision capture
 
@@ -55,8 +67,10 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
 - `docs/brainstorm/` — narrative context behind a feature or slice,
   written before the decision it leads to is locked in.
 - `docs/project/` — living status docs, mutable unlike the two above:
-  `next-steps.md` (forward-only — what's next, nothing already done)
-  and `done.md` (growing log of completed work that isn't itself an
+  `backlog/` (one card per open item, the full text of what to do — meant
+  to grow), `next-steps.md` (a short ordered index of those cards, Now /
+  Next / Later, holding no item text itself) and `done.md` (growing log of
+  completed work that isn't itself an
   ADR). See `docs/project/README.md` for the rule on which one a
   finished item goes to.
 - `.agents/skills/` — Agent Skills, source of truth, shared across
@@ -435,10 +449,12 @@ docker compose exec php composer rector     # preview refactors — dry-run only
   `git config core.hooksPath .githooks`. Bypass deliberately with
   `git commit --no-verify`, not by disabling the hook.
 - That same hook prints a **non-blocking warning when
-  `docs/project/next-steps.md` passes 250 lines**. That file is
-  forward-only, so it should stay roughly constant in size — sustained
-  growth is how past-tense history creeps back in (it reached 449 lines
-  that way once). Don't raise the cap to silence it: re-read the file and
+  `docs/project/next-steps.md` passes 250 lines**. That file is a
+  forward-only *index*, so it should stay roughly constant in size —
+  sustained growth means item text is leaking in from the cards, which is
+  how past-tense history creeps back (it reached 449 lines that way once).
+  The cap does **not** apply to `docs/project/backlog/`, which is meant to
+  grow. Don't raise the cap to silence it: re-read the file and
   move what's done to `done.md` or an ADR. It never fails a commit, so a
   genuinely large new item passes.
 
@@ -516,7 +532,8 @@ the runbook):
   ships with a `git pull`.
 
 **What's next:** see
-[`docs/project/next-steps.md`](docs/project/next-steps.md) (forward-only).
+[`docs/project/next-steps.md`](docs/project/next-steps.md) (a forward-only
+index into [`docs/project/backlog/`](docs/project/backlog/)).
 **What's already been done:** see
 [`docs/project/done.md`](docs/project/done.md). Panther, Infection, and
 dev fixtures are all wired as described above.

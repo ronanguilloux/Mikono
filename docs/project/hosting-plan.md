@@ -27,7 +27,7 @@ These are consequences of decisions already made, not preferences:
 | --- | --- |
 | FrankenPHP with Caddy embedded | The container **is** the web server and terminates TLS itself. No nginx, Apache, or PHP-FPM in front — and nothing else on the machine may hold ports 80 or 443. |
 | SQLite ([ADR 0003](../adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)) | **One machine, one container.** No load balancer, no second replica, no managed database service. All state is one file. |
-| Tailwind through AssetMapper | No Node.js runtime **in the production image or on the server**. Node as a dev/test dependency is a separate question and is not excluded (`next-steps.md`, the Panther/Playwright note). |
+| Tailwind through AssetMapper | No Node.js runtime **in the production image or on the server**. Node as a dev/test dependency is a separate question and is not excluded ([ADR 0016](../adr/0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)). |
 | No Messenger, Mercure, Redis, or mailer | No message broker, no cache server, and **no SMTP relay** to arrange. There is no password-reset-by-email flow: accounts are created over SSH with `bin/console app:user:create`, so shell access is part of running this app. |
 | Migrations run at container start ([`docker-entrypoint.sh`](../../frankenphp/docker-entrypoint.sh)) | Deployment is self-migrating. Convenient, but it means a schema rollback is a restore-from-backup, not a `docker compose` flag. |
 
@@ -113,7 +113,9 @@ DNS records and no money.
 - `SERVER_NAME=mikono.guilloux.org` — the real one. An A record at the
   server's IPv4, plus AAAA if the VPS has IPv6.
 - `SERVER_NAME=deploy.mikono.guilloux.org` — the throwaway the box is
-  *brought up* on, per [`next-steps.md`](next-steps.md) item 0. It exists
+  *brought up* on, per
+  [`backlog/production-hostname-dns.md`](backlog/production-hostname-dns.md).
+  It exists
   to keep Let's Encrypt's five-duplicate-certificates-per-week budget off
   the real hostname while the first deploy is still error-prone. Delete
   the record once the real name is live.
@@ -559,8 +561,9 @@ answered on its own terms rather than assumed away.
   ([`deployment-plan.md`](deployment-plan.md) §10), and the rest of it
   happens on the production box itself, brought up on a throwaway
   DuckDNS hostname with no real data before the real domain is pointed
-  at it. See [`next-steps.md`](next-steps.md) item 0 under *Getting it
-  hosted*. What the disposable box would have added beyond the rehearsal
+  at it. See
+  [`backlog/production-hostname-dns.md`](backlog/production-hostname-dns.md).
+  What the disposable box would have added beyond the rehearsal
   was a control variable — a server known to be good, so a failure could
   only be the runbook's — and that is worth less than it looks here,
   since every provider-specific surprise behind the four questions in

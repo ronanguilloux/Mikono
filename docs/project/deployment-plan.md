@@ -618,7 +618,7 @@ Everything above had never been executed anywhere when it was written.
 This section is how most of it gets exercised before a server is
 involved, at no cost — the substitution that replaced the disposable
 test box originally planned in
-[`next-steps.md`](next-steps.md) item 0.
+[`backlog/production-hostname-dns.md`](backlog/production-hostname-dns.md).
 
 **It exercises:** the GHCR pull, the entrypoint's migrations against an
 empty `db_data` volume, whether a built Tailwind bundle is actually in
@@ -630,7 +630,7 @@ name and the `chown 33:0` step.
 from outside, HTTP/3 on 443/udp, DNS, or the Docker/UFW iptables
 interaction. Those need a real server, which is why the first days on
 the production box are still run on a throwaway hostname (again,
-`next-steps.md` item 0).
+[`backlog/production-hostname-dns.md`](backlog/production-hostname-dns.md)).
 
 **Use a separate Compose project name.** The volumes in
 [`compose.yaml`](../../compose.yaml) are declared unqualified, so Compose

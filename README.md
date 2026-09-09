@@ -77,7 +77,9 @@ for the full rationale behind this toolchain.
 [`AGENTS.md`](AGENTS.md) is the complete day-to-day reference (used by
 both human contributors and AI coding agents working in this repo):
 directory map, migrations workflow, testing conventions, and known
-gotchas. [`docs/project/next-steps.md`](docs/project/next-steps.md)
-tracks what's next; [`docs/project/done.md`](docs/project/done.md)
+gotchas. [`docs/project/backlog/`](docs/project/backlog/) holds one card
+per open item, indexed in order by
+[`docs/project/next-steps.md`](docs/project/next-steps.md);
+[`docs/project/done.md`](docs/project/done.md)
 logs completed work. [`docs/adr/`](docs/adr/) records every
 architectural decision.

@@ -49,3 +49,4 @@ drafts and maintains these.
 | [0019](0019-stay-on-panther-rather-than-migrate-to-playwright-php.md) | Stay on Symfony Panther rather than migrate to `playwright-php` | Accepted |
 | [0020](0020-keep-sessions-on-the-database-volume-in-files.md) | Keep sessions on the database volume, in files, rather than in the cache directory | Accepted |
 | [0021](0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md) | Read usage from an in-app `/usage` screen over the Caddy access log, plus a narrow client-only event table | Accepted (extends [0018](0018-answer-usage-questions-from-the-caddy-access-log.md)) |
+| [0022](0022-split-next-steps-into-backlog-cards-and-a-thin-index.md) | Split `next-steps.md` into per-item backlog cards and a thin ordered index | Accepted (extends [0001](0001-use-adr-and-agents-for-decision-capture.md)) |
