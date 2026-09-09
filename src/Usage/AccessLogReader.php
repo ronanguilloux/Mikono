@@ -44,9 +44,15 @@ final class AccessLogReader
         private readonly string $path,
     ) {}
 
-    /** @return UsageReport */
-    public function read(): array
+    /**
+     * @param ?UsageDateRange $range the window to report on; null takes the whole file
+     *
+     * @return UsageReport
+     */
+    public function read(?UsageDateRange $range = null): array
     {
+        $range ??= new UsageDateRange();
+
         // Must never throw on a missing file. There is no Caddy log in CI, and
         // tests/Functional/RouteSmokeTest.php walks every GET route including
         // this one — a 500 here would fail the suite for the whole app.
@@ -98,6 +104,19 @@ final class AccessLogReader
 
                 $request = $entry['request'] ?? null;
                 if (!\is_array($request)) {
+                    continue;
+                }
+
+                // Applied here, in the streaming pass, and not to the finished
+                // rows: every counter below — including p95, which needs the
+                // in-range durations only — is computed as the file is walked.
+                //
+                // Above the prefetch and unrouted branches deliberately, so
+                // "N hover-prefetches ignored" and "N requests for assets"
+                // cover the same window as everything else on the screen
+                // rather than the whole file.
+                $at = self::timestamp($entry['ts'] ?? null);
+                if (!$range->contains($at)) {
                     continue;
                 }
 
@@ -173,7 +192,6 @@ final class AccessLogReader
                     ++$mobile;
                 }
 
-                $at = self::timestamp($entry['ts'] ?? null);
                 if (null !== $at) {
                     $since = null === $since || $at < $since ? $at : $since;
                     $until = null === $until || $at > $until ? $at : $until;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\UsageEvent;
+use App\Usage\UsageDateRange;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -24,19 +25,32 @@ class UsageEventRepository extends ServiceEntityRepository
      * so it is the one place in this app where hydrating everything to count
      * it would eventually hurt.
      *
+     * Bounded by the same window as the access-log half of /usage — without
+     * it the two tables on that screen would describe different periods. It
+     * takes the range object rather than two dates so no caller has to
+     * remember that the upper bound is exclusive.
+     *
      * @return list<array{name: \App\Enum\UsageEventName, count: int, lastSeen: \DateTimeImmutable}>
      */
-    public function summarize(): array
+    public function summarize(?UsageDateRange $range = null): array
     {
+        $queryBuilder = $this->createQueryBuilder('e')
+            ->select('e.name AS name', 'COUNT(e.id) AS count', 'MAX(e.occurredAt) AS lastSeen')
+            ->groupBy('e.name')
+            ->orderBy('count', 'DESC');
+
+        if (null !== $range?->from()) {
+            $queryBuilder->andWhere('e.occurredAt >= :from')->setParameter('from', $range->from());
+        }
+
+        if (null !== $range?->untilExclusive()) {
+            $queryBuilder->andWhere('e.occurredAt < :until')->setParameter('until', $range->untilExclusive());
+        }
+
         // COUNT() and MAX() come back driver-formatted — an int-ish string and
         // a date string — because Doctrine only hydrates mapped fields.
         /** @var list<array{name: \App\Enum\UsageEventName, count: int|string, lastSeen: string|\DateTimeImmutable}> $rows */
-        $rows = $this->createQueryBuilder('e')
-            ->select('e.name AS name', 'COUNT(e.id) AS count', 'MAX(e.occurredAt) AS lastSeen')
-            ->groupBy('e.name')
-            ->orderBy('count', 'DESC')
-            ->getQuery()
-            ->getResult();
+        $rows = $queryBuilder->getQuery()->getResult();
 
         return array_map(
             static fn(array $row): array => [

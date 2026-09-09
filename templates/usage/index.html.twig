@@ -15,6 +15,71 @@
         See <span class="font-mono text-xs">ADR 0018</span> and <span class="font-mono text-xs">ADR 0021</span>.
     </p>
 
+    {#
+        The date range. Presets are links and the custom pair is a form, rather
+        than one form holding both: a preset <select> submitted alongside two
+        filled date inputs has no well-defined winner. Link markup and classes
+        are the /reports tab nav's, which is the reviewed pattern for
+        "server-side state carried in the query string".
+
+        The active preset is read off range.preset — the resolved value, NOT
+        the URL — so a bare /usage shows its default already ticked. A reader
+        who can't see the default filter takes a narrowed screen for the whole
+        picture, and an empty table for "nobody ever used this".
+
+        Nothing else needs to know about the range: the sort headers, page
+        links and page-size form all carry every scalar query param through
+        already, so a filter survives a sort click and page 2 on its own.
+    #}
+    {% set preset_base = 'rounded-md px-3 py-1.5 text-sm font-medium' %}
+    {% set preset_on = preset_base ~ ' bg-brand-600 text-white' %}
+    {% set preset_off = preset_base ~ ' border border-slate-300 text-slate-700 hover:border-brand-500 hover:text-brand-700' %}
+    {# `page` is dropped on purpose: a new range means a new page 1. #}
+    {% set carried = app.request.query.all|filter((v, k) => k not in ['range', 'from', 'to', 'page'] and v is not iterable) %}
+
+    <div class="mb-6 flex flex-wrap items-end justify-between gap-4 print:hidden">
+        <nav class="flex flex-wrap gap-2" aria-label="Date range" data-range-presets>
+            {% for key, label in presets %}
+                <a
+                    href="{{ path('usage_index', carried|merge({range: key})) }}"
+                    class="{{ range.preset == key ? preset_on : preset_off }}"
+                    {{ range.preset == key ? 'aria-current="page"' : '' }}
+                    data-range-preset="{{ key }}"
+                >{{ label }}</a>
+            {% endfor %}
+        </nav>
+
+        {# Native date inputs, no picker library. sr-only-free Apply button
+           here — unlike the page-size form this one has nothing to auto-submit
+           on, so the button is the only way to send it. #}
+        <form method="get" class="flex flex-wrap items-end gap-2 text-sm text-slate-600" data-range-form>
+            {% for key, value in carried %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endfor %}
+
+            <div>
+                <label for="range-from" class="block text-xs text-slate-500">From</label>
+                <input
+                    type="date" id="range-from" name="from"
+                    value="{{ range.from ? range.from|date('Y-m-d') : '' }}"
+                    class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+                >
+            </div>
+            <div>
+                <label for="range-to" class="block text-xs text-slate-500">To</label>
+                <input
+                    type="date" id="range-to" name="to"
+                    value="{{ range.to ? range.to|date('Y-m-d') : '' }}"
+                    class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+                >
+            </div>
+            <button
+                type="submit"
+                class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-brand-500 hover:text-brand-700"
+            >Apply</button>
+        </form>
+    </div>
+
     {% if not report.exists %}
         {# The CI path, and the path on a server that has not been redeployed
            since access logging was turned on. An empty table would read as
@@ -52,8 +117,23 @@
         </div>
 
         <p class="mb-3 text-xs text-slate-500">
+            <span class="font-medium text-slate-600">{{ range.label }}.</span>
             {% if report.since and report.until %}
                 Covering {{ report.since|date('j M Y, H:i') }} to {{ report.until|date('j M Y, H:i') }}.
+                {#
+                    The rotation ceiling, stated rather than implied: at
+                    roll_size 10MiB / roll_keep 3 the log reaches back only as
+                    far as rotation does, so "Year to date" routinely covers
+                    far less than a year. Phrased about what the log contains
+                    rather than about what was deleted, because the file cannot
+                    tell "rotated away" from "nobody used the app then" — and
+                    both answers make this sentence true.
+                #}
+                {% if range.from and report.since|date('Y-m-d') > range.from|date('Y-m-d') %}
+                    The log holds nothing older than that — it rotates at 10 MiB, keeping 3 files.
+                {% endif %}
+            {% else %}
+                No requests recorded in this window.
             {% endif %}
             {{ report.unrouted|number_format }} requests for assets and unrouted paths are not listed.
             Phone detection relies on a browser hint that Chromium sends and Safari does not, so it under-counts.
@@ -65,7 +145,7 @@
             :pagination="pagination"
             :sortState="sortState"
             :withActions="false"
-            emptyMessage="Nothing in the access log matches a screen in this app yet."
+            emptyMessage="No requests in this date range matched a screen in this app."
         />
     {% endif %}
 
@@ -75,6 +155,8 @@
             Things that happen entirely in the browser and send no request, so the table above cannot see them —
             copying a roster to WhatsApp, searching the volunteer list, leaving a form unsaved.
             Counted without recording who did them.
+            {# Not |lower: it reads fine on a preset but turns "8 Sep 2026" into "8 sep 2026". #}
+            Same window as the table above: {{ range.label }}.
         </p>
 
         {# No pagination and no sortState: there are four possible rows, and
@@ -83,7 +165,7 @@
             :columns="eventColumns"
             :rows="eventRows"
             :withActions="false"
-            emptyMessage="No in-page actions recorded yet."
+            emptyMessage="No in-page actions recorded in this date range."
         />
     </section>
 {% endblock %}

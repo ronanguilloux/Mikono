@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Pagination\ListPaginator;
 use App\Repository\UsageEventRepository;
 use App\Usage\AccessLogReader;
+use App\Usage\UsageDateRange;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,21 +57,29 @@ final class UsageController extends AbstractController
     public function index(Request $request): Response
     {
         $reader = $this->reader;
+        $range = UsageDateRange::fromRequest($request);
 
         // One pass over the log would otherwise be paid again on every sort
         // click and every page link. A minute still answers "did anyone use
         // the thing I shipped last week".
         //
-        // ponytail: fixed TTL. Keying on filemtime() would miss on every
-        // single request — Caddy appends to this file continuously, including
-        // the very request that renders this page.
+        // The resolved range is part of the key, not just of the closure:
+        // without it every filter would serve whatever the previous one
+        // cached, for up to a minute.
+        //
+        // ponytail: fixed TTL, and one entry per distinct range. A custom
+        // from/to pair can mint a new key, but this is an admin-only screen
+        // and each entry expires in 60s — not worth bounding the key set.
+        // Keying on filemtime() would miss on every single request — Caddy
+        // appends to this file continuously, including the very request that
+        // renders this page.
         /** @var UsageReport $report */
         $report = $this->cache->get(
-            'usage.access_log',
-            static function (ItemInterface $item) use ($reader): array {
+            'usage.access_log.' . $range->cacheKey(),
+            static function (ItemInterface $item) use ($reader, $range): array {
                 $item->expiresAfter(60);
 
-                return $reader->read();
+                return $reader->read($range);
             },
         );
 
@@ -82,6 +91,8 @@ final class UsageController extends AbstractController
 
         return $this->render('usage/index.html.twig', [
             'report' => $report,
+            'range' => $range,
+            'presets' => UsageDateRange::PRESETS,
             'columns' => [
                 ['key' => 'path', 'label' => 'Screen'],
                 ['key' => 'views', 'label' => 'Views'],
@@ -111,7 +122,7 @@ final class UsageController extends AbstractController
                     'badges' => [],
                     'links' => [],
                 ],
-                $this->events->summarize(),
+                $this->events->summarize($range),
             ),
         ]);
     }

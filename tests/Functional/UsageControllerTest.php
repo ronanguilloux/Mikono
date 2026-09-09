@@ -47,6 +47,52 @@ final class UsageControllerTest extends WebTestCase
         self::assertStringContainsString('no third-party analytics', $crawler->filter('main')->text());
     }
 
+    /**
+     * The default range has to be visible on the control. A screen that opens
+     * filtered without saying so reads as "nobody ever used this" when the
+     * truth is "not in the last week".
+     */
+    #[Test]
+    public function theDefaultDateRangeIsTickedOnABareUsageScreen(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+
+        $crawler = $client->request('GET', '/usage');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('7d', $crawler->filter('[data-range-presets] [aria-current]')->attr('data-range-preset'));
+    }
+
+    #[Test]
+    public function aPresetLinkMovesTheActiveRange(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+
+        $crawler = $client->request('GET', '/usage?range=30d');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('30d', $crawler->filter('[data-range-presets] [aria-current]')->attr('data-range-preset'));
+    }
+
+    /**
+     * Every query param this app reads degrades rather than erroring — there is
+     * one non-technical user working from bookmarked URLs. InputBag::get()
+     * throws on `?range[]=x` and getInt() on `?page=abc`, which is why neither
+     * is used to read these.
+     */
+    #[Test]
+    public function malformedFilterInputIsNotAnErrorScreen(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+
+        $client->request('GET', '/usage?range[]=7d&from=abc&to[]=x&page=abc&perPage=nope');
+
+        self::assertResponseIsSuccessful();
+    }
+
     #[Test]
     public function theUsageScreenIsReachableFromTheSettingsMenuForAnAdminOnly(): void
     {

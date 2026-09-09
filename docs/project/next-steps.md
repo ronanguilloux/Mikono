@@ -114,33 +114,32 @@ table, the five pre-sales questions and the ranking that put Kenya first,
 and [`provider-questions.md`](provider-questions.md) is still the email to
 send. ADR 0017 is what a superseding ADR would have to argue against.
 
-## Deferred until a second `User` account exists
+## Deferred — the "second `User`" gate has expired, these have new ones
 
-- **SQLite journal mode.** The database uses the default rollback
-  journal. Switching to WAL plus a `busy_timeout` is a one-time `PRAGMA`
-  and the cheapest first move on the single-writer limit ADR 0003
-  flagged.
+Production now holds three or four `User` rows, two of which sign in:
+Ronan and Edna. So "wait for a second account" is spent as a trigger.
+Both items below are still deferred, on narrower ones.
+
+- **SQLite journal mode.** Still the default rollback journal, and the
+  single-writer limit ADR 0003 flagged is still real — but measure before
+  reaching for WAL, because two things make it less urgent and less free
+  than it looks. PDO already sets a **60-second busy timeout**, so the
+  realistic collision (two millisecond-long writes) resolves by waiting,
+  invisibly. And WAL is a trade, not a win: it does remove the contention
+  that actually applies here — under `delete` an open *read* transaction
+  blocks a writer, and this app is read-heavy plus Turbo prefetches on
+  hover — but under WAL a transaction that reads and *then* writes while
+  another connection committed in between fails **immediately**, with no
+  busy timeout to retry it. A rare long hang for a rare instant 500.
+  Backups are not the obstacle: `VACUUM INTO` snapshots WAL correctly, so
+  `backup-db.sh` is unaffected either way.
+  **New trigger: the first report of a hung save or a "database is
+  locked" error.** Then it is `PRAGMA journal_mode=WAL` once against the
+  production file — it persists in the header — not a code change.
 - **Task/assignment hand-offs** — e.g. assigning a follow-up to a
-  colleague. The `User` entity is already scoped to grow beyond one user;
-  nothing to build until a second one exists.
-
-## `/usage`: date filters
-
-- **Filter the Usage screen by date range** — a custom `from`/`to` pair plus
-  presets for last 7 / 30 / 90 days and year to date. Today
-  `AccessLogReader::read()` aggregates the whole file and the screen reports
-  one `since`/`until` span, so "did anyone use what I shipped last week" can
-  only be answered by eyeballing `lastSeen`. Three things to keep in mind
-  before writing the diff: the range has to be applied while streaming (skip
-  a line whose `ts` falls outside it, not filter rows afterwards, since the
-  per-row counters and p95 are computed in that same pass); the 60-second
-  `usage.access_log` cache key has to include the resolved range or every
-  filter serves the previous one; and the range must bound the `usage_event`
-  table too (`UsageEventRepository::summarize()` groups over all rows), or the
-  two halves of the screen will describe different periods. Note the ceiling:
-  `roll_size 10MiB` / `roll_keep 3` means the log only reaches back as far as
-  the rotation does, so a "year to date" preset will often be honest about a
-  shorter window — say so on screen rather than implying a full year.
+  colleague. Two people who speak daily do not need the app to route work
+  between them. The `User` entity is already scoped for it. **New
+  trigger: a third person actually signing in, or Edna asking.**
 
 ## `/usage`: report login attempts, with the login and the outcome
 
@@ -164,8 +163,8 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
   attempted identifier) into a new listener and its own table — not
   `usage_event`, whose whole point is being non-personal. Note it also lands
   the one thing the throttler currently swallows silently: repeated failures
-  against a real address. Whatever ships must be bounded by the date range
-  from the filters item above, or the two halves of the screen will again
+  against a real address. Whatever ships must take `App\Usage\UsageDateRange`
+  like the screen's two existing tables do, or the halves of the screen will
   describe different periods.
 
 ## Simplification backlog (from the ponytail audit)

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Usage;
 
 use App\Usage\AccessLogReader;
+use App\Usage\UsageDateRange;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Routing\RouterInterface;
@@ -22,15 +23,32 @@ use Symfony\Component\Routing\RouterInterface;
  */
 final class AccessLogReaderTest extends KernelTestCase
 {
+    /**
+     * The second fixture, access-log-days-sample.ndjson, spans three days —
+     * 29, 30 and 31 August 2026 — because the main one is a 95-second window
+     * and so cannot show a date range at all. Re-dating that one instead would
+     * have invalidated every count assertion standing on it.
+     */
+    private const string DAYS_FIXTURE = 'access-log-days-sample.ndjson';
+
     /** @return array{exists: bool, rows: list<array<string, mixed>>, views: int, rejected: int, clientErrors: int, serverErrors: int, mobile: int, prefetched: int, unrouted: int, since: ?\DateTimeImmutable, until: ?\DateTimeImmutable} */
-    private static function read(string $file = 'access-log-sample.ndjson'): array
+    private static function read(string $file = 'access-log-sample.ndjson', ?UsageDateRange $range = null): array
     {
         self::bootKernel();
 
         $router = self::getContainer()->get('router');
         self::assertInstanceOf(RouterInterface::class, $router);
 
-        return (new AccessLogReader($router, __DIR__ . '/' . $file))->read();
+        return (new AccessLogReader($router, __DIR__ . '/' . $file))->read($range);
+    }
+
+    /** Explicit dates, never a preset: a preset-based expectation would rot by tomorrow. */
+    private static function days(?string $from, ?string $to): UsageDateRange
+    {
+        return new UsageDateRange(
+            null === $from ? null : new \DateTimeImmutable($from),
+            null === $to ? null : new \DateTimeImmutable($to),
+        );
     }
 
     /**
@@ -193,6 +211,69 @@ final class AccessLogReaderTest extends KernelTestCase
     {
         // Reaching an assertion at all is the point: read() did not throw.
         self::assertTrue(self::read()['exists']);
+    }
+
+    /**
+     * The whole point of the filter being applied in the streaming pass rather
+     * than to the finished rows: p95 and the per-row counters are computed as
+     * the file is walked, so a range that excludes the slow sample has to
+     * change them. Filter the rows afterwards instead and this is the
+     * assertion that fails — 2.5 would survive into a window it happened
+     * outside of.
+     */
+    #[Test]
+    public function aRangeChangesThePerRowCountersAndNotJustWhichRowsAppear(): void
+    {
+        $all = self::read(self::DAYS_FIXTURE);
+        $later = self::read(self::DAYS_FIXTURE, self::days('2026-08-30', '2026-08-31'));
+
+        // The 2.5s edit was on the 29th, the 0.1s one on the 30th.
+        self::assertSame(2, self::row($all, 'GET', '/volunteers/{id}/edit')['views']);
+        self::assertEqualsWithDelta(2.5, self::row($all, 'GET', '/volunteers/{id}/edit')['p95'], 0.0001);
+
+        self::assertSame(1, self::row($later, 'GET', '/volunteers/{id}/edit')['views']);
+        self::assertEqualsWithDelta(0.1, self::row($later, 'GET', '/volunteers/{id}/edit')['p95'], 0.0001);
+    }
+
+    /**
+     * The range check sits above the prefetch and unrouted branches, so the
+     * "hover-prefetches ignored" and "requests for assets" lines cover the
+     * same window as the table rather than the whole file.
+     */
+    #[Test]
+    public function aRangeBoundsTheIgnoredRequestsToo(): void
+    {
+        $all = self::read(self::DAYS_FIXTURE);
+        // The asset and the prefetch are both on the 29th; the favicon is on the 31st.
+        $later = self::read(self::DAYS_FIXTURE, self::days('2026-08-30', null));
+
+        self::assertSame(1, $all['prefetched']);
+        self::assertSame(2, $all['unrouted']);
+
+        self::assertSame(0, $later['prefetched']);
+        self::assertSame(1, $later['unrouted']);
+    }
+
+    #[Test]
+    public function bothEndsOfARangeAreInclusiveWholeDays(): void
+    {
+        // One request on the 29th survives the filter, and it is the whole day
+        // rather than midnight: the entry is logged at 14:20.
+        $oneDay = self::read(self::DAYS_FIXTURE, self::days('2026-08-29', '2026-08-29'));
+
+        self::assertSame(1, $oneDay['views']);
+        self::assertSame('2026-08-29', $oneDay['until']?->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function anEmptyWindowIsAnEmptyReportRatherThanTheWholeFile(): void
+    {
+        $report = self::read(self::DAYS_FIXTURE, self::days('2026-09-01', '2026-09-30'));
+
+        self::assertTrue($report['exists'], 'the log is there, it simply says nothing about September');
+        self::assertSame([], $report['rows']);
+        self::assertSame(0, $report['views']);
+        self::assertNull($report['since']);
     }
 
     #[Test]

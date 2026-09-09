@@ -6,6 +6,60 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-09 — `/usage` answers for a period, not for the whole log file
+
+`/usage` aggregated the entire access log and reported one `since`/`until`
+span, so "did anyone use the thing I shipped last week" could only be answered
+by reading the `lastSeen` column row by row. It now takes a date range:
+presets for last 7 / 30 / 90 days, year to date and all time, plus a custom
+`from`/`to` pair.
+
+**The screen opens on the last 7 days, and says so** — the preset control ticks
+the resolved range rather than the URL, so a bare `/usage` shows "Last 7 days"
+already active. A screen that opens filtered without showing it reads as
+"nobody ever used this" when the truth is "not in the last week". That is also
+why `all` is a listed preset rather than the absence of one: with a filtered
+default, the unfiltered view has to be reachable from the control.
+
+Three things were the actual work, and each has a test that fails if it is
+undone:
+
+- **The range is applied in the streaming pass**, not to the finished rows —
+  `AccessLogReader` computes the per-row counters, `p95` and `lastSeen` in the
+  same `fgets` loop, so filtering afterwards would leave every number
+  describing the whole file.
+  `aRangeChangesThePerRowCountersAndNotJustWhichRowsAppear()` is the guard: it
+  asserts a `p95` that drops from 2.5s to 0.1s once the window excludes the
+  slow request. The check sits **above** the prefetch and unrouted branches
+  deliberately, so "hover-prefetches ignored" and "requests for assets" cover
+  the same window as the table.
+- **The 60-second cache key includes the resolved range**
+  (`usage.access_log.<from>-<to>`), or every filter would serve the previous
+  one for up to a minute. Keyed on the dates rather than the preset name, so
+  `?range=7d` and the pair it resolves to share one entry.
+- **`UsageEventRepository::summarize()` takes the same range**, or the two
+  tables on the screen would describe different periods.
+
+`src/Usage/UsageDateRange.php` is the single place `range`, `from` and `to` are
+read, the way `ListPaginator` owns `page`/`perPage`/`sort`/`direction`, and it
+keeps that class's promise: nothing 400s. Bad input lands on the *default*
+preset rather than on unbounded — a typo'd `?range=abc` must not silently show
+more than the control says is on screen. `createFromFormat('!Y-m-d', …)` is
+round-tripped through `format()` because it otherwise accepts overflow and
+turns `2026-13-45` into a real date in February 2027.
+
+Presets are links (the `/reports` tab idiom) and the custom pair is a small GET
+form with two native `<input type="date">`. Not one control: a preset `<select>`
+submitted alongside two filled date inputs has no well-defined winner. No new
+JavaScript, and sort headers and page links carried the range through for free.
+
+The rotation ceiling is stated rather than implied: at `roll_size 10MiB` /
+`roll_keep 3` the log reaches back only as far as rotation does, so "Year to
+date" routinely covers less than a year. The screen says "The log holds nothing
+older than that" whenever the earliest record is later than the window's start —
+phrased about what the file contains, because it cannot distinguish "rotated
+away" from "nobody used the app then".
+
 ## 2026-09-09 — The delete-guard note moved from the list to the edit screen
 
 `/volunteers` and `/projects` each opened with an amber banner counting the

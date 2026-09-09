@@ -153,7 +153,17 @@ implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
   The companion `usage_event` table covers only gestures that send no
   request at all (clipboard copy, typeahead, form abandonment); its
   `UsageEventName` enum is the whitelist, and the row deliberately records
-  no user, IP or context. See
+  no user, IP or context. `UsageDateRange` is the third piece: the single place
+  `?range=`/`?from=`/`?to=` are read, and the window **both** halves of the
+  screen answer for — a new source added to `/usage` takes it too, or the
+  tables start describing different periods. The screen opens on a preset
+  (`DEFAULT_PRESET`), so the control ticks the *resolved* range rather than the
+  URL, and malformed input falls back to that default rather than to unbounded:
+  a filtered screen that doesn't show its filter reads as "nobody ever used
+  this". The range is applied **while streaming** in `AccessLogReader` — the
+  per-row counters and `p95` are computed in that same pass, so filtering
+  finished rows would leave every number describing the whole file — and it is
+  part of the 60-second cache key, or one filter serves the previous one. See
   [ADR 0021](docs/adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md).
 - `src/Factory/` — Foundry v2 factories (`PersistentObjectFactory`, real
   objects) for every entity, used by both tests and dev fixtures
