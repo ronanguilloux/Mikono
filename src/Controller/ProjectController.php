@@ -59,13 +59,9 @@ final class ProjectController extends AbstractController
         $activityCounts = $this->projects->countReferencingActivitiesFor($projectsOnPage);
 
         $rows = [];
-        $guardedCount = 0;
         foreach ($projectsOnPage as $project) {
             $id = $project->getId();
             $referencingCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
-            if ($referencingCount > 0) {
-                ++$guardedCount;
-            }
 
             $rows[] = [
                 'cells' => [
@@ -99,7 +95,6 @@ final class ProjectController extends AbstractController
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
-            'guardedCount' => $guardedCount,
         ]);
     }
 
@@ -137,7 +132,18 @@ final class ProjectController extends AbstractController
             return $this->redirectToRoute('project_index');
         }
 
-        return $this->render('project/edit.html.twig', ['form' => $form, 'project' => $project]);
+        // Said here rather than on the index: a reader who wants to delete one
+        // project is on that project's screen, and the list already renders
+        // Delete inert on the rows this would block.
+        $referencingCount = $this->projects->countReferencingActivities($project);
+
+        return $this->render('project/edit.html.twig', [
+            'form' => $form,
+            'project' => $project,
+            'deleteGuardReason' => $referencingCount > 0
+                ? $this->guardReason($project, $referencingCount)
+                : null,
+        ]);
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
@@ -166,8 +172,9 @@ final class ProjectController extends AbstractController
 
     /**
      * Why this project can't be deleted, in one sentence. Shared by the
-     * index's greyed-out Delete and the flash raised if a delete is attempted
-     * anyway, so the warning and the refusal can't drift apart.
+     * index's greyed-out Delete, the note on the edit screen, and the flash
+     * raised if a delete is attempted anyway, so the warning and the refusal
+     * can't drift apart.
      */
     private function guardReason(Project $project, int $referencingCount): string
     {

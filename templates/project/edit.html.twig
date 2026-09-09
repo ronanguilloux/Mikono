@@ -4,5 +4,21 @@
 
 {% block body %}
     <h1 class="mb-4 text-xl font-semibold">Edit {{ project.name }}</h1>
+
+    {#
+        The delete-guard, said where it matters: on this project's own screen,
+        with the same sentence the flash would carry if a delete were attempted
+        anyway. No "see the activities" link like the volunteer twin has —
+        /activities filters by volunteer, not by project.
+    #}
+    {% if deleteGuardReason %}
+        <p
+            class="mb-4 max-w-lg rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900"
+            data-delete-guard-note
+        >
+            {{ deleteGuardReason }}
+        </p>
+    {% endif %}
+
     {% include 'project/_form.html.twig' %}
 {% endblock %}

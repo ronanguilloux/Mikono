@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-09
 
 Only what's next goes here — forward-looking exclusively. Completed work
 moves out: to an ADR in `docs/adr/` if it was an architectural decision,
@@ -167,28 +167,6 @@ send. ADR 0017 is what a superseding ADR would have to argue against.
   against a real address. Whatever ships must be bounded by the date range
   from the filters item above, or the two halves of the screen will again
   describe different periods.
-
-## Volunteers: move the delete-guard note to the edit screen
-
-- **Drop the page-level banner on `/volunteers` and say it per volunteer on
-  `/volunteers/{id}/edit` instead.** Today
-  `templates/volunteer/index.html.twig` opens with "15 volunteers on this page
-  have logged activity, so Delete is unavailable for those rows — mark them
-  inactive instead", counted by `$guardedCount` in
-  `VolunteerController::index()`. On a full page that sentence is noise: the
-  rows already render Delete inert via `disabledReason`, and a reader who
-  wants to delete *one* volunteer is on that volunteer's screen, not the list.
-  Move it to the edit page, personalised — "Delete is unavailable for
-  {{ volunteer.fullName }}: they have logged activities" plus a link to
-  `path('activity_index', {volunteer: volunteer.id})`, the same filtered list
-  `volunteer/show.html.twig:97` already links to. Two things to settle while
-  writing it: the edit controller doesn't currently ask the repository for the
-  count, so it needs the same `countReferencingActivities()` call the index
-  makes; and `/projects` carries the byte-identical twin banner
-  (`templates/project/index.html.twig`, `ProjectController::index()`) — either
-  it follows volunteers or the two screens stop matching, so decide rather
-  than leaving it half-done. Keep the server-side guard in `delete()` either
-  way; this is wording, not enforcement.
 
 ## Simplification backlog (from the ponytail audit)
 

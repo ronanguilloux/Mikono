@@ -6,6 +6,37 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-09 — The delete-guard note moved from the list to the edit screen
+
+`/volunteers` and `/projects` each opened with an amber banner counting the
+rows on the current page that can't be deleted — "15 volunteers on this page
+have logged activity, so Delete is unavailable for those rows — mark them
+inactive instead". On a full page that is noise twice over: the rows already
+render Delete inert via `disabledReason`, and nobody deletes a volunteer from
+the list — they are on that volunteer's own screen when they try.
+
+The note now lives on `/volunteers/{id}/edit` and `/projects/{id}/edit`, said
+per record. Both edit actions ask the repository for
+`countReferencingActivities()` and pass the controller's existing
+`guardReason()` output to the template as `deleteGuardReason`, so the note, the
+index's greyed-out Delete title and the flash `delete()` raises are all the same
+sentence and can't drift apart. The volunteer note adds a "See in Activities →"
+link to `/activities?volunteer=<id>`, the same filtered list
+`volunteer/show.html.twig` already offers.
+
+`/projects` followed rather than being left alone — two list screens that used
+to carry byte-identical banners should not diverge over a wording change. The
+project note carries no link: `/activities` filters by volunteer only, and
+adding a `?project=` filter is a feature, not part of a wording move.
+
+`$guardedCount` is gone from both `index()` actions and both index templates;
+the `$referencingCount > 0` ternary that builds the inert Delete action is
+untouched, as is the server-side guard in `delete()`. This was wording, not
+enforcement. The four index tests that asserted on `[data-delete-guard-note]`
+were retargeted: two now assert the index has *no* note, and four new tests
+cover the edit screens (present with the right sentence and, for volunteers,
+the right href; absent for a record with no activity).
+
 ## 2026-09-08 — A volunteer's name on `/reports` led to a list, not to the volunteer
 
 `/reports` prints the same volunteer name twice — once in the Top volunteers

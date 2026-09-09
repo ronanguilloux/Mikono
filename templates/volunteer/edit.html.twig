@@ -4,5 +4,25 @@
 
 {% block body %}
     <h1 class="mb-4 text-xl font-semibold">Edit {{ volunteer.fullName }}</h1>
+
+    {#
+        The delete-guard, said where it matters: on this volunteer's own screen,
+        with the same sentence the flash would carry if a delete were attempted
+        anyway. A note rather than a flash — it describes a standing state, not
+        the outcome of an action.
+    #}
+    {% if deleteGuardReason %}
+        <p
+            class="mb-4 max-w-lg rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900"
+            data-delete-guard-note
+        >
+            {{ deleteGuardReason }}
+            <a
+                href="{{ path('activity_index', {volunteer: volunteer.id}) }}"
+                class="whitespace-nowrap font-medium underline"
+            >See in Activities →</a>
+        </p>
+    {% endif %}
+
     {% include 'volunteer/_form.html.twig' %}
 {% endblock %}

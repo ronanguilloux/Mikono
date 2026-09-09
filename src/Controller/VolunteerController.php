@@ -58,13 +58,9 @@ final class VolunteerController extends AbstractController
         $activityCounts = $this->volunteers->countReferencingActivitiesFor($volunteersOnPage);
 
         $rows = [];
-        $guardedCount = 0;
         foreach ($volunteersOnPage as $volunteer) {
             $id = $volunteer->getId();
             $referencingCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
-            if ($referencingCount > 0) {
-                ++$guardedCount;
-            }
 
             $rows[] = [
                 'cells' => [
@@ -99,7 +95,6 @@ final class VolunteerController extends AbstractController
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
-            'guardedCount' => $guardedCount,
         ]);
     }
 
@@ -166,7 +161,18 @@ final class VolunteerController extends AbstractController
             return $this->redirectToRoute('volunteer_index');
         }
 
-        return $this->render('volunteer/edit.html.twig', ['form' => $form, 'volunteer' => $volunteer]);
+        // Said here rather than on the index: a reader who wants to delete one
+        // volunteer is on that volunteer's screen, and the list already renders
+        // Delete inert on the rows this would block.
+        $referencingCount = $this->volunteers->countReferencingActivities($volunteer);
+
+        return $this->render('volunteer/edit.html.twig', [
+            'form' => $form,
+            'volunteer' => $volunteer,
+            'deleteGuardReason' => $referencingCount > 0
+                ? $this->guardReason($volunteer, $referencingCount)
+                : null,
+        ]);
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
@@ -195,8 +201,9 @@ final class VolunteerController extends AbstractController
 
     /**
      * Why this volunteer can't be deleted, in one sentence. Shared by the
-     * index's greyed-out Delete and the flash raised if a delete is attempted
-     * anyway, so the warning and the refusal can't drift apart.
+     * index's greyed-out Delete, the note on the edit screen, and the flash
+     * raised if a delete is attempted anyway, so the warning and the refusal
+     * can't drift apart.
      */
     private function guardReason(Volunteer $volunteer, int $referencingCount): string
     {

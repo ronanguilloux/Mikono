@@ -229,11 +229,10 @@ final class VolunteerControllerTest extends WebTestCase
 
         self::assertCount(1, $crawler->filter('table tbody form'));
         self::assertCount(0, $crawler->filter('table tbody [aria-disabled="true"]'));
-        self::assertCount(0, $crawler->filter('[data-delete-guard-note]'));
     }
 
     #[Test]
-    public function theDeleteGuardNoteCountsOnlyTheGuardedRows(): void
+    public function theIndexGuardsOnlyTheRowsWithActivity(): void
     {
         $client = static::createClient();
         foreach (['Aisha Njoroge', 'Grace Wanjiru'] as $fullName) {
@@ -247,26 +246,47 @@ final class VolunteerControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/volunteers');
 
-        $note = $crawler->filter('[data-delete-guard-note]');
-        self::assertCount(1, $note);
-        self::assertStringContainsString('2 volunteers on this page have logged activity', $note->text());
         self::assertCount(2, $crawler->filter('table tbody [aria-disabled="true"]'));
         self::assertCount(1, $crawler->filter('table tbody form'));
+        // The reason in words is on each volunteer's own edit screen, not here.
+        self::assertCount(0, $crawler->filter('[data-delete-guard-note]'));
     }
 
     #[Test]
-    public function theDeleteGuardNoteReadsAsSingularForOneRow(): void
+    public function theEditScreenSaysWhyDeleteIsUnavailable(): void
     {
         $client = static::createClient();
-        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne()]);
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        ActivityFactory::createOne(['volunteer' => $volunteer]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/volunteers');
+        $crawler = $client->request('GET', '/volunteers/' . $volunteer->getId() . '/edit');
 
+        self::assertResponseIsSuccessful();
+        $note = $crawler->filter('[data-delete-guard-note]');
+        self::assertCount(1, $note);
+        // Word for word what the index's inert Delete and the flash both say.
         self::assertStringContainsString(
-            '1 volunteer on this page has logged activity',
-            $crawler->filter('[data-delete-guard-note]')->text(),
+            'Cannot delete Aisha Njoroge — 1 activity references them.',
+            $note->text(),
         );
+        self::assertSame(
+            '/activities?volunteer=' . $volunteer->getId(),
+            $note->filter('a')->attr('href'),
+        );
+    }
+
+    #[Test]
+    public function theEditScreenHasNoNoteForAVolunteerWithNoActivity(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers/' . $volunteer->getId() . '/edit');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-delete-guard-note]'));
     }
 
     #[Test]

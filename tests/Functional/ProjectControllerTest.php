@@ -124,10 +124,8 @@ final class ProjectControllerTest extends WebTestCase
             (string) $inert->attr('title'),
         );
 
-        self::assertStringContainsString(
-            '1 project on this page has logged activity',
-            $crawler->filter('[data-delete-guard-note]')->text(),
-        );
+        // The reason in words is on the project's own edit screen, not here.
+        self::assertCount(0, $crawler->filter('[data-delete-guard-note]'));
     }
 
     #[Test]
@@ -141,6 +139,38 @@ final class ProjectControllerTest extends WebTestCase
 
         self::assertCount(1, $crawler->filter('table tbody form'));
         self::assertCount(0, $crawler->filter('table tbody [aria-disabled="true"]'));
+    }
+
+    #[Test]
+    public function theEditScreenSaysWhyDeleteIsUnavailable(): void
+    {
+        $client = static::createClient();
+        $project = ProjectFactory::createOne(['name' => 'Bright Achievers']);
+        ActivityFactory::createOne(['project' => $project]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/projects/' . $project->getId() . '/edit');
+
+        self::assertResponseIsSuccessful();
+        $note = $crawler->filter('[data-delete-guard-note]');
+        self::assertCount(1, $note);
+        // Word for word what the index's inert Delete and the flash both say.
+        self::assertStringContainsString(
+            'Cannot delete Bright Achievers — 1 activity references it.',
+            $note->text(),
+        );
+    }
+
+    #[Test]
+    public function theEditScreenHasNoNoteForAProjectWithNoActivity(): void
+    {
+        $client = static::createClient();
+        $project = ProjectFactory::createOne();
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/projects/' . $project->getId() . '/edit');
+
+        self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-delete-guard-note]'));
     }
 
