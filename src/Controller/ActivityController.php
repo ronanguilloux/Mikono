@@ -20,7 +20,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 #[Route('/activities', name: 'activity_')]
 final class ActivityController extends AbstractController
@@ -48,7 +47,6 @@ final class ActivityController extends AbstractController
         private readonly ActivityRepository $activities,
         private readonly VolunteerRepository $volunteers,
         private readonly EntityManagerInterface $entityManager,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ListPaginator $paginator,
     ) {}
 
@@ -93,7 +91,7 @@ final class ActivityController extends AbstractController
                             $date?->format('j M Y') ?? 'undated',
                             $activity->getVolunteer()?->getFullName() ?? 'unknown volunteer',
                         ),
-                        'csrfToken' => $this->csrfToken($activity),
+                        'csrfTokenId' => $this->csrfTokenId($activity),
                     ],
                 ],
             ];
@@ -288,10 +286,5 @@ final class ActivityController extends AbstractController
     private function csrfTokenId(Activity $activity): string
     {
         return 'delete-activity-' . $activity->getId();
-    }
-
-    private function csrfToken(Activity $activity): string
-    {
-        return $this->csrfTokenManager->getToken($this->csrfTokenId($activity))->getValue();
     }
 }

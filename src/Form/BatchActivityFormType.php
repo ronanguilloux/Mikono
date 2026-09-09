@@ -10,6 +10,9 @@ use App\Entity\Escort;
 use App\Entity\Project;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
+use App\Repository\ActivityTypeRepository;
+use App\Repository\EscortRepository;
+use App\Repository\ProjectRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -41,14 +44,14 @@ final class BatchActivityFormType extends AbstractType
             ->add('project', EntityType::class, [
                 'class' => Project::class,
                 'choice_label' => static fn(Project $project) => $project->getName() . ($project->isActive() ? '' : ' (inactive)'),
-                'query_builder' => static fn($repo) => $repo->createQueryBuilder('p')->orderBy('p.name', 'ASC'),
+                'query_builder' => static fn(ProjectRepository $projects): QueryBuilder => $projects->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose a project',
                 'constraints' => [new Assert\NotNull(message: 'Choose a project.')],
             ])
             ->add('activityType', EntityType::class, [
                 'class' => ActivityType::class,
                 'choice_label' => 'name',
-                'query_builder' => static fn($repo) => $repo->createQueryBuilder('t')->orderBy('t.name', 'ASC'),
+                'query_builder' => static fn(ActivityTypeRepository $activityTypes): QueryBuilder => $activityTypes->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose an activity type',
                 'label' => 'Activity type',
                 'constraints' => [new Assert\NotNull(message: 'Choose an activity type.')],
@@ -72,7 +75,7 @@ final class BatchActivityFormType extends AbstractType
             ->add('escorts', EntityType::class, [
                 'class' => Escort::class,
                 'choice_label' => 'name',
-                'query_builder' => static fn($repo) => $repo->createQueryBuilder('e')->orderBy('e.name', 'ASC'),
+                'query_builder' => static fn(EscortRepository $escorts): QueryBuilder => $escorts->createOrderedByNameQueryBuilder(),
                 'multiple' => true,
                 'expanded' => true,
                 'required' => false,
@@ -109,13 +112,7 @@ final class BatchActivityFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => BatchActivityInput::class,
             'constraints' => [
-                new Assert\Callback(static function (BatchActivityInput $data, ExecutionContextInterface $context): void {
-                    if (ActivityDuration::Other === $data->duration && (null === $data->durationOther || '' === trim($data->durationOther))) {
-                        $context->buildViolation('Please specify the duration when choosing "Other".')
-                            ->atPath('durationOther')
-                            ->addViolation();
-                    }
-                }),
+                new Assert\Callback(static fn(BatchActivityInput $data, ExecutionContextInterface $context) => ActivityDuration::checkOtherIsSpecified($data->duration, $data->durationOther, $context)),
             ],
         ]);
     }

@@ -6,6 +6,58 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-09 — the ponytail audit's "Shrink" backlog, five of seven
+
+Same behaviour, ~150 fewer lines, and the PHPStan baseline shrank with it
+(46 → 39 errors, since several of the deleted lines were the baselined ones).
+
+- **One ordered-by-name query.** The project, activity-type and escort
+  pickers on both activity forms called
+  `createOrderedByNameQueryBuilder()` on the repository instead of
+  re-typing it inline — **six** sites, not the four `next-steps.md`
+  claimed; the two project pickers had been missed. The two *volunteer*
+  pickers deliberately stay hand-rolled: `VolunteerRepository`'s version
+  leads with an `isActive DESC` tie-break, which would sink an activity's
+  own deactivated volunteer to the bottom of the `/edit` dropdown instead
+  of leaving them in alphabetical place. Both docblocks now say so.
+  `EscortRepository::findAllOrderedByName()` and
+  `ActivityTypeRepository::findAllOrderedByName()` deleted — no callers;
+  the `Volunteer`/`Project` twins stay, called by `ReportMetricsCalculator`
+  and `ActivityController`, so the quartet is now deliberately asymmetric.
+- **The "Other needs `durationOther`" rule is written once**, as
+  `ActivityDuration::checkOtherIsSpecified()`. `Activity`'s
+  `#[Assert\Callback]` and `BatchActivityFormType`'s class-level one both
+  call it — the batch form is backed by a DTO rather than the entity, which
+  is why there are two callbacks at all.
+- **`CreateUserCommand` uses the `SymfonyStyle` it already had** —
+  `$io->ask()`/`$io->askHidden()` in place of `getHelper('question')` and
+  three `Question` objects. `askHidden()` *is*
+  `setHidden(true)` + `setHiddenFallback(false)`.
+- **The delete token comes from Twig's `csrf_token()`.** Rows now carry the
+  token *id* (`delete-escort-12`) rather than a minted token, and
+  `RowActions` mints it — so six controllers lost their
+  `CsrfTokenManagerInterface` constructor arg and their `csrfToken()`
+  method. `csrfTokenId()` stays in each: `delete()` validates against it,
+  and both ends now read the same string. Not `#[IsCsrfTokenValid]`, which
+  403s where these flash "Invalid security token" and redirect.
+  This gained two tests it should always have had: an Activity delete
+  round-trip (the only one of the six areas without one) and the
+  tampered-token branch, which nothing anywhere covered.
+- **`templates/components/FormShell.html.twig`** replaces five
+  `_form.html.twig` partials. Four were byte-identical bar the cancel
+  route; Projects differ only in passing `formAttr: {}`, its form
+  attributes living in `ProjectFormType`. `activity/_form.html.twig` keeps
+  its own file — it carries usage-event Stimulus wiring.
+
+Two bullets were **not** shrinks and left the backlog:
+`batch_activity_form_controller.js`'s hand-rolled listbox earns its 168
+lines (arrow keys, the mousedown-vs-blur race, `aria-expanded`) and the
+real gap there is a *missing* `role="listbox"`/`aria-activedescendant`,
+now the one surviving item; and thinning `RosterArchive` would trade ~200
+lines of loud-failing, PHPStan-`max`-typed parsing for array shapes and a
+bigger baseline. `docs/brainstorm/07-ponytail-audit.md` carries both
+corrections.
+
 ## 2026-09-09 — `/usage` answers for a period, not for the whole log file
 
 `/usage` aggregated the entire access log and reported one `since`/`until`

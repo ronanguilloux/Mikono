@@ -13,7 +13,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 #[Route('/projects', name: 'project_')]
 final class ProjectController extends AbstractController
@@ -38,7 +37,6 @@ final class ProjectController extends AbstractController
     public function __construct(
         private readonly ProjectRepository $projects,
         private readonly EntityManagerInterface $entityManager,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ListPaginator $paginator,
     ) {}
 
@@ -79,7 +77,7 @@ final class ProjectController extends AbstractController
                             'url' => $this->generateUrl('project_delete', ['id' => $id]),
                             'method' => 'post',
                             'confirm' => sprintf('Delete %s?', $project->getName()),
-                            'csrfToken' => $this->csrfToken($project),
+                            'csrfTokenId' => $this->csrfTokenId($project),
                         ],
                 ],
             ];
@@ -190,10 +188,5 @@ final class ProjectController extends AbstractController
     private function csrfTokenId(Project $project): string
     {
         return 'delete-project-' . $project->getId();
-    }
-
-    private function csrfToken(Project $project): string
-    {
-        return $this->csrfTokenManager->getToken($this->csrfTokenId($project))->getValue();
     }
 }

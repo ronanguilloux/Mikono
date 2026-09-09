@@ -1,0 +1,31 @@
+{#
+    The new/edit form body shared by Activity Types, Escorts, Projects, Users
+    and Volunteers: every widget, a Save button, a Cancel link. Those five
+    screens differ only in where Cancel goes, which is why they were five
+    byte-identical partials before this component existed.
+
+    Activities deliberately don't use it — templates/activity/_form.html.twig
+    carries its own usage-event Stimulus wiring.
+
+    `formAttr` is the second and only other difference: Projects pass `{}`
+    because ProjectFormType sets the form's attributes itself.
+#}
+{% props
+    form,
+    cancelUrl,
+    formAttr = {class: 'max-w-lg'}
+%}
+
+{{ form_start(form, {attr: formAttr}) }}
+    {{ form_widget(form) }}
+
+    <div class="flex items-center gap-3">
+        <button
+            type="submit"
+            class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+        >
+            Save
+        </button>
+        <a href="{{ cancelUrl }}" class="text-sm text-slate-600 hover:underline">Cancel</a>
+    </div>
+{{ form_end(form) }}

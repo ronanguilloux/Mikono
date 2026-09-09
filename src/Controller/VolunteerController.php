@@ -14,7 +14,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 #[Route('/volunteers', name: 'volunteer_')]
 final class VolunteerController extends AbstractController
@@ -37,7 +36,6 @@ final class VolunteerController extends AbstractController
         private readonly VolunteerRepository $volunteers,
         private readonly ActivityRepository $activities,
         private readonly EntityManagerInterface $entityManager,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ListPaginator $paginator,
     ) {}
 
@@ -79,7 +77,7 @@ final class VolunteerController extends AbstractController
                             'url' => $this->generateUrl('volunteer_delete', ['id' => $id]),
                             'method' => 'post',
                             'confirm' => sprintf('Delete %s?', $volunteer->getFullName()),
-                            'csrfToken' => $this->csrfToken($volunteer),
+                            'csrfTokenId' => $this->csrfTokenId($volunteer),
                         ],
                 ],
             ];
@@ -219,10 +217,5 @@ final class VolunteerController extends AbstractController
     private function csrfTokenId(Volunteer $volunteer): string
     {
         return 'delete-volunteer-' . $volunteer->getId();
-    }
-
-    private function csrfToken(Volunteer $volunteer): string
-    {
-        return $this->csrfTokenManager->getToken($this->csrfTokenId($volunteer))->getValue();
     }
 }

@@ -158,11 +158,7 @@ class Activity
     #[Assert\Callback]
     public function validateDurationOther(ExecutionContextInterface $context): void
     {
-        if (ActivityDuration::Other === $this->duration && (null === $this->durationOther || '' === trim($this->durationOther))) {
-            $context->buildViolation('Please specify the duration when choosing "Other".')
-                ->atPath('durationOther')
-                ->addViolation();
-        }
+        ActivityDuration::checkOtherIsSpecified($this->duration, $this->durationOther, $context);
     }
 
     public function getNotes(): ?string

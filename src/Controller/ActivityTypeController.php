@@ -13,7 +13,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 #[Route('/activity-types', name: 'activity_type_')]
 final class ActivityTypeController extends AbstractController
@@ -33,7 +32,6 @@ final class ActivityTypeController extends AbstractController
     public function __construct(
         private readonly ActivityTypeRepository $activityTypes,
         private readonly EntityManagerInterface $entityManager,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ListPaginator $paginator,
     ) {}
 
@@ -59,7 +57,7 @@ final class ActivityTypeController extends AbstractController
                         'url' => $this->generateUrl('activity_type_delete', ['id' => $activityType->getId()]),
                         'method' => 'post',
                         'confirm' => sprintf('Delete %s?', $activityType->getName()),
-                        'csrfToken' => $this->csrfToken($activityType),
+                        'csrfTokenId' => $this->csrfTokenId($activityType),
                     ],
                 ],
             ];
@@ -145,10 +143,5 @@ final class ActivityTypeController extends AbstractController
     private function csrfTokenId(ActivityType $activityType): string
     {
         return 'delete-activity-type-' . $activityType->getId();
-    }
-
-    private function csrfToken(ActivityType $activityType): string
-    {
-        return $this->csrfTokenManager->getToken($this->csrfTokenId($activityType))->getValue();
     }
 }

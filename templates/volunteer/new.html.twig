@@ -4,5 +4,5 @@
 
 {% block body %}
     <h1 class="mb-4 text-xl font-semibold">Add volunteer</h1>
-    {% include 'volunteer/_form.html.twig' %}
+    <twig:FormShell :form="form" cancelUrl="{{ path('volunteer_index') }}" />
 {% endblock %}

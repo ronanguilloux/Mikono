@@ -22,8 +22,11 @@ class ProjectRepository extends ServiceEntityRepository
     }
 
     /**
-     * The paginated index builds on this; findAllOrderedByName() is the same
-     * query without a LIMIT, for the callers that genuinely need every row.
+     * The paginated index builds on this, as do both activity forms' project
+     * pickers; findAllOrderedByName() is the same query without a LIMIT, for
+     * the callers that genuinely need every row (ReportMetricsCalculator).
+     * EscortRepository and ActivityTypeRepository deliberately have no such
+     * twin — nothing there needs the array form.
      */
     public function createOrderedByNameQueryBuilder(): QueryBuilder
     {

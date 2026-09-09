@@ -30,6 +30,10 @@ class VolunteerRepository extends ServiceEntityRepository
      *
      * The paginated index builds on this; findAllOrderedByName() is the same
      * query without a LIMIT, for the callers that genuinely need every row.
+     * The activity forms' volunteer pickers deliberately do *not* reuse it —
+     * they order by name alone, without the isActive tie-break above, so that
+     * an activity's own deactivated volunteer stays in alphabetical place
+     * rather than sinking to the bottom of the dropdown.
      */
     public function createOrderedByNameQueryBuilder(): QueryBuilder
     {

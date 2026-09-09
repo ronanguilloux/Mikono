@@ -35,7 +35,13 @@
             class="inline"
             {% if action.confirm is defined %}data-turbo-confirm="{{ action.confirm }}"{% endif %}
         >
-            <input type="hidden" name="_token" value="{{ action.csrfToken }}">
+            {#
+                The controller passes the token *id* (`delete-escort-12`), not
+                a minted token: the id is what its delete() validates against,
+                so both ends read the same string and no controller needs the
+                CsrfTokenManager injected just to render a table.
+            #}
+            <input type="hidden" name="_token" value="{{ csrf_token(action.csrfTokenId) }}">
             <button type="submit" class="{{ buttonClass }}">{{ action.label }}</button>
         </form>
     {% endif %}

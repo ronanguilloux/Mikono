@@ -13,7 +13,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 #[Route('/escorts', name: 'escort_')]
 final class EscortController extends AbstractController
@@ -32,7 +31,6 @@ final class EscortController extends AbstractController
     public function __construct(
         private readonly EscortRepository $escorts,
         private readonly EntityManagerInterface $entityManager,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ListPaginator $paginator,
     ) {}
 
@@ -58,7 +56,7 @@ final class EscortController extends AbstractController
                         'url' => $this->generateUrl('escort_delete', ['id' => $escort->getId()]),
                         'method' => 'post',
                         'confirm' => sprintf('Delete %s?', $escort->getName()),
-                        'csrfToken' => $this->csrfToken($escort),
+                        'csrfTokenId' => $this->csrfTokenId($escort),
                     ],
                 ],
             ];
@@ -144,10 +142,5 @@ final class EscortController extends AbstractController
     private function csrfTokenId(Escort $escort): string
     {
         return 'delete-escort-' . $escort->getId();
-    }
-
-    private function csrfToken(Escort $escort): string
-    {
-        return $this->csrfTokenManager->getToken($this->csrfTokenId($escort))->getValue();
     }
 }

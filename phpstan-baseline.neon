@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Call to an undefined method Symfony\\Component\\Console\\Helper\\HelperInterface\:\:ask\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: src/Command/CreateUserCommand.php
-
-		-
 			message: '#^Only booleans are allowed in a ternary operator condition, mixed given\.$#'
 			identifier: ternary.condNotBoolean
 			count: 1
@@ -115,18 +109,6 @@ parameters:
 			path: src/Entity/User.php
 
 		-
-			message: '#^Cannot call method createQueryBuilder\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: src/Form/ActivityFormType.php
-
-		-
-			message: '#^Cannot call method orderBy\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: src/Form/ActivityFormType.php
-
-		-
 			message: '#^Class App\\Form\\ActivityFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
 			identifier: missingType.generics
 			count: 1
@@ -137,18 +119,6 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: src/Form/ActivityTypeFormType.php
-
-		-
-			message: '#^Cannot call method createQueryBuilder\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: src/Form/BatchActivityFormType.php
-
-		-
-			message: '#^Cannot call method orderBy\(\) on mixed\.$#'
-			identifier: method.nonObject
-			count: 3
-			path: src/Form/BatchActivityFormType.php
 
 		-
 			message: '#^Class App\\Form\\BatchActivityFormType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
@@ -203,18 +173,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Repository/ActivityRepository.php
-
-		-
-			message: '#^Method App\\Repository\\ActivityTypeRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\ActivityType\> but returns mixed\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Repository/ActivityTypeRepository.php
-
-		-
-			message: '#^Method App\\Repository\\EscortRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\Escort\> but returns mixed\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Repository/EscortRepository.php
 
 		-
 			message: '#^Method App\\Repository\\ProjectRepository\:\:findAllOrderedByName\(\) should return array\<App\\Entity\\Project\> but returns mixed\.$#'

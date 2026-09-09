@@ -21,21 +21,17 @@ class EscortRepository extends ServiceEntityRepository
     }
 
     /**
-     * The paginated index builds on this; findAllOrderedByName() is the same
-     * query without a LIMIT, for the callers that genuinely need every row.
+     * The one ordered-by-name query: the paginated index builds on it, and both
+     * activity forms hand it straight to their escort picker.
+     *
+     * No findAllOrderedByName() twin here, unlike VolunteerRepository and
+     * ProjectRepository — nothing needs every escort as an array, and an
+     * unused method kept for symmetry is still an unused method.
      */
     public function createOrderedByNameQueryBuilder(): QueryBuilder
     {
         return $this->createQueryBuilder('e')
             ->orderBy('e.name', 'ASC');
-    }
-
-    /** @return Escort[] */
-    public function findAllOrderedByName(): array
-    {
-        return $this->createOrderedByNameQueryBuilder()
-            ->getQuery()
-            ->getResult();
     }
 
     public function countReferencingActivities(Escort $escort): int

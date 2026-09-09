@@ -10,6 +10,9 @@ use App\Entity\Escort;
 use App\Entity\Project;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
+use App\Repository\ActivityTypeRepository;
+use App\Repository\EscortRepository;
+use App\Repository\ProjectRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -54,13 +57,13 @@ final class ActivityFormType extends AbstractType
             ->add('project', EntityType::class, [
                 'class' => Project::class,
                 'choice_label' => static fn(Project $project) => $project->getName() . ($project->isActive() ? '' : ' (inactive)'),
-                'query_builder' => static fn($repo) => $repo->createQueryBuilder('p')->orderBy('p.name', 'ASC'),
+                'query_builder' => static fn(ProjectRepository $projects): QueryBuilder => $projects->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose a project',
             ])
             ->add('activityType', EntityType::class, [
                 'class' => ActivityType::class,
                 'choice_label' => 'name',
-                'query_builder' => static fn($repo) => $repo->createQueryBuilder('t')->orderBy('t.name', 'ASC'),
+                'query_builder' => static fn(ActivityTypeRepository $activityTypes): QueryBuilder => $activityTypes->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose an activity type',
                 'label' => 'Activity type',
             ])
@@ -80,7 +83,7 @@ final class ActivityFormType extends AbstractType
             ->add('escorts', EntityType::class, [
                 'class' => Escort::class,
                 'choice_label' => 'name',
-                'query_builder' => static fn($repo) => $repo->createQueryBuilder('e')->orderBy('e.name', 'ASC'),
+                'query_builder' => static fn(EscortRepository $escorts): QueryBuilder => $escorts->createOrderedByNameQueryBuilder(),
                 'multiple' => true,
                 'expanded' => true,
                 'by_reference' => false,

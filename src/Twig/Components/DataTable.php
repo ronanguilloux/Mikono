@@ -19,7 +19,10 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * out from a flash after confirming. Such an action needs no `url`, which is
  * why that key is optional.
  *
- * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfToken?: string, disabledReason?: string}
+ * A non-GET action carries `csrfTokenId` — the token id, not a minted token;
+ * RowActions hands it to Twig's `csrf_token()`.
+ *
+ * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfTokenId?: string, disabledReason?: string}
  * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, links?: array<string, string>, actions?: list<Action>}
  */
 #[AsTwigComponent]

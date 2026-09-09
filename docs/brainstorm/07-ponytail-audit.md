@@ -29,7 +29,29 @@ yagni: symfony/ux-live-component — zero AsLiveComponent, zero data-live, ADR 0
 
 yagni: RosterArchive's hand-rolled type layer — rows/strings/string/nullableString/bool/date (~110 lines) plus five one-caller readonly VOs to rehydrate a repo-owned YAML file into AppStory. A checked-in fixture the maintainer writes isn't a trust boundary; Yaml::parseFile() arrays + PHP's own type errors say the same thing. src/Fixture/
 
+> **Withdrawn (2026-09-09, on reading it properly).** 92 helper lines, not
+> ~110, and six helpers not five (`strings()` was missed). More to the point
+> the trade doesn't pay: the helpers are what turn a malformed archive into a
+> named error instead of a half-seeded database — the class docblock says so
+> — and the five VOs are what give `AppStory` typed access under PHPStan
+> `max`. Swapping them for `Yaml::parseFile()` arrays buys ~200 fewer lines
+> of clear code at the price of array shapes and a *larger* baseline. Not a
+> simplification; dropped from the backlog.
+
 shrink: batch_activity_form_controller.js hand-rolls a listbox — arrow-key highlight, aria-expanded, mousedown-vs-blur race, 6-result slice — over checkboxes already in the DOM. Filtering the existing labels is ~25 lines against 105. assets/controllers/batch_activity_form_controller.js:78-160
+
+> **Inverted (2026-09-09, on checking what the 168 lines actually buy).** They
+> buy working keyboard use: Up/Down/Enter/Escape (`:85-105`), the
+> mousedown-vs-blur race (`:79-84` against `:143-146`), `aria-expanded`
+> toggling (`:82`, `:153`), `role="option"` per row (`:135`). "Filter the
+> existing labels" deletes all of it, so this was never a shrink.
+>
+> The real finding is the opposite: the screen-reader half is *incomplete*.
+> `#volunteer-suggestions` has no `role="listbox"`, rows carry no
+> `aria-selected`, and the combobox has no `aria-activedescendant` — so the
+> highlight at `:108-113` is a `bg-slate-100` class that no screen reader
+> ever announces. That is an addition of a few lines, and it is now the item
+> in `next-steps.md`.
 
 native: csrfTokenId()/csrfToken() + a CsrfTokenManagerInterface constructor arg, copy-pasted into six controllers, to hand a token to a template. Twig ships csrf_token('delete-escort-' ~ id); build the id in RowActions. src/Controller/ (×6)
 
@@ -38,6 +60,14 @@ delete: $updatedAt on Volunteer, Project, User, Activity — written by four tou
 yagni: /activities/new — the single-volunteer form, when /activities/new-batch already handles N≥1 and is what the home screen links to everywhere. Keep ActivityFormType for /edit, drop the route, the action and templates/activity/new.html.twig. src/Controller/ActivityController.php:110-127
 
 shrink: five byte-identical _form.html.twig shells differing only by the cancel route. One anonymous component taking cancelUrl. 65 lines → 20. templates/*/_form.html.twig
+
+> **Correction (2026-09-09, on doing it).** Four are byte-identical, not five.
+> `project/_form.html.twig` is the same shell but with a bare
+> `{{ form_start(form) }}`, its attributes having moved into
+> `ProjectFormType` — so the component takes a `formAttr` prop as well as
+> `cancelUrl`, and Projects passes `{}`. `activity/_form.html.twig` is
+> genuinely different (usage-event Stimulus wiring) and was left alone.
+> Shipped 2026-09-09 as `templates/components/FormShell.html.twig`.
 
 delete: Escort::$isActive — a checkbox and a Status column with no reader. Both activity pickers list inactive escorts anyway, unlabelled. Either it filters or it goes; today it does nothing. src/Entity/Escort.php:25
 
@@ -54,6 +84,15 @@ delete: EscortRepository::findAllOrderedByName() and ActivityTypeRepository::fin
 > (`ActivityFormType.php:63`, `:83`, `BatchActivityFormType.php:51`, `:75`)
 > rather than calling `createOrderedByNameQueryBuilder()`. Worth doing as one
 > item with the form cleanup; ~16 lines on its own.
+>
+> **Second correction (2026-09-09, on doing it).** Six inline copies, not
+> four: the two *project* pickers (`ActivityFormType.php:57`,
+> `BatchActivityFormType.php:44`) are the same plain ordered-by-name query and
+> were missed. The two volunteer pickers correctly stay hand-rolled — they
+> filter on `v.isActive` and order by name alone, where
+> `VolunteerRepository::createOrderedByNameQueryBuilder()` leads with an
+> `isActive DESC` tie-break that would sink an activity's own deactivated
+> volunteer to the bottom of the `/edit` dropdown. Shipped 2026-09-09.
 
 delete: ProjectFactory::partner(), ProjectFactory::inactive(), EscortFactory::inactive() — three unused factory states. src/Factory/
 

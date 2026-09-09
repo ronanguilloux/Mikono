@@ -4,5 +4,6 @@
 
 {% block body %}
     <h1 class="mb-4 text-xl font-semibold">Add project</h1>
-    {% include 'project/_form.html.twig' %}
+    {# Form attributes (width, Stimulus wiring) come from ProjectFormType. #}
+    <twig:FormShell :form="form" cancelUrl="{{ path('project_index') }}" :formAttr="{}" />
 {% endblock %}

@@ -14,7 +14,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/users', name: 'user_')]
@@ -39,7 +38,6 @@ final class UserController extends AbstractController
         private readonly UserRepository $users,
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ListPaginator $paginator,
     ) {}
 
@@ -67,7 +65,7 @@ final class UserController extends AbstractController
                         'url' => $this->generateUrl('user_delete', ['id' => $user->getId()]),
                         'method' => 'post',
                         'confirm' => sprintf('Delete %s?', $user->getFullName()),
-                        'csrfToken' => $this->csrfToken($user),
+                        'csrfTokenId' => $this->csrfTokenId($user),
                     ],
                 ],
             ];
@@ -165,10 +163,5 @@ final class UserController extends AbstractController
     private function csrfTokenId(User $user): string
     {
         return 'delete-user-' . $user->getId();
-    }
-
-    private function csrfToken(User $user): string
-    {
-        return $this->csrfTokenManager->getToken($this->csrfTokenId($user))->getValue();
     }
 }

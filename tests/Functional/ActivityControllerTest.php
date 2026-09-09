@@ -436,6 +436,38 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function deleteRemovesAnActivity(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/activities');
+        $client->submitForm('Delete');
+
+        self::assertResponseRedirects('/activities');
+        $client->followRedirect();
+        self::assertSelectorTextContains('body', 'No activities logged yet');
+    }
+
+    #[Test]
+    public function deleteWithATamperedTokenIsRefused(): void
+    {
+        $client = static::createClient();
+        $activity = ActivityFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        // The token now comes from Twig's csrf_token() rather than from a
+        // manager injected into the controller — the branch that catches a
+        // wrong one has to stay a flash and a redirect, not a 500.
+        $client->request('POST', sprintf('/activities/%d/delete', $activity->getId()), ['_token' => 'not-the-token']);
+
+        self::assertResponseRedirects('/activities');
+        $client->followRedirect();
+        self::assertSelectorTextContains('body', 'Invalid security token');
+        self::assertCount(1, $client->getCrawler()->filter('table tbody tr'));
+    }
+
+    #[Test]
     public function aFutureDatedActivityIsTaggedAsPlannedOnItsMobileCard(): void
     {
         $client = static::createClient();

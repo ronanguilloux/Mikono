@@ -12,7 +12,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -46,9 +45,7 @@ final class CreateUserCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Create a Volunteer Manager account');
 
-        $helper = $this->getHelper('question');
-
-        $email = $input->getOption('email') ?? $helper->ask($input, $output, new Question('Email: '));
+        $email = $input->getOption('email') ?? $io->ask('Email');
         if (null !== $existing = $this->users->findOneByEmail($email)) {
             $io->warning(sprintf('A user with email "%s" already exists — updating instead of creating a duplicate.', $email));
             $user = $existing;
@@ -57,13 +54,12 @@ final class CreateUserCommand extends Command
             $user->setEmail($email);
         }
 
-        $fullName = $input->getOption('full-name') ?? $helper->ask($input, $output, new Question('Full name: '));
+        $fullName = $input->getOption('full-name') ?? $io->ask('Full name');
         $user->setFullName($fullName);
 
-        $passwordQuestion = new Question('Password: ');
-        $passwordQuestion->setHidden(true);
-        $passwordQuestion->setHiddenFallback(false);
-        $plainPassword = $input->getOption('password') ?? $helper->ask($input, $output, $passwordQuestion);
+        // askHidden() is setHidden(true) + setHiddenFallback(false) — it throws
+        // rather than echoing the password where the terminal can't hide it.
+        $plainPassword = $input->getOption('password') ?? $io->askHidden('Password');
 
         $user->setRoles($input->getOption('admin') ? ['ROLE_ADMIN'] : ['ROLE_USER']);
         $user->setPassword($this->passwordHasher->hashPassword($user, $plainPassword));

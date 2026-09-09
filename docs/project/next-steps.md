@@ -179,37 +179,19 @@ The audit's "dead code" bullets were verified and folded into the lists
 below; its file carries the corrections. One was wrong:
 `ProjectFactory::partner()` has two live callers, so don't re-propose it.
 
-**Shrink — same behaviour, less code:**
+The "Shrink" half is **done** (`done.md`, 2026-09-09). Two of its seven
+bullets turned out not to be shrinks at all; what survives of them:
 
-- **Make `createOrderedByNameQueryBuilder()` the single ordered-name query.**
-  `ActivityFormType` and `BatchActivityFormType` hand-roll it inline four
-  times (`ActivityFormType.php:63`, `:83`, `BatchActivityFormType.php:51`,
-  `:75`); point them at the repository method instead. Then drop
-  `EscortRepository::findAllOrderedByName()` and
-  `ActivityTypeRepository::findAllOrderedByName()`, which nothing calls — but
-  note the `VolunteerRepository`/`ProjectRepository` twins **are** live
-  (`ReportMetricsCalculator`), so either fix the shared docblock or accept a
-  deliberately asymmetric quartet.
-- **`CreateUserCommand`: use `$io->ask()`/`$io->askHidden()`** instead of
-  `getHelper('question')` and three `Question` objects.
-- **Hand the delete token to Twig's `csrf_token()`** and build the id in
-  `RowActions`, retiring the `csrfTokenId()`/`csrfToken()` pair and the
-  `CsrfTokenManagerInterface` constructor arg copy-pasted into six controllers.
-- **One anonymous component for the five byte-identical `_form.html.twig`
-  shells**, taking `cancelUrl` — that is the only thing that differs.
-- **Filter the existing checkbox labels in
-  `batch_activity_form_controller.js`** rather than hand-rolling a listbox over
-  them (arrow-key highlight, `aria-expanded`, the mousedown-vs-blur race). Keep
-  the keyboard and screen-reader behaviour that hand-roll currently provides —
-  that is the part worth checking before deleting, not the line count.
-- **Write the "Other needs `durationOther`" rule once.** It exists twice today:
-  `Activity::validateDurationOther()` and an identical `Assert\Callback` in
-  `BatchActivityFormType::configureOptions()`.
-- **Thin `RosterArchive`'s hand-rolled type layer** — ~110 lines of
-  `rows`/`string`/`nullableString`/`bool`/`date` plus five one-caller readonly
-  VOs, guarding a YAML file this repo owns and a maintainer hand-writes. Not a
-  trust boundary. `RosterArchiveTest` enforces the transcription rules and
-  stays either way ([ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
+- **Finish the batch form's typeahead for screen readers.** Not the audit's
+  original bullet, which proposed replacing the hand-rolled listbox in
+  `batch_activity_form_controller.js` with a label filter — the 168 lines buy
+  real keyboard behaviour (Up/Down/Enter/Escape, the mousedown-vs-blur race,
+  `aria-expanded`) and deleting them would be a regression. The gap is the
+  other direction: `#volunteer-suggestions` has no `role="listbox"`, its rows
+  no `aria-selected`, and the combobox no `aria-activedescendant`, so the
+  highlight is a background colour nothing announces. A few lines in
+  `templates/activity/new_batch.html.twig` and the controller's
+  `highlightRows()`.
 
 **Needs a decision before a diff:**
 

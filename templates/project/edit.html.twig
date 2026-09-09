@@ -20,5 +20,6 @@
         </p>
     {% endif %}
 
-    {% include 'project/_form.html.twig' %}
+    {# Form attributes (width, Stimulus wiring) come from ProjectFormType. #}
+    <twig:FormShell :form="form" cancelUrl="{{ path('project_index') }}" :formAttr="{}" />
 {% endblock %}

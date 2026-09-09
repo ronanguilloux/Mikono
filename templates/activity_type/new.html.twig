@@ -4,5 +4,5 @@
 
 {% block body %}
     <h1 class="mb-4 text-xl font-semibold">Add activity type</h1>
-    {% include 'activity_type/_form.html.twig' %}
+    <twig:FormShell :form="form" cancelUrl="{{ path('activity_type_index') }}" />
 {% endblock %}
