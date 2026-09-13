@@ -24,12 +24,20 @@ final class VolunteerFactory extends PersistentObjectFactory
             'lastName' => self::faker()->lastName(),
             'email' => self::faker()->unique()->safeEmail(),
             'phone' => self::faker()->e164PhoneNumber(),
-            'isActive' => true,
+            // Active by default, as before stays existed: one stay covering
+            // today, so the activity forms offer this volunteer (ADR 0026).
+            'stays' => StayFactory::new()->many(1),
         ];
     }
 
+    /** One stay that ended months ago: finished their stint. */
     public function inactive(): self
     {
-        return $this->with(['isActive' => false]);
+        return $this->with(['stays' => StayFactory::new()->past()->many(1)]);
+    }
+
+    public function withoutStay(): self
+    {
+        return $this->with(['stays' => []]);
     }
 }

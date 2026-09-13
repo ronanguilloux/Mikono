@@ -71,10 +71,9 @@ implements it.
 - `.claude/agents/` — Claude Code-specific subagents (`adr-scribe`,
   `context-capturer`).
 - `src/Entity/`, `src/Repository/` — Doctrine entities (`User`,
-  `Volunteer`, `Project`, `ActivityType`, `Activity`, `Escort`, `Branch`)
+  `Volunteer`, `Project`, `ActivityType`, `Activity`, `Escort`, `Branch`, `Stay`)
   and their repositories, each with a `countReferencingActivities()`
-  delete-guard where applicable. `Branch` is referenced by nothing yet, so
-  it has no guard, and its five real rows come from its migration, not the
+  delete-guard where applicable. `Branch`'s guard counts stays, and its five real rows come from its migration, not the
   fixtures — tests start with them
   ([ADR 0025](docs/adr/0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md)). Two shapes were set by the real rosters, so don't
   "tidy" them back: `Activity::$escorts` is a **collection**
@@ -82,6 +81,10 @@ implements it.
   escort delete-guard is a `MEMBER OF` query, and the eager escorts join is
   to-many, so it can't carry a `LIMIT`; `Volunteer::$lastName` is
   **optional** ([ADR 0014](docs/adr/0014-make-a-volunteers-last-name-optional.md)).
+  A volunteer's **active is derived, never stored**: active means a `Stay`
+  covers today, and `Activity::$stay` is resolved from volunteer + date on
+  every save, never a form field
+  ([ADR 0026](docs/adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
 - `src/Enum/` — backed PHP enums (`ProjectLocation`, `ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
 - `src/Controller/`, `src/Form/`, `templates/<area>/` — one set per CRUD
@@ -255,7 +258,7 @@ process, hiding template/PHP edits in dev until a restart.
   case: an optional field (`VolunteerFormType`'s `lastName`) has
   `required: false` and **no** `empty_data`, so "not recorded" is `null`
   only, never also `''`.
-- The volunteer pickers on both activity forms list **active volunteers
+- The volunteer pickers on both activity forms list **volunteers with a current or upcoming stay
   only**. `ActivityFormType` also backs edit, so its query keeps the
   activity's own current volunteer selectable once deactivated; any future
   "active only" picker on an edit form needs the same escape hatch, or old

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Factory\BranchFactory;
+use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -151,5 +152,38 @@ final class BranchControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Mombasa', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    #[Test]
+    public function theIndexShowsDeleteAsUnavailableForABranchWithStays(): void
+    {
+        $client = static::createClient();
+        $branch = BranchFactory::createOne(['name' => 'Aardvark Branch']);
+        StayFactory::createOne(['branch' => $branch]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/branches');
+
+        self::assertStringContainsString(
+            'Cannot delete Aardvark Branch — 1 volunteer stay is there.',
+            $crawler->filter('table tbody tr')->first()->filter('[aria-disabled="true"]')->text(),
+        );
+    }
+
+    #[Test]
+    public function deleteIsRefusedWhileStaysReferenceTheBranch(): void
+    {
+        $client = static::createClient();
+        $branch = BranchFactory::createOne(['name' => 'Aardvark Branch']);
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/branches');
+
+        StayFactory::createOne(['branch' => $branch]);
+        $client->submitForm('Delete');
+
+        self::assertResponseRedirects('/branches');
+        $client->followRedirect();
+        self::assertSelectorTextContains('body', 'Cannot delete Aardvark Branch');
+        BranchFactory::assert()->count(6);
     }
 }

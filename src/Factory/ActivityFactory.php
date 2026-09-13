@@ -38,4 +38,27 @@ final class ActivityFactory extends PersistentObjectFactory
             'loggedBy' => UserFactory::new(),
         ];
     }
+
+    /**
+     * Every activity needs the stay covering its date (ADR 0026). Left unset,
+     * it is the volunteer's stay on that day, or else a one-day stay on it —
+     * a single day nothing covers can't overlap another stay.
+     */
+    protected function initialize(): static
+    {
+        return $this->afterInstantiate(static function (Activity $activity): void {
+            $volunteer = $activity->getVolunteer();
+            $date = $activity->getDate();
+
+            if (null !== $activity->getStay() || null === $volunteer || null === $date) {
+                return;
+            }
+
+            $activity->setStay($volunteer->getStayCovering($date) ?? StayFactory::createOne([
+                'volunteer' => $volunteer,
+                'startDate' => $date,
+                'endDate' => $date,
+            ]));
+        });
+    }
 }

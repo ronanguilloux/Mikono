@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Stay;
 use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -21,7 +23,8 @@ class VolunteerRepository extends ServiceEntityRepository
     }
 
     /**
-     * Active volunteers first, then by name. Volunteers leave after a few
+     * Active volunteers — those with a stay covering today, read through the
+     * HIDDEN `isCurrent` count (ADR 0026) — first, then by name. Volunteers leave after a few
      * weeks, which is why the activity forms already filter their picker to
      * active ones — by surname alone the index drops someone who finished
      * their stint between two people working this week. Nobody is hidden, and
@@ -31,22 +34,77 @@ class VolunteerRepository extends ServiceEntityRepository
      * The paginated index builds on this; findAllOrderedByName() is the same
      * query without a LIMIT, for the callers that genuinely need every row.
      * The activity forms' volunteer pickers deliberately do *not* reuse it —
-     * they order by name alone, without the isActive tie-break above, so that
+     * they order by name alone, without the active-first tie-break above, so that
      * an activity's own deactivated volunteer stays in alphabetical place
      * rather than sinking to the bottom of the dropdown.
      */
     public function createOrderedByNameQueryBuilder(): QueryBuilder
     {
         return $this->createQueryBuilder('v')
-            ->orderBy('v.isActive', 'DESC')
+            ->addSelect('(SELECT COUNT(cs.id) FROM ' . Stay::class . ' cs WHERE cs.volunteer = v AND cs.startDate <= :today AND cs.endDate >= :today) AS HIDDEN isCurrent')
+            ->setParameter('today', new \DateTimeImmutable('today'), Types::DATE_IMMUTABLE)
+            ->orderBy('isCurrent', 'DESC')
             ->addOrderBy('v.lastName', 'ASC')
             ->addOrderBy('v.firstName', 'ASC');
+    }
+
+    /**
+     * Volunteers the activity forms offer: a stay that hasn't ended yet,
+     * current or upcoming, so tomorrow's roster can name someone arriving
+     * tomorrow. Whether a stay covers the activity's own date is checked on
+     * save (ActivityController::resolveStays()), not here.
+     */
+    public function createWithCurrentOrUpcomingStayQueryBuilder(): QueryBuilder
+    {
+        return $this->createQueryBuilder('v')
+            ->where('EXISTS (SELECT us.id FROM ' . Stay::class . ' us WHERE us.volunteer = v AND us.endDate >= :today)')
+            ->setParameter('today', new \DateTimeImmutable('today'), Types::DATE_IMMUTABLE)
+            ->orderBy('v.lastName', 'ASC')
+            ->addOrderBy('v.firstName', 'ASC');
+    }
+
+    /**
+     * Which of a page of volunteers have a stay covering $day, in one query —
+     * the index's Status column, without a stays lazy-load per row.
+     *
+     * @param list<Volunteer> $volunteers
+     *
+     * @return array<int, true> volunteer id => true
+     */
+    public function findIdsStayingOn(array $volunteers, \DateTimeImmutable $day): array
+    {
+        if ([] === $volunteers) {
+            return [];
+        }
+
+        /** @var list<int|string> $ids */
+        $ids = $this->getEntityManager()
+            ->createQuery('SELECT IDENTITY(s.volunteer) FROM ' . Stay::class . ' s WHERE s.volunteer IN (:volunteers) AND s.startDate <= :day AND s.endDate >= :day')
+            ->setParameter('volunteers', $volunteers)
+            ->setParameter('day', $day, Types::DATE_IMMUTABLE)
+            ->getSingleColumnResult();
+
+        return array_fill_keys(array_map(intval(...), $ids), true);
+    }
+
+    /** Volunteers with a stay covering $day. One stay each at most: stays never overlap. */
+    public function countStayingOn(\DateTimeImmutable $day): int
+    {
+        return (int) $this->getEntityManager()
+            ->createQuery('SELECT COUNT(s.id) FROM ' . Stay::class . ' s WHERE s.startDate <= :day AND s.endDate >= :day')
+            ->setParameter('day', $day, Types::DATE_IMMUTABLE)
+            ->getSingleScalarResult();
     }
 
     /** @return Volunteer[] */
     public function findAllOrderedByName(): array
     {
+        // Stays fetched with the volunteers: callers like the /activities
+        // filter ask isActive() of every row, and there is no LIMIT here for a
+        // to-many join to break.
         return $this->createOrderedByNameQueryBuilder()
+            ->leftJoin('v.stays', 's')
+            ->addSelect('s')
             ->getQuery()
             ->getResult();
     }

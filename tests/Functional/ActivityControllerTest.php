@@ -7,8 +7,10 @@ namespace App\Tests\Functional;
 use App\Entity\Activity;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use App\Enum\ProjectLocation;
@@ -101,7 +103,7 @@ final class ActivityControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/activities/new');
 
         $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => '2026-08-11',
+            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'activity_form[volunteer]' => (string) $volunteer->getId(),
             'activity_form[project]' => (string) $project->getId(),
             'activity_form[activityType]' => (string) $activityType->getId(),
@@ -139,7 +141,7 @@ final class ActivityControllerTest extends WebTestCase
         $client->loginUser($creator);
         $crawler = $client->request('GET', '/activities/new');
         $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => '2026-01-15',
+            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'activity_form[volunteer]' => (string) $volunteer->getId(),
             'activity_form[project]' => (string) $project->getId(),
             'activity_form[activityType]' => (string) $activityType->getId(),
@@ -174,7 +176,7 @@ final class ActivityControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/activities/new');
         $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => '2026-08-11',
+            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'activity_form[volunteer]' => (string) $volunteer->getId(),
             'activity_form[project]' => (string) $project->getId(),
             'activity_form[activityType]' => (string) $activityType->getId(),
@@ -211,7 +213,7 @@ final class ActivityControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/activities/new');
 
         $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => '2026-08-11',
+            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'activity_form[volunteer]' => (string) $volunteer->getId(),
             'activity_form[project]' => (string) $project->getId(),
             'activity_form[activityType]' => (string) $activityType->getId(),
@@ -234,7 +236,7 @@ final class ActivityControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/activities/new');
 
         $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => '2026-08-11',
+            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'activity_form[volunteer]' => (string) $volunteer->getId(),
             'activity_form[project]' => (string) $project->getId(),
             'activity_form[activityType]' => (string) $activityType->getId(),
@@ -262,7 +264,7 @@ final class ActivityControllerTest extends WebTestCase
         $this->checkVolunteers($crawler, [$volunteerA, $volunteerB]);
 
         $form = $crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => '2026-08-28',
+            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'batch_activity_form[project]' => (string) $project->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
@@ -297,7 +299,7 @@ final class ActivityControllerTest extends WebTestCase
         $this->checkVolunteers($crawler, [$volunteer]);
 
         $form = $crawler->selectButton('Save and add another')->form([
-            'batch_activity_form[date]' => '2026-08-28',
+            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'batch_activity_form[project]' => (string) $project->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
@@ -317,7 +319,7 @@ final class ActivityControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/activities/new-batch');
 
         $form = $crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => '2026-08-28',
+            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'batch_activity_form[project]' => (string) $project->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
@@ -340,7 +342,7 @@ final class ActivityControllerTest extends WebTestCase
         $this->checkVolunteers($crawler, [$volunteer]);
 
         $form = $crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => '2026-08-28',
+            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
             'batch_activity_form[project]' => (string) $project->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'other',
@@ -355,8 +357,8 @@ final class ActivityControllerTest extends WebTestCase
     public function inactiveVolunteersAreNotOfferedOnTheSingleActivityForm(): void
     {
         $client = static::createClient();
-        $active = VolunteerFactory::createOne(['firstName' => 'Still', 'lastName' => 'Here', 'isActive' => true]);
-        $gone = VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone', 'isActive' => false]);
+        $active = VolunteerFactory::createOne(['firstName' => 'Still', 'lastName' => 'Here']);
+        $gone = VolunteerFactory::new()->inactive()->create(['firstName' => 'Long', 'lastName' => 'Gone']);
 
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/activities/new');
@@ -370,8 +372,8 @@ final class ActivityControllerTest extends WebTestCase
     public function inactiveVolunteersAreNotOfferedOnTheBatchForm(): void
     {
         $client = static::createClient();
-        $active = VolunteerFactory::createOne(['firstName' => 'Still', 'lastName' => 'Here', 'isActive' => true]);
-        $gone = VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone', 'isActive' => false]);
+        $active = VolunteerFactory::createOne(['firstName' => 'Still', 'lastName' => 'Here']);
+        $gone = VolunteerFactory::new()->inactive()->create(['firstName' => 'Long', 'lastName' => 'Gone']);
 
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/activities/new-batch');
@@ -389,7 +391,7 @@ final class ActivityControllerTest extends WebTestCase
         // Otherwise fixing a typo on a historical entry would force
         // reassigning it to somebody who wasn't there.
         $client = static::createClient();
-        $gone = VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone', 'isActive' => false]);
+        $gone = VolunteerFactory::new()->inactive()->create(['firstName' => 'Long', 'lastName' => 'Gone']);
         $activity = ActivityFactory::createOne(['volunteer' => $gone]);
 
         $client->loginUser(UserFactory::createOne());
@@ -723,7 +725,7 @@ final class ActivityControllerTest extends WebTestCase
     {
         $client = static::createClient();
         VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
-        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma', 'isActive' => false]);
+        VolunteerFactory::new()->inactive()->create(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
 
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/activities');
@@ -763,5 +765,93 @@ final class ActivityControllerTest extends WebTestCase
         $client->click($link->link());
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Aisha Achieng');
+    }
+
+    #[Test]
+    public function aBatchTiesEachActivityToTheStayCoveringItsDate(): void
+    {
+        // Two stays at two branches; the activity's date decides which one.
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $volunteer = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Ann', 'lastName' => 'Wambui']);
+        StayFactory::createOne([
+            'volunteer' => $volunteer,
+            'branch' => BranchFactory::find(['name' => 'Nairobi (HQ)']),
+            'startDate' => $today->modify('-40 days'),
+            'endDate' => $today->modify('-10 days'),
+        ]);
+        StayFactory::createOne([
+            'volunteer' => $volunteer,
+            'branch' => BranchFactory::find(['name' => 'Mombasa']),
+            'startDate' => $today->modify('-5 days'),
+            'endDate' => $today->modify('+30 days'),
+        ]);
+        $project = ProjectFactory::createOne();
+        $activityType = ActivityTypeFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new-batch');
+        $this->checkVolunteers($crawler, [$volunteer]);
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'batch_activity_form[date]' => $today->modify('-20 days')->format('Y-m-d'),
+            'batch_activity_form[project]' => (string) $project->getId(),
+            'batch_activity_form[activityType]' => (string) $activityType->getId(),
+            'batch_activity_form[duration]' => 'half_day',
+        ]));
+
+        self::assertResponseRedirects('/activities');
+        $activities = $client->getContainer()->get('doctrine')->getRepository(Activity::class)->findAll();
+        self::assertCount(1, $activities);
+        self::assertSame('Nairobi (HQ)', $activities[0]->getStay()?->getBranch()?->getName());
+    }
+
+    #[Test]
+    public function aBatchIsRefusedWholeWhenAVolunteerHasNoStayThatDay(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $here = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Wambui']);
+        // Arriving next week: offered by the picker, but not staying today.
+        $arriving = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Daniel', 'lastName' => 'Otieno']);
+        StayFactory::createOne(['volunteer' => $arriving, 'startDate' => $today->modify('+7 days'), 'endDate' => $today->modify('+30 days')]);
+        $project = ProjectFactory::createOne();
+        $activityType = ActivityTypeFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new-batch');
+        $this->checkVolunteers($crawler, [$here, $arriving]);
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'batch_activity_form[date]' => $today->format('Y-m-d'),
+            'batch_activity_form[project]' => (string) $project->getId(),
+            'batch_activity_form[activityType]' => (string) $activityType->getId(),
+            'batch_activity_form[duration]' => 'half_day',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'Daniel Otieno has no stay covering ' . $today->format('j M Y'));
+        ActivityFactory::assert()->count(0);
+    }
+
+    #[Test]
+    public function theSingleActivityFormRefusesADateOutsideTheVolunteersStays(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Wambui']);
+        $project = ProjectFactory::createOne();
+        $activityType = ActivityTypeFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'activity_form[date]' => (new \DateTimeImmutable('today'))->modify('+6 months')->format('Y-m-d'),
+            'activity_form[volunteer]' => (string) $volunteer->getId(),
+            'activity_form[project]' => (string) $project->getId(),
+            'activity_form[activityType]' => (string) $activityType->getId(),
+            'activity_form[duration]' => 'half_day',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'Ann Wambui has no stay covering');
+        ActivityFactory::assert()->count(0);
     }
 }

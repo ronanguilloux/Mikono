@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit stay for {{ volunteer.fullName }} — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <h1 class="mb-4 text-xl font-semibold">Edit stay for {{ volunteer.fullName }}</h1>
+    <twig:FormShell :form="form" cancelUrl="{{ path('volunteer_show', {id: volunteer.id}) }}" />
+{% endblock %}

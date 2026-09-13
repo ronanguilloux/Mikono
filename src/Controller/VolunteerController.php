@@ -29,7 +29,9 @@ final class VolunteerController extends AbstractController
         'name' => ['v.lastName', 'v.firstName'],
         'email' => ['v.email'],
         'phone' => ['v.phone'],
-        'status' => ['v.isActive'],
+        // The HIDDEN count createOrderedByNameQueryBuilder() selects: active is
+        // read from stays, so there is no column to sort on (ADR 0026).
+        'status' => ['isCurrent'],
     ];
 
     public function __construct(
@@ -54,6 +56,7 @@ final class VolunteerController extends AbstractController
         // the index can show Delete as unavailable rather than let the reader
         // discover it from a flash after confirming.
         $activityCounts = $this->volunteers->countReferencingActivitiesFor($volunteersOnPage);
+        $staying = $this->volunteers->findIdsStayingOn($volunteersOnPage, new \DateTimeImmutable('today'));
 
         $rows = [];
         foreach ($volunteersOnPage as $volunteer) {
@@ -65,7 +68,7 @@ final class VolunteerController extends AbstractController
                     'name' => $volunteer->getFullName(),
                     'email' => $volunteer->getEmail() ?? '—',
                     'phone' => $volunteer->getPhone() ?? '—',
-                    'status' => $volunteer->isActive() ? 'Active' : 'Inactive',
+                    'status' => null !== $id && isset($staying[$id]) ? 'Active' : 'Inactive',
                 ],
                 'actions' => [
                     ['label' => 'View', 'url' => $this->generateUrl('volunteer_show', ['id' => $id])],
@@ -122,8 +125,14 @@ final class VolunteerController extends AbstractController
 
         $totalDays = 0.0;
         $mostRecent = null;
+        $activityCountsByStay = [];
         foreach ($activities as $activity) {
             $totalDays += $activity->getDuration()?->toDays() ?? 0.0;
+
+            $stayId = $activity->getStay()?->getId();
+            if (null !== $stayId) {
+                $activityCountsByStay[$stayId] = ($activityCountsByStay[$stayId] ?? 0) + 1;
+            }
 
             $date = $activity->getDate();
             if (null !== $date && (null === $mostRecent || $date > $mostRecent)) {
@@ -133,8 +142,32 @@ final class VolunteerController extends AbstractController
 
         $today = new \DateTimeImmutable('today');
 
+        // The Stays panel's Edit/Delete, with Delete inert on a stay that
+        // activities are logged in — the same guard StayController::delete()
+        // enforces, read from the activities already loaded above.
+        $stays = [];
+        foreach ($volunteer->getStays() as $stay) {
+            $referencingCount = $activityCountsByStay[(int) $stay->getId()] ?? 0;
+            $stays[] = [
+                'stay' => $stay,
+                'actions' => [
+                    ['label' => 'Edit', 'url' => $this->generateUrl('stay_edit', ['id' => $stay->getId()])],
+                    $referencingCount > 0
+                        ? ['label' => 'Delete', 'disabledReason' => StayController::guardReason($referencingCount)]
+                        : [
+                            'label' => 'Delete',
+                            'url' => $this->generateUrl('stay_delete', ['id' => $stay->getId()]),
+                            'method' => 'post',
+                            'confirm' => sprintf('Delete the stay at %s?', $stay->getBranch()?->getName() ?? 'this branch'),
+                            'csrfTokenId' => StayController::csrfTokenId($stay),
+                        ],
+                ],
+            ];
+        }
+
         return $this->render('volunteer/show.html.twig', [
             'volunteer' => $volunteer,
+            'stays' => $stays,
             'activities' => $activities,
             'activityCount' => count($activities),
             'totalDays' => $totalDays,

@@ -6,7 +6,6 @@ namespace App\Form;
 
 use App\Entity\Volunteer;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -25,8 +24,8 @@ final class VolunteerFormType extends AbstractType
             ->add('lastName', TextType::class, ['required' => false])
             ->add('email', EmailType::class, ['required' => false])
             ->add('phone', TelType::class, ['required' => false])
-            ->add('notes', TextareaType::class, ['required' => false])
-            ->add('isActive', CheckboxType::class, ['required' => false, 'label' => 'Active']);
+            // No Active checkbox: active is read from the volunteer's stays (ADR 0026).
+            ->add('notes', TextareaType::class, ['required' => false]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

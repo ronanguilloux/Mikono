@@ -67,8 +67,11 @@ are the reason this is a human pass rather than a parser.
     ([ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
 11. **`active: false`** for a volunteer whose last roster appearance is
     more than a week before the end of the archive, or who says goodbye
-    in the group. Volunteers leave after a few weeks; that is normal and
-    is what `Volunteer::$isActive` is for.
+    in the group. Volunteers leave after a few weeks; that is normal. The
+    flag decides where the fixtures end that volunteer's one stay: at
+    their last roster appearance, or at the archive's last day for
+    `active: true` — so it is what makes them active or not once loaded.
+    A volunteer's sites must therefore all share one `location`.
 
 ## What the archive cannot supply
 

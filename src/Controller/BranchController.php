@@ -15,8 +15,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Same shape as ProjectController, minus the delete-guard: nothing references
- * a branch yet. The first relation brings the guard with it.
+ * Same shape as ProjectController. The delete-guard counts stays: a branch
+ * volunteers stayed at can't be deleted, only marked inactive (ADR 0025).
  */
 #[Route('/branches', name: 'branch_')]
 final class BranchController extends AbstractController
@@ -47,9 +47,15 @@ final class BranchController extends AbstractController
 
         $pagination = $this->paginator->paginateQuery($queryBuilder, Branch::class, $request);
 
+        /** @var list<Branch> $branchesOnPage */
+        $branchesOnPage = iterator_to_array($pagination, false);
+        $stayCounts = $this->branches->countReferencingStaysFor($branchesOnPage);
+
         $rows = [];
-        /** @var Branch $branch */
-        foreach ($pagination as $branch) {
+        foreach ($branchesOnPage as $branch) {
+            $id = $branch->getId();
+            $referencingCount = null === $id ? 0 : ($stayCounts[$id] ?? 0);
+
             $rows[] = [
                 'cells' => [
                     'name' => $branch->getName(),
@@ -57,14 +63,16 @@ final class BranchController extends AbstractController
                     'status' => $branch->isActive() ? 'Active' : 'Inactive',
                 ],
                 'actions' => [
-                    ['label' => 'Edit', 'url' => $this->generateUrl('branch_edit', ['id' => $branch->getId()])],
-                    [
-                        'label' => 'Delete',
-                        'url' => $this->generateUrl('branch_delete', ['id' => $branch->getId()]),
-                        'method' => 'post',
-                        'confirm' => sprintf('Delete %s?', $branch->getName()),
-                        'csrfTokenId' => $this->csrfTokenId($branch),
-                    ],
+                    ['label' => 'Edit', 'url' => $this->generateUrl('branch_edit', ['id' => $id])],
+                    $referencingCount > 0
+                        ? ['label' => 'Delete', 'disabledReason' => $this->guardReason($branch, $referencingCount)]
+                        : [
+                            'label' => 'Delete',
+                            'url' => $this->generateUrl('branch_delete', ['id' => $id]),
+                            'method' => 'post',
+                            'confirm' => sprintf('Delete %s?', $branch->getName()),
+                            'csrfTokenId' => $this->csrfTokenId($branch),
+                        ],
                 ],
             ];
         }
@@ -115,7 +123,15 @@ final class BranchController extends AbstractController
             return $this->redirectToRoute('branch_index');
         }
 
-        return $this->render('branch/edit.html.twig', ['form' => $form, 'branch' => $branch]);
+        $referencingCount = $this->branches->countReferencingStays($branch);
+
+        return $this->render('branch/edit.html.twig', [
+            'form' => $form,
+            'branch' => $branch,
+            'deleteGuardReason' => $referencingCount > 0
+                ? $this->guardReason($branch, $referencingCount)
+                : null,
+        ]);
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
@@ -128,12 +144,34 @@ final class BranchController extends AbstractController
             return $this->redirectToRoute('branch_index');
         }
 
+        $referencingCount = $this->branches->countReferencingStays($branch);
+        if ($referencingCount > 0) {
+            $this->addFlash('error', $this->guardReason($branch, $referencingCount));
+
+            return $this->redirectToRoute('branch_index');
+        }
+
         $this->entityManager->remove($branch);
         $this->entityManager->flush();
 
         $this->addFlash('success', sprintf('%s was deleted.', $branch->getName()));
 
         return $this->redirectToRoute('branch_index');
+    }
+
+    /**
+     * Shared by the index's greyed-out Delete, the edit screen's note and the
+     * refusal in delete(), so the three can't drift apart.
+     */
+    private function guardReason(Branch $branch, int $referencingCount): string
+    {
+        return sprintf(
+            'Cannot delete %s — %d volunteer stay%s %s there. Mark it inactive instead.',
+            $branch->getName(),
+            $referencingCount,
+            1 === $referencingCount ? '' : 's',
+            1 === $referencingCount ? 'is' : 'are',
+        );
     }
 
     private function csrfTokenId(Branch $branch): string

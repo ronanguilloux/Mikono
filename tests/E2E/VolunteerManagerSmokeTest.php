@@ -7,6 +7,7 @@ namespace App\Tests\E2E;
 use App\Enum\ProjectLocation;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use DAMA\DoctrineTestBundle\PHPUnit\SkipDatabaseRollback;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
@@ -60,10 +61,14 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
         $volunteerRepository = self::getContainer()->get('doctrine')->getRepository(\App\Entity\Volunteer::class);
         $volunteer = $volunteerRepository->findOneBy(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
         \assert($volunteer instanceof \App\Entity\Volunteer);
+        // A new volunteer has no stay yet, and the activity form only offers
+        // volunteers with one (ADR 0026). The Stays screen has its own
+        // functional tests; this walk only needs one to exist.
+        StayFactory::createOne(['volunteer' => $volunteer]);
 
         $client->request('GET', '/activities/new');
         $client->executeScript(
-            "document.querySelector('input[name=\"activity_form[date]\"]').value = '2026-08-11';",
+            sprintf("document.querySelector('input[name=\"activity_form[date]\"]').value = '%s';", (new \DateTimeImmutable('today'))->format('Y-m-d')),
         );
         (new WebDriverSelect($client->findElement(WebDriverBy::name('activity_form[volunteer]'))))
             ->selectByValue((string) $volunteer->getId());

@@ -42,3 +42,4 @@ agent that drafts these.
 | [06](06-usage-analytics-cockpit.md) | Usage analytics: an observability cockpit | [0021](../adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md) |
 | [07](07-ponytail-audit.md) | Ponytail analytics: what could be simplified | |
 | [08](08-off-site-encrypted-backups.md) | Off-site encrypted backups: who can decrypt, who can delete | [0017](../adr/0017-host-production-on-gandicloud-vps-in-france.md) |
+| [09](09-volunteer-stays-at-branches.md) | Volunteer stays at branches | [0025](../adr/0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md), [0026](../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) |

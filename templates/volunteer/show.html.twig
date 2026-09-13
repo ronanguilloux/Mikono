@@ -73,6 +73,40 @@
         </dl>
     </div>
 
+    <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-stays>
+        {#
+            A stay is a stint at one branch. Activities can only be logged on a
+            day a stay covers, and "Active" above means a stay covers today.
+        #}
+        <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Stays</h2>
+            <a href="{{ path('volunteer_stay_new', {id: volunteer.id}) }}" class="text-sm text-brand-600 hover:underline">+ Add stay</a>
+        </div>
+        <ul class="divide-y divide-slate-100">
+            {% for row in stays %}
+                {% set stay = row.stay %}
+                <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <div class="text-sm">
+                        <span class="font-medium text-slate-800">{{ stay.branch.name }}</span>
+                        <span class="text-slate-600">· {{ stay.startDate|date('j M Y') }} – {{ stay.endDate|date('j M Y') }}</span>
+                        {% if stay.covers(today) %}
+                            <span class="ml-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-800">Current</span>
+                        {% elseif stay.startDate > today %}
+                            <span class="ml-1 rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">Upcoming</span>
+                        {% else %}
+                            <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Past</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex gap-3 text-sm">
+                        <twig:RowActions :actions="row.actions" />
+                    </div>
+                </li>
+            {% else %}
+                <li class="text-sm text-slate-400">No stays yet — add one before logging activities.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
     <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4">
         <div class="mb-3 flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Notes</h2>
@@ -110,7 +144,7 @@
                     <div class="text-sm font-medium text-slate-800">
                         {{ activity.date|date('D j M Y') }}{% if isPlanned %} · Planned{% endif %}
                     </div>
-                    <div class="text-sm text-slate-600">{{ activity.project.name }}</div>
+                    <div class="text-sm text-slate-600">{{ activity.project.name }} · {{ activity.stay.branch.name }}</div>
                     <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span class="rounded-full bg-slate-100 px-2 py-0.5">{{ activity.activityType.name }}</span>
                         <span>{{ durationLabel }}</span>

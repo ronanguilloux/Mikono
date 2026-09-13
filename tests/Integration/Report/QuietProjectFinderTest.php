@@ -75,7 +75,7 @@ final class QuietProjectFinderTest extends KernelTestCase
         $today = new \DateTimeImmutable('today');
         ActivityFactory::createOne([
             'date' => $today->modify('-70 days'),
-            'volunteer' => VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone', 'isActive' => true]),
+            'volunteer' => VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone']),
             'project' => ProjectFactory::createOne(['name' => 'Peggy Lucas school']),
         ]);
 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\VolunteerRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -36,8 +38,15 @@ class Volunteer
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notes = null;
 
-    #[ORM\Column]
-    private bool $isActive = true;
+    /**
+     * Newest first. Whether a volunteer is active is read from these, never
+     * stored: a stay ending is what "finished their stint" means.
+     *
+     * @var Collection<int, Stay>
+     */
+    #[ORM\OneToMany(targetEntity: Stay::class, mappedBy: 'volunteer', cascade: ['remove'])]
+    #[ORM\OrderBy(['startDate' => 'DESC'])]
+    private Collection $stays;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -47,6 +56,7 @@ class Volunteer
 
     public function __construct()
     {
+        $this->stays = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -122,16 +132,45 @@ class Volunteer
         return $this;
     }
 
-    public function isActive(): bool
+    /** @return Collection<int, Stay> */
+    public function getStays(): Collection
     {
-        return $this->isActive;
+        return $this->stays;
     }
 
-    public function setIsActive(bool $isActive): static
+    public function addStay(Stay $stay): static
     {
-        $this->isActive = $isActive;
+        if (!$this->stays->contains($stay)) {
+            $this->stays->add($stay);
+            $stay->setVolunteer($this);
+        }
 
         return $this;
+    }
+
+    public function removeStay(Stay $stay): static
+    {
+        $this->stays->removeElement($stay);
+
+        return $this;
+    }
+
+    /** The stay covering $day (a calendar day, midnight), if any. Stays never overlap. */
+    public function getStayCovering(\DateTimeImmutable $day): ?Stay
+    {
+        foreach ($this->stays as $stay) {
+            if ($stay->covers($day)) {
+                return $stay;
+            }
+        }
+
+        return null;
+    }
+
+    /** Active means a stay covers today. See ADR 0026. */
+    public function isActive(): bool
+    {
+        return null !== $this->getStayCovering(new \DateTimeImmutable('today'));
     }
 
     public function getCreatedAt(): \DateTimeImmutable

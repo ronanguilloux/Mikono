@@ -17,6 +17,8 @@ use App\Repository\ActivityRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -141,7 +143,7 @@ final class ActivityController extends AbstractController
         $form = $this->createForm(ActivityFormType::class, $activity);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form->get('date'), [$activity])) {
             $activity->setLoggedBy($this->loggedByUser());
             $this->entityManager->persist($activity);
             $this->entityManager->flush();
@@ -169,6 +171,7 @@ final class ActivityController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $loggedBy = $this->loggedByUser();
+            $activities = [];
 
             foreach ($data->volunteers as $volunteer) {
                 $activity = new Activity();
@@ -183,19 +186,26 @@ final class ActivityController extends AbstractController
                 }
                 $activity->setNotes($data->notes);
                 $activity->setLoggedBy($loggedBy);
-                $this->entityManager->persist($activity);
+                $activities[] = $activity;
             }
 
-            $this->entityManager->flush();
+            // All or nothing: one volunteer without a stay that day refuses
+            // the whole batch, rather than logging the others and losing them.
+            if ($this->resolveStays($form->get('date'), $activities)) {
+                foreach ($activities as $activity) {
+                    $this->entityManager->persist($activity);
+                }
+                $this->entityManager->flush();
 
-            $count = count($data->volunteers);
-            $this->addFlash('success', sprintf('Logged %d %s.', $count, 1 === $count ? 'activity' : 'activities'));
+                $count = count($activities);
+                $this->addFlash('success', sprintf('Logged %d %s.', $count, 1 === $count ? 'activity' : 'activities'));
 
-            if ('add_another' === $request->request->get('save_action')) {
-                return $this->redirectToRoute('activity_new_batch');
+                if ('add_another' === $request->request->get('save_action')) {
+                    return $this->redirectToRoute('activity_new_batch');
+                }
+
+                return $this->redirectToRoute('activity_index');
             }
-
-            return $this->redirectToRoute('activity_index');
         }
 
         return $this->render('activity/new_batch.html.twig', [
@@ -213,7 +223,7 @@ final class ActivityController extends AbstractController
         $form = $this->createForm(ActivityFormType::class, $activity);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form->get('date'), [$activity])) {
             $activity->touch();
             $this->entityManager->flush();
 
@@ -274,6 +284,49 @@ final class ActivityController extends AbstractController
         }
 
         return $this->entityManager->find(Project::class, (int) $raw);
+    }
+
+    /**
+     * Ties each activity to its volunteer's stay on the activity's date — the
+     * stay is what gives an activity its branch (ADR 0026). Re-resolved on
+     * every save, so a changed date or volunteer can't keep the old stay.
+     *
+     * A volunteer with no stay that day is refused: the error lands on
+     * $field, which makes the form invalid, so render() answers 422.
+     *
+     * @param FormInterface<mixed> $field
+     * @param list<Activity>       $activities all sharing one date
+     */
+    private function resolveStays(FormInterface $field, array $activities): bool
+    {
+        $missing = [];
+        $date = null;
+
+        foreach ($activities as $activity) {
+            $date = $activity->getDate();
+            $volunteer = $activity->getVolunteer();
+            $stay = null === $date ? null : $volunteer?->getStayCovering($date);
+
+            if (null === $stay) {
+                $missing[] = $volunteer?->getFullName() ?? 'The volunteer';
+                continue;
+            }
+
+            $activity->setStay($stay);
+        }
+
+        if ([] === $missing) {
+            return true;
+        }
+
+        $field->addError(new FormError(sprintf(
+            '%s %s no stay covering %s — add one on their volunteer page first.',
+            implode(', ', $missing),
+            1 === count($missing) ? 'has' : 'have',
+            $date?->format('j M Y') ?? 'that day',
+        )));
+
+        return false;
     }
 
     private function loggedByUser(): ?User

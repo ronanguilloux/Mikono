@@ -88,14 +88,10 @@ final class BatchActivityFormType extends AbstractType
                 'choice_attr' => static fn(Volunteer $volunteer) => [
                     'data-name' => $volunteer->getFullName(),
                 ],
-                // Active volunteers only — this form only ever creates new
-                // activities, so somebody who has finished their stint is
+                // Current or upcoming stays only — this form only ever creates
+                // new activities, so somebody who has finished their stint is
                 // never a valid answer to "who attended?".
-                'query_builder' => static fn(VolunteerRepository $volunteers): QueryBuilder => $volunteers->createQueryBuilder('v')
-                    ->where('v.isActive = :active')
-                    ->setParameter('active', true)
-                    ->orderBy('v.lastName', 'ASC')
-                    ->addOrderBy('v.firstName', 'ASC'),
+                'query_builder' => static fn(VolunteerRepository $volunteers): QueryBuilder => $volunteers->createWithCurrentOrUpcomingStayQueryBuilder(),
                 'multiple' => true,
                 'expanded' => true,
                 'label' => 'Who attended?',

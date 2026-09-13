@@ -64,8 +64,8 @@ final class ReportControllerTest extends WebTestCase
     public function theKpiTilesReportHeadlineFigures(): void
     {
         $client = static::createClient();
-        $volunteer = VolunteerFactory::createOne(['isActive' => true]);
-        VolunteerFactory::createOne(['isActive' => false]);
+        $volunteer = VolunteerFactory::createOne();
+        VolunteerFactory::new()->inactive()->create();
         $project = ProjectFactory::createOne();
         $activityType = ActivityTypeFactory::createOne();
         ActivityFactory::createOne([

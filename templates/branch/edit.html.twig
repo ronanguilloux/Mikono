@@ -4,5 +4,12 @@
 
 {% block body %}
     <h1 class="mb-4 text-xl font-semibold">Edit {{ branch.name }}</h1>
+
+    {% if deleteGuardReason %}
+        <p
+            class="mb-4 max-w-lg rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900"
+            data-delete-guard-note
+        >{{ deleteGuardReason }}</p>
+    {% endif %}
     <twig:FormShell :form="form" cancelUrl="{{ path('branch_index') }}" :formAttr="{}" />
 {% endblock %}

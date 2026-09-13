@@ -56,6 +56,28 @@ final class RosterArchiveTest extends TestCase
     }
 
     #[Test]
+    public function everyVolunteerWorksSitesInASingleLocation(): void
+    {
+        // AppStory gives each volunteer one stay, at one branch, read off the
+        // locations of the sites they worked (ADR 0026). A volunteer on both
+        // Kibera and Mombasa rosters needs two stays the story can't infer.
+        $archive = self::archive();
+        $locations = [];
+
+        foreach ($archive->rosters as $roster) {
+            foreach ($roster->sites as $site) {
+                foreach ($site->volunteers as $slot) {
+                    $locations[$slot->name][$archive->projects[$site->projectKey]->location->value] = true;
+                }
+            }
+        }
+
+        foreach ($locations as $name => $seen) {
+            self::assertCount(1, $seen, "Volunteer \"{$name}\" works sites in more than one location.");
+        }
+    }
+
+    #[Test]
     public function noVolunteerIsRecordedTwiceUnderTheSameName(): void
     {
         $names = array_map(static fn($volunteer) => $volunteer->name, self::archive()->volunteers);

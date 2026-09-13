@@ -28,8 +28,8 @@ final class ActivityFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        // Inactive volunteers have finished their stint — offering them when
-        // logging an activity is noise. The one exception is this form's other
+        // Volunteers whose stays have all ended have finished their stint —
+        // offering them when logging an activity is noise. The one exception is this form's other
         // job, /activities/{id}/edit: the activity's own volunteer stays
         // selectable even once deactivated, so fixing a typo on an old entry
         // never forces reassigning it to somebody else.
@@ -40,17 +40,17 @@ final class ActivityFormType extends AbstractType
             ->add('date', DateType::class, ['widget' => 'single_text'])
             ->add('volunteer', EntityType::class, [
                 'class' => Volunteer::class,
-                'choice_label' => static fn(Volunteer $volunteer) => $volunteer->getFullName() . ($volunteer->isActive() ? '' : ' (inactive)'),
+                // Only the escape-hatch volunteer can be inactive; asking the
+                // rest would lazy-load every choice's stays for nothing.
+                'choice_label' => static fn(Volunteer $volunteer) => $volunteer->getFullName() . ($volunteer === $currentVolunteer && !$volunteer->isActive() ? ' (inactive)' : ''),
                 'query_builder' => static function (VolunteerRepository $volunteers) use ($currentVolunteer): QueryBuilder {
-                    $builder = $volunteers->createQueryBuilder('v')
-                        ->where('v.isActive = :active')
-                        ->setParameter('active', true);
+                    $builder = $volunteers->createWithCurrentOrUpcomingStayQueryBuilder();
 
                     if (null !== $currentVolunteer) {
                         $builder->orWhere('v = :current')->setParameter('current', $currentVolunteer);
                     }
 
-                    return $builder->orderBy('v.lastName', 'ASC')->addOrderBy('v.firstName', 'ASC');
+                    return $builder;
                 },
                 'placeholder' => 'Choose a volunteer',
             ])

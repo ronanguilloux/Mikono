@@ -1,6 +1,6 @@
 # 0025. Model UCESCO branches as a standalone reference entity seeded by migration
 
-Date: 2026-09-13
+Date: 2026-09-14
 
 ## Status
 
@@ -10,18 +10,20 @@ Accepted
 
 UCESCO works from five offices: Nairobi (HQ), Mombasa, Samburu, Uganda and
 USA (Global). Each has a physical location, the zones its projects run in
-and a program focus. The app had no record of them, and the Volunteer
-Manager needs to see them and keep them up to date.
+and a program focus. The Volunteer Manager needs to see them and keep them
+up to date.
 
 These rows are real reference data, not demo data. Production needs them
 from its first deploy. They change rarely, but they do change, and the VM
 makes those changes herself.
 
-Nobody has decided yet how branches relate to Projects or Volunteers.
+Volunteers are attached to branches through dated stays
+([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
+Projects have no branch.
 
 ## Decision
 
-**UCESCO branches are a standalone `Branch` entity that the VM edits in
+**UCESCO branches are a `Branch` reference entity that the VM edits in
 Settings → Branches. The migration that creates the table inserts the five
 real rows.**
 
@@ -31,9 +33,12 @@ real rows.**
 - `/branches` has the same index/new/edit/delete shape as Projects:
   `DataTable`, sorting through `ListPaginator`, a CSRF-protected delete,
   and `ROLE_USER` access.
-- `Branch` is not linked to any other entity. That is why it has no
-  delete-guard. **The first relation added to `Branch` must add one**, or
-  deleting a branch will break the rows that reference it.
+- `Stay` references `Branch`
+  ([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
+  **Deleting a branch that has stays is refused**: Delete is shown inert,
+  and the server refuses it as well. Any further relation added to
+  `Branch` needs its own delete-guard, or deleting a branch will break the
+  rows that reference it.
 - The table-creating migration inserts the rows, not `AppStory`. The
   entrypoint runs migrations, so production gets the rows on deploy.
   Foundry's reset mode is `migrate` in dev and test, so
@@ -59,9 +64,10 @@ real rows.**
   fresh dev database drift apart.
 - **Negative / trade-offs:** free-text zones and focus cannot be queried
   or validated. That is acceptable while nothing reads them.
-- **Reversibility:** cheap. Nothing references `Branch`, so dropping the
-  table or reshaping it takes one migration. Once a relation exists, it
-  costs as much as any other entity change.
+- **Reversibility:** moderate. Reshaping `Branch`'s own columns takes one
+  migration. Removing the entity would also mean undoing stays, which
+  every activity depends on
+  ([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
 
 ## Alternatives considered
 

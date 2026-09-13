@@ -104,7 +104,7 @@ final class DashboardControllerTest extends WebTestCase
         $client = static::createClient();
         ActivityFactory::createOne([
             'date' => (new \DateTimeImmutable('today'))->modify('-70 days'),
-            'volunteer' => VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone', 'isActive' => true]),
+            'volunteer' => VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone']),
         ]);
 
         $client->loginUser(UserFactory::createOne());

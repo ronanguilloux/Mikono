@@ -6,10 +6,13 @@ namespace App\Story;
 
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
+use App\Enum\ProjectLocation;
 use App\Fixture\RosterArchive;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Zenstruck\Foundry\Attribute\AsFixture;
@@ -54,7 +57,8 @@ final class AppStory extends Story
                 'email' => null,
                 'phone' => null,
                 'notes' => $volunteer->notes,
-                'isActive' => $volunteer->active,
+                // Built below from the rosters, not the factory's default.
+                'stays' => [],
             ]);
         }
 
@@ -82,6 +86,50 @@ final class AppStory extends Story
         // moves, the people don't, and the days keep their real spacing.
         $shift = $archive->anchorDay()->diff(new \DateTimeImmutable('today'));
 
+        // One stay per volunteer, read off the archive rather than invented
+        // (ADR 0012, ADR 0026): first to last roster appearance, at the branch
+        // of the sites they worked. `active: true` means still on the rosters
+        // as the archive ends (docs/fixtures/README.md rule 11), so that stay
+        // runs to the archive's last day.
+        $branches = [
+            ProjectLocation::Kibera->value => BranchFactory::find(['name' => 'Nairobi (HQ)']),
+            ProjectLocation::Mombasa->value => BranchFactory::find(['name' => 'Mombasa']),
+        ];
+        $spans = [];
+        $archiveEnd = null;
+        foreach ($archive->rosters as $roster) {
+            $date = $roster->date->add($shift);
+            $archiveEnd = max($archiveEnd ?? $date, $date);
+
+            foreach ($roster->sites as $site) {
+                $location = $archive->projects[$site->projectKey]->location;
+
+                foreach ($site->volunteers as $slot) {
+                    $span = $spans[$slot->name] ?? ['start' => $date, 'end' => $date, 'location' => $location];
+                    if ($span['location'] !== $location) {
+                        throw new \RuntimeException(sprintf('"%s" works sites in two locations; the fixtures give each volunteer a single stay.', $slot->name));
+                    }
+
+                    $spans[$slot->name] = ['start' => min($span['start'], $date), 'end' => max($span['end'], $date), 'location' => $location];
+                }
+            }
+        }
+
+        $stays = [];
+        foreach ($archive->volunteers as $volunteer) {
+            $span = $spans[$volunteer->name] ?? null;
+            if (null === $span || null === $archiveEnd) {
+                continue;
+            }
+
+            $stays[$volunteer->name] = StayFactory::createOne([
+                'volunteer' => $volunteers[$volunteer->name],
+                'branch' => $branches[$span['location']->value],
+                'startDate' => $span['start'],
+                'endDate' => $volunteer->active ? max($span['end'], $archiveEnd) : $span['end'],
+            ]);
+        }
+
         foreach ($archive->rosters as $roster) {
             $date = $roster->date->add($shift);
 
@@ -95,6 +143,7 @@ final class AppStory extends Story
                     ActivityFactory::createOne([
                         'date' => $date,
                         'volunteer' => $volunteers[$slot->name] ?? throw new \RuntimeException(sprintf('Roster names a volunteer the archive does not list: "%s".', $slot->name)),
+                        'stay' => $stays[$slot->name],
                         'project' => $projects[$site->projectKey],
                         'activityType' => $activityTypes[$archive->projects[$site->projectKey]->activityType],
                         'duration' => $site->duration,

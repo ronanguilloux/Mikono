@@ -20,8 +20,8 @@ final class ReportMetricsCalculatorTest extends KernelTestCase
     public function countsVolunteersAndProjectsBothInTotalAndActive(): void
     {
         self::bootKernel();
-        VolunteerFactory::createMany(2, ['isActive' => true]);
-        VolunteerFactory::createOne(['isActive' => false]);
+        VolunteerFactory::createMany(2);
+        VolunteerFactory::new()->inactive()->create();
         ProjectFactory::createMany(3, ['isActive' => true]);
         ProjectFactory::createOne(['isActive' => false]);
 

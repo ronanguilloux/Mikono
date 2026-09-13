@@ -17,6 +17,9 @@ use App\Repository\VolunteerRepository;
  * every activity to produce the tables below the tiles, this app serves one
  * Volunteer Manager over hundreds of rows, and a dedicated repository method
  * per figure would be more code to keep mutation-tested for no gain.
+ *
+ * The one exception is active volunteers: active is read from stays (ADR
+ * 0026), and asking each volunteer would lazy-load every volunteer's stays.
  */
 final class ReportMetricsCalculator
 {
@@ -56,7 +59,7 @@ final class ReportMetricsCalculator
 
         return new ReportMetrics(
             \count($volunteers),
-            \count(array_filter($volunteers, static fn($volunteer) => $volunteer->isActive())),
+            $this->volunteers->countStayingOn($today),
             \count($projects),
             \count(array_filter($projects, static fn($project) => $project->isActive())),
             $activityCount,

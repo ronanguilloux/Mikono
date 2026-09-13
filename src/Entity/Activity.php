@@ -29,6 +29,16 @@ class Activity
     #[Assert\NotNull]
     private ?Volunteer $volunteer = null;
 
+    /**
+     * The volunteer's stay covering this activity's date — what gives the
+     * activity its branch. ActivityController resolves it from volunteer and
+     * date on every save, which is why it is never a form field and why
+     * $volunteer can stay alongside it without drifting. See ADR 0026.
+     */
+    #[ORM\ManyToOne(targetEntity: Stay::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Stay $stay = null;
+
     #[ORM\ManyToOne(targetEntity: Project::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull]
@@ -103,6 +113,18 @@ class Activity
     public function setVolunteer(?Volunteer $volunteer): static
     {
         $this->volunteer = $volunteer;
+
+        return $this;
+    }
+
+    public function getStay(): ?Stay
+    {
+        return $this->stay;
+    }
+
+    public function setStay(?Stay $stay): static
+    {
+        $this->stay = $stay;
 
         return $this;
     }
