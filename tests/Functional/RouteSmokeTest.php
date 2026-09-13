@@ -6,6 +6,7 @@ namespace App\Tests\Functional;
 
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
@@ -28,7 +29,7 @@ final class RouteSmokeTest extends WebTestCase
      * Route-name prefix => the seeded entity whose id fills that route's
      * `{id}`. Longest first: `activity_type_` must win over `activity_`.
      */
-    private const ID_PREFIXES = ['activity_type_', 'activity_', 'escort_', 'project_', 'user_', 'volunteer_'];
+    private const ID_PREFIXES = ['activity_type_', 'activity_', 'branch_', 'escort_', 'project_', 'user_', 'volunteer_'];
 
     #[Test]
     public function everyGetRouteRendersWithoutAServerError(): void
@@ -94,6 +95,7 @@ final class RouteSmokeTest extends WebTestCase
         return [
             'activity_type_' => (int) $activityType->getId(),
             'activity_' => (int) $activity->getId(),
+            'branch_' => (int) BranchFactory::createOne()->getId(),
             'escort_' => (int) $escort->getId(),
             'project_' => (int) $project->getId(),
             'user_' => (int) UserFactory::createOne()->getId(),

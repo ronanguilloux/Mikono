@@ -2,12 +2,15 @@
 
 UCESCO Volunteer Manager (VM) — a Symfony 8.1 web app so UCESCO's
 Volunteer Manager can track volunteers working at UCESCO's projects in
-Kibera (Nairobi) and Mombasa. v0.1 scope: login-protected CRUD for
-Volunteers, Projects, Activity Types, Users, and Activities (the log
-entries), plus a basic per-volunteer/per-project report. See
-`docs/adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md`
-for the stack decision and `docs/brainstorm/02-volunteer-manager-v0.1-context.md`
-for the full narrative.
+Kibera (Nairobi) and Mombasa: login-protected CRUD for Volunteers,
+Projects, Activity Types, Escorts, Users and Activities (the log entries),
+a home screen of daily rosters, `/reports`, and an admin `/usage` screen.
+Stack decision:
+[ADR 0003](docs/adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md);
+narrative: `docs/brainstorm/02-volunteer-manager-v0.1-context.md`.
+
+This file holds **conventions and traps**. The reasons behind a decision
+live in its ADR — link to it rather than restating it here.
 
 ## Working rhythm (read this before starting, apply it before finishing)
 
@@ -16,202 +19,148 @@ for the full narrative.
   card you're picking up** from
   [`docs/project/backlog/`](docs/project/backlog/). `next-steps.md` is an
   ordered index, nothing more — Now / Next / Later, one link per item. The
-  card holds the actual why, the acceptance criteria and the links. Read
-  one card, not the folder.
+  card holds the why, the acceptance criteria and the links. Read one card,
+  not the folder.
 - **A new request becomes a card**, not a line in `next-steps.md`: copy
   [`docs/project/backlog/template.md`](docs/project/backlog/template.md),
   fill the frontmatter, add one link to the index.
   [`docs/project/backlog/README.md`](docs/project/backlog/README.md) has
   the field vocabulary. Never write an item's description into
-  `next-steps.md` — the index describes nothing, and two mutable lists of
-  the same work is how that file reached 449 lines once.
+  `next-steps.md` — the index describes nothing
+  ([ADR 0022](docs/adr/0022-split-next-steps-into-backlog-cards-and-a-thin-index.md)).
 - **Finish an item by deleting its card** and removing its line from the
-  index. Then, per
-  [`docs/project/README.md`](docs/project/README.md): if it was an
-  architectural decision it gets an ADR in
-  [`docs/adr/`](docs/adr/) (at most a one-line pointer in `done.md`);
-  otherwise append a dated entry to
+  index. Then, per [`docs/project/README.md`](docs/project/README.md): an
+  architectural decision gets an ADR in [`docs/adr/`](docs/adr/) (at most a
+  one-line pointer in `done.md`); anything else gets a dated entry in
   [`docs/project/done.md`](docs/project/done.md). Not both, and never
   "done" text left behind in a card or the index.
 - **Research or narrative that hasn't settled into a decision** goes in
-  [`docs/brainstorm/`](docs/brainstorm/), not in a card — a card says what
-  to do and how you'll know it's done, and links to the narrative behind
-  it. A card growing an "Options considered" section wants a brainstorm
-  file. Don't read that folder at session start: most of it describes
-  decisions already shipped and locked into ADRs. Open a brainstorm file
-  when you pick up the card that links to it.
+  [`docs/brainstorm/`](docs/brainstorm/), not in a card. A card growing an
+  "Options considered" section wants a brainstorm file. Don't read that
+  folder at session start; open a brainstorm file when you pick up the card
+  that links to it.
 - **This file holds conventions; the backlog does not.** Don't copy rules
   from here into a card or the index.
 
 ## Decision capture
 
-Architectural decisions are recorded as they're made, not reconstructed
-later:
-
 - The narrative behind a new feature or slice — audience, desired impact,
   rejected alternatives, constraints — goes in `docs/brainstorm/` first,
-  via the `context-capturer` Claude Code subagent.
-- Once a decision is finalized, it's locked in as a permanent record in
-  `docs/adr/`, via the `adr-scribe` Claude Code subagent. ADRs are
-  immutable once accepted — a changed decision gets a new ADR that
-  supersedes the old one.
+  via the `context-capturer` subagent.
+- A finalized decision is recorded in `docs/adr/` via the `adr-scribe`
+  subagent. ADRs are **living**: each states the decision currently in
+  force, and a changed decision is rewritten in place (or merged, or
+  deleted) — git log is the history. No session narrative or "outstanding"
+  status in an ADR; see `docs/adr/README.md`.
 
 Every non-trivial architectural decision (stack, structure, service
 boundaries, data model) gets an ADR before or alongside the code that
-implements it. See `docs/adr/README.md` and `docs/brainstorm/README.md`.
+implements it.
 
 ## Directory map
 
-- `docs/adr/` — Architecture Decision Records, one immutable file per
-  decision.
-- `docs/brainstorm/` — narrative context behind a feature or slice,
-  written before the decision it leads to is locked in.
-- `docs/project/` — living status docs, mutable unlike the two above:
-  `backlog/` (one card per open item, the full text of what to do — meant
-  to grow), `next-steps.md` (a short ordered index of those cards, Now /
-  Next / Later, holding no item text itself) and `done.md` (growing log of
-  completed work that isn't itself an
-  ADR). See `docs/project/README.md` for the rule on which one a
-  finished item goes to.
-- `.agents/skills/` — Agent Skills, source of truth, shared across
-  Claude Code, Gemini CLI, and Codex. See `.agents/skills/README.md`.
+- `docs/adr/` — Architecture Decision Records, one living file per
+  decision in force.
+- `docs/brainstorm/` — immutable narrative behind a feature or slice,
+  written before its decision.
+- `docs/project/` — living status docs: `backlog/` (one card per open
+  item), `next-steps.md` (ordered index of those cards) and `done.md` (log
+  of completed work that isn't itself an ADR).
+- `.agents/skills/` — Agent Skills, source of truth, shared across Claude
+  Code, Gemini CLI and Codex. See `.agents/skills/README.md`.
 - `.claude/agents/` — Claude Code-specific subagents (`adr-scribe`,
-  `context-capturer`). Not portable, unlike `.agents/skills/`.
+  `context-capturer`).
 - `src/Entity/`, `src/Repository/` — Doctrine entities (`User`,
-  `Volunteer`, `Project`, `ActivityType`, `Activity`, `Escort`) and their
-  repositories, each with a `countReferencingActivities()` delete-guard
-  where applicable. Two shapes here were set by what the real rosters
-  actually say, so don't "tidy" them back: `Activity::$escorts` is a
-  **collection**, because the VM writes "Accompanied by Edna and Sam"
+  `Volunteer`, `Project`, `ActivityType`, `Activity`, `Escort`, `Branch`)
+  and their repositories, each with a `countReferencingActivities()`
+  delete-guard where applicable. `Branch` is referenced by nothing yet, so
+  it has no guard, and its five real rows come from its migration, not the
+  fixtures — tests start with them
+  ([ADR 0025](docs/adr/0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md)). Two shapes were set by the real rosters, so don't
+  "tidy" them back: `Activity::$escorts` is a **collection**
   ([ADR 0013](docs/adr/0013-record-every-escort-on-an-activity.md)) — the
-  escort delete-guard is a `MEMBER OF` query, and the eager escorts join
-  is to-many, so it can't carry a `LIMIT`; and `Volunteer::$lastName` is
-  **optional**, because the rosters name volunteers by first name only
-  ([ADR 0014](docs/adr/0014-make-a-volunteers-last-name-optional.md)).
+  escort delete-guard is a `MEMBER OF` query, and the eager escorts join is
+  to-many, so it can't carry a `LIMIT`; `Volunteer::$lastName` is
+  **optional** ([ADR 0014](docs/adr/0014-make-a-volunteers-last-name-optional.md)).
 - `src/Enum/` — backed PHP enums (`ProjectLocation`, `ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
 - `src/Controller/`, `src/Form/`, `templates/<area>/` — one set per CRUD
-  area, all following the same index/new/edit/delete shape. Reuse the
+  area, all with the same index/new/edit/delete shape. Reuse the
   `DataTable` TwigComponent (`src/Twig/Components/DataTable.php` +
-  `templates/components/DataTable.html.twig`) and the Tailwind form
-  theme (`templates/form/tailwind_theme.html.twig`, registered globally
-  in `config/packages/twig.yaml`) rather than hand-styling a new area.
-  `DataTable` also takes an optional `pagination` (renders the controls
-  below the table), `withActions` (set `false` for a read-only table,
-  or it grows a phantom empty actions column) and `sortState` (turns the
-  headers into sort links; leave it null for a table with nothing to
-  re-order, like the Reports print panel). A row may also carry an
-  optional `badges` map — column key => badge label, drawn as a pill
-  after that cell's text, which is how `/reports` tags a future-dated
-  "Most recent" as `Planned`. Put the label there rather than
-  concatenating it into the cell string: `cells` must stay the plain
-  formatted value or sorting, number formatting and every test that
-  matches a cell by its text start seeing the decoration too. An action
-  with `disabledReason` instead of a `url` renders inert (`aria-disabled`
-  span, reason in `title` and `sr-only`) — that is how Volunteers and
-  Projects show Delete as unavailable on rows the delete-guard would
-  block. The server-side guard in `delete()` stays regardless: the index
-  only reads the rule early, it does not enforce it.
-- `src/Pagination/` — `ListPaginator`, the single place `page`,
-  `perPage`, `sort` and `direction` are read off the query string for
-  all seven list views, plus the `SortState` VO it hands to templates.
-  Page sizes are whitelisted 25/50/100/All, default 25. Bad input never
-  404s *or 400s*: an unknown size falls back to the default, `page` below
-  1 clamps to 1, `page` past the end serves the last page, and an unknown
-  `sort` leaves the view's own order alone. Don't reach for
-  `InputBag::getInt()` here — in Symfony 8 it throws on non-numeric
-  input, which turns `?page=abc` into a 400 — and don't reach for
-  `InputBag::get()` either, which throws on a non-scalar like `?sort[]=x`
-  or `?perPage[]=25`. **Every** query param the app reads goes through
-  `query->all()` guarded by `is_scalar()`, and that rule does not stop at
-  this class: it also covers `?tab=` on `/reports`, `?project=`/`?date=`
-  on `/activities/new-batch` (both linked from the home screen, so a stale
-  bookmark is the realistic bad URL), and the Twig side — a
-  `app.request.query.get()` in a template throws during rendering, which
-  is a 500 rather than a 400. Read through `app.request.query.all` there,
-  as every template already does. See `done.md`, 2026-09-07. See
-  [ADR 0009](docs/adr/0009-adopt-knppaginatorbundle-for-list-pagination.md)
-  and
+  `templates/components/DataTable.html.twig`) and the Tailwind form theme
+  (`templates/form/tailwind_theme.html.twig`, registered globally in
+  `config/packages/twig.yaml`) rather than hand-styling a new area.
+  `DataTable` props:
+  - `pagination` — renders the controls below the table.
+  - `withActions` — set `false` for a read-only table, or it grows a
+    phantom empty actions column.
+  - `sortState` — turns headers into sort links; leave it null for a table
+    with nothing to re-order (the Reports print panel).
+  - A row's optional `badges` map (column key => label) draws a pill after
+    that cell's text — how `/reports` tags a future-dated "Most recent" as
+    `Planned`. Never concatenate the label into `cells`: they must stay the
+    plain formatted value, or sorting, number formatting and every test
+    matching a cell by text see the decoration too.
+  - An action with `disabledReason` instead of a `url` renders inert
+    (`aria-disabled` span, reason in `title` and `sr-only`) — how Delete
+    shows as unavailable on rows the delete-guard would block. The
+    server-side guard in `delete()` stays regardless.
+- `src/Pagination/` — `ListPaginator`, the single place `page`, `perPage`,
+  `sort` and `direction` are read, plus the `SortState` VO. Pagination:
+  [ADR 0009](docs/adr/0009-adopt-knppaginatorbundle-for-list-pagination.md);
+  sorting:
   [ADR 0011](docs/adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md).
-  The controls markup lives in `templates/pagination/tailwind.html.twig`,
-  included by `templates/components/PaginationBar.html.twig` — not
-  rendered via `knp_pagination_render()`, which needs a translator this
-  app deliberately doesn't have. Knp's *sortable* support is off for that
-  same reason plus one more (it 500s on a field outside its allow list):
-  `ListPaginator` passes `SORT_FIELD_PARAMETER_NAME => null` and resolves
-  sorting itself. Making a column sortable is a one-line entry in that
-  controller's `SORT_MAP` const (column key => DQL field(s), or array key
-  on `/reports`) — the map *is* the whitelist, so nothing a reader types
-  reaches DQL, and a column opts out by simply not being in it. Don't add
-  a second sortability flag to the column definition. Every sort keeps the
-  repository's own `ORDER BY` as a tie-break; drop that and a paginated
-  sort on a low-cardinality column repeats rows across pages. The mobile
-  equivalent of clickable headers is `templates/components/SortSelect.html.twig`,
-  used by the Activities index because its table is inside `hidden md:block`.
-- `src/Report/` — the app's real domain logic:
-  `ActivitySummaryCalculator` (duration-to-days aggregation for
-  `/reports`), plus `RosterBuilder`/`QuietProjectFinder` and their
-  readonly value objects behind the home screen. `QuietProjectFinder`
-  covers projects only and never volunteers — that's deliberate and
-  evidence-based, so read its class docblock before "completing" it.
-- `src/Usage/` — `AccessLogReader`, which streams Caddy's own JSON access
-  log (`var/log/access.log`, the `log_data` volume) and aggregates it per
-  route for the admin-only `/usage` screen. Two things there are
-  load-bearing, don't "simplify" them: it matches each logged URI to a
-  **route pattern** (`/volunteers/{id}/edit`, never `/volunteers/12/edit`),
-  which is both the asset filter and what keeps record identifiers off the
-  screen; and it skips requests carrying `X-Sec-Purpose: prefetch`, because
-  Turbo Drive fetches links on hover and counting those inflates every
-  number. A missing log file must stay an empty report rather than an
-  exception — CI has no Caddy log and `RouteSmokeTest` walks this route.
-  The companion `usage_event` table covers only gestures that send no
-  request at all (clipboard copy, typeahead, form abandonment); its
-  `UsageEventName` enum is the whitelist, and the row deliberately records
-  no user, IP or context. `UsageDateRange` is the third piece: the single place
-  `?range=`/`?from=`/`?to=` are read, and the window **both** halves of the
-  screen answer for — a new source added to `/usage` takes it too, or the
-  tables start describing different periods. The screen opens on a preset
-  (`DEFAULT_PRESET`), so the control ticks the *resolved* range rather than the
-  URL, and malformed input falls back to that default rather than to unbounded:
-  a filtered screen that doesn't show its filter reads as "nobody ever used
-  this". The range is applied **while streaming** in `AccessLogReader` — the
-  per-row counters and `p95` are computed in that same pass, so filtering
-  finished rows would leave every number describing the whole file — and it is
-  part of the 60-second cache key, or one filter serves the previous one. See
+  A sortable column is one `SORT_MAP` entry, never a flag on the column
+  definition.
+- **Query parameters, app-wide:** read through `$request->query->all()`
+  guarded by `is_scalar()`, and `app.request.query.all` in Twig — never
+  `InputBag::get()`/`getInt()` or `app.request.query.get()`, which turn a
+  malformed URL into a 400 or a 500. Every parameter falls back to a
+  default
+  ([ADR 0023](docs/adr/0023-degrade-malformed-query-input-to-a-default.md)).
+- `src/Report/` — the app's real domain logic: `ActivitySummaryCalculator`
+  (duration-to-days aggregation for `/reports`), plus
+  `RosterBuilder`/`QuietProjectFinder` and their readonly VOs behind the
+  home screen. `QuietProjectFinder` covers projects only, never volunteers —
+  deliberate and evidence-based; read its class docblock before
+  "completing" it.
+- `src/Usage/` — `AccessLogReader` streams Caddy's JSON access log
+  (`var/log/access.log`, the `log_data` volume) for the admin-only `/usage`
+  screen, plus the `usage_event` table for gestures that send no request.
+  Route-pattern labelling, the prefetch skip, the 422-before-`>= 400`
+  ordering, the three-column event row and the `UsageDateRange` window
+  (shared by both tables, applied while streaming, part of the cache key)
+  are load-bearing:
   [ADR 0021](docs/adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md).
+  A missing log file must stay an empty report, never an exception — CI
+  has no Caddy log and `RouteSmokeTest` walks this route.
 - `src/Factory/` — Foundry v2 factories (`PersistentObjectFactory`, real
-  objects) for every entity, used by both tests and dev fixtures
+  objects) for every entity, used by tests and dev fixtures
   (`src/Story/AppStory.php`).
-- `src/Fixture/` — `RosterArchive` and its readonly VOs, which read
-  `docs/fixtures/rosters.yaml`. **The dev/demo dataset is never
-  generated**: every volunteer, escort, site, date and roster note in
-  `AppStory` comes from that file, transcribed by hand from a month of
-  the VM's real WhatsApp roster messages
-  ([ADR 0012](docs/adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
-  To grow the dataset, add to the archive — not to `AppStory`, and never
-  with Faker. The raw WhatsApp exports (`docs/fixtures/*_dumps.txt`) are
-  gitignored because they name sponsored children and donors; this repo
-  is public. `docs/fixtures/README.md` has the transcription rules, and
-  `tests/Integration/Fixture/RosterArchiveTest.php` enforces the ones a
-  test can. Test factories may still generate — a pagination test needs
-  twenty-six arbitrary escorts, not twenty-six real ones.
-- `tests/Functional/` — WebTestCase functional tests, one per
-  controller area plus `SecurityControllerTest`.
-- `tests/Integration/` — KernelTestCase tests for `src/Report/` services
-  that need the database but no HTTP layer, plus
-  `tests/Integration/Usage/`, which asserts what `/usage` claims against a
-  committed sample log rather than against whatever the dev container
-  happened to serve. Everything about the numbers is tested there; the
-  functional test covers only the screen and its admin gate, because
-  `%kernel.logs_dir%` is the same path under `test`, so a content
+- `src/Fixture/` — `RosterArchive` reads `docs/fixtures/rosters.yaml`.
+  **The dev/demo dataset is never generated**
+  ([ADR 0012](docs/adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)):
+  grow it by adding to the archive — not to `AppStory`, never with Faker.
+  The raw WhatsApp exports (`docs/fixtures/*_dumps.txt`) are gitignored
+  because they name sponsored children and donors; this repo is public.
+  Transcription rules: `docs/fixtures/README.md`, enforced where possible
+  by `tests/Integration/Fixture/RosterArchiveTest.php`. Test factories may
+  still generate.
+- `tests/Functional/` — WebTestCase tests, one per controller area plus
+  `SecurityControllerTest`.
+- `tests/Integration/` — KernelTestCase tests for `src/Report/` services,
+  plus `tests/Integration/Usage/`, which asserts what `/usage` claims
+  against a committed sample log. Everything about the numbers is tested
+  there; the functional test covers only the screen and its admin gate,
+  because `%kernel.logs_dir%` is the same path under `test`, so a content
   assertion would read the real dev log locally and nothing in CI.
 
 ## Stack
 
 Docker + FrankenPHP, Symfony 8.1.5, PHP 8.5.9, SQLite, Tailwind CSS v4 +
-Symfony UX (Turbo/Stimulus/TwigComponent; LiveComponent installed, not
-yet used — see ADR 0003), PHPUnit 13 + Foundry v2 for tests. No host
-PHP/Composer needed or expected — everything below runs through Docker.
+Symfony UX (Turbo/Stimulus/TwigComponent; LiveComponent installed, unused),
+PHPUnit 13 + Foundry v2. No host PHP/Composer — everything runs through
+Docker.
 
 **Day to day:**
 
@@ -223,49 +172,40 @@ docker compose exec php composer require <package>
 docker compose exec php php bin/phpunit
 ```
 
-App: `https://localhost` (self-signed cert — accept the browser warning).
-Seeded VM login: a single dev/test account and a temporary dev password,
-both set via `app:user:create` — neither is recorded here (this repo is
-public); re-run that command to set what you need rather than looking it
-up. `--email`/`--full-name`/
-`--password` (plus the existing `--admin` flag) make it a one-liner
-instead of interactive prompts — dev/local convenience only, since the
-password then lands in plaintext in shell history:
+App: `https://localhost` (self-signed cert). The dev login is set with
+`app:user:create`; neither the account nor its password is recorded here
+(this repo is public). The flags make it a one-liner — dev only, since the
+password lands in shell history:
 
 ```bash
 docker compose exec php bin/console app:user:create \
   --email=TEST_ACCOUNT@gmail.com --full-name="Test" --password=<new-password> --admin
 ```
 
-**That local account is for AI agents, not for a human** — nobody signs
-into the dev app with it by hand, so an agent that needs to log in (the
-`scripts/panther-screenshot.php` flow below, mainly) may reset its
-password with the command above without asking first, and doesn't need
-to preserve whatever password was set before. It's a local, dev-only
-SQLite account on `https://localhost` with seeded fixture data behind it;
-nothing about it is shared with production, and no real password
-belongs in this file — this repo is public.
+**That local account is for AI agents, not for a human** — an agent that
+needs to log in (mainly `scripts/panther-screenshot.php`) may reset its
+password with the command above without asking, and needn't preserve the
+previous one. It is a local, dev-only SQLite account with nothing shared
+with production.
 
-Seed the dev data — the real August 2026 roster archive: 15 volunteers,
-13 sites, 5 escorts and 102 activities, with the last two days anchored
-onto today and tomorrow so the home screen's roster panels have
-something to show:
+Seed the dev data — the real August 2026 roster archive, with the last two
+days anchored onto today and tomorrow so the home screen's roster panels
+have something to show:
 
 ```bash
 docker compose exec php bin/console foundry:load-fixtures --no-interaction
 ```
 
-That command **rebuilds the schema by replaying migrations**, not with the
-schema tool — `config/packages/zenstruck_foundry.yaml` sets Foundry's
-`orm.reset.mode` to `migrate`. Don't set it back to `schema`: that mode
-runs `doctrine:schema:drop --full-database`, which takes the unmapped
-`doctrine_migration_versions` table with it, after which the entrypoint's
-`doctrine:migrations:migrate --all-or-nothing` finds zero applied versions,
-replays migration 1 onto a live schema, and restart-loops the container. It
-cost four hand-repairs before that config line existed. If you do meet the
-loop, the non-destructive fix is `doctrine:migrations:version --add --all`
-after `doctrine:schema:validate` confirms the schema is already in sync —
-see `done.md`, 2026-09-06.
+That command **rebuilds the schema by replaying migrations** —
+`config/packages/zenstruck_foundry.yaml` sets `orm.reset.mode: migrate`.
+Don't set it back to `schema`: that mode runs
+`doctrine:schema:drop --full-database`, which drops the unmapped
+`doctrine_migration_versions` table, after which the entrypoint's
+`doctrine:migrations:migrate --all-or-nothing` replays migration 1 onto a
+live schema and restart-loops the container. If you meet the loop, the
+non-destructive fix is `doctrine:migrations:version --add --all` after
+`doctrine:schema:validate` confirms the schema is in sync (`done.md`,
+2026-09-06).
 
 **After changing an entity:**
 
@@ -275,133 +215,71 @@ docker compose exec php bin/console make:migration --no-interaction
 docker compose exec php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
-**Tailwind CSS** doesn't rebuild itself automatically — either run
-`docker compose exec php bin/console tailwind:build` once after a
-styling change, or start `tailwind:build --watch` in the background for
-a session of active template work.
+**Tailwind CSS** doesn't rebuild itself: run
+`docker compose exec php bin/console tailwind:build` after a styling change,
+or `tailwind:build --watch` in the background during template work.
 
-**Known gotcha already fixed, don't reintroduce it:** the base
-`10-app.ini` sets `opcache.enable_file_override=1` (a legitimate prod
-optimization). Under FrankenPHP's persistent worker mode this silently
-caches `filemtime()`/`file_exists()` results for the life of the
-process, hiding template/PHP edits from the dev bind-mount until a
-manual restart. `frankenphp/conf.d/20-app.dev.ini` turns it back off
-for dev specifically — leave that override in place.
+**Don't reintroduce:** the base `10-app.ini` sets
+`opcache.enable_file_override=1` (a prod optimization). Under FrankenPHP's
+worker mode it caches `filemtime()`/`file_exists()` for the life of the
+process, hiding template/PHP edits in dev until a restart.
+`frankenphp/conf.d/20-app.dev.ini` turns it off for dev — leave it.
 
-**Testing conventions:**
+**Testing conventions** (tooling:
+[ADR 0004](docs/adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md)):
 
-- PHPUnit, attribute-based (`#[Test]`), `WebTestCase` +
-  `#[ResetDatabase]` (Foundry's PHPUnit extension, per-test rollback via
-  DAMA doctrine-test-bundle).
-- `dama/doctrine-test-bundle`'s Flex recipe is silently ignored
-  (`composer.json` has `allow-contrib: false`, deliberately, from the
-  original skeleton) — it's wired by hand in `config/bundles.php` and
-  `phpunit.dist.xml` instead of flipping that global flag.
-  `knplabs/knp-paginator-bundle` is the second package on this footing
-  (`config/bundles.php` + `config/packages/knp_paginator.yaml`); note
-  that a skipped contrib recipe also skips whatever *else* it would have
-  enabled — that bundle's recipe would have turned on the translator its
-  render helper needs. If a future contrib package is needed, wire it
-  the same way rather than enabling `allow-contrib` project-wide.
-- In `WebTestCase` tests, `static::createClient()` must be the **first**
-  call in every test method — Foundry factories auto-boot the kernel to
-  reach Doctrine, and booting it twice throws. Create the client, then
-  create fixtures, not the other way around.
-- Factories must produce values a round trip through the database would
-  return — `ActivityFactory` dates to midnight because `Activity::$date`
-  is a `date_immutable` column. A time component there made a created
-  entity disagree with its own hydrated row and flipped `/reports`'
-  "Planned" badge at random.
+- PHPUnit attributes (`#[Test]`), `WebTestCase` + `#[ResetDatabase]`
+  (Foundry, per-test rollback via DAMA doctrine-test-bundle).
+- `allow-contrib: false` is deliberate: contrib packages are wired by hand
+  (`config/bundles.php`, `config/packages/`, `phpunit.dist.xml`). Wire a
+  future one the same way, never flip the flag
+  ([ADR 0003](docs/adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)).
+- In `WebTestCase`, `static::createClient()` must be the **first** call in
+  every test — Foundry factories auto-boot the kernel, and booting it twice
+  throws. Client first, then fixtures.
+- Factories produce values a database round trip would return —
+  `ActivityFactory` dates to midnight
+  ([ADR 0024](docs/adr/0024-treat-dates-as-calendar-days-in-nairobi-time.md)).
 - **Login throttling does not fire in the test environment, by design —
   don't write a test asserting that it does.** `security.yaml` throttles
-  logins (5 per 15 minutes) and the counters live in `cache.rate_limiter`,
-  which the framework backs with `cache.app` — files under
-  `var/cache/test/pools`, keyed stably by username + IP and reset by
-  nothing. Since the limiter is peekable, only *failed* logins count and a
-  success never clears them, so the suite used to lock itself out after
-  about five runs inside the window. `config/packages/cache.yaml` now
-  points that pool at `cache.adapter.array` under `when@test`. The
-  side effect is that throttling is inert here, not just isolated: cache
-  pools are tagged `kernel.reset`, `ArrayAdapter::reset()` clears the
-  array, and the services resetter runs at every request boundary of the
-  test client — `$client->disableReboot()` does not prevent it. Throttling
-  is unchanged in dev and prod. See `done.md`, 2026-09-03.
-- Every required `TextType`/`EmailType` form field needs
-  `'empty_data' => ''` when its entity property is a non-nullable
-  `string` — Symfony transforms a submitted empty string to `null` by
-  default, which crashes with a 500 against a non-nullable property
-  instead of showing a validation error. Already applied to every
-  existing form; apply it to any new required text field too. The mirror
-  case is `VolunteerFormType`'s `lastName`, which is `required: false`
-  with **no** `empty_data` — an optional field must store `null`, not an
-  empty string, or "not recorded" ends up with two representations.
+  logins (5 per 15 minutes) with counters in `cache.rate_limiter`; on the
+  default file-backed pool only failed logins counted and nothing reset
+  them, so the suite locked itself out after a few runs.
+  `config/packages/cache.yaml` puts that pool on `cache.adapter.array` under
+  `when@test`, and since cache pools are reset at every request boundary of
+  the test client (`disableReboot()` doesn't prevent it), throttling is
+  inert in tests. Unchanged in dev and prod. See `done.md`, 2026-09-03.
+- Every required `TextType`/`EmailType` field on a non-nullable `string`
+  property needs `'empty_data' => ''` — otherwise a submitted empty string
+  becomes `null` and 500s instead of showing a validation error. The mirror
+  case: an optional field (`VolunteerFormType`'s `lastName`) has
+  `required: false` and **no** `empty_data`, so "not recorded" is `null`
+  only, never also `''`.
 - The volunteer pickers on both activity forms list **active volunteers
-  only** — volunteers leave after a few weeks, so the inactive ones are
-  pure noise when logging attendance. `ActivityFormType` also backs the
-  edit screen, so its query keeps the activity's own current volunteer
-  selectable even once deactivated; any future "active only" picker on a
-  form that edits existing rows needs the same escape hatch, or old
+  only**. `ActivityFormType` also backs edit, so its query keeps the
+  activity's own current volunteer selectable once deactivated; any future
+  "active only" picker on an edit form needs the same escape hatch, or old
   records become uneditable.
-- `tests/Functional/RouteSmokeTest.php` walks **every GET route the
-  router reports**, so a screen nobody wrote a test for still can't 500
-  or lose its login requirement unnoticed — a new route joins both passes
-  for free. Two things there are load-bearing, don't "simplify" them: it
-  runs with `catchExceptions(false)` (otherwise `WebTestCase` renders the
-  error page and the failure arrives with no stack trace), and it asserts
-  **2xx**, not "below 500" — a route whose fixture is missing 404s, which
-  a `< 500` assertion would wave through while hiding the server errors
-  the walk exists to find. `{id}` comes from an explicit map of the
-  seeded entities' ids, matched longest-prefix-first (`activity_type_`
-  before `activity_`); don't assume id `1`, DAMA's rollback doesn't
-  reliably reset SQLite's rowid sequence. It logs in as an **admin**
-  because `/users*` is `#[IsGranted('ROLE_ADMIN')]`.
-- `scripts/gremlins.php` unleashes a **gremlins.js horde** on the running
-  dev app — random clicking, typing and scrolling, for crashes that come
-  from *sequences* rather than from coverage. Standalone Panther script
-  like `panther-screenshot.php` below, no npm and no Composer package:
-  the horde is one pinned dist file loaded from unpkg into the page.
-  **It refuses any host but the local container, and there is no override
-  flag — the horde clicks Delete.** Reseed afterwards with
-  `foundry:load-fixtures`. It reports how many events actually landed as
-  well as what it caught, because a clean run only means something if the
-  horde wasn't inert. Exits non-zero on a finding; the `--seed` in the
-  summary reproduces it.
-
-  ```bash
-  docker compose exec php php scripts/gremlins.php --login \
-    --email=ronan.guilloux@gmail.com --password=<dev-password> \
-    --path=/activities/new-batch --seed=1 --gremlins=500
-  docker compose exec php bin/console foundry:load-fixtures --no-interaction
-  ```
-
-- `tests/E2E/` holds one real-browser Symfony Panther smoke test
-  (login → create Volunteer → create Activity → see it in the list and
-  `/reports` → mobile-nav check). It's excluded from the default
-  `docker compose exec php php bin/phpunit` run (slower, a real Chromium
-  instance) — run it explicitly with
+- `tests/Functional/RouteSmokeTest.php` walks **every GET route**, so a new
+  route is covered for free. Don't relax `catchExceptions(false)` or the
+  2xx assertion, and add a new entity's id to its prefix map rather than
+  assuming id `1`
+  ([ADR 0004](docs/adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md)).
+- `tests/E2E/` holds one real-browser Panther smoke test
+  ([ADR 0007](docs/adr/0007-adopt-panther-for-adhoc-visual-verification.md)),
+  excluded from the default run:
   `docker compose exec php php bin/phpunit --testsuite="End-to-End Test Suite"`.
-  Since it's real, separate-process HTTP against Panther's built-in
-  webserver, Foundry-created fixtures need
-  `#[DAMA\DoctrineTestBundle\PHPUnit\SkipDatabaseRollback]` on the test
-  class to actually commit (DAMA otherwise rolls back each test's writes,
-  invisible to that other process) — and because this app uses Turbo
-  Drive, every form submission is asynchronous, so assert on the
-  resulting page only after an explicit `$client->wait()->until(...)`.
-- For **ad-hoc visual verification** during active UI work (a one-off
-  "does this render correctly" check, not a regression test) — don't
-  install Playwright/Node. Use `scripts/panther-screenshot.php`, a
-  standalone script built on Panther's `Client::createChromeClient()`
-  (not `PantherTestCase`) that points directly at the already-running
-  dev app at `https://localhost` and saves a screenshot to
-  `var/screenshots/` (already covered by the blanket `/var/` gitignore
-  entry — pull it to the host with `docker compose cp`, since `var/`
-  is excluded from the dev bind-mount). See
-  [ADR 0007](docs/adr/0007-adopt-panther-for-adhoc-visual-verification.md)
-  — and [ADR 0019](docs/adr/0019-stay-on-panther-rather-than-migrate-to-playwright-php.md)
-  for why this stays on Panther now that
-  [ADR 0016](docs/adr/0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)
-  has retired the "no Node" reason it originally gave.
-  Example:
+  The browser hits Panther's webserver in another process, so the class
+  needs `#[DAMA\DoctrineTestBundle\PHPUnit\SkipDatabaseRollback]` for
+  Foundry fixtures to be visible, and because Turbo Drive makes every form
+  submission asynchronous, assert only after an explicit
+  `$client->wait()->until(...)`.
+- **Ad-hoc visual verification** (a one-off "does this render" check, not a
+  regression test): use `scripts/panther-screenshot.php` against the running
+  dev app — Panther, not Playwright
+  ([ADR 0007](docs/adr/0007-adopt-panther-for-adhoc-visual-verification.md)).
+  Screenshots land in `var/screenshots/`, outside the dev bind mount, so
+  pull them with `docker compose cp`:
 
   ```bash
   docker compose exec php php scripts/panther-screenshot.php \
@@ -411,18 +289,26 @@ for dev specifically — leave that override in place.
   docker compose cp php:/app/var/screenshots/mobile-nav.png ./mobile-nav.png
   ```
 
-- `composer infection` runs Infection, mutation-testing scoped to
-  `src/Report/ActivitySummaryCalculator.php` and the delete-guard methods
-  in the four repositories that have one (`infection.json.dist`) — not
-  part of `composer quality` (slow, run manually). It's a two-step script:
-  Infection's own coverage-generating run doesn't work reliably under
-  this FrankenPHP build's PHP (an Xdebug-restart incompatibility), so the
-  script generates coverage via plain `php bin/phpunit` first, then runs
-  `infection --skip-initial-tests` against it.
+- `scripts/gremlins.php` — monkey testing on the running dev app
+  ([ADR 0004](docs/adr/0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md)).
+  **Local container only, no override — the horde clicks Delete**; reseed
+  afterwards. The `--seed` in its summary reproduces a finding.
 
-**Quality checks** (see
-[ADR 0005](docs/adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md)
-for the full decision):
+  ```bash
+  docker compose exec php php scripts/gremlins.php --login \
+    --email=ronan.guilloux@gmail.com --password=<dev-password> \
+    --path=/activities/new-batch --seed=1 --gremlins=500
+  docker compose exec php bin/console foundry:load-fixtures --no-interaction
+  ```
+
+- `composer infection` — mutation testing, scoped in `infection.json.dist`,
+  run manually (not in `composer quality`). It's two steps because
+  Infection's own coverage run fails under this FrankenPHP PHP build (an
+  Xdebug-restart incompatibility): coverage via plain `php bin/phpunit`
+  first, then `infection --skip-initial-tests`.
+
+**Quality checks**
+([ADR 0005](docs/adr/0005-adopt-phpstan-php-cs-fixer-rector-composer-audit.md)):
 
 ```bash
 docker compose exec php composer quality    # cs-check + phpstan + phpat + security-audit
@@ -430,90 +316,64 @@ docker compose exec php composer cs-fix     # auto-fix style (Symfony + PER-CS2.
 docker compose exec php composer rector     # preview refactors — dry-run only, review before applying
 ```
 
-- PHPStan runs at level `max` against `src/` and `tests/`
-  (`phpstan.dist.neon`), with pre-existing findings absorbed in
-  `phpstan-baseline.neon` — shrink it over time, never delete it to
-  hide errors. Never raise the level without regenerating and
-  committing the baseline.
-- The one architecture rule from ADR 0004 (`Entity` must not depend on
-  `Controller`/`Twig`) lives in `tests/Architecture/ArchTest.php`, run
-  via `composer phpat` — PHPat, not Deptrac (see ADR 0005).
-- **Never apply Rector output without reviewing the diff first** —
-  it can produce technically-valid but wrong refactors (e.g. it once
-  turned `User::eraseCredentials()` into a broken `serialize()` stub
-  instead of removing it cleanly). `composer rector` is dry-run only by
-  design; there is no `rector-fix` script. This matches the
-  `php-modernization` skill's existing hard guardrail.
-- A local pre-commit hook (`.githooks/pre-commit`) runs `composer
-  quality` before every commit — enable it once per checkout with
-  `git config core.hooksPath .githooks`. Bypass deliberately with
-  `git commit --no-verify`, not by disabling the hook.
-- That same hook prints a **non-blocking warning when
-  `docs/project/next-steps.md` passes 250 lines**. That file is a
-  forward-only *index*, so it should stay roughly constant in size —
-  sustained growth means item text is leaking in from the cards, which is
-  how past-tense history creeps back (it reached 449 lines that way once).
-  The cap does **not** apply to `docs/project/backlog/`, which is meant to
-  grow. Don't raise the cap to silence it: re-read the file and
-  move what's done to `done.md` or an ADR. It never fails a commit, so a
-  genuinely large new item passes.
+- PHPStan level `max` with `phpstan-baseline.neon`: shrink the baseline,
+  never delete it to hide errors, never raise the level without
+  regenerating and committing it.
+- **Never apply Rector output without reviewing the diff** — it once
+  turned `User::eraseCredentials()` into a broken `serialize()` stub. There
+  is deliberately no `rector-fix` script.
+- `.githooks/pre-commit` runs `composer quality` — enable once per checkout
+  with `git config core.hooksPath .githooks`. Bypass deliberately with
+  `--no-verify`, never by disabling the hook.
+- The same hook warns (non-blocking) when `docs/project/next-steps.md`
+  passes 250 lines: item text is leaking into the index. Don't raise the
+  cap; move the text to its card, `done.md` or an ADR. `backlog/` has no
+  cap.
 
-**Deployment** (see
-[ADR 0010](docs/adr/0010-build-in-ci-and-deploy-by-image-pull.md),
-[`docs/project/hosting-plan.md`](docs/project/hosting-plan.md) for what a
-server must provide, and
-[`docs/project/deployment-plan.md`](docs/project/deployment-plan.md) for
-the runbook):
+**Deployment**
+([ADR 0010](docs/adr/0010-build-in-ci-and-deploy-by-image-pull.md),
+[ADR 0017](docs/adr/0017-host-production-on-gandicloud-vps-in-france.md);
+requirements in [`hosting-plan.md`](docs/project/hosting-plan.md), runbook
+in [`deployment-plan.md`](docs/project/deployment-plan.md)):
 
-- CI builds the production image and pushes it to GHCR
-  (`.github/workflows/`); the server only pulls. Nothing is built on the
-  production host.
+- CI builds the production image and pushes it to GHCR; the server only
+  pulls.
 - **CI's bare `docker run -v "$PWD:/app"` is not the environment anyone
-  develops in.** It has no `compose.override.yaml`, so no bind-mounted dev
-  ini, no `APP_ENV`/`XDEBUG_MODE`, and no named volumes — and the mount
-  lands *on top of* the image's own `/app`, hiding everything the image
-  build wrote outside `vendor/`. `var/` and `assets/vendor/` are whatever
-  the checkout contains, which is nothing: both are gitignored. A command
-  that works via `docker compose exec` proves nothing about CI. Replicate
-  the bare `docker run` against a clean clone instead (see `done.md`,
-  2026-09-04, for the three failures this cost).
+  develops in.** No `compose.override.yaml` (so no dev ini, no
+  `APP_ENV`/`XDEBUG_MODE`, no named volumes), and the mount lands *on top
+  of* the image's `/app`, hiding everything the build wrote outside
+  `vendor/` — `var/` and `assets/vendor/` are empty, being gitignored. A
+  command that works via `docker compose exec` proves nothing about CI;
+  replicate the bare `docker run` against a clean clone (`done.md`,
+  2026-09-04).
 - `--entrypoint php` is needed for any bare `docker run` of a console
-  command: the image entrypoint runs `dbal:run-sql` to wait for a
-  database, and fails outside compose.
+  command: the entrypoint waits for a database and fails outside compose.
 - **Always pass both compose files** —
   `docker compose -f compose.yaml -f compose.prod.yaml …`. A bare
-  `docker compose up -d` silently loads `compose.override.yaml` and would
-  run production in `APP_ENV=dev` with Xdebug and a bind mount.
+  `docker compose up -d` loads `compose.override.yaml` and runs production
+  in `APP_ENV=dev` with Xdebug and a bind mount.
 - **SSH as `deploy` for anything in `/opt/mikono`, never as `debian`.**
-  `debian` is the Gandi image's admin login (`apt`, `cron`, `sudo`) and
-  owns nothing there; `deploy` owns the checkout and is in the `docker`
-  group. As `debian` a deploy fails on git's "dubious ownership" and, but
-  for the owner check at the top of `scripts/deploy.sh`, would report
-  "Nothing running yet" and skip its pre-deploy backup. `deployment-plan.md`
-  §3 is about `debian`; §6, the routine deploy, is about `deploy`.
-- `APP_SECRET` is a **runtime** variable, never a build argument: the
-  published image is public, and `composer dump-env prod` bakes
-  build-time environment into it.
-- In the `frankenphp_prod_builder` stage, `tailwind:build` must run
-  **before** `asset-map:compile`. Outside the `test` env the Tailwind
-  bundle is in strict mode and throws when no built CSS exists, failing
-  the whole image build. Don't reorder or drop it.
-- `date.timezone` is `Africa/Nairobi` in `frankenphp/conf.d/10-app.ini`,
-  not UTC — the home screen's rosters resolve
-  `new \DateTimeImmutable('today')` against it, and every user is in
-  Kenya. That file is copied into the image, not bind-mounted, so
-  changing it needs a `docker compose build php`.
+  `debian` is the host admin login (`apt`, `cron`, `sudo`) and owns nothing
+  there; `deploy` owns the checkout and is in the `docker` group. As
+  `debian` a deploy fails on git's "dubious ownership" and, but for the
+  owner check in `scripts/deploy.sh`, would skip its pre-deploy backup.
+  `deployment-plan.md` §3 is about `debian`; §6, the routine deploy, about
+  `deploy`.
+- `APP_SECRET` is a **runtime** variable, never a build argument — the
+  image is public.
+- In `frankenphp_prod_builder`, `tailwind:build` must run **before**
+  `asset-map:compile`, or the image build fails. Don't reorder or drop it.
+- `date.timezone` is `Africa/Nairobi`, not UTC
+  ([ADR 0024](docs/adr/0024-treat-dates-as-calendar-days-in-nairobi-time.md));
+  `frankenphp/conf.d/10-app.ini` is copied into the image, so changing it
+  needs `docker compose build php`.
 - Backups: `scripts/backup-db.sh` (host-side, hot `VACUUM INTO`, no
   downtime, no `sqlite3` binary needed).
-- **Which screens actually get used** is answered from Caddy's access
-  log, not from analytics — no `gtag`, Plausible or Matomo goes into this
-  app ([ADR 0018](docs/adr/0018-answer-usage-questions-from-the-caddy-access-log.md),
-  which also records the reopen trigger). Normally you just open
-  **`/usage`** (Settings → Usage, admin only), which is that same log read
-  in-app — see ADR 0021. For an ad-hoc question the screen doesn't answer,
-  the log is real NDJSON at `var/log/access.log` (the `log_data` volume),
-  so `jq` reads it directly — keep the prefetch filter, without which
-  Turbo's hover prefetching inflates every count:
+- **Which screens get used:** open `/usage` (Settings → Usage, admin only).
+  No `gtag`, Plausible or Matomo goes into this app
+  ([ADR 0021](docs/adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md)).
+  For a question the screen doesn't answer, the log is NDJSON and `jq`
+  reads it directly — keep the prefetch filter:
 
   ```bash
   docker compose exec php cat /app/var/log/access.log \
@@ -523,17 +383,9 @@ the runbook):
     | sort | uniq -c | sort -rn | head -20
   ```
 
-  `CADDY_SERVER_LOG_OPTIONS` in `compose.yaml` is what sends the log to
-  that file rather than to stderr, so **`docker compose logs php` no
-  longer carries request lines** — it still carries the app's own Monolog
-  errors. It lives in compose rather than in `frankenphp/Caddyfile`
-  deliberately: the Caddyfile is copied into the image, so changing it
-  would need a CI image rebuild to reach production, while an env var
-  ships with a `git pull`.
+  `docker compose logs php` no longer carries request lines (only the
+  app's Monolog errors), because `CADDY_SERVER_LOG_OPTIONS` in
+  `compose.yaml` sends them to that file.
 
-**What's next:** see
-[`docs/project/next-steps.md`](docs/project/next-steps.md) (a forward-only
-index into [`docs/project/backlog/`](docs/project/backlog/)).
-**What's already been done:** see
-[`docs/project/done.md`](docs/project/done.md). Panther, Infection, and
-dev fixtures are all wired as described above.
+**What's next:** [`docs/project/next-steps.md`](docs/project/next-steps.md).
+**What's already been done:** [`docs/project/done.md`](docs/project/done.md).

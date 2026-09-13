@@ -64,7 +64,7 @@ are the reason this is a human pass rather than a parser.
     coast sites in passing — "Minto children Orphanage (Mombasa)" — but
     that qualifier is the project's `location`, not part of what the site
     is called. Transcribe the name alone
-    ([ADR 0015](../adr/0015-keep-a-projects-region-in-its-location-not-its-name.md)).
+    ([ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
 11. **`active: false`** for a volunteer whose last roster appearance is
     more than a week before the end of the archive, or who says goodbye
     in the group. Volunteers leave after a few weeks; that is normal and

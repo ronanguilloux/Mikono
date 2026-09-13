@@ -3,7 +3,7 @@
 **Date:** 2026-09-05
 **Author:** ronan.guilloux@gmail.com
 **Decided (2026-09-06):** the Panther question is settled by
-[ADR 0019](../adr/0019-stay-on-panther-rather-than-migrate-to-playwright-php.md)
+[ADR 0007](../adr/0007-adopt-panther-for-adhoc-visual-verification.md)
 (stay on Panther). Both exercise paths shipped — `tests/Functional/RouteSmokeTest.php`
 for coverage and `scripts/gremlins.php` for sequences; see `done.md`,
 2026-09-06. This file is kept as the reasoning behind them.

@@ -18,7 +18,7 @@ Building the fixtures from the real archive
 turned up the exception. The rosters for 30/08/2026 and 31/08/2026 both
 read:
 
-```
+```text
 Peggy Lucas school
 -Daphne
 -Marco
@@ -38,12 +38,10 @@ aggregate several activity rows. So the limitation is only in the write
 path and the storage: the display has been waiting for this since the
 home screen shipped.
 
-There is also a workload dimension. `docs/project/next-steps.md` records
-"days accompanied per escort" as an unvalidated but plausible report,
-and notes that every escort row is also a staff workload figure. A model
-that can only attribute a session to one of the two people who ran it
-would make that report wrong from the start, so this is better fixed
-before the reporting question is answered than after.
+There is also a workload dimension: every escort row is a staff workload
+figure, and "days accompanied per escort" is a plausible report. A model
+that attributes a session to only one of the two people who ran it would
+make that report wrong from the start.
 
 ## Decision
 
@@ -83,9 +81,8 @@ becomes `Activity::$escorts`, a `ManyToMany` to `Escort`.**
   no limit today (it loads one day), but the constraint is now real and
   is called out in its docblock; the paginated index query deliberately
   does not join escorts at all.
-- **Negative / trade-offs:** an escort column on the Activities index —
-  still an open question in `next-steps.md` — would now render a list
-  per row and could not be sorted by a plain DQL field. That is a
+- **Negative / trade-offs:** an escort column on the Activities index
+  would render a list per row and could not be sorted by a plain DQL field. That is a
   genuine cost, and it is the truthful one: the data is a list.
 - **Negative / trade-offs:** one more table, and a `multiple` select is
   a slightly heavier control than a dropdown on a phone.

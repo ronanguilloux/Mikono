@@ -22,8 +22,7 @@ The `usage_event` table is the other half of the screen and is explicitly
 *not* where this goes: `UsageEvent`'s docblock records that it has no
 user, IP or session column on purpose, and that adding one is "a new
 data-protection decision and needs its own ADR"
-([ADR 0021](../../adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md),
-[ADR 0018](../../adr/0018-answer-usage-questions-from-the-caddy-access-log.md)).
+([ADR 0021](../../adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md)).
 
 ## Done when
 

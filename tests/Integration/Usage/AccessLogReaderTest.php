@@ -77,7 +77,7 @@ final class AccessLogReaderTest extends KernelTestCase
     }
 
     /**
-     * The data-protection half of ADR 0018's objection: a URL like
+     * The data-protection half of ADR 0021's objection: a URL like
      * /volunteers/12/edit names a record, and this screen must not.
      */
     #[Test]

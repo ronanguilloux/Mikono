@@ -1,130 +1,99 @@
-# 7. Adopt Panther (not Playwright) for ad-hoc, Claude-session-driven visual verification
+# 7. Use Symfony Panther for every real-browser task, not playwright-php
 
-Date: 2026-08-26
+Date: 2026-09-13
 
 ## Status
 
-Accepted — **partially superseded by
-[ADR 0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)**
-(2026-09-05). The decision below, adopting Panther for ad-hoc visual
-verification, stands. What ADR 0016 supersedes is narrower: the premise
-in the Context that "the project never needs Node", and the ground on
-which *Alternatives considered* §1 rejected Playwright. Neither the
-Decision nor the Consequences has been edited.
+Accepted
 
 ## Context
 
-[ADR 0004](0004-adopt-phpunit-phpat-infection-panther-for-volunteer-manager-tests.md)
-already justified adopting Symfony Panther for the app's *formal* E2E
-regression suite — `tests/E2E/VolunteerManagerSmokeTest.php`, a
-PHPUnit-driven `PantherTestCase` with Foundry fixtures,
-`#[SkipDatabaseRollback]`, and its own built-in test webserver. This ADR
-covers a different, narrower concern that ADR 0004 does not: one-off "does
-this render correctly, take a screenshot" checks that a Claude Code session
-runs mid-task against the already-running dev app, with no PHPUnit run, no
-test webserver, and no fixtures wanted.
+Three things in this repo need a real browser rather than `WebTestCase`'s
+in-process client:
 
-A prior session verified a nav-reorder and Settings-dropdown UI change by
-installing Node.js and Playwright fresh into the Claude Code session's
-scratchpad directory (`npm install playwright` plus
-`npx playwright install chromium`, roughly a 95MB download). That scratchpad
-is wiped between Claude Code sessions, so every future session doing a
-similar visual check would repeat the same install indefinitely.
+- **`tests/E2E/VolunteerManagerSmokeTest.php`** — one smoke test of the
+  critical path (login → create Volunteer → create Activity → see it in the
+  list and `/reports` → mobile nav), catching what a no-JS client cannot:
+  Turbo navigation, Tailwind actually rendering, the mobile menu.
+- **`scripts/panther-screenshot.php`** — ad-hoc "does this render" checks an
+  agent runs mid-task against the already-running dev app, with no PHPUnit,
+  no test webserver and no fixtures.
+- **`scripts/gremlins.php`** — the gremlins.js monkey-testing harness, which
+  uses the same client as a browser driver.
 
-The project has zero Node/npm anywhere — no `package.json` in the repo —
-and `AGENTS.md` (symlinked as `CLAUDE.md`) is explicit that "No host
-PHP/Composer needed or expected — everything runs through Docker." Tailwind
-CSS is built via `symfonycasts/tailwind-bundle`, a pure-PHP Symfony bundle,
-specifically so the project never needs Node.
+Chromium and chromium-driver are already installed in the shared
+`frankenphp_base` Docker stage (the `symfony/panther` recipe), and
+`symfony/panther` is `require-dev`. That capability persists in the image
+layer; anything installed in an agent's scratchpad is wiped each session.
 
-Meanwhile Chromium and chromium-driver are already `apt-get install`ed in
-the shared `frankenphp_base` Docker stage (`Dockerfile`, inherited by both
-the dev and prod images) — this is Symfony Flex's own `symfony/panther`
-recipe block (`ENV PANTHER_NO_SANDBOX=1`,
-`ENV PANTHER_CHROME_ARGUMENTS='--disable-dev-shm-usage'`). `symfony/panther`,
-`symfony/browser-kit`, and `symfony/css-selector` are already `require-dev`
-in `composer.json`. This capability is already installed, already paid for,
-and — critically — persists across Claude Code sessions because it lives in
-the Docker image layer, not a session-scoped scratchpad.
-
-No functional gap was found that would justify Playwright: screenshot
-capture (`$client->takeScreenshot()`), responsive/mobile-viewport checks
-(`$client->manage()->window()->setSize(new WebDriverDimension(...))`,
-already exercised in the existing E2E test's mobile-nav check), and waiting
-out Turbo Drive's async navigation (`$client->wait()->until(...)` /
-`waitForVisibility()`, also already used in that same test) are all
-first-class Panther/WebDriver API, proven working in this exact codebase
-already.
+Zenstruck Browser has deprecated Panther in favour of
+`playwright-php/playwright` (v1.4.0, August 2026), which runs the Symfony
+kernel in the test process and so offers container access, the profiler,
+`dama/doctrine-test-bundle` rollback and parallel runs. Panther cannot:
+its browser and the app sit in separate processes, which is why the E2E
+class carries `#[SkipDatabaseRollback]`. Node itself is not an objection —
+[ADR 0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)
+admits it as a test dependency.
 
 ## Decision
 
-Adopt Panther's lower-level `Client::createChromeClient()` factory
-(independent of `PantherTestCase`) for ad-hoc visual verification, wrapped
-in a small standalone CLI script.
+**All three real-browser uses stay on Symfony Panther.**
 
-- `scripts/panther-screenshot.php` — run directly via
-  `docker compose exec php php scripts/panther-screenshot.php ...` against
-  the running dev app at `https://localhost`. No PHPUnit, no test
-  webserver, no fixtures.
-- Supported options: `--path` to navigate to, optional `--login` (via
-  `--email`/`--password` or the `PANTHER_LOGIN_EMAIL`/
-  `PANTHER_LOGIN_PASSWORD` env vars — never hardcoded, never persisted to
-  disk), `--width`/`--height` for viewport resize, `--wait-selector` for a
-  Turbo-Drive-safe wait, `--click` (repeatable, e.g. to open a dropdown
-  before screenshotting), and it always writes to `var/screenshots/` inside
-  the container.
-- No new dependency, no new language/runtime, no Dockerfile change
-  required.
-- Documented as the standing convention in `AGENTS.md`'s (symlinked as
-  `CLAUDE.md`) "Testing conventions" section, cross-referencing this ADR,
-  so future sessions don't re-litigate or re-install Playwright.
+- The E2E suite stays **one** test; everything else is `WebTestCase`.
+- Ad-hoc checks use Panther's `Client::createChromeClient()` directly
+  (not `PantherTestCase`) in `scripts/panther-screenshot.php`: `--path`,
+  optional `--login` (credentials from flags or `PANTHER_LOGIN_*` env vars,
+  never persisted), `--width`/`--height`, `--wait-selector` for Turbo Drive,
+  repeatable `--click`, output to `var/screenshots/`.
+- Every benefit of playwright-php scales with the size of the E2E suite,
+  and that suite is one test: one `#[SkipDatabaseRollback]` line is not a
+  burden, there is nothing to parallelise, and the container and profiler
+  are already reachable from the in-process tests. "Deprecated" is
+  Zenstruck Browser's verdict on its own wrapper, which this project does
+  not use.
+
+**Reopen trigger:** Panther breaks on a PHP or Chromium bump and is not
+fixed promptly, **or** the E2E suite grows past roughly three tests. Either
+alone is enough.
 
 ## Consequences
 
-- **Positive:** zero new toolchain — reuses infrastructure already baked
-  into the Docker image, which persists across sessions and rebuilds,
-  unlike a scratchpad install. Consistent API and patterns with the
-  existing E2E test lower the learning cost. Keeps the project's "no Node
-  anywhere" invariant intact.
-- **Negative / trade-offs:** `var/` is intentionally excluded from the dev
-  bind-mount (`compose.override.yaml`, for I/O performance), so screenshots
-  written to `var/screenshots/` inside the container need an explicit
-  `docker compose cp` to be viewable on the host — one extra command,
-  documented in `AGENTS.md`. Panther/WebDriver's API is more verbose than
-  Playwright's for complex multi-step interactions, should such a need ever
-  arise.
-- **Reversibility:** cheap — it's one standalone script, unused elsewhere;
-  deleting or replacing it later affects nothing else (no test suite, no
-  CI, no app code depends on it).
+- **Positive:** no new toolchain, nothing to install per session, one
+  browser API shared by the test and both scripts. No npm supply-chain
+  surface, which matters because `composer audit` cannot see npm packages.
+- **Negative / trade-offs:** screenshots land in `var/`, which the dev bind
+  mount excludes, so they need a `docker compose cp`. The project stays on a
+  component the ecosystem is leaving, and the migration cost grows with each
+  E2E test added. `#[SkipDatabaseRollback]` stays a standing exception, and
+  E2E tests cannot reach the container or profiler.
+- **Reversibility:** cheap, and cheaper the sooner it's done: two files use
+  Panther directly, `gremlins.php` uses it only as a driver.
 
 ## Alternatives considered
 
-### 1. Playwright + Node.js
+### 1. Migrate everything to playwright-php now
 
-**Rejected.** Adds a second language/runtime toolchain to a project that
-deliberately has none — Tailwind is pure-PHP specifically to avoid Node.
-The browser binary has no persistent cache for this project across Claude
-Code sessions; it lives in a session-scoped scratchpad that's wiped each
-session, so the roughly 95MB download would repeat indefinitely. It also
-duplicates capability already installed and already paid for via
-Panther/Chromium in the shared Docker base image, with no functional gap
-it closes.
+**Rejected.** Its real benefits serve an E2E suite this project does not
+have, in exchange for an npm surface `composer audit` cannot inspect —
+a certain cost against an uncertain one.
 
-### 2. Reusing `PantherTestCase`/the formal E2E PHPUnit suite for ad-hoc checks
+### 2. Migrate only `tests/E2E/`, keep Panther for the scripts
 
-**Rejected.** Wrong tool for a one-off "does this already-running page
-look right" check — brings unwanted PHPUnit runtime overhead, Foundry
-fixture/DB-rollback machinery, and its own built-in test webserver instead
-of pointing at the actual dev app being worked on.
+**Rejected.** Two browser stacks and two sets of conventions, the npm
+surface arrives anyway, and the one test that would move is the one whose
+workaround already works.
 
-### 3. No automation, human eyeballing only
+### 3. One Panther test per CRUD screen
 
-**Rejected.** Doesn't work for a headless Claude Code session with no
-display; a screenshot artifact is the only way the agent itself can verify
-rendering.
+**Rejected.** Redundant with `WebTestCase` coverage at far higher runtime
+cost, for no new signal.
 
-### 4. Folding this into `tests/E2E/VolunteerManagerSmokeTest.php` instead of a separate script
+### 4. Reuse `PantherTestCase` for ad-hoc checks
 
-**Rejected.** Conflates a regression-test suite with one-off exploratory
-verification, and would couple ad-hoc checks to Foundry/database-rollback
-semantics they don't need.
+**Rejected.** Brings PHPUnit, Foundry fixtures, rollback and a built-in
+webserver to a check that should point at the dev app being worked on.
+
+### 5. Human eyeballing only
+
+**Rejected.** A headless agent session has no display; a screenshot is the
+only way it can verify rendering itself.

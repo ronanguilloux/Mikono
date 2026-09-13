@@ -1,9 +1,10 @@
 # Project status
 
 Living status documents — what's next, and what's already been done.
-This is deliberately separate from [`docs/adr/`](../adr/) (immutable
-decision records) and [`docs/brainstorm/`](../brainstorm/) (immutable,
-pre-decision narrative): those two only ever grow, while
+This is deliberately separate from [`docs/adr/`](../adr/) (the decisions
+currently in force, rewritten when a decision changes) and
+[`docs/brainstorm/`](../brainstorm/) (immutable, pre-decision narrative):
+neither tracks open work, while
 `next-steps.md` here is edited in place and never accumulates history
 itself.
 

@@ -10,115 +10,86 @@ Accepted
 
 UCESCO needs a small internal web app so its Volunteer Manager (the VM) can
 track volunteers working at UCESCO's projects in Kibera (Nairobi) and
-Mombasa. This is Mikono's first real application: CRUD for `User` (login
-accounts), `Volunteer` (CRM-style people who never log in), `Project`,
-`ActivityType`, and `Activity` (the log entries). See
-[`docs/brainstorm/02-volunteer-manager-v0.1-context.md`](../brainstorm/02-volunteer-manager-v0.1-context.md)
-for the full narrative, worked example, and audience.
+Mombasa: login accounts, volunteers (who never log in), projects, activity
+types and the activity log. One non-technical daily user, a few hundred
+records. See
+[`docs/brainstorm/02-volunteer-manager-v0.1-context.md`](../brainstorm/02-volunteer-manager-v0.1-context.md).
 
-No PHP or Composer is installed on the development machine — both `php -v`
-and `composer --version` fail as "command not found" — so nothing PHP-related
-can run directly on the host. No production hosting target has been chosen
-yet; deployment specifics are explicitly out of scope for v0.1.
-
-All of the choices below were decided together in one planning session, as
-one coherent stack, not independently — they are recorded in a single ADR
-for that reason.
+The development machine has no PHP or Composer installed. The choices below
+were made together as one stack, so they share one ADR. Deployment is
+[ADR 0010](0010-build-in-ci-and-deploy-by-image-pull.md) and
+[ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md).
 
 ## Decision
 
-Build the Volunteer Manager v0.1 app on Docker + FrankenPHP running Symfony
-8.1 on PHP 8.4, persisting to SQLite via Doctrine DBAL in a dedicated named
-volume, with Tailwind CSS delivered through Symfony AssetMapper and the
-already-staged Symfony UX packages for interactivity, and a five-entity data
-model scoped tightly to v0.1's actual needs.
+**Docker + FrankenPHP running Symfony 8.1 on PHP 8.5, SQLite through
+Doctrine on a dedicated named volume, Tailwind CSS through AssetMapper, and
+Symfony UX for interactivity.**
 
-- **Runtime:** Docker + FrankenPHP, Symfony's official Docker pattern — the
-  only viable choice given no host PHP/Composer.
-- **Framework/language:** Symfony 8.1.x ("latest Symfony framework" per the
-  product owner), PHP 8.4 inside the container.
-- **Database:** SQLite via Doctrine DBAL. Entities are designed to avoid
-  SQLite-only column types, so a later swap to Postgres or MySQL stays a
-  normal Doctrine migration rather than a rewrite. Persistence uses an
-  explicit named Docker volume (`db_data:/app/var/data`) holding just the
-  SQLite file, kept separate from the ephemeral `var/cache`/`var/log`. This
-  is deliberate: the default FrankenPHP dev-compose pattern excludes `var/`
-  from the host bind mount for performance, leaving an anonymous volume or
-  the container's writable layer as the default for anything under `var/` —
-  which is not safe for the one file holding all of the VM's data. An
-  anonymous volume can be lost on `docker compose down -v`, a rebuild, or a
-  compose file change; a named volume survives all of those by default.
-- **Frontend:** Tailwind CSS via `symfonycasts/tailwind-bundle` plus Symfony
-  AssetMapper, so no Node.js toolchain is needed, together with the Symfony
-  UX packages already staged as Agent Skills in this repo (Turbo, Stimulus,
-  TwigComponent; LiveComponent is installed but its first real use is
-  deferred past v0.1 — see the data model subsection below).
-- **Explicitly not adopted:** API Platform — no API consumer exists for
-  v0.1, and this repo's pre-staged API Platform skills stay unused here — a
-  separate `Location` entity — two values don't justify a CRUD screen yet —
-  and LiveComponent-driven dependent selects on the `Activity` form — the
-  three FK fields are genuinely independent, so a plain Symfony `EntityType`
-  form is simpler and fully `WebTestCase`-testable.
-
-### Data model
-
-Five entities carry the domain:
-
-- **`User`** — login accounts, `ROLE_ADMIN` / `ROLE_USER`.
-- **`Volunteer`** — CRM-style people, never log in.
-- **`Project`** — name, a fixed `location` enum (`Kibera`, `Mombasa`) rather
-  than a separate `Location` entity, and a fixed `ownership` enum (`Ucesco`,
-  `Partner`).
-- **`ActivityType`** — a simple lookup table.
-- **`Activity`** — date, `volunteer`/`project`/`activityType` foreign keys,
-  a `duration` enum (`HalfDay`, `FullDay`) rather than free-text hours,
-  notes, and a `loggedBy` foreign key to `User` set server-side on create
-  only.
-
-Deletion guards: foreign keys default to `RESTRICT`, and each delete action
-runs an app-level count check first, rather than surfacing a raw database
-constraint error to a non-technical user.
+- **Runtime:** Docker + FrankenPHP, Symfony's official Docker pattern.
+  Everything — console, Composer, tests — runs through the container.
+- **Database:** SQLite via Doctrine. Entities avoid SQLite-only column types
+  (enums are mapped as plain strings), so moving to Postgres or MySQL stays
+  a normal migration. The file lives on an explicit named volume
+  (`db_data:/app/var/data`), not under the anonymous `var/` volume the
+  FrankenPHP dev pattern uses: an anonymous volume can vanish on
+  `down -v`, a rebuild or a compose change, and this file is all of the
+  VM's data.
+- **Frontend:** Tailwind via `symfonycasts/tailwind-bundle` and
+  AssetMapper, so the frontend build needs no Node toolchain
+  ([ADR 0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md)).
+  Turbo, Stimulus and TwigComponent for interactivity; LiveComponent is
+  installed but unused.
+- **Data model rules:** fixed small value sets are backed enums on the
+  entity (`ProjectLocation`, `ProjectOwnership`, `ActivityDuration`), not
+  lookup entities with their own CRUD screen. Foreign keys are `RESTRICT`,
+  and every delete action runs an app-level count first so a
+  non-technical user sees a message rather than a constraint error.
+  `Activity::$loggedBy` is set server-side on create only. Later shape
+  changes: [0008](0008-add-other-activity-duration-with-free-text-companion-field.md),
+  [0013](0013-record-every-escort-on-an-activity.md),
+  [0014](0014-make-a-volunteers-last-name-optional.md).
+- **Composer recipes:** `allow-contrib: false` in `composer.json`,
+  deliberately. Contrib Flex recipes never run, so a contrib package
+  (`dama/doctrine-test-bundle`, `knplabs/knp-paginator-bundle`) is wired by
+  hand in `config/bundles.php` and `config/packages/`. A skipped recipe also
+  skips whatever else it would have switched on — Knp's would have enabled a
+  translator — which is the point: what lands in `config/` is written and
+  reviewed here. Wire a future contrib package the same way; never flip the
+  flag project-wide.
+- **Not adopted:** API Platform (no API consumer), a `Location` entity (two
+  values), LiveComponent dependent selects on the activity form (the fields
+  are independent; a plain `EntityType` form is simpler and testable).
 
 ## Consequences
 
-- **Positive:** a non-technical VM gets a responsive UI without a
-  JavaScript framework to maintain; SQLite gives a one-file backup story —
-  copy the file; and the entity design avoids a future migration headache
-  if the app ever needs a client-server database.
-- **Negative / trade-offs:** SQLite does not support concurrent writers
-  well. This is acceptable for one VM user in v0.1 but would need
-  revisiting before the app supports multiple simultaneous editors.
-- **Reversibility:** the database engine swap is a contained Doctrine
-  migration by design, since entities already avoid SQLite-only column
-  types. The Docker/FrankenPHP choice would be a bigger redo if it were
-  ever needed, but it is a standard enough pattern to be low-risk.
+- **Positive:** a responsive UI with no JavaScript framework to maintain;
+  a one-file database whose backup is a file copy; an entity design that
+  does not lock the app to SQLite.
+- **Negative / trade-offs:** SQLite handles concurrent writers poorly —
+  fine for one VM, to revisit before several people edit at once.
+- **Reversibility:** the database swap is a contained migration by design.
+  Leaving Docker/FrankenPHP would be a bigger redo, but it is a standard,
+  low-risk pattern.
 
 ## Alternatives considered
 
-### 1. API Platform plus a separate frontend (SPA)
+### 1. API Platform plus a separate SPA
 
-**Rejected.** No API consumer exists — no mobile app, no third-party
-integration has been requested. Standing up a REST/GraphQL surface and a
-second frontend project to consume it is unnecessary complexity for one
-non-technical user.
+**Rejected.** No API consumer exists; a REST surface and a second frontend
+project are unnecessary for one non-technical user.
 
 ### 2. PostgreSQL or MySQL from day one
 
-**Rejected for v0.1.** A single VM user with a few hundred volunteers and
-activities does not need a client-server database. SQLite is simpler to
-operate and back up inside the Docker setup, and the entity design keeps
-the door open to migrate later if the app ever grows beyond one user or one
-machine.
+**Rejected.** One user and a few hundred rows don't need a client-server
+database; SQLite is simpler to run and back up, and the entities keep the
+door open.
 
-### 3. Plain host PHP instead of Docker
+### 3. Host PHP instead of Docker
 
-**Rejected.** No PHP or Composer is installed on the development machine —
-confirmed by both `php -v` and `composer --version` failing as "command not
-found" — so this was not actually a viable option, not merely a
-less-preferred one.
+**Rejected.** Not available — no PHP or Composer on the machine.
 
-### 4. DDEV instead of raw Docker+FrankenPHP
+### 4. DDEV
 
-**Rejected.** DDEV is heavier and more opinionated than needed for a
-single-developer v0.1 build; raw Docker+FrankenPHP, Symfony's own official
-Docker pattern, is a lighter fit with fewer moving parts to learn or debug.
+**Rejected.** Heavier and more opinionated than a single-developer app
+needs; raw Docker+FrankenPHP has fewer moving parts.

@@ -577,8 +577,8 @@ immutable, and this entry is the update.
 
 The "Researched, nothing decided" section of `next-steps.md` is gone: its
 two items are now decided
-([ADR 0018](../adr/0018-answer-usage-questions-from-the-caddy-access-log.md),
-[ADR 0019](../adr/0019-stay-on-panther-rather-than-migrate-to-playwright-php.md))
+([ADR 0021](../adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md),
+[ADR 0007](../adr/0007-adopt-panther-for-adhoc-visual-verification.md))
 and the exercise tooling from
 [brainstorm 05](../brainstorm/05-exercising-the-app-and-the-panther-question.md)
 is built. A route walk finds crashes that come from *coverage*; a horde

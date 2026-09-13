@@ -1,6 +1,6 @@
-# 21. Read usage from an in-app `/usage` screen over the Caddy access log, plus a narrow client-only event table
+# 21. Answer usage questions from the Caddy access log, read in an in-app `/usage` screen
 
-Date: 2026-09-06
+Date: 2026-09-13
 
 ## Status
 
@@ -8,203 +8,149 @@ Accepted
 
 ## Context
 
-This ADR **extends**
-[ADR 0018](0018-answer-usage-questions-from-the-caddy-access-log.md); it
-does not supersede it. 0018's decision — usage questions are answered
-from the Caddy access log, no third-party analytics, no analytics
-`<script>` in `templates/base.html.twig` — stands unchanged, and nothing
-here adds `gtag`, Plausible or Matomo. 0018's reopen trigger for a
-third-party tool (a second regular user **and** a concrete question the
-log cannot answer — both) is untouched and still governs.
-
-What changed is that 0018's own stated negative came due:
-
-> Reading it is a manual pipeline someone has to remember, not a
-> dashboard.
-
-A five-stage shell pipeline is only available to whoever remembers it.
-0018 also flagged its own Alternative 3, a small in-app event table, as
-something that "deserves a second look before a third party does". This
-ADR takes both up: it puts a reader in front of the log that 0018 chose,
-and adds the smallest possible event table for the handful of gestures
-that genuinely never reach the server. The narrative is in
+The want is real: which screens get used, which actions get performed, and
+how the app is used in practice rather than as imagined. The original ask
+was Google Analytics with JavaScript instrumentation. The narrative is in
 [`docs/brainstorm/06-usage-analytics-cockpit.md`](../brainstorm/06-usage-analytics-cockpit.md).
 
-The fact that makes this cheap: **FrankenPHP *is* Caddy.** The same
-container and the same process serves HTTP and runs PHP, so the access
-log is a plain local file the app can open. No sidecar, no log shipper,
-no second service, no new dependency.
+Four facts decide it:
+
+- **Half the answer is already collected.** Caddy logs every request, and
+  **FrankenPHP is Caddy**: the same process serves HTTP and runs PHP, so the
+  access log is a local file the app can open — no sidecar, no shipper.
+- **Every page is behind a login**, so every event is a named staff
+  member's behaviour, and URLs like `/volunteers/12/edit` carry record
+  identifiers. Sending that to a US provider reopens the cross-border
+  transfer question [ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md)
+  already has to carry.
+- **The app has one regular user.** Funnels, audiences and attribution —
+  GA4's strengths — have nothing to work on.
+- **A shell pipeline over the log is only available to whoever remembers
+  it.** The answer has to be a screen.
 
 ## Decision
 
-**Usage is read in the app, at an admin-only `/usage` screen backed by
-Caddy's own access log written as a rolling JSON file, plus a
-three-column `usage_event` table for the few gestures that never reach
-the server.**
+**No third-party analytics and no analytics `<script>` in
+`templates/base.html.twig`. Usage is read at an admin-only `/usage` screen
+over Caddy's own access log, plus a three-column `usage_event` table for the
+few gestures that never reach the server.**
 
-Four parts.
+**1. The log is a rolling JSON file on its own volume.**
+`CADDY_SERVER_LOG_OPTIONS` in [`compose.yaml`](../../compose.yaml) sets
+`output file /app/var/log/access.log { roll_size 10MiB roll_keep 3 }` and
+`format json`. It lives in compose, not in `frankenphp/Caddyfile`, because
+the Caddyfile is copied into the image and would need a CI rebuild to reach
+production ([ADR 0010](0010-build-in-ci-and-deploy-by-image-pull.md)), while
+an env var ships with a `git pull`. The sizes are explicit because Caddy's
+defaults (100 MiB × 10) are 1 GB. The file sits on a `log_data:/app/var/log`
+named volume — deliberately not `db_data`, which is what backups snapshot
+and restores replace. `log_data` is not backed up.
 
-**1. The access log becomes a rolling JSON file.** Set through
-`CADDY_SERVER_LOG_OPTIONS` in [`compose.yaml`](../../compose.yaml), not
-in [`frankenphp/Caddyfile`](../../frankenphp/Caddyfile): that file is
-`COPY`'d into the image, so an env var ships with a `git pull` while a
-Caddyfile edit would need a CI image rebuild to reach production
-([ADR 0010](0010-build-in-ci-and-deploy-by-image-pull.md)). The value is
-`output file /app/var/log/access.log { roll_size 10MiB roll_keep 3 }`
-plus `format json`. `roll_size`/`roll_keep` are explicit because Caddy's
-defaults are 100 MiB × 10 — 1 GB, on a 2 GB VPS. Rolling is Caddy's own
-(lumberjack): no logrotate, no dependency.
+**2. `src/Usage/AccessLogReader.php` streams and aggregates per route.**
+`fgets` + `json_decode`, never `file_get_contents`. `UsageController`
+renders `/usage` under `ROLE_ADMIN`, reusing `DataTable`, `ListPaginator`
+and the `SORT_MAP` pattern
+([ADR 0011](0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md));
+the aggregate is cached 60 seconds. Load-bearing details:
 
-**2. A new `log_data:/app/var/log` named volume**, so usage history
-survives a redeploy. Deliberately *not* `db_data`: that volume is what
-`scripts/backup-db.sh` snapshots and what a restore drill replaces, and
-request logs have no business riding along. `log_data` is not backed up —
-losing it loses usage history, not data.
+- **One window for the whole screen.** `App\Usage\UsageDateRange` is the
+  single reader of `?range=`/`?from=`/`?to=`, and both the log table and
+  `usage_event` take it, or the two tables describe different periods. The
+  screen opens on `DEFAULT_PRESET` (last 7 days) and the control ticks the
+  *resolved* range; malformed input falls back to that preset, not to all
+  time ([ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)).
+  The range is applied **while streaming**, because per-route counters and
+  `p95` are computed in that same pass — filtering finished rows would leave
+  every number describing the whole file — and `cacheKey()` is part of the
+  cache key, or one filter serves the previous one's result.
 
-**3. `src/Usage/AccessLogReader.php` and `/usage`.** The reader streams
-the NDJSON with `fgets` + `json_decode` — never `file_get_contents`, the
-file is up to 10 MiB — and aggregates per route.
-`src/Controller/UsageController.php` renders `/usage` under `ROLE_ADMIN`,
-linked from the Settings nav dropdown, reusing `DataTable`,
-`ListPaginator` and the `/reports` `SORT_MAP` pattern
-([ADR 0011](0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md)).
-The aggregate is cached in `cache.app` for 60 seconds.
-
-**URI-to-route-pattern mapping does triple duty** and is the load-bearing
-idea of the reader. Each logged URI is matched against the Symfony router
-and the row is labelled with the route's *path pattern*, so
-`/volunteers/12/edit` becomes `/volunteers/{id}/edit`. That collapses
-noise; it strips the record identifiers 0018 named as its data-protection
-objection, so nothing personally identifying reaches the screen; and it
-is the asset filter, because `/assets/*`, `/brand/*` and `favicon` match
-no route and fall out on their own, with no hand-kept ignore list to
-drift.
-
-Three corrections the live log forced, all verified on 2026-09-06:
-
-- **Turbo Drive prefetches on hover** (`X-Sec-Purpose: prefetch`).
-  Unfiltered, hovering a link counts as a page view. The reader skips
-  those and reports how many it skipped.
-- **A rejected submission is a 422, and the reader must test for it
-  *before* `>= 400`.** This ADR first claimed the opposite — that the app
-  answers 200 on an invalid form, since every controller ends one with a
-  bare `return $this->render(...)` and a grep for `422` across `src/` and
-  `config/` finds nothing — and built the metric on the inference "a
-  non-GET answering exactly 200 is a redisplayed form". That premise was
-  wrong. The 422 is not in `src/` because Symfony supplies it:
-  `AbstractController::render()` sets it whenever a submitted, invalid
-  `FormInterface` is among the parameters (framework-bundle
-  `AbstractController.php:480-486`), and every `new`/`edit` action here
-  passes `'form' => $form` rather than a `FormView`. The functional suite
-  had been asserting `assertResponseStatusCodeSame(422)` all along.
-
-  The status classification is therefore a measurement, not an inference —
-  but the ordering is load-bearing. `422` has to be tested above the
-  `>= 400` branch, not below it, or every rejection is silently swallowed
-  as a client error, `rejected` stays a constant zero, and the friction
-  the column exists to show is reported as breakage instead. It shipped
-  that way for a few hours on 2026-09-06;
+- **Each URI is labelled with its matched route pattern**
+  (`/volunteers/{id}/edit`). That collapses noise, strips record
+  identifiers so nothing identifying reaches the screen, and *is* the asset
+  filter — `/assets/*`, `/brand/*` and `favicon` match no route.
+- **Requests with `X-Sec-Purpose: prefetch` are skipped** (and counted as
+  skipped): Turbo Drive prefetches on hover, and unfiltered every hover is a
+  page view.
+- **A rejected form submission is a 422, and must be tested before
+  `>= 400`.** Symfony sets it: `AbstractController::render()` answers 422
+  whenever a submitted invalid form is passed as a parameter, which every
+  `new`/`edit` action here does. Test it below the `>= 400` branch and every
+  rejection is swallowed as a client error.
   `AccessLogReaderTest::aRejectedSubmissionIsNotAlsoCountedAsAClientError`
-  is what now holds the order in place. No 204 caveat is needed once the
-  test is an exact 422: `/usage/event`'s own traffic falls out for free.
-- **The Docker `HEALTHCHECK` hits Caddy's admin port `:2019/metrics`, not
-  the logged site.** Happy accident: unlike most Caddy setups, this log
-  carries zero health-check noise.
+  holds the order.
+- The Docker `HEALTHCHECK` hits Caddy's admin port `:2019`, not the logged
+  site, so the log has no health-check noise.
 
-**4. `usage_event`, deliberately three columns.** `id`, `name`,
-`occurred_at`. No user, no IP, no session id, no free-text context
-payload. That is what keeps the table non-personal and keeps 0018's
-data-protection objection *answered* rather than reopened — adding a user
-column later is a new data-protection decision needing its own ADR, not a
-small change. `App\Enum\UsageEventName` **is the whitelist**:
-`tryFrom()` is the trust boundary between a browser-supplied string and a
-stored row. `POST /usage/event` also validates a CSRF token, and answers
-`204` to everything — unknown name, bad token, success — because a `400`
-would only fill the browser console with noise during normal use.
-`assets/controllers/usage_event_controller.js` posts it.
+**3. `usage_event` has three columns: `id`, `name`, `occurred_at`.** No
+user, IP, session id or free-text payload — that is what keeps it
+non-personal, and adding a user column is a new data-protection decision,
+not a small change. `App\Enum\UsageEventName` is the whitelist; `tryFrom()`
+is the trust boundary. `POST /usage/event` checks a CSRF token and answers
+`204` to everything, since a `400` would only fill the console. Most
+"in-page" questions are already server round-trips (a filter is a query
+string, the batch and single forms are different routes), so the enum
+covers only the gestures that send no request: roster reveal, roster copy,
+batch-form volunteer typeahead, activity-form abandonment. A case that
+duplicates something the log counts makes the app slower and the answer no
+better.
 
-The table stays narrow because **most "in-page" questions are actually
-server round-trips** already visible in the log: the batch form and the
-single form are two different routes, a filter is a query string, viewing
-a report is a GET. Only four gestures are genuinely invisible — roster
-reveal, roster copy to clipboard, the batch form's volunteer typeahead,
-and abandoning the activity form — and those are the four enum cases.
-Adding a case that duplicates something the log already counts makes the
-app slower and the answer no better.
+**Known blind spots:** the window is whatever 10 MiB × 3 holds and the
+reader reads only the current file; mobile share comes from
+`Sec-Ch-Ua-Mobile`, which Safari and Firefox don't send (the screen says
+so); in dev the log includes Panther and gremlins traffic; and
+`docker compose logs php` no longer carries request lines.
 
-**Known blind spots, stated rather than discovered later:** the window is
-only what `roll_size 10MiB` × 3 holds, and the reader reads the current
-file only, not the rolled ones; mobile share comes from `Sec-Ch-Ua-Mobile`,
-which Chromium sends and Safari/Firefox do not, so it under-counts and
-the screen says so; in dev the log also carries Panther,
-`panther-screenshot.php` and `gremlins.php` traffic; and
-`docker compose logs php` **no longer carries request lines**, which
-[`deployment-plan.md`](../project/deployment-plan.md) §8 previously
-promised.
+**Reopen trigger for third-party analytics:** a second regular user **and**
+a concrete question neither the log nor `usage_event` can answer. Both. The
+front-runner is then Plausible or a self-hosted Matomo, never GA4. Whoever
+adds a tag inherits two traps: Turbo Drive breaks the default `gtag`
+snippet (page views must fire on `turbo:load`), and the measurement ID must
+be an env var unset in dev, test and CI, because functional tests assert on
+rendered content.
 
 ## Consequences
 
-- **Positive:** no third party, no tracking script, no consent
-  conversation, no new dependency and no second service — the numbers are
-  the web server's own and cannot drift from reality. Route patterns mean
-  the screen is safe to show without exposing records. It works
-  retroactively over whatever the log already holds, and the answer is
-  now a link in the nav rather than a shell pipeline someone has to
-  remember.
-- **Negative / trade-offs:** the window is short and dies with the
-  `log_data` volume. The manual pipeline recorded in `CLAUDE.md` and
-  `deployment-plan.md` §8 had to be rewritten, since `docker compose logs
-  php` no longer carries request lines. Dev traffic is polluted by
-  browser-automation tooling (Panther, the screenshot script, the
-  gremlins horde). The "rejected submission" column depends on a branch
-  ordering that reads as arbitrary and isn't — see the 422 correction
-  above. And it is one more table, one more endpoint and one more Stimulus
-  controller to maintain.
-- **Reversibility:** cheap, and separable. Dropping the `usage_event`
-  half is a migration, an enum, a controller and a Stimulus file — the
-  `/usage` screen keeps working without it. Dropping the whole thing
-  leaves `CADDY_SERVER_LOG_OPTIONS` and `log_data`, which are worth
-  keeping regardless: a rolling JSON log on a volume is better
-  operationally than console-format stderr whatever reads it. Reverting
-  to 0018's pipeline exactly means unsetting one env var.
+- **Positive:** no third party, no consent conversation, no new service or
+  dependency; the numbers are the web server's own. Route patterns make the
+  screen safe to show. It works retroactively over whatever the log holds.
+- **Negative / trade-offs:** short window, lost with `log_data`; no funnels
+  or retention. The 422 branch ordering reads as arbitrary and isn't. One
+  more table, endpoint and Stimulus controller to maintain.
+- **Reversibility:** cheap and separable. `usage_event` can be dropped
+  without touching `/usage`. Dropping the screen leaves the JSON log on a
+  volume, which is worth keeping anyway.
 
 ## Alternatives considered
 
-### 1. Leave ADR 0018's shell pipeline as the only reader
+### 1. GA4 with an inline `gtag` snippet, as asked
 
-**Rejected.** The pipeline *is* the negative 0018 recorded about itself.
-A five-stage `logs | grep | sed | jq | sort` that only a person who
-remembers it can run is not really an available answer — and the whole
-point of 0018 was that the answer is already being collected for free.
-Collecting it and never reading it is the worst of both.
+**Rejected.** Heaviest data-protection cost — named staff behaviour and
+record identifiers to a US provider — for strengths a one-user app cannot
+use, and its default snippet is the one Turbo Drive silently breaks.
 
-### 2. Keep the stderr copy alongside the file
+### 2. Plausible or self-hosted Matomo
 
-Real option — Caddy 2.x supports multiple named `log` directives in one
-site block. **Rejected.** It doubles log volume, it needs a Caddyfile
-edit and therefore a CI image rebuild to reach production, and the stderr
-copy is strictly the worse of the two: a console prefix that breaks a
-bare `| jq` (the correction 0018 had to record), no `ts` field, and
-Docker's `json-file` driver storing another 50 MB of it on a 2 GB VPS.
+**Rejected for now; front-runner if the trigger fires.** Either a
+subscription or a second service to run and back up on a small VPS, before
+there is a question the log cannot answer.
 
-### 3. Write the log into the existing `db_data` volume
+### 3. Only a documented shell pipeline over the log
 
-**Rejected.** `db_data` is the backed-up, off-site-shipped,
-restore-drilled artifact. Access logs must not ride along in the backup
-that exists to protect volunteer records, and a restore drill must not
-have to reason about what else it is replacing.
+**Rejected.** Collecting the answer for free and leaving it behind a
+five-stage pipeline nobody remembers is the worst of both.
 
-### 4. A general-purpose client event pipe
+### 4. Keep a stderr copy of the log alongside the file
 
-Arbitrary event names, a JSON context payload, the user id. **Rejected.**
-That is analytics with exactly the data-protection problem 0018 declined,
-rebuilt in-house and without the consent conversation a third party would
-at least have forced. The enum whitelist and the three-column row are the
-point, not a limitation to be relaxed later.
+**Rejected.** Doubles log volume, needs a Caddyfile edit (and so an image
+rebuild), and the console format breaks a bare `jq`.
 
-### 5. Third-party analytics — GA4, Plausible, or a self-hosted Matomo
+### 5. Write the log into `db_data`
 
-**Still rejected, on ADR 0018's reasoning unchanged.** Its reopen trigger
-has not fired: there is still one regular user. Nothing here consumes
-that trigger either — if it fires, the front-runner is still Plausible or
-Matomo, not GA4.
+**Rejected.** Request logs must not ride in the backup that protects
+volunteer records, nor complicate a restore drill.
+
+### 6. A general-purpose client event pipe
+
+**Rejected.** Arbitrary names, a JSON payload and a user id is in-house
+analytics with the data-protection problem this ADR declines. The enum
+whitelist and three columns are the point.

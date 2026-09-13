@@ -99,7 +99,7 @@ projects:
     partner: MVETI
     activity_type: Vocational training support
   # The five sites below sit in Mombasa, and `location` is where that is
-  # recorded — the name never repeats it (ADR 0015). The messages qualify
+  # recorded — the name never repeats it (ADR 0012). The messages qualify
   # them the same way, in parentheses: "Minto children Orphanage (Mombasa)".
   - key: mt_hermon
     name: Mt Hermon school

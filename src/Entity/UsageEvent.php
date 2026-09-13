@@ -13,7 +13,7 @@ use Doctrine\ORM\Mapping as ORM;
  * log behind /usage cannot see it. See ADR 0021.
  *
  * Deliberately three columns. There is no user, no IP, no session id and no
- * free-text context payload: ADR 0018 declined third-party analytics partly
+ * free-text context payload: ADR 0021 declines third-party analytics partly
  * because every page here is behind a login, so every event is an identified
  * colleague's behaviour. Recording only "a roster was copied at 14:32" keeps
  * this table non-personal, which is what lets it exist at all. Adding a user

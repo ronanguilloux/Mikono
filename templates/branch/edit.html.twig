@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit {{ branch.name }} — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <h1 class="mb-4 text-xl font-semibold">Edit {{ branch.name }}</h1>
+    <twig:FormShell :form="form" cancelUrl="{{ path('branch_index') }}" :formAttr="{}" />
+{% endblock %}

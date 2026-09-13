@@ -27,7 +27,7 @@ enum case.
 
 ## Notes & links
 
-- [ADR 0015](../../adr/0015-keep-a-projects-region-in-its-location-not-its-name.md)
+- [ADR 0012](../../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)
   is what a third case would extend.
 - `src/Enum/ProjectLocation.php`; enums are mapped as plain strings, so
   adding a case is portable off SQLite.

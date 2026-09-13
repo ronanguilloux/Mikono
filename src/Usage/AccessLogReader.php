@@ -13,10 +13,9 @@ use Symfony\Component\Routing\RouterInterface;
 /**
  * Which screens actually get used, read from Caddy's own access log.
  *
- * This is ADR 0018's shell pipeline turned into a screen, over exactly the
- * same source — not a second measurement system, and emphatically not
- * third-party analytics. ADR 0018's "no gtag, no Plausible, no Matomo" is
- * unchanged; see ADR 0021 for what this adds and why.
+ * A shell pipeline over the log turned into a screen, over exactly the same
+ * source — not a second measurement system, and emphatically not
+ * third-party analytics ("no gtag, no Plausible, no Matomo"). See ADR 0021.
  *
  * FrankenPHP *is* Caddy — the same container and the same process serves HTTP
  * and runs this code — so the log is a plain local file, with no sidecar, no
@@ -66,7 +65,7 @@ final class AccessLogReader
 
         // Route name => path pattern, so rows read "/volunteers/{id}/edit"
         // rather than one row per record id. That collapses the noise AND
-        // drops the record identifiers ADR 0018 named as its data-protection
+        // drops the record identifiers ADR 0021 names as its data-protection
         // objection: nothing personally identifying reaches the screen.
         //
         // ponytail: getRouteCollection() re-reads the routing resources rather

@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Branches — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mb-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold">Branches</h1>
+        <a
+            href="{{ path('branch_new') }}"
+            class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+        >
+            Add branch
+        </a>
+    </div>
+
+    <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No branches yet — add the first one above." />
+{% endblock %}

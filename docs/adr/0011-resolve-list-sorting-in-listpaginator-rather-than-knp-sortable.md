@@ -8,166 +8,90 @@ Accepted
 
 ## Context
 
-[ADR 0009](0009-adopt-knppaginatorbundle-for-list-pagination.md) adopted
-KnpPaginatorBundle for the windowing math behind every list view, and
-noted in passing that `knp_pagination_sortable()` "makes sortable columns
-cheap if they are ever wanted, at no cost today". Sortable columns are now
-wanted: every column header on the seven list views — the six CRUD indexes
-(Volunteer, Project, ActivityType, Activity, User, Escort) plus both
-breakdown tables on `/reports` — should be a link that sorts ascending on
-the first click and descending on the second. This ADR extends 0009 rather
-than replacing it; the pagination decision stands unchanged.
+Every column header on the list views — the CRUD indexes and both breakdown
+tables on `/reports` — should sort ascending on first click and descending on
+the second. Pagination stays on KnpPaginatorBundle
+([ADR 0009](0009-adopt-knppaginatorbundle-for-list-pagination.md)), but its
+sortable support does not fit, for three reasons found in its source:
 
-Reading the bundle's installed source, rather than its README, retired
-that cheap-sortable-columns assumption on three counts.
-
-**`knp_pagination_sortable()` needs a translator.** It is registered on
-the same `Pagination` Twig extension whose constructor requires a
-`TranslatorInterface`. This app is single-locale and deliberately has no
-translator — exactly the blocker already recorded in
-`config/packages/knp_paginator.yaml` and
-`templates/components/PaginationBar.html.twig` for
-`knp_pagination_render()`, and a knock-on of the bundle's skipped contrib
-Flex recipe (`composer.json` sets `allow-contrib: false`), which is what
-would otherwise have turned the translator on.
-
-**Knp's sort parameter must literally *be* the DQL path, and rejects
-anything else with a 500.**
-`Knp\Component\Pager\Event\Subscriber\Sortable\Doctrine\ORM\QuerySubscriber::items()`
-reads the raw `sort` parameter, splits it on `.` into alias and field, and
-feeds the pair to `OrderByWalker`; a value outside `sortFieldAllowList`
-throws `InvalidValueException`. That is the opposite of the contract
-`ListPaginator` already keeps for `page` and `perPage`, where bad input
-never errors — and this app has one non-technical user working from
-bookmarked URLs. It would also leak DQL aliases such as `v.lastName` into
-the query string, and force `?sort=totalDays` to mean different things on
-`/reports` (where `ArraySubscriber` expects `[totalDays]`-style property
-paths) than on a CRUD index.
-
-**Knp's sorting had to be actively switched off, not merely left unused.**
-Its default `sortFieldParameterName` is `'sort'` — the very parameter this
-feature owns. Left alone, `?sort=activityType` on `/activities` would
-reach `OrderByWalker` as `a.activityType`, an association rather than a
-scalar field, i.e. a 500.
+- **`knp_pagination_sortable()` needs a translator**, which this
+  single-locale app deliberately does not have.
+- **Knp's `sort` value must literally be the DQL path** (`v.lastName`), and
+  anything outside `sortFieldAllowList` throws `InvalidValueException` — a
+  500 for a typo, where `ListPaginator` guarantees bad input never errors. It
+  would also put DQL aliases in bookmarked URLs and make `?sort=totalDays`
+  mean different things on `/reports` (array paths) and on a CRUD index.
+- **Knp's sorting has to be switched off, not merely unused.** Its default
+  parameter name is `sort`; left on, `?sort=activityType` would reach its
+  walker as an association path and 500.
 
 ## Decision
 
-Keep KnpPaginatorBundle for the windowing math and resolve `sort` and
-`direction` in `App\Pagination\ListPaginator`, applying the `ORDER BY`
-ourselves with the bundle's own sorting explicitly disabled.
+**Keep Knp for the windowing math; resolve `sort` and `direction` in
+`App\Pagination\ListPaginator` and apply the `ORDER BY` ourselves, with Knp's
+sorting disabled.**
 
-Concretely:
-
-- `ListPaginator` gained `sortState()`, `applySort()` (for a
-  `QueryBuilder`) and `sortArray()` (for `/reports`, which paginates an
-  in-memory breakdown). It remains the one place `page`, `perPage`, `sort`
-  and `direction` are read off the query string.
+- `ListPaginator` is the one place `page`, `perPage`, `sort` and
+  `direction` are read. It exposes `sortState()`, `applySort()` (for a
+  `QueryBuilder`) and `sortArray()` (for `/reports`).
 - Knp's sorting is disabled by passing
-  `PaginatorInterface::SORT_FIELD_PARAMETER_NAME => null` in the options
-  of both `paginate()` calls. Both Sortable subscribers short-circuit on a
-  null field name, and `Paginator::paginate()` merges options with a plain
-  `array_merge` and no `OptionsResolver`, so `null` passes through
-  cleanly. This was chosen over renaming the bundle's parameter to
-  something obscure but real, which stays forgeable by hand in the URL
-  bar.
+  `PaginatorInterface::SORT_FIELD_PARAMETER_NAME => null` to `paginate()`.
+  Both Sortable subscribers short-circuit on a null name, and Knp merges
+  options without a resolver, so `null` passes through. A renamed-but-real
+  parameter would stay forgeable from the URL bar.
 - **URL contract:** `?sort=<column key>&direction=asc|desc`. Column keys,
-  never DQL paths, so the same `?sort=totalDays` means the same thing
-  everywhere. A sort link resets `page` to 1 and carries `perPage` and the
-  `/reports` `tab` through.
-- Each controller declares a `SORT_MAP` constant mapping a column key to
-  its DQL field or fields (to an array key on `/reports`). Because the map
-  *is* the whitelist, no user-supplied string ever reaches DQL. An unknown
-  or absent `sort` falls back to the view's existing default order, the
-  same forgiving posture `perPage` already has.
-- Sortability is carried by the map alone, not also by a flag on the
-  column definition — one source of truth. Three columns opt out simply by
-  not appearing in their map: ActivityType's Description (free text),
-  Activity's Duration (enum cases plus a free-text `durationOther`, so any
-  `ORDER BY` would be arbitrary), and User's Role (derived from the
-  `roles` JSON via `isAdmin()`, not a column).
-- Ties break deterministically. `applySort()` keeps the repository's own
-  `ORDER BY` appended after the requested sort: sorting Volunteers by
-  Status drops every row into two buckets, and without a secondary order
-  SQLite may hand back a page-1 row again on page 2. On the array side
-  PHP's `usort` has been stable since 8.0, so the calculator's own
-  `totalDays` order survives as the tie-break for free.
-- `/reports` sorts the whole list before `paginateArray()`, not the page.
-  Nulls sort last in both directions — an empty "Most recent" cell is
-  missing data, not a small value. `ActivitySummaryCalculator` was not
-  modified, so this stayed outside the Infection scope.
-- A new readonly `App\Pagination\SortState` carries sortable keys, active
-  key and direction to templates. `DataTable` takes it as one optional
-  prop and renders plain headers when it is null, which is what the
-  `/reports` print panel needs.
-- Mobile is in scope. The Activities index wraps its `DataTable` in
-  `hidden md:block`, so `templates/components/SortSelect.html.twig` emits
-  the same two parameters from a pair of selects, reusing the existing
-  `auto-submit` Stimulus controller — the same reason `PaginationBar` was
-  already hoisted out of `DataTable` on that screen.
-- Accessibility: the active `<th>` carries `aria-sort`, and the link text
-  stays the bare column label with the ↑/↓ arrow as a sibling outside the
-  `<a>`, because several tests resolve headers and buttons by text.
+  never DQL paths. A sort link resets `page` to 1 and keeps `perPage` and
+  `/reports`' `tab`.
+- **Each controller's `SORT_MAP` const is the whitelist**: column key → DQL
+  field(s), or array key on `/reports`. No user string reaches DQL. An
+  unknown or missing `sort` falls back to the view's default order. A column
+  opts out by not being in the map — there is no second sortability flag on
+  the column definition.
+- **Ties break deterministically.** `applySort()` appends the repository's
+  own `ORDER BY` after the requested sort; without it, a low-cardinality
+  sort (Status) lets SQLite repeat rows across pages. On arrays, `usort` is
+  stable since PHP 8.0, so the calculator's order is the tie-break.
+- `/reports` sorts the whole list before paginating, not the page. Nulls
+  sort last in both directions: an empty "Most recent" is missing data, not
+  a small value.
+- `App\Pagination\SortState` (readonly) carries sortable keys, active key
+  and direction to `DataTable`, which renders plain headers when it is null
+  (the `/reports` print panel).
+- Mobile: where `DataTable` is hidden below `md` (Activities),
+  `templates/components/SortSelect.html.twig` emits the same two parameters
+  from selects via the `auto-submit` Stimulus controller.
+- Accessibility: the active `<th>` carries `aria-sort`; the ↑/↓ arrow sits
+  outside the `<a>` so the link text stays the bare label tests match on.
 
 ## Consequences
 
-- **Positive:** the sort contract is ours, so bad input degrades to the
-  view's default order instead of a 500, and column keys stay stable,
-  readable and identical across query-backed and array-backed lists — no
-  DQL aliases in bookmarked URLs. The controller's `SORT_MAP` doubles as
-  the whitelist, so adding a sortable column anywhere is a one-line map
-  entry with no template change, and there is no second place a column can
-  claim to be sortable. Sorting and pagination are resolved in the same
-  class, which is why a sort link keeps `perPage` and resets `page`
-  without any per-view code.
-- **Negative / trade-offs:** we now own comparison semantics that a
-  library would have supplied. Enum columns (Project's Location and
-  Ownership) sort by the stored backing value rather than `label()`; for
-  both enums today the two orders coincide (`kibera` < `mombasa`,
-  `partner` < `ucesco`), but a future case where they disagree needs its
-  own handling. String ordering uses SQLite's default BINARY collation and
-  is therefore case-sensitive — unchanged from the pre-existing default
-  ordering, but more visible now that a user can re-sort at will. Two sort
-  paths exist, `applySort()` for queries and `sortArray()` for
-  `/reports`, and their null and tie-break behaviour has to be kept
-  deliberately aligned. Disabling the bundle's sorting relies on
-  `SORT_FIELD_PARAMETER_NAME => null` surviving a future Knp major, which
-  a stricter options resolver could break.
-- **Reversibility:** cheap in the direction that matters. Templates and
-  URLs speak only `SortState` and column keys, so the resolution strategy
-  underneath can change without touching markup or bookmarks. Dropping
-  sorting altogether means removing the maps and the `sortState` prop.
-  Moving *to* Knp's sortable support would be the expensive direction —
-  it would mean adopting a translator, exposing DQL paths in URLs, and
-  giving up the "bad input never errors" contract — which is the point of
-  recording this now.
+- **Positive:** bad input degrades to the default order, never a 500;
+  stable, readable column keys identical across query and array lists; a
+  sortable column is one map entry.
+- **Negative / trade-offs:** we own comparison semantics. Enum columns sort
+  by backing value, not label (identical for today's enums, not
+  guaranteed). String order uses SQLite's case-sensitive BINARY collation.
+  Two sort paths (`applySort()`, `sortArray()`) must keep null and
+  tie-break behaviour aligned. The `null` option could break under a
+  stricter future Knp options resolver.
+- **Reversibility:** templates and URLs speak only `SortState` and column
+  keys, so the strategy underneath can change freely. Moving *to* Knp
+  sortable is the expensive direction: a translator, DQL paths in URLs, and
+  losing "bad input never errors".
 
 ## Alternatives considered
 
-### 1. Use `knp_pagination_sortable()` with `sortFieldAllowList`
+### 1. `knp_pagination_sortable()` with `sortFieldAllowList`
 
-**Rejected.** The helper is unreachable without a translator this app
-deliberately does not have, and the parameter it reads must be the DQL
-path itself, with anything off the allow-list throwing
-`InvalidValueException`. That puts `v.lastName` in bookmarked URLs and
-turns a typo into a 500 for the single non-technical user this app is
-built for, against a `ListPaginator` contract where `?page=abc` already
-degrades quietly. It would also split the meaning of `?sort=totalDays`
-between the CRUD indexes and `/reports`.
+**Rejected.** Needs a translator, exposes DQL paths, turns typos into 500s,
+and splits the meaning of `?sort=` between CRUD and `/reports`.
 
-### 2. Pull in `symfony/translation` to unlock the bundle's helpers
+### 2. Add `symfony/translation` to unlock Knp's helpers
 
-**Rejected.** It would mean running a translator over templates that
-contain no translatable strings, purely to reach markup we would restyle
-anyway — the same trade ADR 0009 already declined for
-`knp_pagination_render()` when it chose a project-owned Tailwind template
-instead. Enabling it here would also mean either flipping `allow-contrib`
-project-wide or hand-wiring a second bundle for markup we do not want.
+**Rejected.** A translator over templates with nothing to translate, to
+reach markup we'd restyle anyway, plus another hand-wired bundle.
 
-### 3. Declare the sortable field on the column definition alongside the map
+### 3. Declare sortability on the column definition too
 
-**Rejected.** It reads well in a template — the column knows how it sorts
-— but it means a column's sortability is asserted in two places that can
-drift, and a header could advertise a sort key the controller's map does
-not honour. Keeping the map as the single source means an unsortable
-column is expressed by omission, which is how Description, Duration and
-Role opt out today.
+**Rejected.** Two places that can drift, and a header could advertise a sort
+the controller doesn't honour.

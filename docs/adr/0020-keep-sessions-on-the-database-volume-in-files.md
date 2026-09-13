@@ -14,16 +14,9 @@ on no volume at all. A deploy pulls a new image and recreates the
 container ([`scripts/deploy.sh`](../../scripts/deploy.sh)), so **every
 deploy signed everyone out.**
 
-This was not a discovery. It was written down three times: as a deferred
-item in [`next-steps.md`](../project/next-steps.md) under "Deferred until
-a second `User` account exists", in
-[`hosting-plan.md`](../project/hosting-plan.md) §4, and in
-[`deployment-plan.md`](../project/deployment-plan.md) §6. The deferral
-was reasonable — there is one user today, UCESCO's Volunteer Manager, so
-the blast radius is one person — but the fix turned out to be one line of
-configuration, and a forced logout in the middle of a task is a real
-annoyance when a deploy lands at the wrong moment. At that price the note
-costs more to keep than to close.
+With one user the blast radius is one person, but a forced logout in the
+middle of a task is a real annoyance, and PHP's default 24-minute idle
+timeout does the same on a slow afternoon. The fix is configuration only.
 
 ## Decision
 
@@ -132,15 +125,15 @@ snapshot a whole volume rather than the database file.
 **Rejected.** It puts a write on a single-writer database on essentially
 every authenticated request — the exact limit
 [ADR 0003](0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)
-flagged, and that the WAL item in
-[`next-steps.md`](../project/next-steps.md) still defers. It would also
+flagged (see the
+[`sqlite-wal-journal-mode`](../project/backlog/sqlite-wal-journal-mode.md)
+card). It would also
 make restoring yesterday's backup restore yesterday's sessions, which
 nobody wants.
 
-### 3. Leave it broken and keep the note
+### 3. Leave it until a second user exists
 
-**Rejected.** The note had already been written three times in three
-documents, which is more effort than the fix cost.
+**Rejected.** Three lines of YAML cost less than carrying the known defect.
 
 ### 4. A `remember_me` firewall entry instead of a longer session
 
