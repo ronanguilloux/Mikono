@@ -37,6 +37,7 @@ hostname is the one that isn't ours to solve.
 4. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
 5. [Filter /activities by branch](backlog/activities-branch-filter.md)
 6. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
+7. [Add profile fields and file attachments to volunteers](backlog/volunteer-profile-fields-and-attachments.md) — **D**
 
 ## Later
 
@@ -52,6 +53,7 @@ each other, take them in any order or none:
 
 Deferred behind a trigger — each card names the event that wakes it:
 
+- [Add a Programs section between Project and Activity](backlog/programs-section.md) — **Z**
 - [SQLite journal mode (WAL)](backlog/sqlite-wal-journal-mode.md) — **Z**
 - [Task/assignment hand-offs](backlog/task-assignment-handoffs.md) — **Z**
 - [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **Z**
