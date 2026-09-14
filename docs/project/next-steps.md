@@ -35,6 +35,8 @@ hostname is the one that isn't ours to solve.
 2. [Finish the batch form's typeahead for screen readers](backlog/batch-typeahead-screen-reader.md)
 3. [Where escort should be read back out](backlog/escort-display-and-reporting.md) — **G**
 4. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
+5. [Filter /activities by branch](backlog/activities-branch-filter.md)
+6. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
 
 ## Later
 
