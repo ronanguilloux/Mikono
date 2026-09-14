@@ -41,8 +41,9 @@ final class ActivityFactory extends PersistentObjectFactory
 
     /**
      * Every activity needs the stay covering its date (ADR 0026). Left unset,
-     * it is the volunteer's stay on that day, or else a one-day stay on it —
-     * a single day nothing covers can't overlap another stay.
+     * it is the volunteer's stay on that day, or else a one-day stay on it at
+     * the project's branch — a single day nothing covers can't overlap
+     * another stay.
      */
     protected function initialize(): static
     {
@@ -54,11 +55,12 @@ final class ActivityFactory extends PersistentObjectFactory
                 return;
             }
 
-            $activity->setStay($volunteer->getStayCovering($date) ?? StayFactory::createOne([
+            $activity->setStay($volunteer->getStayCovering($date) ?? StayFactory::createOne(array_filter([
                 'volunteer' => $volunteer,
+                'branch' => $activity->getProject()?->getBranch(),
                 'startDate' => $date,
                 'endDate' => $date,
-            ]));
+            ])));
         });
     }
 }

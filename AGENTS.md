@@ -73,7 +73,7 @@ implements it.
 - `src/Entity/`, `src/Repository/` — Doctrine entities (`User`,
   `Volunteer`, `Project`, `ActivityType`, `Activity`, `Escort`, `Branch`, `Stay`)
   and their repositories, each with a `countReferencingActivities()`
-  delete-guard where applicable. `Branch`'s guard counts stays, and its five real rows come from its migration, not the
+  delete-guard where applicable. `Branch`'s guard counts stays and projects, and its five real rows come from its migration, not the
   fixtures — tests start with them
   ([ADR 0025](docs/adr/0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md)). Two shapes were set by the real rosters, so don't
   "tidy" them back: `Activity::$escorts` is a **collection**
@@ -85,7 +85,11 @@ implements it.
   covers today, and `Activity::$stay` is resolved from volunteer + date on
   every save, never a form field
   ([ADR 0026](docs/adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
-- `src/Enum/` — backed PHP enums (`ProjectLocation`, `ProjectOwnership`,
+  A project has a required branch, and an activity's project must share its
+  stay's branch — checked on activity save, stay edit and project edit, not
+  by the schema, so a new write path needs the same check
+  ([ADR 0027](docs/adr/0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
+- `src/Enum/` — backed PHP enums (`ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
 - `src/Controller/`, `src/Form/`, `templates/<area>/` — one set per CRUD
   area, all with the same index/new/edit/delete shape. Reuse the

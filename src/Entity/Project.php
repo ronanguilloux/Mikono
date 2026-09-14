@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Enum\ProjectLocation;
 use App\Enum\ProjectOwnership;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,9 +22,15 @@ class Project
     #[Assert\NotBlank]
     private string $name = '';
 
-    #[ORM\Column(length: 20, enumType: ProjectLocation::class)]
-    #[Assert\NotNull]
-    private ?ProjectLocation $location = null;
+    /**
+     * Every activity logged at this project belongs to a stay at this same
+     * branch: ActivityController refuses anything else, and ProjectController
+     * refuses moving a project away from its activities' stays. See ADR 0027.
+     */
+    #[ORM\ManyToOne(targetEntity: Branch::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Choose a branch.')]
+    private ?Branch $branch = null;
 
     #[ORM\Column(length: 20, enumType: ProjectOwnership::class)]
     #[Assert\NotNull]
@@ -78,14 +83,14 @@ class Project
         return $this;
     }
 
-    public function getLocation(): ?ProjectLocation
+    public function getBranch(): ?Branch
     {
-        return $this->location;
+        return $this->branch;
     }
 
-    public function setLocation(?ProjectLocation $location): static
+    public function setBranch(?Branch $branch): static
     {
-        $this->location = $location;
+        $this->branch = $branch;
 
         return $this;
     }

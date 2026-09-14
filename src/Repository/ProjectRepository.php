@@ -26,11 +26,14 @@ class ProjectRepository extends ServiceEntityRepository
      * pickers; findAllOrderedByName() is the same query without a LIMIT, for
      * the callers that genuinely need every row (ReportMetricsCalculator).
      * EscortRepository and ActivityTypeRepository deliberately have no such
-     * twin — nothing there needs the array form.
+     * twin — nothing there needs the array form. The branch is fetch-joined:
+     * the index shows and sorts by it, and the pickers group by it.
      */
     public function createOrderedByNameQueryBuilder(): QueryBuilder
     {
         return $this->createQueryBuilder('p')
+            ->join('p.branch', 'b')
+            ->addSelect('b')
             ->orderBy('p.name', 'ASC');
     }
 
@@ -70,6 +73,25 @@ class ProjectRepository extends ServiceEntityRepository
         return (int) $this->getEntityManager()
             ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.project = :project')
             ->setParameter('project', $project)
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Activities logged at this project in a stay at a branch other than the
+     * one the project carries *now* — read before flushing an edit, so a
+     * project can't be moved away from the stays its activities belong to
+     * (ADR 0027).
+     */
+    public function countActivitiesAtOtherBranch(Project $project): int
+    {
+        if (null === $project->getId() || null === $project->getBranch()) {
+            return 0;
+        }
+
+        return (int) $this->getEntityManager()
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a JOIN a.stay s WHERE a.project = :project AND s.branch <> :branch')
+            ->setParameter('project', $project)
+            ->setParameter('branch', $project->getBranch())
             ->getSingleScalarResult();
     }
 

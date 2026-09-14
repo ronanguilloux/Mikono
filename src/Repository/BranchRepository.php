@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Branch;
+use App\Entity\Project;
 use App\Entity\Stay;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -26,43 +27,47 @@ class BranchRepository extends ServiceEntityRepository
             ->orderBy('b.name', 'ASC');
     }
 
-    /** The delete-guard: a branch that stays happened at can't be deleted (ADR 0025). */
-    public function countReferencingStays(Branch $branch): int
+    /**
+     * The delete-guard: a branch that stays or projects point to can't be
+     * deleted (ADR 0025, ADR 0027).
+     */
+    public function countReferences(Branch $branch): int
     {
-        return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(s.id) FROM ' . Stay::class . ' s WHERE s.branch = :branch')
-            ->setParameter('branch', $branch)
-            ->getSingleScalarResult();
+        return $this->countReferencesFor([$branch])[(int) $branch->getId()] ?? 0;
     }
 
     /**
-     * The same count for a whole page of branches in one query. Branches with
-     * no stays are absent, so read it with a `?? 0` default.
+     * The same count for a whole page of branches, one query per referencing
+     * entity. Branches nothing points to are absent, so read it with a `?? 0`
+     * default.
      *
      * @param list<Branch> $branches
      *
-     * @return array<int, int> branch id => stays referencing it
+     * @return array<int, int> branch id => stays and projects referencing it
      */
-    public function countReferencingStaysFor(array $branches): array
+    public function countReferencesFor(array $branches): array
     {
         if ([] === $branches) {
             return [];
         }
 
-        /** @var list<array{branchId: int|string, total: int|string}> $rows */
-        $rows = $this->getEntityManager()
-            ->createQuery(
-                'SELECT IDENTITY(s.branch) AS branchId, COUNT(s.id) AS total
-                 FROM ' . Stay::class . ' s
-                 WHERE s.branch IN (:branches)
-                 GROUP BY s.branch',
-            )
-            ->setParameter('branches', $branches)
-            ->getResult();
-
         $counts = [];
-        foreach ($rows as $row) {
-            $counts[(int) $row['branchId']] = (int) $row['total'];
+        foreach ([Stay::class, Project::class] as $class) {
+            /** @var list<array{branchId: int|string, total: int|string}> $rows */
+            $rows = $this->getEntityManager()
+                ->createQuery(
+                    'SELECT IDENTITY(r.branch) AS branchId, COUNT(r.id) AS total
+                     FROM ' . $class . ' r
+                     WHERE r.branch IN (:branches)
+                     GROUP BY r.branch',
+                )
+                ->setParameter('branches', $branches)
+                ->getResult();
+
+            foreach ($rows as $row) {
+                $id = (int) $row['branchId'];
+                $counts[$id] = ($counts[$id] ?? 0) + (int) $row['total'];
+            }
         }
 
         return $counts;

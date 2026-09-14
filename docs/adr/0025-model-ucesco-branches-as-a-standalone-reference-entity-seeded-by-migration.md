@@ -18,8 +18,9 @@ from its first deploy. They change rarely, but they do change, and the VM
 makes those changes herself.
 
 Volunteers are attached to branches through dated stays
-([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
-Projects have no branch.
+([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)),
+and every project belongs to a branch
+([ADR 0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
 
 ## Decision
 
@@ -34,11 +35,13 @@ real rows.**
   `DataTable`, sorting through `ListPaginator`, a CSRF-protected delete,
   and `ROLE_USER` access.
 - `Stay` references `Branch`
-  ([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
-  **Deleting a branch that has stays is refused**: Delete is shown inert,
-  and the server refuses it as well. Any further relation added to
-  `Branch` needs its own delete-guard, or deleting a branch will break the
-  rows that reference it.
+  ([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)),
+  and so does `Project`
+  ([ADR 0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
+  **Deleting a branch that has stays or projects is refused**: the
+  delete-guard counts both, Delete is shown inert, and the server refuses
+  it as well. Any further relation added to `Branch` must be added to that
+  guard, or deleting a branch will break the rows that reference it.
 - The table-creating migration inserts the rows, not `AppStory`. The
   entrypoint runs migrations, so production gets the rows on deploy.
   Foundry's reset mode is `migrate` in dev and test, so
@@ -50,8 +53,8 @@ real rows.**
   and does not replace it. Migrations carry fixed reference data; the
   roster archive carries operational data. Operational data never goes
   into a migration, and reference data never goes into the archive.
-- A "Uganda" branch row does not create a Uganda `ProjectLocation` case.
-  That question stays with its own backlog card.
+- A project's place is its branch. There is no separate location enum on
+  projects, so a new branch row is all a new place needs.
 
 ## Consequences
 
@@ -67,7 +70,9 @@ real rows.**
 - **Reversibility:** moderate. Reshaping `Branch`'s own columns takes one
   migration. Removing the entity would also mean undoing stays, which
   every activity depends on
-  ([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
+  ([ADR 0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)),
+  and projects' branch
+  ([ADR 0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
 
 ## Alternatives considered
 
@@ -81,7 +86,7 @@ the name tells a reader everything a flag would.
 **Rejected.** Zones are descriptive text that no query or relation uses.
 They get structure when a relation needs it.
 
-### 3. A `BranchLocation` enum, like `ProjectLocation`
+### 3. A `BranchLocation` enum
 
 **Rejected.** The VM edits branches. With an enum, every change to a
 branch would need a code change and a deploy.

@@ -12,7 +12,6 @@ use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
-use App\Enum\ProjectLocation;
 use App\Fixture\RosterArchive;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Zenstruck\Foundry\Attribute\AsFixture;
@@ -75,7 +74,7 @@ final class AppStory extends Story
             ]);
             $projects[$key] = ProjectFactory::createOne([
                 'name' => $project->name,
-                'location' => $project->location,
+                'branch' => BranchFactory::find(['name' => $project->branch]),
                 'ownership' => $project->ownership,
                 'partnerOrganizationName' => $project->partner,
                 'isActive' => true,
@@ -91,10 +90,6 @@ final class AppStory extends Story
         // of the sites they worked. `active: true` means still on the rosters
         // as the archive ends (docs/fixtures/README.md rule 11), so that stay
         // runs to the archive's last day.
-        $branches = [
-            ProjectLocation::Kibera->value => BranchFactory::find(['name' => 'Nairobi (HQ)']),
-            ProjectLocation::Mombasa->value => BranchFactory::find(['name' => 'Mombasa']),
-        ];
         $spans = [];
         $archiveEnd = null;
         foreach ($archive->rosters as $roster) {
@@ -102,15 +97,15 @@ final class AppStory extends Story
             $archiveEnd = max($archiveEnd ?? $date, $date);
 
             foreach ($roster->sites as $site) {
-                $location = $archive->projects[$site->projectKey]->location;
+                $branch = $projects[$site->projectKey]->getBranch();
 
                 foreach ($site->volunteers as $slot) {
-                    $span = $spans[$slot->name] ?? ['start' => $date, 'end' => $date, 'location' => $location];
-                    if ($span['location'] !== $location) {
-                        throw new \RuntimeException(sprintf('"%s" works sites in two locations; the fixtures give each volunteer a single stay.', $slot->name));
+                    $span = $spans[$slot->name] ?? ['start' => $date, 'end' => $date, 'branch' => $branch];
+                    if ($span['branch'] !== $branch) {
+                        throw new \RuntimeException(sprintf('"%s" works sites at two branches; the fixtures give each volunteer a single stay.', $slot->name));
                     }
 
-                    $spans[$slot->name] = ['start' => min($span['start'], $date), 'end' => max($span['end'], $date), 'location' => $location];
+                    $spans[$slot->name] = ['start' => min($span['start'], $date), 'end' => max($span['end'], $date), 'branch' => $branch];
                 }
             }
         }
@@ -124,7 +119,7 @@ final class AppStory extends Story
 
             $stays[$volunteer->name] = StayFactory::createOne([
                 'volunteer' => $volunteers[$volunteer->name],
-                'branch' => $branches[$span['location']->value],
+                'branch' => $span['branch'],
                 'startDate' => $span['start'],
                 'endDate' => $volunteer->active ? max($span['end'], $archiveEnd) : $span['end'],
             ]);

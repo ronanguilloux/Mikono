@@ -63,6 +63,7 @@ drafts and maintains these.
 | [0024](0024-treat-dates-as-calendar-days-in-nairobi-time.md) | Treat dates as calendar days in Nairobi time | Accepted |
 | [0025](0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md) | Model UCESCO branches as a standalone reference entity seeded by migration | Accepted |
 | [0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) | Attach volunteers to branches through dated stays and derive active from them | Accepted |
+| [0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md) | Tie projects to a branch and require an activity's project to share its stay's branch | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

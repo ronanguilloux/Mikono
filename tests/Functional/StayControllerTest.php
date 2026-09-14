@@ -167,4 +167,23 @@ final class StayControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Cannot delete this stay');
         StayFactory::assert()->count(1);
     }
+
+    #[Test]
+    public function aStayCannotBeMovedAwayFromItsActivitiesProjects(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::new()->withoutStay()->create();
+        $stay = StayFactory::createOne(['volunteer' => $volunteer, 'branch' => BranchFactory::find(['name' => 'Nairobi (HQ)'])]);
+        // ProjectFactory defaults to Nairobi (HQ) too.
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => new \DateTimeImmutable('today')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/stays/{$stay->getId()}/edit");
+        $client->submit($crawler->selectButton('Save')->form([
+            'stay_form[branch]' => (string) BranchFactory::find(['name' => 'Samburu'])->getId(),
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', "1 activity logged in this stay is at another branch's projects.");
+    }
 }

@@ -118,7 +118,8 @@ final class StayController extends AbstractController
     /**
      * The rules a single stay's own constraints can't see: no overlap with the
      * volunteer's other stays (so a day has one branch at most), and, on edit,
-     * no activity already logged in the stay left outside its new dates.
+     * no activity already logged in the stay left outside its new dates or at
+     * another branch's projects (ADR 0027).
      *
      * @param FormInterface<Stay> $form
      */
@@ -143,6 +144,18 @@ final class StayController extends AbstractController
                 '%d activit%s logged in this stay would fall outside these dates.',
                 $outside,
                 1 === $outside ? 'y' : 'ies',
+            )));
+
+            return false;
+        }
+
+        $elsewhere = $this->stays->countActivitiesAtOtherBranch($stay);
+        if ($elsewhere > 0) {
+            $form->get('branch')->addError(new FormError(sprintf(
+                '%d activit%s logged in this stay %s at another branch\'s projects.',
+                $elsewhere,
+                1 === $elsewhere ? 'y' : 'ies',
+                1 === $elsewhere ? 'is' : 'are',
             )));
 
             return false;

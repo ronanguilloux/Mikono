@@ -16,8 +16,10 @@ and every logged activity must belong to a branch. A single manual
 `isActive` flag on `Volunteer` cannot record repeat visits or a change of
 branch. It also goes stale whenever the VM forgets to untick it.
 
-Projects have no branch of their own, so an activity's branch cannot come
-from its project. "Today" and every stay boundary are Nairobi calendar days
+The stay is what ties an activity to a branch. Projects belong to a branch
+too, and the project's branch must match the stay's
+([ADR 0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
+"Today" and every stay boundary are Nairobi calendar days
 ([ADR 0024](0024-treat-dates-as-calendar-days-in-nairobi-time.md)).
 
 ## Decision
@@ -49,7 +51,7 @@ Activities:
 - `Activity::$volunteer` stays because many readers use it. It cannot
   drift from the stay's volunteer, because the stay is re-resolved on
   every save. Any new write path for activities must resolve the stay the
-  same way.
+  same way, including the project-branch check of ADR 0027.
 
 Active status:
 
@@ -79,20 +81,23 @@ Managing stays:
   server refuses it as well.
 - A branch with stays cannot be deleted either. Delete is guarded in the
   UI and on the server.
+- A stay's branch cannot change while activities in it are at projects of
+  another branch (ADR 0027).
 
 Data:
 
 - The schema migration backfills one stay for each existing volunteer who
-  has activities. The branch is "Mombasa" when `MIN(project.location)` is
-  `mombasa`, and "Nairobi (HQ)" otherwise. The stay runs from the first
-  activity date to the last. If the volunteer was active, it runs to
-  today. Volunteers with no activities get no stay, so they read as
-  inactive. This was acceptable because no server held real data yet.
+  had activities. The branch was "Mombasa" when `MIN(project.location)`
+  was `mombasa`, and "Nairobi (HQ)" otherwise. The stay runs from the first
+  activity date to the last, or to the day of the migration if the
+  volunteer was active. Volunteers with no activities got no stay, so they
+  read as inactive. This was acceptable because no server held real data
+  yet.
 - Dev fixtures derive one stay per archive volunteer from the roster
   archive, never from a generator
   ([ADR 0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
   A stay runs from the volunteer's first appearance to their last, at the
-  branch for their sites' location. An archive `active: true` extends it to
+  branch of the sites they worked. An archive `active: true` extends it to
   the archive's last day.
 - Test factories follow the same model. A volunteer gets one stay covering
   today by default, `inactive()` gives a past stay and `withoutStay()`
@@ -115,10 +120,12 @@ Data:
 - **Negative / trade-offs:** stay edits and deletions are constrained by
   the activities logged in them. Moving a stay's dates can mean moving
   activities first.
-- **Negative / trade-offs:** the branch is not shown anywhere yet except
-  on stays. There is no branch column or filter on `/activities`, no
-  per-branch totals on `/reports`, and the project picker is not limited
-  to the stay's branch. That last one needs projects to have a branch.
+- **Negative / trade-offs:** an activity's branch is shown on its stay
+  and, through its project, in the project pickers, which are grouped by
+  branch; a project at another branch than the stay's is refused at save
+  ([ADR 0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
+  There is no branch column or filter on `/activities` and no per-branch
+  totals on `/reports`.
 - **Reversibility:** expensive. Removing stays means dropping a required FK
   from `Activity`, restoring a stored active flag with a backfill, and
   rewriting the pickers, sorts, reports, factories and fixtures that read

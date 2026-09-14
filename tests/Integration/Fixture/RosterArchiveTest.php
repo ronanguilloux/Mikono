@@ -56,24 +56,25 @@ final class RosterArchiveTest extends TestCase
     }
 
     #[Test]
-    public function everyVolunteerWorksSitesInASingleLocation(): void
+    public function everyVolunteerWorksSitesAtASingleBranch(): void
     {
         // AppStory gives each volunteer one stay, at one branch, read off the
-        // locations of the sites they worked (ADR 0026). A volunteer on both
-        // Kibera and Mombasa rosters needs two stays the story can't infer.
+        // branches of the sites they worked (ADR 0026, ADR 0027). A volunteer
+        // on both Nairobi and Mombasa rosters needs two stays the story can't
+        // infer.
         $archive = self::archive();
-        $locations = [];
+        $branches = [];
 
         foreach ($archive->rosters as $roster) {
             foreach ($roster->sites as $site) {
                 foreach ($site->volunteers as $slot) {
-                    $locations[$slot->name][$archive->projects[$site->projectKey]->location->value] = true;
+                    $branches[$slot->name][$archive->projects[$site->projectKey]->branch] = true;
                 }
             }
         }
 
-        foreach ($locations as $name => $seen) {
-            self::assertCount(1, $seen, "Volunteer \"{$name}\" works sites in more than one location.");
+        foreach ($branches as $name => $seen) {
+            self::assertCount(1, $seen, "Volunteer \"{$name}\" works sites at more than one branch.");
         }
     }
 

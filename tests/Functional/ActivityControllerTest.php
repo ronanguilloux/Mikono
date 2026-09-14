@@ -13,7 +13,6 @@ use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
-use App\Enum\ProjectLocation;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -94,7 +93,6 @@ final class ActivityControllerTest extends WebTestCase
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Ronan', 'lastName' => 'Guilloux']);
         $project = ProjectFactory::new()->partner()->create([
             'name' => 'Bright Achievers',
-            'location' => ProjectLocation::Kibera,
             'partnerOrganizationName' => 'Bright Achievers High School',
         ]);
         $activityType = ActivityTypeFactory::createOne(['name' => 'Computer lessons']);
@@ -853,5 +851,69 @@ final class ActivityControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', 'Ann Wambui has no stay covering');
         ActivityFactory::assert()->count(0);
+    }
+
+    #[Test]
+    public function theSingleActivityFormRefusesAProjectAtAnotherBranchThanTheStay(): void
+    {
+        $client = static::createClient();
+        // Staying at Nairobi (HQ), the factory default.
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Wambui']);
+        $project = ProjectFactory::createOne(['name' => 'Minto', 'branch' => BranchFactory::find(['name' => 'Mombasa'])]);
+        $activityType = ActivityTypeFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'activity_form[volunteer]' => (string) $volunteer->getId(),
+            'activity_form[project]' => (string) $project->getId(),
+            'activity_form[activityType]' => (string) $activityType->getId(),
+            'activity_form[duration]' => 'half_day',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'Minto is a Mombasa project, but on');
+        self::assertSelectorTextContains('body', 'Ann Wambui is staying at Nairobi (HQ)');
+        ActivityFactory::assert()->count(0);
+    }
+
+    #[Test]
+    public function aBatchIsRefusedWholeWhenAVolunteerStaysAtAnotherBranch(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $coast = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Daniel', 'lastName' => 'Otieno']);
+        StayFactory::createOne(['volunteer' => $coast, 'branch' => $mombasa]);
+        // Staying at Nairobi (HQ), the factory default.
+        $city = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Wambui']);
+        $project = ProjectFactory::createOne(['branch' => $mombasa]);
+        $activityType = ActivityTypeFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new-batch');
+        $this->checkVolunteers($crawler, [$coast, $city]);
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'batch_activity_form[date]' => $today->format('Y-m-d'),
+            'batch_activity_form[project]' => (string) $project->getId(),
+            'batch_activity_form[activityType]' => (string) $activityType->getId(),
+            'batch_activity_form[duration]' => 'half_day',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'Ann Wambui is staying at Nairobi (HQ)');
+        ActivityFactory::assert()->count(0);
+    }
+
+    #[Test]
+    public function theBatchFormGroupsProjectsByBranch(): void
+    {
+        $client = static::createClient();
+        ProjectFactory::createOne(['name' => 'Minto', 'branch' => BranchFactory::find(['name' => 'Mombasa'])]);
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/activities/new-batch');
+
+        self::assertSelectorTextContains('select[name="batch_activity_form[project]"] optgroup[label="Mombasa"]', 'Minto');
     }
 }

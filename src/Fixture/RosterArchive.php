@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Fixture;
 
 use App\Enum\ActivityDuration;
-use App\Enum\ProjectLocation;
 use App\Enum\ProjectOwnership;
 use Symfony\Component\Yaml\Yaml;
 
@@ -64,7 +63,7 @@ final readonly class RosterArchive
             $projects[$key] = new ArchivedProject(
                 $key,
                 self::string($row, 'name'),
-                ProjectLocation::from(self::string($row, 'location')),
+                self::string($row, 'branch'),
                 ProjectOwnership::from(self::string($row, 'ownership')),
                 self::nullableString($row, 'partner'),
                 self::string($row, 'activity_type'),

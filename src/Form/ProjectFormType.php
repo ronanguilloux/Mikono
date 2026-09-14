@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Form;
 
+use App\Entity\Branch;
 use App\Entity\Project;
-use App\Enum\ProjectLocation;
 use App\Enum\ProjectOwnership;
+use App\Repository\BranchRepository;
+use Doctrine\ORM\QueryBuilder;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
@@ -21,10 +24,13 @@ final class ProjectFormType extends AbstractType
     {
         $builder
             ->add('name', TextType::class, ['empty_data' => ''])
-            ->add('location', EnumType::class, [
-                'class' => ProjectLocation::class,
-                'choice_label' => static fn(ProjectLocation $location) => $location->label(),
-                'placeholder' => 'Choose a location',
+            // Every branch, inactive ones labelled rather than hidden, as on the
+            // stay form: editing an old project must never force moving it.
+            ->add('branch', EntityType::class, [
+                'class' => Branch::class,
+                'choice_label' => static fn(Branch $branch) => $branch->getName() . ($branch->isActive() ? '' : ' (inactive)'),
+                'query_builder' => static fn(BranchRepository $branches): QueryBuilder => $branches->createOrderedByNameQueryBuilder(),
+                'placeholder' => 'Choose a branch',
             ])
             ->add('ownership', EnumType::class, [
                 'class' => ProjectOwnership::class,

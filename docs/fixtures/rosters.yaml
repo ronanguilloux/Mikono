@@ -53,57 +53,57 @@ escorts:
   - Ofright
   - Edna
 
-# Location and ownership are not in the roster messages; they come from the
+# Branch and ownership are not in the roster messages; they come from the
 # project records already established with the VM (docs/brainstorm/04).
 # Sites outside the Nairobi base carry the region in their name.
 projects:
   - key: peggy_lucas
     name: Peggy Lucas school
-    location: kibera
+    branch: Nairobi (HQ)
     ownership: ucesco
     activity_type: School support
   - key: bright_achievers
     name: Bright Achievers school
-    location: kibera
+    branch: Nairobi (HQ)
     ownership: partner
     partner: Bright Achievers High School
     activity_type: School support
   - key: ack_clinic
     name: ACK clinic
-    location: kibera
+    branch: Nairobi (HQ)
     ownership: partner
     partner: Anglican Church of Kenya (ACK)
     activity_type: Clinic support
   - key: beyond_zero
     name: Beyond Zero clinic
-    location: kibera
+    branch: Nairobi (HQ)
     ownership: partner
     partner: Beyond Zero
     activity_type: Clinic support
   - key: toi_field
     name: Toi School Field
-    location: kibera
+    branch: Nairobi (HQ)
     ownership: partner
     partner: Toi School
     activity_type: Sports
   - key: dreams_of_hope
     name: Dreams of Hope Kids
-    location: kibera
+    branch: Nairobi (HQ)
     ownership: partner
     partner: Dreams of Hope
     activity_type: Orphanage support
   - key: mveti
     name: MVETI
-    location: kibera
+    branch: Nairobi (HQ)
     ownership: partner
     partner: MVETI
     activity_type: Vocational training support
-  # The five sites below sit in Mombasa, and `location` is where that is
+  # The five sites below sit in Mombasa, and `branch` is where that is
   # recorded — the name never repeats it (ADR 0012). The messages qualify
   # them the same way, in parentheses: "Minto children Orphanage (Mombasa)".
   - key: mt_hermon
     name: Mt Hermon school
-    location: mombasa
+    branch: Mombasa
     ownership: partner
     partner: Mt Hermon School
     activity_type: School support
@@ -111,33 +111,33 @@ projects:
     # Mombasa sites in this archive. The messages never say so outright.
   - key: minto
     name: Minto Children's Orphanage
-    location: mombasa
+    branch: Mombasa
     ownership: partner
     partner: Minto Children's Orphanage
     activity_type: Orphanage support
   - key: mtwapa_beach
     name: Mtwapa Beach
-    location: mombasa
+    branch: Mombasa
     ownership: ucesco
     activity_type: Beach clean-up
   - key: mombasa_office
     # "Mombasa Office assisting in Communication" in the messages; the region
-    # is the `location`, so the site itself is the office.
+    # is the `branch`, so the site itself is the office.
     name: Office
-    location: mombasa
+    branch: Mombasa
     ownership: ucesco
     activity_type: Office/admin support
   - key: mombasa_home_visits
     # "Home Visit (Mombasa)" in the messages.
     name: Home visits
-    location: mombasa
+    branch: Mombasa
     ownership: ucesco
     activity_type: Home visit
   # No roster line in this archive sends anyone to HQ, but it is a real site
   # and orientation happens there — every new volunteer's first half-day.
   - key: ucesco_hq
     name: UCESCO HQ
-    location: kibera
+    branch: Nairobi (HQ)
     ownership: ucesco
     activity_type: Orientation
 

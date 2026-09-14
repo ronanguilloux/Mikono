@@ -15,8 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Same shape as ProjectController. The delete-guard counts stays: a branch
- * volunteers stayed at can't be deleted, only marked inactive (ADR 0025).
+ * Same shape as ProjectController. The delete-guard counts stays and
+ * projects: a branch either points to can't be deleted, only marked inactive
+ * (ADR 0025, ADR 0027).
  */
 #[Route('/branches', name: 'branch_')]
 final class BranchController extends AbstractController
@@ -49,12 +50,12 @@ final class BranchController extends AbstractController
 
         /** @var list<Branch> $branchesOnPage */
         $branchesOnPage = iterator_to_array($pagination, false);
-        $stayCounts = $this->branches->countReferencingStaysFor($branchesOnPage);
+        $referenceCounts = $this->branches->countReferencesFor($branchesOnPage);
 
         $rows = [];
         foreach ($branchesOnPage as $branch) {
             $id = $branch->getId();
-            $referencingCount = null === $id ? 0 : ($stayCounts[$id] ?? 0);
+            $referencingCount = null === $id ? 0 : ($referenceCounts[$id] ?? 0);
 
             $rows[] = [
                 'cells' => [
@@ -123,7 +124,7 @@ final class BranchController extends AbstractController
             return $this->redirectToRoute('branch_index');
         }
 
-        $referencingCount = $this->branches->countReferencingStays($branch);
+        $referencingCount = $this->branches->countReferences($branch);
 
         return $this->render('branch/edit.html.twig', [
             'form' => $form,
@@ -144,7 +145,7 @@ final class BranchController extends AbstractController
             return $this->redirectToRoute('branch_index');
         }
 
-        $referencingCount = $this->branches->countReferencingStays($branch);
+        $referencingCount = $this->branches->countReferences($branch);
         if ($referencingCount > 0) {
             $this->addFlash('error', $this->guardReason($branch, $referencingCount));
 
@@ -166,11 +167,12 @@ final class BranchController extends AbstractController
     private function guardReason(Branch $branch, int $referencingCount): string
     {
         return sprintf(
-            'Cannot delete %s — %d volunteer stay%s %s there. Mark it inactive instead.',
+            'Cannot delete %s — %d stay%s or project%s point%s to it. Mark it inactive instead.',
             $branch->getName(),
             $referencingCount,
             1 === $referencingCount ? '' : 's',
-            1 === $referencingCount ? 'is' : 'are',
+            1 === $referencingCount ? '' : 's',
+            1 === $referencingCount ? 's' : '',
         );
     }
 

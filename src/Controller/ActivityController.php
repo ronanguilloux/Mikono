@@ -143,7 +143,7 @@ final class ActivityController extends AbstractController
         $form = $this->createForm(ActivityFormType::class, $activity);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form->get('date'), [$activity])) {
+        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form, [$activity])) {
             $activity->setLoggedBy($this->loggedByUser());
             $this->entityManager->persist($activity);
             $this->entityManager->flush();
@@ -189,9 +189,10 @@ final class ActivityController extends AbstractController
                 $activities[] = $activity;
             }
 
-            // All or nothing: one volunteer without a stay that day refuses
+            // All or nothing: one volunteer without a stay that day, or staying
+            // at another branch than the project's, refuses
             // the whole batch, rather than logging the others and losing them.
-            if ($this->resolveStays($form->get('date'), $activities)) {
+            if ($this->resolveStays($form, $activities)) {
                 foreach ($activities as $activity) {
                     $this->entityManager->persist($activity);
                 }
@@ -223,7 +224,7 @@ final class ActivityController extends AbstractController
         $form = $this->createForm(ActivityFormType::class, $activity);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form->get('date'), [$activity])) {
+        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form, [$activity])) {
             $activity->touch();
             $this->entityManager->flush();
 
@@ -291,42 +292,61 @@ final class ActivityController extends AbstractController
      * stay is what gives an activity its branch (ADR 0026). Re-resolved on
      * every save, so a changed date or volunteer can't keep the old stay.
      *
-     * A volunteer with no stay that day is refused: the error lands on
-     * $field, which makes the form invalid, so render() answers 422.
+     * A volunteer with no stay that day is refused, the error on the date; a
+     * stay at another branch than the project's is refused too, the error on
+     * the project (ADR 0027). Either makes the form invalid, so render()
+     * answers 422.
      *
-     * @param FormInterface<mixed> $field
-     * @param list<Activity>       $activities all sharing one date
+     * @param FormInterface<mixed> $form
+     * @param list<Activity>       $activities all sharing one date and one project
      */
-    private function resolveStays(FormInterface $field, array $activities): bool
+    private function resolveStays(FormInterface $form, array $activities): bool
     {
         $missing = [];
+        $elsewhere = [];
         $date = null;
+        $project = null;
 
         foreach ($activities as $activity) {
             $date = $activity->getDate();
+            $project = $activity->getProject();
             $volunteer = $activity->getVolunteer();
+            $name = $volunteer?->getFullName() ?? 'The volunteer';
             $stay = null === $date ? null : $volunteer?->getStayCovering($date);
 
             if (null === $stay) {
-                $missing[] = $volunteer?->getFullName() ?? 'The volunteer';
+                $missing[] = $name;
+                continue;
+            }
+
+            if ($stay->getBranch() !== $project?->getBranch()) {
+                $elsewhere[] = sprintf('%s is staying at %s', $name, $stay->getBranch()?->getName() ?? 'another branch');
                 continue;
             }
 
             $activity->setStay($stay);
         }
 
-        if ([] === $missing) {
-            return true;
+        if ([] !== $missing) {
+            $form->get('date')->addError(new FormError(sprintf(
+                '%s %s no stay covering %s — add one on their volunteer page first.',
+                implode(', ', $missing),
+                1 === count($missing) ? 'has' : 'have',
+                $date?->format('j M Y') ?? 'that day',
+            )));
         }
 
-        $field->addError(new FormError(sprintf(
-            '%s %s no stay covering %s — add one on their volunteer page first.',
-            implode(', ', $missing),
-            1 === count($missing) ? 'has' : 'have',
-            $date?->format('j M Y') ?? 'that day',
-        )));
+        if ([] !== $elsewhere) {
+            $form->get('project')->addError(new FormError(sprintf(
+                '%s is a %s project, but on %s %s.',
+                $project?->getName() ?? 'This',
+                $project?->getBranch()?->getName() ?? 'different branch\'s',
+                $date?->format('j M Y') ?? 'that day',
+                implode('; ', $elsewhere),
+            )));
+        }
 
-        return false;
+        return [] === $missing && [] === $elsewhere;
     }
 
     private function loggedByUser(): ?User

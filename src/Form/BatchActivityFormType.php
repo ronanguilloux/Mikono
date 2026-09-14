@@ -43,6 +43,9 @@ final class BatchActivityFormType extends AbstractType
             ])
             ->add('project', EntityType::class, [
                 'class' => Project::class,
+                // Native optgroups: an activity's project must share its stay's
+                // branch (ADR 0027), so the picker shows which branch each is at.
+                'group_by' => static fn(Project $project) => $project->getBranch()?->getName(),
                 'choice_label' => static fn(Project $project) => $project->getName() . ($project->isActive() ? '' : ' (inactive)'),
                 'query_builder' => static fn(ProjectRepository $projects): QueryBuilder => $projects->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose a project',

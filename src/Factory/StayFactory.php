@@ -23,8 +23,10 @@ final class StayFactory extends PersistentObjectFactory
 
         return [
             'volunteer' => VolunteerFactory::new()->withoutStay(),
-            // One of the five branches the migration seeds (ADR 0025).
-            'branch' => BranchFactory::random(),
+            // A seeded branch (ADR 0025), and not a random one: ProjectFactory
+            // defaults to the same, so an activity's project and stay agree
+            // unless a test says otherwise (ADR 0027).
+            'branch' => BranchFactory::find(['name' => 'Nairobi (HQ)']),
             'startDate' => $today->modify('-1 month'),
             'endDate' => $today->modify('+1 month'),
         ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Factory\BranchFactory;
+use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use PHPUnit\Framework\Attributes\Test;
@@ -165,7 +166,7 @@ final class BranchControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/branches');
 
         self::assertStringContainsString(
-            'Cannot delete Aardvark Branch — 1 volunteer stay is there.',
+            'Cannot delete Aardvark Branch — 1 stay or project points to it.',
             $crawler->filter('table tbody tr')->first()->filter('[aria-disabled="true"]')->text(),
         );
     }
@@ -185,5 +186,21 @@ final class BranchControllerTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'Cannot delete Aardvark Branch');
         BranchFactory::assert()->count(6);
+    }
+
+    #[Test]
+    public function theIndexShowsDeleteAsUnavailableForABranchWithProjects(): void
+    {
+        $client = static::createClient();
+        $branch = BranchFactory::createOne(['name' => 'Aardvark Branch']);
+        ProjectFactory::createOne(['branch' => $branch]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/branches');
+
+        self::assertStringContainsString(
+            'Cannot delete Aardvark Branch — 1 stay or project points to it.',
+            $crawler->filter('table tbody tr')->first()->filter('[aria-disabled="true"]')->text(),
+        );
     }
 }

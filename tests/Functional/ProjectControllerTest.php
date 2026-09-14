@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use App\Enum\ProjectLocation;
 use App\Enum\ProjectOwnership;
 use App\Factory\ActivityFactory;
+use App\Factory\BranchFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
 use PHPUnit\Framework\Attributes\Test;
@@ -25,7 +25,7 @@ final class ProjectControllerTest extends WebTestCase
 
         $form = $crawler->selectButton('Save')->form([
             'project_form[name]' => 'Test Partner No Org',
-            'project_form[location]' => 'mombasa',
+            'project_form[branch]' => (string) BranchFactory::find(['name' => 'Mombasa'])->getId(),
             'project_form[ownership]' => 'partner',
             'project_form[partnerOrganizationName]' => '',
         ]);
@@ -68,7 +68,7 @@ final class ProjectControllerTest extends WebTestCase
 
         $form = $crawler->selectButton('Save')->form([
             'project_form[name]' => 'Bright Achievers',
-            'project_form[location]' => 'kibera',
+            'project_form[branch]' => (string) BranchFactory::find(['name' => 'Nairobi (HQ)'])->getId(),
             'project_form[ownership]' => 'partner',
             'project_form[partnerOrganizationName]' => 'Bright Achievers High School',
         ]);
@@ -77,7 +77,7 @@ final class ProjectControllerTest extends WebTestCase
         self::assertResponseRedirects('/projects');
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'Bright Achievers');
-        self::assertSelectorTextContains('body', 'Kibera (Nairobi)');
+        self::assertSelectorTextContains('body', 'Nairobi (HQ)');
     }
 
     /**
@@ -205,22 +205,18 @@ final class ProjectControllerTest extends WebTestCase
         self::assertStringContainsString('Alpha Centre', $crawler->filter('table tbody tr')->first()->text());
     }
 
-    /**
-     * Location and Ownership sort by the enum's stored backing value rather
-     * than its label(). For both enums today those two orders coincide, and
-     * this pins that: kibera < mombasa reads as Kibera (Nairobi) first.
-     */
+    /** Branch sorts by the branch's name, through the index query's join. */
     #[Test]
-    public function theIndexSortsEnumColumnsInLabelOrder(): void
+    public function theIndexSortsByBranchName(): void
     {
         $client = static::createClient();
-        ProjectFactory::createOne(['name' => 'Coast Project', 'location' => ProjectLocation::Mombasa]);
-        ProjectFactory::createOne(['name' => 'Slum Project', 'location' => ProjectLocation::Kibera]);
+        ProjectFactory::createOne(['name' => 'Aardvark Project', 'branch' => BranchFactory::find(['name' => 'Samburu'])]);
+        ProjectFactory::createOne(['name' => 'Zebra Project', 'branch' => BranchFactory::find(['name' => 'Mombasa'])]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/projects?sort=location&direction=asc');
+        $crawler = $client->request('GET', '/projects?sort=branch&direction=asc');
 
-        self::assertStringContainsString('Kibera (Nairobi)', $crawler->filter('table tbody tr')->first()->text());
+        self::assertStringContainsString('Zebra Project', $crawler->filter('table tbody tr')->first()->text());
     }
 
     #[Test]
@@ -235,5 +231,23 @@ final class ProjectControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Alpha Centre', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    #[Test]
+    public function aProjectCannotBeMovedAwayFromItsActivitiesStays(): void
+    {
+        $client = static::createClient();
+        // Both default to Nairobi (HQ): the activity's stay is there.
+        $project = ProjectFactory::createOne(['name' => 'Peggy Lucas school']);
+        ActivityFactory::createOne(['project' => $project]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/projects/{$project->getId()}/edit");
+        $client->submit($crawler->selectButton('Save')->form([
+            'project_form[branch]' => (string) BranchFactory::find(['name' => 'Mombasa'])->getId(),
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', '1 activity logged here belongs to stays at another branch.');
     }
 }

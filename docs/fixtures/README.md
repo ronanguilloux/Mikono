@@ -58,11 +58,11 @@ are the reason this is a human pass rather than a parser.
    the same person.
 9. **Anything inferred gets a comment saying so**, next to the entry, in
    the words of the message it was inferred from. There are three such
-   inferences in the current extract: Mt Hermon's location, the
+   inferences in the current extract: Mt Hermon's branch, the
    unlabelled "Sports" of 21/08, and the escort attribution on 31/08.
 10. **A site's name never carries its region.** The messages qualify the
     coast sites in passing — "Minto children Orphanage (Mombasa)" — but
-    that qualifier is the project's `location`, not part of what the site
+    that qualifier is the project's `branch`, not part of what the site
     is called. Transcribe the name alone
     ([ADR 0012](../adr/0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
 11. **`active: false`** for a volunteer whose last roster appearance is
@@ -71,7 +71,7 @@ are the reason this is a human pass rather than a parser.
     flag decides where the fixtures end that volunteer's one stay: at
     their last roster appearance, or at the archive's last day for
     `active: true` — so it is what makes them active or not once loaded.
-    A volunteer's sites must therefore all share one `location`.
+    A volunteer's sites must therefore all share one `branch`.
 
 ## What the archive cannot supply
 
@@ -87,7 +87,7 @@ here rather than hidden in the fixture code:
   `null` rather than being invented. `lastName` too
   ([ADR 0014](../adr/0014-make-a-volunteers-last-name-optional.md)).
 
-Project `location`, `ownership` and partner names are not in the rosters
+Project `branch`, `ownership` and partner names are not in the rosters
 either; they come from the project records already established with the
 VM (`docs/brainstorm/04`), and are carried in `projects:` for that
 reason.

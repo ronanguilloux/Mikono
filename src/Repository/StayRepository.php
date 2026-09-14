@@ -50,4 +50,23 @@ class StayRepository extends ServiceEntityRepository
             ->setParameter('end', $stay->getEndDate(), Types::DATE_IMMUTABLE)
             ->getSingleScalarResult();
     }
+
+    /**
+     * Activities tied to this stay at projects of a branch other than the one
+     * the stay carries *now* — read before flushing an edit, so a stay can't
+     * be moved to another branch away from the projects worked in it
+     * (ADR 0027).
+     */
+    public function countActivitiesAtOtherBranch(Stay $stay): int
+    {
+        if (null === $stay->getId() || null === $stay->getBranch()) {
+            return 0;
+        }
+
+        return (int) $this->getEntityManager()
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a JOIN a.project p WHERE a.stay = :stay AND p.branch <> :branch')
+            ->setParameter('stay', $stay)
+            ->setParameter('branch', $stay->getBranch())
+            ->getSingleScalarResult();
+    }
 }

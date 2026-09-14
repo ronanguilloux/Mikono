@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\E2E;
 
-use App\Enum\ProjectLocation;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
@@ -28,7 +27,6 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
         UserFactory::createOne(['email' => 'e2e@example.test']);
         $project = ProjectFactory::new()->partner()->create([
             'name' => 'Bright Achievers',
-            'location' => ProjectLocation::Kibera,
             'partnerOrganizationName' => 'Bright Achievers High School',
         ]);
         $activityType = ActivityTypeFactory::createOne(['name' => 'Computer lessons']);

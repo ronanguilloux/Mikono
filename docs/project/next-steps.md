@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-14
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -52,7 +52,6 @@ Deferred behind a trigger — each card names the event that wakes it:
 
 - [SQLite journal mode (WAL)](backlog/sqlite-wal-journal-mode.md) — **Z**
 - [Task/assignment hand-offs](backlog/task-assignment-handoffs.md) — **Z**
-- [Uganda rosters and a third ProjectLocation](backlog/uganda-project-location.md) — **Z**
 - [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **Z**
 - [Scheduled donor digest emails](backlog/scheduled-donor-digest-emails.md) — **Z**
 - [WhatsApp Business API / roster sending](backlog/whatsapp-roster-sending.md) — **Z**

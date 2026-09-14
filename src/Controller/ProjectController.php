@@ -10,6 +10,8 @@ use App\Pagination\ListPaginator;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,17 +21,17 @@ final class ProjectController extends AbstractController
 {
     /**
      * Column key => DQL field(s) for the index's sortable headers; the map is
-     * the whitelist. `location` and `ownership` sort by the enum's stored
-     * backing value, not its label() — which happens to give the same order
-     * for both enums today (kibera < mombasa, partner < ucesco). A future case
-     * whose backing value and label disagree would need its own column.
+     * the whitelist. `branch` sorts by name, through the join the index query
+     * carries. `ownership` sorts by the enum's stored backing value, not its
+     * label() — the same order today (partner < ucesco). A future case whose
+     * backing value and label disagree would need its own column.
      * See ADR 0011.
      *
      * @var array<string, non-empty-list<string>>
      */
     private const array SORT_MAP = [
         'name' => ['p.name'],
-        'location' => ['p.location'],
+        'branch' => ['b.name'],
         'ownership' => ['p.ownership'],
         'status' => ['p.isActive'],
     ];
@@ -64,7 +66,7 @@ final class ProjectController extends AbstractController
             $rows[] = [
                 'cells' => [
                     'name' => $project->getName(),
-                    'location' => $project->getLocation()?->label() ?? '—',
+                    'branch' => $project->getBranch()?->getName() ?? '—',
                     'ownership' => $project->getOwnership()?->label() ?? '—',
                     'status' => $project->isActive() ? 'Active' : 'Inactive',
                 ],
@@ -86,7 +88,7 @@ final class ProjectController extends AbstractController
         return $this->render('project/index.html.twig', [
             'columns' => [
                 ['key' => 'name', 'label' => 'Name'],
-                ['key' => 'location', 'label' => 'Location'],
+                ['key' => 'branch', 'label' => 'Branch'],
                 ['key' => 'ownership', 'label' => 'Ownership'],
                 ['key' => 'status', 'label' => 'Status'],
             ],
@@ -121,7 +123,7 @@ final class ProjectController extends AbstractController
         $form = $this->createForm(ProjectFormType::class, $project);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid() && $this->keepsItsActivitiesAtItsBranch($form, $project)) {
             $project->touch();
             $this->entityManager->flush();
 
@@ -183,6 +185,31 @@ final class ProjectController extends AbstractController
             1 === $referencingCount ? 'y' : 'ies',
             1 === $referencingCount ? 's' : '',
         );
+    }
+
+    /**
+     * Every activity logged at a project belongs to a stay at the project's
+     * branch (ADR 0027), so moving a project to another branch while its
+     * activities' stays are elsewhere is refused. The error makes the form
+     * invalid, so render() answers 422.
+     *
+     * @param FormInterface<mixed> $form
+     */
+    private function keepsItsActivitiesAtItsBranch(FormInterface $form, Project $project): bool
+    {
+        $elsewhere = $this->projects->countActivitiesAtOtherBranch($project);
+        if (0 === $elsewhere) {
+            return true;
+        }
+
+        $form->get('branch')->addError(new FormError(sprintf(
+            '%d activit%s logged here belong%s to stays at another branch.',
+            $elsewhere,
+            1 === $elsewhere ? 'y' : 'ies',
+            1 === $elsewhere ? 's' : '',
+        )));
+
+        return false;
     }
 
     private function csrfTokenId(Project $project): string
