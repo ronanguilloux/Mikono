@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
@@ -47,6 +48,51 @@ final class ReportControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
         self::assertSelectorTextContains('body', '1.5');
         self::assertSelectorTextContains('body', '18 Aug 2026');
+    }
+
+    /**
+     * Escorts are counted in days on duty and site visits, never in summed
+     * volunteer durations, and an empty escort list is "not recorded", not a
+     * claim that nobody went.
+     */
+    #[Test]
+    public function theEscortTabCountsDaysOnDutyNotVolunteerDays(): void
+    {
+        $client = static::createClient();
+        $hassan = EscortFactory::createOne(['name' => 'Hassan']);
+        $date = new \DateTimeImmutable('2026-08-11');
+        ActivityFactory::createMany(2, ['date' => $date, 'duration' => ActivityDuration::FullDay, 'escorts' => [$hassan]]);
+        ActivityFactory::createOne(['date' => $date, 'escorts' => []]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=escort');
+
+        self::assertResponseIsSuccessful();
+        $screen = $crawler->filter('[data-report-panel="screen"]');
+        self::assertSame(
+            ['Escort', 'Days on duty', 'Site visits', 'Activities', 'Most recent'],
+            $screen->filter('thead th')->each(static fn($th) => trim($th->text())),
+        );
+        // Two activities at two projects on one date: 1 day, 2 site visits.
+        $first = $screen->filter('tbody tr')->eq(0)->filter('td')->each(static fn($td) => trim($td->text()));
+        self::assertSame(['Hassan', '1', '2', '2', '11 Aug 2026'], $first);
+        $second = $screen->filter('tbody tr')->eq(1);
+        self::assertStringContainsString('No escort recorded', $second->text());
+        self::assertCount(0, $second->filter('td:first-child a'));
+        self::assertSame('page', $crawler->filter('nav[aria-label="Report breakdown"] a')->eq(2)->attr('aria-current'));
+
+        self::assertCount(3, $crawler->filter('[data-report-panel="print"] table'));
+    }
+
+    #[Test]
+    public function anArrayTabFallsBackToTheVolunteerBreakdown(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab[]=escort');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('page', $crawler->filter('nav[aria-label="Report breakdown"] a')->eq(0)->attr('aria-current'));
     }
 
     #[Test]
@@ -183,7 +229,7 @@ final class ReportControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/reports');
 
-        $link = $crawler->filter('[data-report-panel="screen"] table tbody a');
+        $link = $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a');
         self::assertCount(1, $link);
         self::assertSame('Ronan Guilloux', trim($link->text()));
         // Same destination as the Top volunteers card above it: one name, one
@@ -209,9 +255,9 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports?tab=project');
 
         self::assertStringContainsString('Bright Achievers', $this->screenPanel($crawler));
-        // There is no /activities?project= filter to link to, so nothing in
-        // this breakdown's rows may be an anchor.
-        self::assertCount(0, $crawler->filter('[data-report-panel="screen"] table tbody a'));
+        // A project has no page a report name should land on, so its names
+        // stay plain text (the Most recent date still links to its activity).
+        self::assertCount(0, $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a'));
     }
 
     #[Test]
@@ -240,7 +286,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertStringContainsString('1.0', $rows->eq(0)->text());
         self::assertStringContainsString('1.0', $rows->eq(1)->text());
         // …and each row links to its own volunteer, not to a shared one.
-        $hrefs = $crawler->filter('[data-report-panel="screen"] table tbody a')
+        $hrefs = $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a')
             ->each(static fn(\Symfony\Component\DomCrawler\Crawler $a) => $a->attr('href'));
         self::assertCount(2, array_unique($hrefs));
     }
@@ -398,10 +444,10 @@ final class ReportControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function thePrintPanelStillCarriesBothBreakdownsInFull(): void
+    public function thePrintPanelStillCarriesEveryBreakdownInFull(): void
     {
         // The print-friendly view shipped before the tabs did, handing over
-        // every row of both tables. Tabbing the screen must not halve that.
+        // every row of every table. Tabbing the screen must not cut that.
         $client = static::createClient();
         $this->twentySixVolunteers();
 
@@ -409,7 +455,7 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
-        self::assertCount(2, $printPanel->filter('table'));
+        self::assertCount(3, $printPanel->filter('table'));
         self::assertCount(26, $printPanel->filter('table')->eq(0)->filter('tbody tr'));
         self::assertCount(26, $printPanel->filter('table')->eq(1)->filter('tbody tr'));
 
@@ -660,11 +706,11 @@ final class ReportControllerTest extends WebTestCase
 
     /**
      * The print panel is a second render of the same rows, so it gets the
-     * badge too — and it must land on both breakdowns, not just the tab that
+     * badge too — and it must land on every breakdown, not just the tab that
      * happened to be on screen.
      */
     #[Test]
-    public function thePlannedTagReachesBothTablesInThePrintPanel(): void
+    public function thePlannedTagReachesEveryTableInThePrintPanel(): void
     {
         $client = static::createClient();
         $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('+1 week'));
@@ -673,14 +719,46 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
-        self::assertCount(2, $printTables);
-        foreach ([0, 1] as $index) {
+        self::assertCount(3, $printTables);
+        // "Most recent" is the 4th column on the volunteer and project
+        // tables, the 5th on the escort one.
+        foreach ([0 => 4, 1 => 4, 2 => 5] as $index => $column) {
             self::assertSame(
                 'Planned',
-                trim($printTables->eq($index)->filter('tbody tr td:nth-child(4) span')->text()),
+                trim($printTables->eq($index)->filter("tbody tr td:nth-child($column) span")->text()),
                 sprintf('print table %d', $index),
             );
         }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function tabs(): iterable
+    {
+        yield 'volunteer' => ['volunteer'];
+        yield 'project' => ['project'];
+        yield 'escort' => ['escort'];
+    }
+
+    #[Test]
+    #[\PHPUnit\Framework\Attributes\DataProvider('tabs')]
+    public function theMostRecentDateLinksToItsActivity(string $tab): void
+    {
+        $client = static::createClient();
+        $shared = [
+            'volunteer' => VolunteerFactory::createOne(),
+            'project' => ProjectFactory::createOne(),
+            'escorts' => [EscortFactory::createOne()],
+        ];
+        ActivityFactory::createOne($shared + ['date' => new \DateTimeImmutable('2026-08-03')]);
+        $latest = ActivityFactory::createOne($shared + ['date' => new \DateTimeImmutable('2026-08-10')]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=' . $tab);
+
+        $link = $crawler->filter('[data-report-panel="screen"] table tbody a[href$="/edit"]');
+        self::assertCount(1, $link);
+        self::assertSame('/activities/' . $latest->getId() . '/edit', $link->attr('href'));
+        self::assertSame('10 Aug 2026', trim($link->text()));
     }
 
     /** The "Most recent" cells of the on-screen breakdown — the badge's home. */

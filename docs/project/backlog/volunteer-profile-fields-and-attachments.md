@@ -15,15 +15,18 @@ epic:
 
 `Volunteer` currently holds only identity and stay data. UCESCO wants a
 fuller profile per volunteer: country, date of birth, profession (free
-text), skills (textarea), interests (textarea), a branch of attachment,
-emergency contacts (textarea), and uploaded document attachments (soft
-max ~20 per volunteer), all as mandatory fields.
+text), skills (textarea), interests (textarea), emergency contacts
+(textarea), and uploaded document attachments (soft max ~20 per
+volunteer), all as mandatory fields. It also wants the volunteer's branch
+of attachment shown, which comes from their stays, not a new field.
 
 ## Done when
 
 - `Volunteer` (or a related entity) carries country, date of birth,
   profession, skills, interests, emergency contacts as required fields,
   with a migration and form validation.
+- The volunteer profile shows the branch of attachment, derived from
+  stays (`getStayCovering(today)`, else the latest stay). No new column.
 - Existing volunteers have a backfill/migration path for the new
   mandatory fields (they can't retroactively have a value).
 - Attachments: upload, list and delete documents per volunteer, stored on
@@ -35,17 +38,8 @@ max ~20 per volunteer), all as mandatory fields.
 
 ## Notes & links
 
-- **Open conflict to resolve before implementation:** "branch of
-  attachment" as a direct field on `Volunteer` duplicates
-  [ADR 0026](../../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md),
-  which deliberately has no branch field on `Volunteer` — branch comes
-  from whichever `Stay` covers today, because volunteers move between
-  branches over time. Adding a second, independent branch field would
-  contradict that decision and could drift from the stay-derived branch.
-  Needs a decision: is this "branch of attachment" actually the current
-  stay's branch (derived, no new field), or a genuinely separate concept
-  (e.g. a home/reporting branch distinct from where they're currently
-  staying)? Write an ADR either way before coding.
+- Branch of attachment is derived from stays:
+  [ADR 0026](../../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md).
 - **Needs a storage design** for attachments: directory layout (e.g. by
   volunteer id), filename collision handling, allowed file types/size
   limits, and how deletion interacts with the volunteer delete-guard

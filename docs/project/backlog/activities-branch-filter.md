@@ -42,5 +42,5 @@ the other's.
   project's branch, since ADR 0027 enforces that, but the stay is where
   ADR 0026 anchors an activity's branch.
 - Out of scope: a Branch column in the table. The table already scrolls
-  horizontally; see [`escort-display-and-reporting`](escort-display-and-reporting.md)
-  for the same column-budget question.
+  horizontally, and since 2026-09-16 it has a sixth column, "Accompanied by"
+  ([ADR 0013](../../adr/0013-record-every-escort-on-an-activity.md)).

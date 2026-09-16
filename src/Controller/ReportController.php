@@ -13,18 +13,20 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}
+ * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays?: float, days?: int, outings?: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}
  */
 #[Route('/reports', name: 'report_')]
 final class ReportController extends AbstractController
 {
     private const string TAB_VOLUNTEER = 'volunteer';
     private const string TAB_PROJECT = 'project';
+    private const string TAB_ESCORT = 'escort';
 
     /**
-     * Column key => SummaryRow key for the breakdowns' sortable headers. Both
-     * tabs share these four keys, which is why a sort survives a tab switch
-     * intact. Unlike the CRUD indexes this sorts an array rather than a query,
+     * Column key => SummaryRow key for the breakdowns' sortable headers. The
+     * tabs share label/count/mostRecent, which is why a sort survives a tab
+     * switch intact; totalDays, days and outings each exist on some tabs only, and
+     * sortArray() leaves rows missing the key in their original order. Unlike the CRUD indexes this sorts an array rather than a query,
      * so the values are array keys, not DQL paths. See ADR 0011.
      *
      * @var array<string, string>
@@ -33,6 +35,8 @@ final class ReportController extends AbstractController
         'label' => 'label',
         'count' => 'count',
         'totalDays' => 'totalDays',
+        'days' => 'days',
+        'outings' => 'outings',
         'mostRecent' => 'mostRecent',
     ];
 
@@ -47,13 +51,15 @@ final class ReportController extends AbstractController
     {
         $today = new \DateTimeImmutable('today');
 
-        // Anything but "project" is the volunteer breakdown, so a mistyped or
+        // Anything unrecognised is the volunteer breakdown, so a mistyped or
         // stale ?tab= lands on the default rather than an error page. Read
         // through all(), because InputBag::get() throws on `?tab[]=project`,
         // which would be the error page this line exists to avoid.
-        $tab = self::TAB_PROJECT === ($request->query->all()['tab'] ?? null)
-            ? self::TAB_PROJECT
-            : self::TAB_VOLUNTEER;
+        $requestedTab = $request->query->all()['tab'] ?? null;
+        $tab = match ($requestedTab) {
+            self::TAB_PROJECT, self::TAB_ESCORT => $requestedTab,
+            default => self::TAB_VOLUNTEER,
+        };
 
         // Both breakdowns are computed either way: they come from one in-memory
         // pass over the activities, the "Top volunteers" card needs the whole
@@ -61,13 +67,18 @@ final class ReportController extends AbstractController
         // one of them costs no extra query.
         $byVolunteer = $this->calculator->summarizeByVolunteer();
         $byProject = $this->calculator->summarizeByProject();
+        $byEscort = $this->calculator->summarizeByEscort();
 
         // Sorted before pagination, and across the whole breakdown rather than
         // the page — sorting a page would only shuffle the 25 rows already on
         // screen. $byVolunteer/$byProject themselves stay in the calculator's
         // totalDays order for the "Top volunteers" card and the print panel.
         $sorted = $this->paginator->sortArray(
-            self::TAB_PROJECT === $tab ? $byProject : $byVolunteer,
+            match ($tab) {
+                self::TAB_PROJECT => $byProject,
+                self::TAB_ESCORT => $byEscort,
+                default => $byVolunteer,
+            },
             $request,
             self::SORT_MAP,
         );
@@ -84,22 +95,37 @@ final class ReportController extends AbstractController
             'byVolunteer' => $byVolunteer,
             'tab' => $tab,
             'columns' => $this->columnsFor($tab),
-            'rows' => $this->toRows($pageOfRows, $today, self::TAB_PROJECT !== $tab),
+            'rows' => $this->toRows($pageOfRows, $today, $tab),
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
             // Complete and unpaginated, for the print-only panel. The
             // print-friendly view has always put both breakdowns on paper in
             // full, and tabbing the screen mustn't quietly halve that.
-            'volunteerRows' => $this->toRows($byVolunteer, $today, true),
-            'projectRows' => $this->toRows($byProject, $today, false),
+            'volunteerRows' => $this->toRows($byVolunteer, $today, self::TAB_VOLUNTEER),
+            'projectRows' => $this->toRows($byProject, $today, self::TAB_PROJECT),
+            'escortRows' => $this->toRows($byEscort, $today, self::TAB_ESCORT),
             'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
             'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
+            'escortColumns' => $this->columnsFor(self::TAB_ESCORT),
         ]);
     }
 
     /** @return list<array{key: string, label: string}> */
     private function columnsFor(string $tab): array
     {
+        // No "Total days" for escorts: days on duty are distinct dates, never
+        // summed volunteer durations. See
+        // ActivitySummaryCalculator::summarizeByEscort().
+        if (self::TAB_ESCORT === $tab) {
+            return [
+                ['key' => 'label', 'label' => 'Escort'],
+                ['key' => 'days', 'label' => 'Days on duty'],
+                ['key' => 'outings', 'label' => 'Site visits'],
+                ['key' => 'count', 'label' => 'Activities'],
+                ['key' => 'mostRecent', 'label' => 'Most recent'],
+            ];
+        }
+
         return [
             ['key' => 'label', 'label' => self::TAB_PROJECT === $tab ? 'Project' : 'Volunteer'],
             ['key' => 'count', 'label' => 'Activities'],
@@ -112,17 +138,18 @@ final class ReportController extends AbstractController
      * Summary rows in DataTable's shape. No 'actions' key — these rows are
      * read-only, which is what DataTable's withActions=false is for.
      *
-     * $linkVolunteers is what the caller knows and this method doesn't: which
-     * breakdown these rows are. Only the volunteer one has somewhere to link
-     * to — a project has no show page, only an edit form, which is not where a
+     * $tab is what the caller knows and this method doesn't: which breakdown
+     * these rows are. Only the volunteer one links its name — a project has no show page, only an edit form, which is not where a
      * report name should land — and even there the Unknown bucket carries no
-     * id, so it stays plain text.
+     * id, so it stays plain text. The Most recent date links on every tab, to
+     * the edit form of the activity it came from: an activity has no other
+     * page. On a date with several activities, that is one of them.
      *
      * @param list<SummaryRow> $summaries
      *
      * @return list<array{cells: array<string, string>, badges: array<string, string>, links: array<string, string>}>
      */
-    private function toRows(array $summaries, \DateTimeImmutable $today, bool $linkVolunteers): array
+    private function toRows(array $summaries, \DateTimeImmutable $today, string $tab): array
     {
         $rows = [];
         foreach ($summaries as $summary) {
@@ -136,20 +163,36 @@ final class ReportController extends AbstractController
             // knowledge, only a label this view happens to draw.
             $isPlanned = null !== $mostRecent && $mostRecent > $today;
 
+            $cells = [
+                'label' => $summary['label'],
+                'count' => (string) $summary['count'],
+                'mostRecent' => $mostRecent?->format('j M Y') ?? '—',
+            ];
+            if (isset($summary['totalDays'])) {
+                // One decimal throughout, matching the Top volunteers card
+                // and the "Total days contributed" tile. Before pagination
+                // this table alone printed the raw float.
+                $cells['totalDays'] = number_format($summary['totalDays'], 1);
+            }
+            if (isset($summary['days'])) {
+                $cells['days'] = (string) $summary['days'];
+            }
+            if (isset($summary['outings'])) {
+                $cells['outings'] = (string) $summary['outings'];
+            }
+
+            $links = [];
+            if (self::TAB_VOLUNTEER === $tab && null !== $id) {
+                $links['label'] = $this->generateUrl('volunteer_show', ['id' => $id]);
+            }
+            if (null !== $summary['mostRecentActivityId']) {
+                $links['mostRecent'] = $this->generateUrl('activity_edit', ['id' => $summary['mostRecentActivityId']]);
+            }
+
             $rows[] = [
-                'cells' => [
-                    'label' => $summary['label'],
-                    'count' => (string) $summary['count'],
-                    // One decimal throughout, matching the Top volunteers card
-                    // and the "Total days contributed" tile. Before pagination
-                    // this table alone printed the raw float.
-                    'totalDays' => number_format($summary['totalDays'], 1),
-                    'mostRecent' => $mostRecent?->format('j M Y') ?? '—',
-                ],
+                'cells' => $cells,
                 'badges' => $isPlanned ? ['mostRecent' => 'Planned'] : [],
-                'links' => $linkVolunteers && null !== $id
-                    ? ['label' => $this->generateUrl('volunteer_show', ['id' => $id])]
-                    : [],
+                'links' => $links,
             ];
         }
 

@@ -6,6 +6,18 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-16 — /reports "Most recent" dates link to their activity
+
+On all three breakdowns (and the print panel), the Most recent date links
+to the edit form of the activity it came from — an activity has no other
+page. `ActivitySummaryCalculator` now carries `mostRecentActivityId` next
+to `mostRecent`; on a date with several activities (an escort's group day)
+the link lands on one of them. Name links are unchanged: volunteers only.
+
+## 2026-09-16 — escorts read back out: a /reports tab and an Activities column
+
+See [ADR 0013](../adr/0013-record-every-escort-on-an-activity.md).
+
 ## 2026-09-16 — every list exports to CSV or Excel
 
 See [ADR 0029](../adr/0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md).

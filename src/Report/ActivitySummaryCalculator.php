@@ -17,7 +17,7 @@ final class ActivitySummaryCalculator
 {
     public function __construct(private readonly ActivityRepository $activities) {}
 
-    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}> */
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
     public function summarizeByVolunteer(): array
     {
         return $this->summarize(
@@ -26,13 +26,72 @@ final class ActivitySummaryCalculator
         );
     }
 
-    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}> */
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
     public function summarizeByProject(): array
     {
         return $this->summarize(
             static fn(Activity $a) => $a->getProject()?->getId(),
             static fn(Activity $a) => $a->getProject()?->getName() ?? 'Unknown',
         );
+    }
+
+    /**
+     * Escort workload. `days` is distinct dates on duty, never summed
+     * durations: an activity row is one volunteer, so summing would credit an
+     * escort who took four volunteers out for a day with four days, and a
+     * volunteer's half or full day says nothing about how long the escort
+     * stayed — the app doesn't record escort time, so it can't derive it.
+     * `outings` is distinct date + project (one escort covers several sites
+     * on some days), `count` the activity rows, as on the other breakdowns.
+     *
+     * An activity with two escorts counts for both (ADR 0013). One with none
+     * lands in the id-less 'No escort recorded' bucket — not "unaccompanied":
+     * in the real archive most empty lists are messages cut off before the
+     * escort line, so the row is what to follow up, not a finding.
+     *
+     * @return list<array{id: ?int, label: string, count: int, days: int, outings: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     */
+    public function summarizeByEscort(): array
+    {
+        $buckets = [];
+        $days = [];
+        $outings = [];
+
+        foreach ($this->activities->findAllWithEscorts() as $activity) {
+            $targets = [];
+            foreach ($activity->getEscorts() as $escort) {
+                $targets[(string) $escort->getId()] = ['id' => $escort->getId(), 'label' => $escort->getName()];
+            }
+            if ([] === $targets) {
+                $targets['unknown'] = ['id' => null, 'label' => 'No escort recorded'];
+            }
+
+            $date = $activity->getDate();
+            $day = (string) $date?->format('Y-m-d');
+            $outing = $day . '|' . $activity->getProject()?->getId();
+
+            foreach ($targets as $key => $target) {
+                $buckets[$key] ??= $target + ['count' => 0, 'days' => 0, 'outings' => 0, 'mostRecent' => null, 'mostRecentActivityId' => null];
+                ++$buckets[$key]['count'];
+                $days[$key][$day] = true;
+                $outings[$key][$outing] = true;
+
+                if (null !== $date && (null === $buckets[$key]['mostRecent'] || $date > $buckets[$key]['mostRecent'])) {
+                    $buckets[$key]['mostRecent'] = $date;
+                    $buckets[$key]['mostRecentActivityId'] = $activity->getId();
+                }
+            }
+        }
+
+        foreach ($buckets as $key => $bucket) {
+            $buckets[$key]['days'] = count($days[$key]);
+            $buckets[$key]['outings'] = count($outings[$key]);
+        }
+
+        $result = array_values($buckets);
+        usort($result, static fn(array $a, array $b) => [$b['days'], $b['outings']] <=> [$a['days'], $a['outings']]);
+
+        return $result;
     }
 
     /**
@@ -48,7 +107,7 @@ final class ActivitySummaryCalculator
      * @param callable(Activity): ?int   $idFn
      * @param callable(Activity): string $labelFn
      *
-     * @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable}>
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
     private function summarize(callable $idFn, callable $labelFn): array
     {
@@ -57,13 +116,14 @@ final class ActivitySummaryCalculator
         foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
             $id = $idFn($activity);
             $key = $id ?? 'unknown';
-            $buckets[$key] ??= ['id' => $id, 'label' => $labelFn($activity), 'count' => 0, 'totalDays' => 0.0, 'mostRecent' => null];
+            $buckets[$key] ??= ['id' => $id, 'label' => $labelFn($activity), 'count' => 0, 'totalDays' => 0.0, 'mostRecent' => null, 'mostRecentActivityId' => null];
             ++$buckets[$key]['count'];
             $buckets[$key]['totalDays'] += $activity->getDuration()?->toDays() ?? 0.0;
 
             $date = $activity->getDate();
             if (null !== $date && (null === $buckets[$key]['mostRecent'] || $date > $buckets[$key]['mostRecent'])) {
                 $buckets[$key]['mostRecent'] = $date;
+                $buckets[$key]['mostRecentActivityId'] = $activity->getId();
             }
         }
 

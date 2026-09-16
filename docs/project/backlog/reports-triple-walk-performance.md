@@ -1,5 +1,5 @@
 ---
-title: /reports walks every activity three times
+title: /reports walks every activity four times
 created: 2026-09-09
 source: ponytail-audit
 status: needs-design
@@ -8,7 +8,10 @@ priority: later
 labels: [perf]
 ---
 
-# /reports walks every activity three times
+# /reports walks every activity four times
+
+The fourth walk is `summarizeByEscort()` (2026-09-16), a separate query
+that fetch-joins escorts.
 
 ## Why
 

@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Dto\BatchActivityInput;
 use App\Entity\Activity;
+use App\Entity\Escort;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Volunteer;
@@ -53,6 +54,9 @@ final class ActivityController extends AbstractController
         ['key' => 'date', 'label' => 'Date'],
         ['key' => 'volunteer', 'label' => 'Volunteer'],
         ['key' => 'project', 'label' => 'Project'],
+        // Not in SORT_MAP: escorts are a collection (ADR 0013), so there is no
+        // single value to order by.
+        ['key' => 'escorts', 'label' => 'Accompanied by'],
         ['key' => 'activityType', 'label' => 'Activity type'],
         ['key' => 'duration', 'label' => 'Duration'],
     ];
@@ -146,6 +150,12 @@ final class ActivityController extends AbstractController
             'date' => $activity->getDate()?->format('D j M Y') ?? '—',
             'volunteer' => $activity->getVolunteer()?->getFullName() ?? '—',
             'project' => $activity->getProject()?->getName() ?? '—',
+            // ponytail: lazy-loads escorts, one query per row (SQLite, in-process);
+            // preload them by page ids if a long page or export ever feels slow.
+            // A fetch join in listQueryBuilder() would break the paginator's LIMIT.
+            'escorts' => $activity->getEscorts()->isEmpty()
+                ? '—'
+                : implode(', ', $activity->getEscorts()->map(static fn(Escort $e): string => $e->getName())->toArray()),
             'activityType' => $activity->getActivityType()?->getName() ?? '—',
             'duration' => ActivityDuration::Other === $activity->getDuration()
                 ? ($activity->getDurationOther() ?? ActivityDuration::Other->label())

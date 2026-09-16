@@ -69,6 +69,13 @@ Active status:
   selectable even without such a stay, or older activities could not be
   edited.
 
+Branch of attachment:
+
+- A volunteer's branch of attachment is the branch of the stay covering
+  today, else of the most recent stay (`Volunteer::$stays` is ordered by
+  `startDate` descending). A volunteer with no stay has none.
+- There is no branch column or form field on `Volunteer`.
+
 Managing stays:
 
 - Stays live on the volunteer page, in a Stays panel on
@@ -161,3 +168,9 @@ where the VM looks up that person.
 
 **Rejected.** It would repeat what the stays already say, and the two would
 disagree the first time the VM updated one and not the other.
+
+### 6. A branch-of-attachment field on `Volunteer`
+
+**Rejected.** Volunteers move between branches. A stored branch would
+repeat what the stays already say and drift from them, like the `isActive`
+checkbox in alternative 5.

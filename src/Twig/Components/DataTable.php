@@ -41,10 +41,11 @@ final class DataTable
      *
      * A row's optional `links` key works the same way — column key => URL,
      * wrapping that cell's text in an anchor — and exists for the same reason:
-     * `/reports` links a volunteer's name to `/activities?volunteer=<id>`, and
-     * putting the markup in the cell string would break every one of those
-     * things. A column key absent from the map renders as plain text, which is
-     * how the Unknown bucket and the whole By-project breakdown stay unlinked.
+     * `/reports` links a volunteer's name to their page and each Most recent
+     * date to its activity, and putting the markup in the cell string would
+     * break every one of those things. A column key absent from the map
+     * renders as plain text, which is how the Unknown bucket and By-project
+     * names stay unlinked.
      *
      * @var list<Row>
      */

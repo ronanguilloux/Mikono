@@ -59,6 +59,25 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * Every activity with its escorts fetched in the same query, for the
+     * per-escort report. The escorts join is to-many (ADR 0013), which is
+     * fine here: no LIMIT, the whole table is read anyway.
+     *
+     * @return Activity[]
+     */
+    public function findAllWithEscorts(): array
+    {
+        /** @var Activity[] $activities */
+        $activities = $this->createOrderedByDateDescQueryBuilder()
+            ->leftJoin('a.escorts', 'e')
+            ->addSelect('e')
+            ->getQuery()
+            ->getResult();
+
+        return $activities;
+    }
+
+    /**
      * One day's activities, oldest row first — insertion order is the closest
      * thing to the order the VM actually worked through the day, and it's what
      * decides the project-group order on the roster.

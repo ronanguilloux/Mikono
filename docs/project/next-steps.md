@@ -31,11 +31,10 @@ hostname is the one that isn't ours to solve.
 
 ## Next
 
-1. [Where escort should be read back out](backlog/escort-display-and-reporting.md) — **G**
-2. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
-3. [Filter /activities by branch](backlog/activities-branch-filter.md)
-4. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
-5. [Add profile fields and file attachments to volunteers](backlog/volunteer-profile-fields-and-attachments.md) — **D**
+1. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
+2. [Filter /activities by branch](backlog/activities-branch-filter.md)
+3. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
+4. [Add profile fields and file attachments to volunteers](backlog/volunteer-profile-fields-and-attachments.md) — **D**
 
 ## Later
 
@@ -46,7 +45,7 @@ each other, take them in any order or none:
 - [Cut symfony/ux-live-component](backlog/cut-ux-live-component.md) — **D**
 - [Drop /activities/new](backlog/drop-single-volunteer-activity-form.md) — **D**
 - [Decide what Escort::$isActive is for](backlog/decide-escort-is-active.md) — **D**
-- [/reports walks every activity three times](backlog/reports-triple-walk-performance.md) — **G**
+- [/reports walks every activity four times](backlog/reports-triple-walk-performance.md) — **G**
 - [Reconsider knplabs/knp-paginator-bundle](backlog/reconsider-knp-paginator.md) — **D**
 
 Deferred behind a trigger — each card names the event that wakes it:

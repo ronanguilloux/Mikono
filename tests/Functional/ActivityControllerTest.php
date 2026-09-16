@@ -77,6 +77,36 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     /**
+     * Escorts are a collection (ADR 0013): the column lists every name, has no
+     * sort link, reaches the export, and shows on a mobile card only when set.
+     */
+    #[Test]
+    public function theIndexAndExportListEveryEscortWithoutMakingThemSortable(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne([
+            'date' => new \DateTimeImmutable('2026-08-31'),
+            'escorts' => [EscortFactory::createOne(['name' => 'Edna']), EscortFactory::createOne(['name' => 'Sam'])],
+        ]);
+        ActivityFactory::createOne(['date' => new \DateTimeImmutable('2026-08-30'), 'escorts' => []]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/activities');
+
+        self::assertSame('Accompanied by', $crawler->filter('thead th')->eq(3)->text());
+        self::assertCount(0, $crawler->filter('[data-sort-link="escorts"]'));
+        self::assertSame('Edna, Sam', $crawler->filter('table tbody tr')->eq(0)->filter('td')->eq(3)->text());
+        self::assertSame('—', $crawler->filter('table tbody tr')->eq(1)->filter('td')->eq(3)->text());
+
+        $cards = $crawler->filter('[data-activity-cards] > li');
+        self::assertStringContainsString('Accompanied by Edna, Sam', $cards->eq(0)->text());
+        self::assertStringNotContainsString('Accompanied by', $cards->eq(1)->text());
+
+        self::assertSame(['Edna, Sam', '—'], array_column(self::exportedRows($client, '/activities/export.csv'), 3));
+        self::assertStringContainsString('Accompanied by', $client->getInternalResponse()->getContent());
+    }
+
+    /**
      * The batch form's "Who attended?" field is a group of same-named
      * checkboxes (one per volunteer) — DomCrawler's array-value form
      * shorthand can't target them by entity id (it matches by DOM
@@ -611,7 +641,7 @@ final class ActivityControllerTest extends WebTestCase
 
         self::assertCount(1, $crawler->filter('[data-sort-link="date"]'));
         self::assertCount(0, $crawler->filter('[data-sort-link="duration"]'));
-        self::assertSame('Duration', $crawler->filter('thead th')->eq(4)->text());
+        self::assertSame('Duration', $crawler->filter('thead th')->eq(5)->text());
     }
 
     #[Test]

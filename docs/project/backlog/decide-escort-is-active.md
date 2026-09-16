@@ -39,5 +39,5 @@ Do not re-propose `ProjectFactory::partner()` — the audit listed it as
 dead and it has two live callers.
 
 - [`../../brainstorm/07-ponytail-audit.md`](../../brainstorm/07-ponytail-audit.md)
-- Related read-path question:
-  [`escort-display-and-reporting`](escort-display-and-reporting.md)
+- The escort read path (the /reports tab and the Activities column) is
+  settled in [ADR 0013](../../adr/0013-record-every-escort-on-an-activity.md).
