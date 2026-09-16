@@ -6,6 +6,10 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-17 — Programs between projects and activities
+
+Shipped: [ADR 0030](../adr/0030-insert-programs-between-projects-and-activities.md).
+
 ## 2026-09-16 — /reports "Most recent" dates link to their activity
 
 On all three breakdowns (and the print panel), the Most recent date links

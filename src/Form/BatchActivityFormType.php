@@ -9,6 +9,7 @@ use App\Entity\Escort;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
 use App\Repository\EscortRepository;
+use App\Repository\ProgramRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -29,6 +30,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  */
 final class BatchActivityFormType extends AbstractType
 {
+    public function __construct(private readonly ProgramRepository $programs) {}
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -40,7 +43,7 @@ final class BatchActivityFormType extends AbstractType
             ->add('program', EntityType::class, ActivityPickers::program() + [
                 'constraints' => [new Assert\NotNull(message: 'Choose a program.')],
             ])
-            ->add('activityType', EntityType::class, ActivityPickers::activityType() + [
+            ->add('activityType', EntityType::class, ActivityPickers::activityType($this->programs->findProgramIdsByActivityType()) + [
                 'constraints' => [new Assert\NotNull(message: 'Choose an activity type.')],
             ])
             ->add('duration', EnumType::class, [

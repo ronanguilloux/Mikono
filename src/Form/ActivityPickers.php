@@ -39,20 +39,27 @@ final class ActivityPickers
             },
             'query_builder' => static fn(ProgramRepository $programs): QueryBuilder => $programs->createOrderedQueryBuilder(),
             'placeholder' => 'Choose a program',
+            'attr' => ['data-controller' => 'program-types', 'data-action' => 'program-types#filter'],
         ];
     }
 
     /**
-     * Only types some program offers; the save still checks the chosen
+     * Only types some program offers; each option names those programs for
+     * the program-types Stimulus filter. The save still checks the chosen
      * program offers this one.
+     *
+     * @param array<int, list<int>> $programIdsByType from ProgramRepository::findProgramIdsByActivityType()
      *
      * @return array<string, mixed> EntityType options
      */
-    public static function activityType(): array
+    public static function activityType(array $programIdsByType): array
     {
         return [
             'class' => ActivityType::class,
             'choice_label' => 'name',
+            'choice_attr' => static fn(ActivityType $type) => [
+                'data-programs' => implode(' ', $programIdsByType[(int) $type->getId()] ?? []),
+            ],
             'query_builder' => static fn(ActivityTypeRepository $activityTypes): QueryBuilder => $activityTypes->createOfferedOrderedByNameQueryBuilder(),
             'placeholder' => 'Choose an activity type',
             'label' => 'Activity type',

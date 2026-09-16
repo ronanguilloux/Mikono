@@ -75,6 +75,28 @@ class ProgramRepository extends ServiceEntityRepository
     }
 
     /**
+     * Which programs offer each type, for the activity forms' type filter.
+     *
+     * @return array<int, list<int>> activity type id => program ids
+     */
+    public function findProgramIdsByActivityType(): array
+    {
+        /** @var list<array{programId: int|string, typeId: int|string}> $rows */
+        $rows = $this->createQueryBuilder('prg')
+            ->select('prg.id AS programId', 't.id AS typeId')
+            ->join('prg.activityTypes', 't')
+            ->getQuery()
+            ->getResult();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['typeId']][] = (int) $row['programId'];
+        }
+
+        return $map;
+    }
+
+    /**
      * The program delete-guard, and the reason a program can't move to
      * another project (ADR 0030).
      */

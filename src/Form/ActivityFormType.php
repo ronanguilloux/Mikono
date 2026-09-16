@@ -9,6 +9,7 @@ use App\Entity\Escort;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
 use App\Repository\EscortRepository;
+use App\Repository\ProgramRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -22,6 +23,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 final class ActivityFormType extends AbstractType
 {
+    public function __construct(private readonly ProgramRepository $programs) {}
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         // Volunteers whose stays have all ended have finished their stint —
@@ -51,7 +54,7 @@ final class ActivityFormType extends AbstractType
                 'placeholder' => 'Choose a volunteer',
             ])
             ->add('program', EntityType::class, ActivityPickers::program())
-            ->add('activityType', EntityType::class, ActivityPickers::activityType())
+            ->add('activityType', EntityType::class, ActivityPickers::activityType($this->programs->findProgramIdsByActivityType()))
             ->add('duration', EnumType::class, [
                 'class' => ActivityDuration::class,
                 'choice_label' => static fn(ActivityDuration $duration) => $duration->label(),

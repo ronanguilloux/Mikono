@@ -31,12 +31,6 @@ hostname is the one that isn't ours to solve.
 
 ## Next
 
-Programs, in order:
-
-1. [Filter the activity type picker by the chosen program](backlog/programs-type-picker-filter.md)
-
-Then:
-
 1. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
 2. [Filter /activities by branch](backlog/activities-branch-filter.md)
 3. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**

@@ -505,11 +505,15 @@ final class ActivityControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Naomi', 'lastName' => 'Cherop']);
-        $project = ProjectFactory::createOne(['name' => 'Toi School Field']);
         $activityType = ActivityTypeFactory::createOne(['name' => 'Sports']);
+        $program = ProgramFactory::createOne([
+            'name' => 'Sports afternoons',
+            'project' => ProjectFactory::createOne(['name' => 'Toi School Field']),
+            'activityTypes' => [$activityType],
+        ]);
         ActivityFactory::createMany(2, [
             'volunteer' => $volunteer,
-            'project' => $project,
+            'program' => $program,
             'activityType' => $activityType,
             'date' => new \DateTimeImmutable('yesterday'),
         ]);
@@ -524,7 +528,7 @@ final class ActivityControllerTest extends WebTestCase
         $cards = $crawler->filter('[data-activity-cards] > li');
         self::assertCount(2, $cards);
         self::assertStringContainsString('Naomi Cherop', $cards->first()->text());
-        self::assertStringContainsString('Toi School Field · Sports', $cards->first()->text());
+        self::assertStringContainsString('Toi School Field — Sports afternoons · Sports', $cards->first()->text());
         // Delete stays a real CSRF-protected POST inside the card too.
         self::assertCount(2, $crawler->filter('[data-activity-cards] form[method="post"] input[name="_token"]'));
     }
@@ -1086,5 +1090,30 @@ final class ActivityControllerTest extends WebTestCase
 
         self::assertSelectorTextContains('#batch_activity_form_activityType', 'School support');
         self::assertSelectorTextNotContains('#batch_activity_form_activityType', 'Unused type');
+    }
+
+    /**
+     * The filtering itself is Stimulus; what a functional test can hold is
+     * the wiring: the program select carries the controller, and each type
+     * names the programs offering it.
+     */
+    #[Test]
+    public function bothActivityFormsWireTheTypeFilterToThePrograms(): void
+    {
+        $client = static::createClient();
+        $shared = ActivityTypeFactory::createOne(['name' => 'School support']);
+        $a = ProgramFactory::createOne(['activityTypes' => [$shared]]);
+        $b = ProgramFactory::createOne(['activityTypes' => [$shared]]);
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (['/activities/new' => 'activity_form', '/activities/new-batch' => 'batch_activity_form'] as $url => $name) {
+            $crawler = $client->request('GET', $url);
+
+            self::assertCount(1, $crawler->filter("select#{$name}_program[data-controller=\"program-types\"][data-action=\"program-types#filter\"]"));
+            self::assertSame(
+                $a->getId() . ' ' . $b->getId(),
+                $crawler->filter("#{$name}_activityType option[value=\"{$shared->getId()}\"]")->attr('data-programs'),
+            );
+        }
     }
 }
