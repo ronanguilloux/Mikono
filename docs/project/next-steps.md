@@ -38,6 +38,7 @@ hostname is the one that isn't ours to solve.
 5. [Filter /activities by branch](backlog/activities-branch-filter.md)
 6. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
 7. [Add profile fields and file attachments to volunteers](backlog/volunteer-profile-fields-and-attachments.md) — **D**
+8. [Export any list to CSV or Excel, filtered or whole](backlog/list-contextual-export.md) — **D**
 
 ## Later
 
