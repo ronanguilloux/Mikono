@@ -35,7 +35,7 @@ hostname is the one that isn't ours to solve.
 2. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
 3. [Filter /activities by branch](backlog/activities-branch-filter.md)
 4. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
-5. [Add profile fields and file attachments to volunteers](backlog/volunteer-profile-fields-and-attachments.md) — **D**
+5. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
 
 ## Later
 

@@ -38,6 +38,39 @@ class Volunteer
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notes = null;
 
+    // The profile fields below are all optional: the VM records people she
+    // has only just met, and old rows have no truthful value to backfill.
+    // The profile page nudges instead. See ADR 0032.
+    #[ORM\Column(length: 2, nullable: true)]
+    #[Assert\Country]
+    private ?string $nationality = null;
+
+    #[ORM\Column(length: 2, nullable: true)]
+    #[Assert\Country]
+    private ?string $countryOfResidence = null;
+
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    #[Assert\LessThan('today', message: 'A date of birth must be in the past.')]
+    private ?\DateTimeImmutable $dateOfBirth = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $profession = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $skills = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $interests = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $emergencyContacts = null;
+
+    // Owning side, so Doctrine loads it lazily and list pages never read the
+    // bytes; an inverse one-to-one would always be fetched.
+    #[ORM\OneToOne(targetEntity: VolunteerPhoto::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?VolunteerPhoto $photo = null;
+
     /**
      * Newest first. Whether a volunteer is active is read from these, never
      * stored: a stay ending is what "finished their stint" means.
@@ -132,6 +165,116 @@ class Volunteer
         return $this;
     }
 
+    public function getNationality(): ?string
+    {
+        return $this->nationality;
+    }
+
+    public function setNationality(?string $nationality): static
+    {
+        $this->nationality = self::nullIfBlank($nationality);
+
+        return $this;
+    }
+
+    public function getCountryOfResidence(): ?string
+    {
+        return $this->countryOfResidence;
+    }
+
+    public function setCountryOfResidence(?string $countryOfResidence): static
+    {
+        $this->countryOfResidence = self::nullIfBlank($countryOfResidence);
+
+        return $this;
+    }
+
+    public function getDateOfBirth(): ?\DateTimeImmutable
+    {
+        return $this->dateOfBirth;
+    }
+
+    public function setDateOfBirth(?\DateTimeImmutable $dateOfBirth): static
+    {
+        $this->dateOfBirth = $dateOfBirth;
+
+        return $this;
+    }
+
+    public function getProfession(): ?string
+    {
+        return $this->profession;
+    }
+
+    public function setProfession(?string $profession): static
+    {
+        $this->profession = self::nullIfBlank($profession);
+
+        return $this;
+    }
+
+    public function getSkills(): ?string
+    {
+        return $this->skills;
+    }
+
+    public function setSkills(?string $skills): static
+    {
+        $this->skills = self::nullIfBlank($skills);
+
+        return $this;
+    }
+
+    public function getInterests(): ?string
+    {
+        return $this->interests;
+    }
+
+    public function setInterests(?string $interests): static
+    {
+        $this->interests = self::nullIfBlank($interests);
+
+        return $this;
+    }
+
+    public function getEmergencyContacts(): ?string
+    {
+        return $this->emergencyContacts;
+    }
+
+    public function setEmergencyContacts(?string $emergencyContacts): static
+    {
+        $this->emergencyContacts = self::nullIfBlank($emergencyContacts);
+
+        return $this;
+    }
+
+    /** True while any profile field is still unrecorded; the profile page nudges on it. */
+    public function isProfileIncomplete(): bool
+    {
+        return in_array(null, [
+            $this->nationality,
+            $this->countryOfResidence,
+            $this->dateOfBirth,
+            $this->profession,
+            $this->skills,
+            $this->interests,
+            $this->emergencyContacts,
+        ], true);
+    }
+
+    public function getPhoto(): ?VolunteerPhoto
+    {
+        return $this->photo;
+    }
+
+    public function setPhoto(?VolunteerPhoto $photo): static
+    {
+        $this->photo = $photo;
+
+        return $this;
+    }
+
     /** @return Collection<int, Stay> */
     public function getStays(): Collection
     {
@@ -173,6 +316,17 @@ class Volunteer
         return null !== $this->getStayCovering(new \DateTimeImmutable('today'));
     }
 
+    /**
+     * The branch of the stay covering today, else of the latest stay (stays
+     * are ordered newest first). No column: see ADR 0026.
+     */
+    public function getBranchOfAttachment(): ?Branch
+    {
+        $stay = $this->getStayCovering(new \DateTimeImmutable('today')) ?? $this->stays->first();
+
+        return false === $stay ? null : $stay->getBranch();
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -186,5 +340,10 @@ class Volunteer
     public function touch(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    private static function nullIfBlank(?string $value): ?string
+    {
+        return (null === $value || '' === trim($value)) ? null : $value;
     }
 }

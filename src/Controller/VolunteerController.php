@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Volunteer;
+use App\Entity\VolunteerPhoto;
 use App\Export\ListExport;
 use App\Form\VolunteerFormType;
 use App\Pagination\ListPaginator;
@@ -13,9 +14,13 @@ use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\Intl\Countries;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/volunteers', name: 'volunteer_')]
@@ -36,6 +41,8 @@ final class VolunteerController extends AbstractController
         // read from stays, so there is no column to sort on (ADR 0026).
         'status' => ['isCurrent'],
     ];
+
+    private const int PHOTO_MAX_EDGE = 800;
 
     /** @var list<array{key: string, label: string}> */
     private const array COLUMNS = [
@@ -154,7 +161,7 @@ final class VolunteerController extends AbstractController
         $form = $this->createForm(VolunteerFormType::class, $volunteer);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid() && $this->applyPhoto($form, $volunteer)) {
             $this->entityManager->persist($volunteer);
             $this->entityManager->flush();
 
@@ -164,6 +171,28 @@ final class VolunteerController extends AbstractController
         }
 
         return $this->render('volunteer/new.html.twig', ['form' => $form]);
+    }
+
+    /**
+     * The picture, only ever served through here: it lives in the database,
+     * never under a public path (ADR 0032).
+     */
+    #[Route('/{id}/photo', name: 'photo', methods: ['GET'])]
+    public function photo(Request $request, Volunteer $volunteer): Response
+    {
+        $photo = $volunteer->getPhoto() ?? throw $this->createNotFoundException('This volunteer has no photo.');
+
+        $response = new Response();
+        $response->setPrivate();
+        $response->setLastModified($photo->getUpdatedAt());
+        if ($response->isNotModified($request)) {
+            return $response;
+        }
+
+        $response->headers->set('Content-Type', 'image/jpeg');
+        $response->setContent($photo->getBytes());
+
+        return $response;
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
@@ -215,6 +244,9 @@ final class VolunteerController extends AbstractController
 
         return $this->render('volunteer/show.html.twig', [
             'volunteer' => $volunteer,
+            // Names, not codes; Countries is already here for the form's CountryType.
+            'nationalityName' => null === $volunteer->getNationality() ? null : Countries::getName($volunteer->getNationality()),
+            'residenceName' => null === $volunteer->getCountryOfResidence() ? null : Countries::getName($volunteer->getCountryOfResidence()),
             'stays' => $stays,
             'activities' => $activities,
             'activityCount' => count($activities),
@@ -231,7 +263,7 @@ final class VolunteerController extends AbstractController
         $form = $this->createForm(VolunteerFormType::class, $volunteer);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid() && $this->applyPhoto($form, $volunteer)) {
             $volunteer->touch();
             $this->entityManager->flush();
 
@@ -276,6 +308,63 @@ final class VolunteerController extends AbstractController
         $this->addFlash('success', sprintf('%s was deleted.', $volunteer->getFullName()));
 
         return $this->redirectToRoute('volunteer_index');
+    }
+
+    /**
+     * Removes or replaces the photo from the form's unmapped fields. Every
+     * upload is decoded and re-encoded as a JPEG of at most PHOTO_MAX_EDGE px,
+     * which drops all metadata, GPS included. Returns false, with a form
+     * error, when the file cannot be decoded.
+     *
+     * @param FormInterface<mixed> $form
+     */
+    private function applyPhoto(FormInterface $form, Volunteer $volunteer): bool
+    {
+        if ($form->has('removePhoto') && true === $form->get('removePhoto')->getData()) {
+            $volunteer->setPhoto(null);
+        }
+
+        $upload = $form->get('photo')->getData();
+        if (!$upload instanceof UploadedFile) {
+            return true;
+        }
+
+        $path = $upload->getPathname();
+        $image = @imagecreatefromstring((string) file_get_contents($path));
+        if (false === $image) {
+            $form->get('photo')->addError(new FormError('This picture could not be read. Try another file.'));
+
+            return false;
+        }
+
+        // The re-encode below drops the EXIF Orientation tag, so apply it now
+        // or portrait phone photos come out sideways.
+        $exif = 'image/jpeg' === $upload->getMimeType() ? @exif_read_data($path) : false;
+        $angle = match (is_array($exif) ? ($exif['Orientation'] ?? 1) : 1) {
+            3 => 180,
+            6 => 270,
+            8 => 90,
+            default => 0,
+        };
+        if (0 !== $angle) {
+            $rotated = imagerotate($image, $angle, 0);
+            $image = false === $rotated ? $image : $rotated;
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+        if (max($width, $height) > self::PHOTO_MAX_EDGE) {
+            $image = $width >= $height
+                ? imagescale($image, self::PHOTO_MAX_EDGE)
+                : imagescale($image, (int) round($width * self::PHOTO_MAX_EDGE / $height), self::PHOTO_MAX_EDGE);
+            \assert(false !== $image);
+        }
+
+        ob_start();
+        imagejpeg($image, null, 82);
+        $volunteer->setPhoto(new VolunteerPhoto((string) ob_get_clean()));
+
+        return true;
     }
 
     /**

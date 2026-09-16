@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
+use App\Factory\BranchFactory;
+use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use PHPUnit\Framework\Attributes\Test;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
+use Symfony\Component\DomCrawler\Field\FileFormField;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
 
 #[ResetDatabase]
@@ -440,5 +446,237 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertCount(25, $firstPage);
         self::assertCount(1, $secondPage);
         self::assertSame([], array_intersect($firstPage, $secondPage));
+    }
+
+    #[Test]
+    public function editSavesTheProfileFieldsAndBlanksStoreNull(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha']);
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[nationality]' => 'DE',
+            'volunteer_form[countryOfResidence]' => 'KE',
+            'volunteer_form[dateOfBirth]' => '1998-04-02',
+            'volunteer_form[profession]' => 'Nurse',
+            'volunteer_form[skills]' => 'First aid',
+            'volunteer_form[interests]' => '',
+            'volunteer_form[emergencyContacts]' => 'Anna (sister) +49 170 0000000',
+        ]));
+
+        self::assertResponseRedirects('/volunteers');
+        $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
+        self::assertSame('DE', $volunteer->getNationality());
+        self::assertSame('KE', $volunteer->getCountryOfResidence());
+        self::assertSame('1998-04-02', $volunteer->getDateOfBirth()?->format('Y-m-d'));
+        self::assertSame('Nurse', $volunteer->getProfession());
+        self::assertNull($volunteer->getInterests());
+        self::assertTrue($volunteer->isProfileIncomplete());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        self::assertSelectorTextContains('[data-profile]', 'Germany');
+        self::assertSelectorTextContains('[data-profile]', 'Kenya');
+        self::assertSelectorTextContains('[data-profile]', 'Anna (sister)');
+        self::assertCount(1, $crawler->filter('[data-profile-incomplete]'));
+    }
+
+    #[Test]
+    public function aFutureDateOfBirthIsRefused(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[dateOfBirth]' => (new \DateTimeImmutable('+1 day'))->format('Y-m-d'),
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'A date of birth must be in the past.');
+    }
+
+    /**
+     * A landscape JPEG tagged "rotate 90° clockwise" with a GPS tag, as a phone
+     * would send it: stored upright, at most 800 px, with no metadata left.
+     */
+    #[Test]
+    public function anUploadedPhotoIsTurnedUprightShrunkAndStrippedOfMetadata(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $upload = self::jpegWithExif(1200, 600);
+        self::assertSame('S', exif_read_data($upload)['GPSLatitudeRef'] ?? null, 'The fixture must carry GPS.');
+
+        self::submitPhoto($client, (int) $volunteer->getId(), $upload);
+
+        self::assertResponseRedirects('/volunteers');
+        $client->request('GET', "/volunteers/{$volunteer->getId()}/photo");
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'image/jpeg');
+        self::assertStringContainsString('private', (string) $client->getResponse()->headers->get('Cache-Control'));
+
+        $stored = (string) $client->getResponse()->getContent();
+        $size = getimagesizefromstring($stored);
+        self::assertIsArray($size);
+        self::assertSame([400, 800], [$size[0], $size[1]]);
+        $exif = @exif_read_data('data://image/jpeg;base64,' . base64_encode($stored));
+        self::assertArrayNotHasKey('GPSLatitudeRef', is_array($exif) ? $exif : []);
+        self::assertArrayNotHasKey('Orientation', is_array($exif) ? $exif : []);
+    }
+
+    #[Test]
+    public function aFileThatIsNotAPictureIsRefused(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $path = (string) tempnam(sys_get_temp_dir(), 'not-a-photo');
+        file_put_contents($path, 'plain text, not a picture');
+
+        self::submitPhoto($client, (int) $volunteer->getId(), $path);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'Upload a JPEG, PNG or WebP picture.');
+        self::assertSame(0, self::photoRows());
+    }
+
+    #[Test]
+    public function removePhotoDeletesTheStoredPicture(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::new()->withPhoto()->create();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+        self::assertCount(1, $crawler->filter('img[alt^="Current photo"]'));
+
+        $form = $crawler->selectButton('Save')->form();
+        $checkbox = $form['volunteer_form[removePhoto]'];
+        self::assertInstanceOf(ChoiceFormField::class, $checkbox);
+        $checkbox->tick();
+        $client->submit($form);
+
+        self::assertResponseRedirects('/volunteers');
+        self::assertSame(0, self::photoRows());
+        $client->request('GET', "/volunteers/{$volunteer->getId()}/photo");
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    #[Test]
+    public function deletingAVolunteerDeletesTheirPhoto(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::new()->withPhoto()->create();
+        self::assertSame(1, self::photoRows());
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/volunteers');
+        $client->submitForm('Delete');
+
+        self::assertResponseRedirects('/volunteers');
+        self::assertSame(0, self::photoRows());
+    }
+
+    #[Test]
+    public function theProfileShowsThePhotoOrItsPlaceholder(): void
+    {
+        $client = static::createClient();
+        $with = VolunteerFactory::new()->withPhoto()->create();
+        $without = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers/{$with->getId()}");
+        self::assertCount(1, $crawler->filter('[data-volunteer-photo]'));
+
+        $crawler = $client->request('GET', "/volunteers/{$without->getId()}");
+        self::assertCount(0, $crawler->filter('[data-volunteer-photo]'));
+        self::assertSelectorTextContains('a[title="Add a photo"]', 'AN');
+    }
+
+    /**
+     * ADR 0026: the stay covering today wins; without one, the latest stay.
+     */
+    #[Test]
+    public function theProfileShowsTheBranchOfAttachment(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $current = VolunteerFactory::createOne();
+        StayFactory::new()->past()->create(['volunteer' => $current, 'branch' => $mombasa]);
+        $former = VolunteerFactory::new()->withoutStay()->create();
+        StayFactory::new()->past()->create(['volunteer' => $former]);
+        StayFactory::createOne([
+            'volunteer' => $former,
+            'branch' => $mombasa,
+            'startDate' => $today->modify('-3 months'),
+            'endDate' => $today->modify('-2 months'),
+        ]);
+        $newcomer = VolunteerFactory::new()->withoutStay()->create();
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', "/volunteers/{$current->getId()}");
+        self::assertSelectorTextSame('[data-branch-of-attachment]', 'Nairobi (HQ)');
+        $client->request('GET', "/volunteers/{$former->getId()}");
+        self::assertSelectorTextSame('[data-branch-of-attachment]', 'Mombasa');
+        $client->request('GET', "/volunteers/{$newcomer->getId()}");
+        self::assertSelectorTextSame('[data-branch-of-attachment]', '—');
+    }
+
+    private static function submitPhoto(KernelBrowser $client, int $volunteerId, string $path): void
+    {
+        $form = $client->request('GET', "/volunteers/{$volunteerId}/edit")->selectButton('Save')->form();
+        $field = $form['volunteer_form[photo]'];
+        self::assertInstanceOf(FileFormField::class, $field);
+        $field->upload($path);
+        $client->submit($form);
+    }
+
+    /** Through a cleared manager: the identity map still holds the pre-submission object. */
+    private static function reloadVolunteer(KernelBrowser $client, int $id): Volunteer
+    {
+        $manager = $client->getContainer()->get('doctrine')->getManager();
+        $manager->clear();
+        $volunteer = $manager->getRepository(Volunteer::class)->find($id);
+        self::assertInstanceOf(Volunteer::class, $volunteer);
+
+        return $volunteer;
+    }
+
+    private static function photoRows(): int
+    {
+        $count = self::getContainer()->get('doctrine.dbal.default_connection')->fetchOne('SELECT COUNT(*) FROM volunteer_photo');
+
+        return is_numeric($count) ? (int) $count : -1;
+    }
+
+    /**
+     * A GD-drawn JPEG with a hand-built EXIF segment: Orientation 6 (rotate
+     * 90° clockwise) and a GPS IFD holding GPSLatitudeRef "S". GD can't write
+     * EXIF, and a committed phone photo would be a real person's.
+     *
+     * @param positive-int $width
+     * @param positive-int $height
+     */
+    private static function jpegWithExif(int $width, int $height): string
+    {
+        $image = imagecreatetruecolor($width, $height);
+        ob_start();
+        imagejpeg($image);
+        $jpeg = (string) ob_get_clean();
+
+        $entry = static fn(int $tag, int $type, int $value): string => pack('vvVV', $tag, $type, 1, $value);
+        $tiff = "II\x2A\x00" . pack('V', 8)
+            . pack('v', 2) . pack('vvVv', 0x0112, 3, 1, 6) . "\x00\x00" . $entry(0x8825, 4, 38) . pack('V', 0)
+            . pack('v', 1) . pack('vvV', 0x0001, 2, 2) . "S\x00\x00\x00" . pack('V', 0);
+        $segment = "Exif\x00\x00" . $tiff;
+        $jpeg = substr($jpeg, 0, 2) . "\xFF\xE1" . pack('n', strlen($segment) + 2) . $segment . substr($jpeg, 2);
+
+        $path = (string) tempnam(sys_get_temp_dir(), 'photo') . '.jpg';
+        file_put_contents($path, $jpeg);
+
+        return $path;
     }
 }

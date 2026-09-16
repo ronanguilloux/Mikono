@@ -45,3 +45,4 @@ agent that drafts these.
 | [09](09-volunteer-stays-at-branches.md) | Volunteer stays at branches | [0025](../adr/0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md), [0026](../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) |
 | [10](10-programs-between-projects-and-activities.md) | Programs between projects and activities | [0030](../adr/0030-insert-programs-between-projects-and-activities.md) |
 | [11](11-in-app-error-report.md) | In-app error report | [0031](../adr/0031-show-production-errors-on-an-in-app-admin-screen-over-a-rotating-json-error-log.md) |
+| [12](12-volunteer-profile-and-photo.md) | Volunteer profile and photo | [0032](../adr/0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) |

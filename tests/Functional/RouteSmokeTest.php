@@ -87,7 +87,8 @@ final class RouteSmokeTest extends WebTestCase
     private static function seedOneOfEach(): array
     {
         $activity = ActivityFactory::createOne([
-            'volunteer' => $volunteer = VolunteerFactory::createOne(),
+            // With a photo, or /volunteers/{id}/photo would 404.
+            'volunteer' => $volunteer = VolunteerFactory::new()->withPhoto()->create(),
             'project' => $project = ProjectFactory::createOne(),
             'activityType' => $activityType = ActivityTypeFactory::createOne(),
             'escorts' => [$escort = EscortFactory::createOne()],

@@ -25,6 +25,8 @@ RUN <<-EOF
 	install-php-extensions \
 		@composer \
 		apcu \
+		exif \
+		gd \
 		intl \
 		opcache \
 		pdo_sqlite \

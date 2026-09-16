@@ -24,5 +24,13 @@
         </p>
     {% endif %}
 
+    {% if volunteer.photo %}
+        <img
+            src="{{ path('volunteer_photo', {id: volunteer.id, v: volunteer.photo.updatedAt|date('U')}) }}"
+            alt="Current photo of {{ volunteer.fullName }}"
+            class="mb-4 h-24 w-24 rounded-full object-cover"
+        >
+    {% endif %}
+
     <twig:FormShell :form="form" cancelUrl="{{ path('volunteer_index') }}" />
 {% endblock %}

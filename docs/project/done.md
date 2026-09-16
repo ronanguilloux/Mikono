@@ -6,6 +6,10 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-17 — Volunteer profile fields and photo
+
+See [ADR 0032](../adr/0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md). Document attachments were split out to [their own card](backlog/volunteer-document-attachments.md).
+
 ## 2026-09-17 — Per-program totals on /reports, program filter on /activities
 
 `/reports` has a fourth tab, "By program", with the same columns as "By
