@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Entity\LoginAttempt;
 use App\Factory\UserFactory;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
@@ -13,7 +15,7 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
  * The screen and its gate. What the numbers on it MEAN is asserted in
  * tests/Integration/Usage/AccessLogReaderTest.php, against a fixture.
  *
- * Deliberately nothing here asserts on the table's contents or emptiness:
+ * Deliberately nothing here asserts on the access-log table's contents or emptiness:
  * %kernel.logs_dir% is var/log in the test environment too, so this reads the
  * dev container's real access.log locally and no file at all in CI. An
  * assertion either way would pass in one place and fail in the other.
@@ -45,6 +47,28 @@ final class UsageControllerTest extends WebTestCase
         // Whether there is a log or not, the screen says where its numbers
         // come from — that sentence is the answer to "is this tracking me?".
         self::assertStringContainsString('no third-party analytics', $crawler->filter('main')->text());
+    }
+
+    /**
+     * Unlike the access-log table, this one reads the test database, so its
+     * contents can be asserted.
+     */
+    #[Test]
+    public function theSignInsSectionListsAttemptsInTheRange(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new LoginAttempt('probe@example.org', false, '203.0.113.7'));
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', '/usage');
+
+        self::assertResponseIsSuccessful();
+        $section = $crawler->filter('[data-sign-ins]')->text();
+        self::assertStringContainsString('probe@example.org', $section);
+        self::assertStringContainsString('203.0.113.7', $section);
+        self::assertStringContainsString('90 days', $section);
     }
 
     /**

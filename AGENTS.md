@@ -112,6 +112,16 @@ implements it.
     (`aria-disabled` span, reason in `title` and `sr-only`) — how Delete
     shows as unavailable on rows the delete-guard would block. The
     server-side guard in `delete()` stays regardless.
+- **Every list view exports** to CSV and `.xlsx`
+  ([ADR 0029](docs/adr/0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md)). A new list gets the same four pieces:
+  - `COLUMNS`
+  - `listQueryBuilder()`, shared by `index()` and `export()`, so a filter
+    added there reaches the file too
+  - `cells()`
+  - an `export.{format}` route, plus `<twig:ExportMenu route="…_export" />`
+
+  Never write a second query for the export. Anyone who can view a list can
+  export it; revisit that rule if a non-staff role ever logs in.
 - `src/Pagination/` — `ListPaginator`, the single place `page`, `perPage`,
   `sort` and `direction` are read, plus the `SortState` VO. Pagination:
   [ADR 0009](docs/adr/0009-adopt-knppaginatorbundle-for-list-pagination.md);
@@ -141,6 +151,11 @@ implements it.
   [ADR 0021](docs/adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md).
   A missing log file must stay an empty report, never an exception — CI
   has no Caddy log and `RouteSmokeTest` walks this route.
+  Sign-ins are the personal third table: `login_attempt`, written by
+  `App\Security\LoginAttemptRecorder`, pruned at 90 days on each write,
+  never storing a non-email identifier
+  ([ADR 0028](docs/adr/0028-record-login-attempts-with-identifier-and-ip-for-90-days-admin-only.md)).
+  Never move them into `usage_event`.
 - `src/Factory/` — Foundry v2 factories (`PersistentObjectFactory`, real
   objects) for every entity, used by tests and dev fixtures
   (`src/Story/AppStory.php`).
@@ -188,6 +203,19 @@ password lands in shell history:
 docker compose exec php bin/console app:user:create \
   --email=TEST_ACCOUNT@gmail.com --full-name="Test" --password=<new-password> --admin
 ```
+
+**Optional local TLS override** (setup: `README.md`). A checkout may
+carry a gitignored `compose.local.yaml` (e.g. serving a trusted mkcert cert via
+`CADDY_SERVER_EXTRA_DIRECTIVES`, with `SERVER_NAME: localhost` — Caddy
+refuses a `tls` directive on the plain-HTTP `php:80` site). If that file
+exists, every local `docker compose` command must include it, or the
+container is recreated without it:
+
+```bash
+export COMPOSE_FILE=compose.yaml:compose.override.yaml:compose.local.yaml
+```
+
+Never for production, which always passes its two `-f` files.
 
 **That local account is for AI agents, not for a human** — an agent that
 needs to log in (mainly `scripts/panther-screenshot.php`) may reset its

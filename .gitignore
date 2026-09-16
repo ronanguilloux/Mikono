@@ -54,3 +54,8 @@
 # (.graphify_python, .graphify_root), which are machine-specific.
 /graphify-out/
 ###< graphify ###
+
+###> local dev TLS (see README) ###
+/frankenphp/certs/
+/compose.local.yaml
+###< local dev TLS ###

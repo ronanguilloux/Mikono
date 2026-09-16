@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Pagination\ListPaginator;
+use App\Repository\LoginAttemptRepository;
 use App\Repository\UsageEventRepository;
+use App\Security\LoginAttemptRecorder;
 use App\Usage\AccessLogReader;
 use App\Usage\UsageDateRange;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -49,6 +51,7 @@ final class UsageController extends AbstractController
     public function __construct(
         private readonly AccessLogReader $reader,
         private readonly UsageEventRepository $events,
+        private readonly LoginAttemptRepository $loginAttempts,
         private readonly ListPaginator $paginator,
         private readonly CacheInterface $cache,
     ) {}
@@ -124,6 +127,30 @@ final class UsageController extends AbstractController
                 ],
                 $this->events->summarize($range),
             ),
+            // The personal half (ADR 0028): who tried to sign in, from where.
+            'loginColumns' => [
+                ['key' => 'account', 'label' => 'Account'],
+                ['key' => 'ip', 'label' => 'IP'],
+                ['key' => 'succeeded', 'label' => 'Signed in'],
+                ['key' => 'failed', 'label' => 'Failed'],
+                ['key' => 'lastAttempt', 'label' => 'Last attempt'],
+            ],
+            'loginRows' => array_map(
+                static fn(array $attempt): array => [
+                    'cells' => [
+                        'account' => $attempt['identifier'] ?? 'not an email address',
+                        'ip' => $attempt['ip'] ?? '—',
+                        'succeeded' => (string) $attempt['succeeded'],
+                        'failed' => (string) $attempt['failed'],
+                        'lastAttempt' => $attempt['lastAttempt']->format('j M, H:i'),
+                    ],
+                    'badges' => $attempt['failed'] > 0 ? ['failed' => 'Failed'] : [],
+                    'links' => [],
+                ],
+                $this->loginAttempts->summarize($range),
+            ),
+            'loginRetentionDays' => LoginAttemptRecorder::RETENTION_DAYS,
+            'loginLimit' => LoginAttemptRepository::SUMMARY_LIMIT,
         ]);
     }
 

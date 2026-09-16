@@ -6,6 +6,23 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-16 — every list exports to CSV or Excel
+
+See [ADR 0029](../adr/0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md).
+
+## 2026-09-16 — the batch form's typeahead speaks to screen readers
+
+The volunteer search on `/activities/new-batch` already worked from the
+keyboard; now it says so. `#volunteer-suggestions` is a `role="listbox"`,
+each row an `option` with an id and `aria-selected`, and the input carries
+`aria-autocomplete="list"` plus an `aria-activedescendant` that
+`highlightRows()` points at the highlighted row — the one place the
+highlight is set, including on first render. Escape now goes through the
+same `closeSuggestions()` as blur, so it also resets `aria-expanded`
+(it used to leave it `true` on a hidden list). The ponytail audit's
+original idea of replacing the widget with a label filter was dropped:
+see [`07-ponytail-audit.md`](../brainstorm/07-ponytail-audit.md).
+
 ## 2026-09-09 — the ponytail audit's "Shrink" backlog, five of seven
 
 Same behaviour, ~150 fewer lines, and the PHPStan baseline shrank with it

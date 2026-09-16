@@ -14,6 +14,23 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 #[ResetDatabase]
 final class ActivityTypeControllerTest extends WebTestCase
 {
+    use ReadsListExports;
+
+    #[Test]
+    public function theExportCarriesTheOnScreenSortOrEveryRowInDefaultOrder(): void
+    {
+        $client = static::createClient();
+        ActivityTypeFactory::createOne(['name' => 'Arts and crafts', 'description' => null]);
+        ActivityTypeFactory::createOne(['name' => 'Teaching', 'description' => 'Classroom support']);
+        $client->loginUser(UserFactory::createOne());
+
+        $sorted = self::exportedRows($client, '/activity-types/export.csv?sort=name&direction=desc');
+        self::assertSame([['Teaching', 'Classroom support'], ['Arts and crafts', '—']], $sorted);
+
+        $whole = self::exportedRows($client, '/activity-types/export.csv');
+        self::assertSame(['Arts and crafts', 'Teaching'], array_column($whole, 0));
+    }
+
     #[Test]
     public function newWithValidDataPersists(): void
     {

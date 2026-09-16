@@ -9,6 +9,7 @@ use App\Entity\Activity;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Volunteer;
+use App\Export\ListExport;
 use App\Enum\ActivityDuration;
 use App\Form\ActivityFormType;
 use App\Form\BatchActivityFormType;
@@ -16,11 +17,13 @@ use App\Pagination\ListPaginator;
 use App\Repository\ActivityRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/activities', name: 'activity_')]
@@ -45,6 +48,15 @@ final class ActivityController extends AbstractController
         'activityType' => ['t.name'],
     ];
 
+    /** @var list<array{key: string, label: string}> */
+    private const array COLUMNS = [
+        ['key' => 'date', 'label' => 'Date'],
+        ['key' => 'volunteer', 'label' => 'Volunteer'],
+        ['key' => 'project', 'label' => 'Project'],
+        ['key' => 'activityType', 'label' => 'Activity type'],
+        ['key' => 'duration', 'label' => 'Duration'],
+    ];
+
     public function __construct(
         private readonly ActivityRepository $activities,
         private readonly VolunteerRepository $volunteers,
@@ -59,10 +71,7 @@ final class ActivityController extends AbstractController
 
         $volunteer = $this->requestedVolunteer($request);
 
-        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder($volunteer);
-        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
-
-        $pagination = $this->paginator->paginateQuery($queryBuilder, Activity::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request, $volunteer), Activity::class, $request);
 
         $rows = [];
         foreach ($pagination as $activity) {
@@ -73,15 +82,7 @@ final class ActivityController extends AbstractController
                 // the home screen's tomorrow roster does. The desktop table
                 // stays exactly as it was.
                 'planned' => null !== $date && $date > $today,
-                'cells' => [
-                    'date' => $date?->format('D j M Y') ?? '—',
-                    'volunteer' => $activity->getVolunteer()?->getFullName() ?? '—',
-                    'project' => $activity->getProject()?->getName() ?? '—',
-                    'activityType' => $activity->getActivityType()?->getName() ?? '—',
-                    'duration' => ActivityDuration::Other === $activity->getDuration()
-                        ? ($activity->getDurationOther() ?? ActivityDuration::Other->label())
-                        : ($activity->getDuration()?->label() ?? '—'),
-                ],
+                'cells' => $this->cells($activity),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('activity_edit', ['id' => $activity->getId()])],
                     [
@@ -100,13 +101,7 @@ final class ActivityController extends AbstractController
         }
 
         return $this->render('activity/index.html.twig', [
-            'columns' => [
-                ['key' => 'date', 'label' => 'Date'],
-                ['key' => 'volunteer', 'label' => 'Volunteer'],
-                ['key' => 'project', 'label' => 'Project'],
-                ['key' => 'activityType', 'label' => 'Activity type'],
-                ['key' => 'duration', 'label' => 'Duration'],
-            ],
+            'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
@@ -116,6 +111,46 @@ final class ActivityController extends AbstractController
             // has to stay findable.
             'volunteers' => $this->volunteers->findAllOrderedByName(),
         ]);
+    }
+
+    #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    public function export(Request $request, string $format): StreamedResponse
+    {
+        $queryBuilder = $this->listQueryBuilder($request, $this->requestedVolunteer($request));
+
+        return ListExport::response('activities', $format, self::COLUMNS, (function () use ($queryBuilder): \Generator {
+            /** @var Activity $activity */
+            foreach ($queryBuilder->getQuery()->toIterable() as $activity) {
+                yield $this->cells($activity);
+            }
+        })());
+    }
+
+    /**
+     * The one query behind both the index and its export.
+     */
+    private function listQueryBuilder(Request $request, ?Volunteer $volunteer): QueryBuilder
+    {
+        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder($volunteer);
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        return $queryBuilder;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function cells(Activity $activity): array
+    {
+        return [
+            'date' => $activity->getDate()?->format('D j M Y') ?? '—',
+            'volunteer' => $activity->getVolunteer()?->getFullName() ?? '—',
+            'project' => $activity->getProject()?->getName() ?? '—',
+            'activityType' => $activity->getActivityType()?->getName() ?? '—',
+            'duration' => ActivityDuration::Other === $activity->getDuration()
+                ? ($activity->getDurationOther() ?? ActivityDuration::Other->label())
+                : ($activity->getDuration()?->label() ?? '—'),
+        ];
     }
 
     /**

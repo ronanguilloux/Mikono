@@ -16,6 +16,23 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 #[ResetDatabase]
 final class ProjectControllerTest extends WebTestCase
 {
+    use ReadsListExports;
+
+    #[Test]
+    public function theExportCarriesTheOnScreenSortOrEveryRowInDefaultOrder(): void
+    {
+        $client = static::createClient();
+        ProjectFactory::createOne(['name' => 'Bright Achievers']);
+        ProjectFactory::createOne(['name' => 'Zion Academy']);
+        $client->loginUser(UserFactory::createOne());
+
+        $sorted = self::exportedRows($client, '/projects/export.csv?sort=name&direction=desc');
+        self::assertSame(['Zion Academy', 'Bright Achievers'], array_column($sorted, 0));
+
+        $whole = self::exportedRows($client, '/projects/export.csv');
+        self::assertSame(['Bright Achievers', 'Zion Academy'], array_column($whole, 0));
+    }
+
     #[Test]
     public function newPartnerProjectWithoutAnOrganizationNameIsUnprocessable(): void
     {

@@ -77,10 +77,13 @@ export default class extends Controller {
     }
 
     onSearchBlur() {
-        setTimeout(() => {
-            this.suggestionsTarget.hidden = true;
-            this.searchTarget.setAttribute('aria-expanded', 'false');
-        }, 120);
+        setTimeout(() => this.closeSuggestions(), 120);
+    }
+
+    closeSuggestions() {
+        this.suggestionsTarget.hidden = true;
+        this.searchTarget.setAttribute('aria-expanded', 'false');
+        this.searchTarget.removeAttribute('aria-activedescendant');
     }
 
     onSearchKeydown(event) {
@@ -101,14 +104,25 @@ export default class extends Controller {
                 this.addVolunteer(row.dataset.checkboxId);
             }
         } else if (event.key === 'Escape') {
-            this.suggestionsTarget.hidden = true;
+            this.closeSuggestions();
         }
     }
 
+    // The highlight is only a colour; aria-activedescendant is what a
+    // screen reader announces as the arrow keys move.
     highlightRows(rows) {
         rows.forEach((row, index) => {
-            row.classList.toggle('bg-slate-100', index === this.highlighted);
+            const active = index === this.highlighted;
+            row.classList.toggle('bg-slate-100', active);
+            row.setAttribute('aria-selected', String(active));
         });
+
+        const active = rows[this.highlighted];
+        if (active) {
+            this.searchTarget.setAttribute('aria-activedescendant', active.id);
+        } else {
+            this.searchTarget.removeAttribute('aria-activedescendant');
+        }
     }
 
     renderSuggestions() {
@@ -127,11 +141,10 @@ export default class extends Controller {
             empty.textContent = query ? `No volunteer matches "${this.searchTarget.value}"` : 'Everyone is already selected';
             this.suggestionsTarget.appendChild(empty);
         } else {
-            matches.forEach((checkbox, index) => {
+            matches.forEach((checkbox) => {
                 const row = document.createElement('div');
-                row.className = `flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-slate-100 ${
-                    index === this.highlighted ? 'bg-slate-100' : ''
-                }`;
+                row.className = 'flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-slate-100';
+                row.id = `${checkbox.id}-option`;
                 row.setAttribute('role', 'option');
                 row.dataset.checkboxId = checkbox.id;
 
@@ -149,6 +162,7 @@ export default class extends Controller {
             });
         }
 
+        this.highlightRows(Array.from(this.suggestionsTarget.querySelectorAll('[role="option"]')));
         this.suggestionsTarget.hidden = false;
         this.searchTarget.setAttribute('aria-expanded', 'true');
     }

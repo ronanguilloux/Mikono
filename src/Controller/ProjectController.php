@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Project;
+use App\Export\ListExport;
 use App\Form\ProjectFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/projects', name: 'project_')]
@@ -36,6 +39,14 @@ final class ProjectController extends AbstractController
         'status' => ['p.isActive'],
     ];
 
+    /** @var list<array{key: string, label: string}> */
+    private const array COLUMNS = [
+        ['key' => 'name', 'label' => 'Name'],
+        ['key' => 'branch', 'label' => 'Branch'],
+        ['key' => 'ownership', 'label' => 'Ownership'],
+        ['key' => 'status', 'label' => 'Status'],
+    ];
+
     public function __construct(
         private readonly ProjectRepository $projects,
         private readonly EntityManagerInterface $entityManager,
@@ -45,10 +56,7 @@ final class ProjectController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $queryBuilder = $this->projects->createOrderedByNameQueryBuilder();
-        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
-
-        $pagination = $this->paginator->paginateQuery($queryBuilder, Project::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request), Project::class, $request);
 
         /** @var list<Project> $projectsOnPage */
         $projectsOnPage = iterator_to_array($pagination, false);
@@ -64,12 +72,7 @@ final class ProjectController extends AbstractController
             $referencingCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
 
             $rows[] = [
-                'cells' => [
-                    'name' => $project->getName(),
-                    'branch' => $project->getBranch()?->getName() ?? '—',
-                    'ownership' => $project->getOwnership()?->label() ?? '—',
-                    'status' => $project->isActive() ? 'Active' : 'Inactive',
-                ],
+                'cells' => $this->cells($project),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('project_edit', ['id' => $id])],
                     $referencingCount > 0
@@ -86,16 +89,46 @@ final class ProjectController extends AbstractController
         }
 
         return $this->render('project/index.html.twig', [
-            'columns' => [
-                ['key' => 'name', 'label' => 'Name'],
-                ['key' => 'branch', 'label' => 'Branch'],
-                ['key' => 'ownership', 'label' => 'Ownership'],
-                ['key' => 'status', 'label' => 'Status'],
-            ],
+            'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
+    }
+
+    #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    public function export(Request $request, string $format): StreamedResponse
+    {
+        return ListExport::response('projects', $format, self::COLUMNS, (function () use ($request): \Generator {
+            /** @var Project $project */
+            foreach ($this->listQueryBuilder($request)->getQuery()->toIterable() as $project) {
+                yield $this->cells($project);
+            }
+        })());
+    }
+
+    /**
+     * The one query behind both the index and its export.
+     */
+    private function listQueryBuilder(Request $request): QueryBuilder
+    {
+        $queryBuilder = $this->projects->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        return $queryBuilder;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function cells(Project $project): array
+    {
+        return [
+            'name' => $project->getName(),
+            'branch' => $project->getBranch()?->getName() ?? '—',
+            'ownership' => $project->getOwnership()?->label() ?? '—',
+            'status' => $project->isActive() ? 'Active' : 'Inactive',
+        ];
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

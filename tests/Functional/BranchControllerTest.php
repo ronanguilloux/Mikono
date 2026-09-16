@@ -19,6 +19,28 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 #[ResetDatabase]
 final class BranchControllerTest extends WebTestCase
 {
+    use ReadsListExports;
+
+    /**
+     * The five real branches come from the migration, so the counts include
+     * them.
+     */
+    #[Test]
+    public function theExportCarriesTheOnScreenSortOrEveryRowInDefaultOrder(): void
+    {
+        $client = static::createClient();
+        BranchFactory::createOne(['name' => 'AAA Test branch']);
+        $client->loginUser(UserFactory::createOne());
+
+        $sorted = self::exportedRows($client, '/branches/export.csv?sort=name&direction=desc');
+        self::assertCount(6, $sorted);
+        self::assertSame('AAA Test branch', $sorted[5][0]);
+
+        $whole = self::exportedRows($client, '/branches/export.csv');
+        self::assertCount(6, $whole);
+        self::assertSame('AAA Test branch', $whole[0][0]);
+    }
+
     #[Test]
     public function theIndexListsTheSeededBranches(): void
     {

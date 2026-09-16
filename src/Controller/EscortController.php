@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Escort;
+use App\Export\ListExport;
 use App\Form\EscortFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\EscortRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/escorts', name: 'escort_')]
@@ -28,6 +31,12 @@ final class EscortController extends AbstractController
         'status' => ['e.isActive'],
     ];
 
+    /** @var list<array{key: string, label: string}> */
+    private const array COLUMNS = [
+        ['key' => 'name', 'label' => 'Name'],
+        ['key' => 'status', 'label' => 'Status'],
+    ];
+
     public function __construct(
         private readonly EscortRepository $escorts,
         private readonly EntityManagerInterface $entityManager,
@@ -37,18 +46,12 @@ final class EscortController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $queryBuilder = $this->escorts->createOrderedByNameQueryBuilder();
-        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
-
-        $pagination = $this->paginator->paginateQuery($queryBuilder, Escort::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request), Escort::class, $request);
 
         $rows = [];
         foreach ($pagination as $escort) {
             $rows[] = [
-                'cells' => [
-                    'name' => $escort->getName(),
-                    'status' => $escort->isActive() ? 'Active' : 'Inactive',
-                ],
+                'cells' => $this->cells($escort),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('escort_edit', ['id' => $escort->getId()])],
                     [
@@ -63,14 +66,44 @@ final class EscortController extends AbstractController
         }
 
         return $this->render('escort/index.html.twig', [
-            'columns' => [
-                ['key' => 'name', 'label' => 'Name'],
-                ['key' => 'status', 'label' => 'Status'],
-            ],
+            'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
+    }
+
+    #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    public function export(Request $request, string $format): StreamedResponse
+    {
+        return ListExport::response('escorts', $format, self::COLUMNS, (function () use ($request): \Generator {
+            /** @var Escort $escort */
+            foreach ($this->listQueryBuilder($request)->getQuery()->toIterable() as $escort) {
+                yield $this->cells($escort);
+            }
+        })());
+    }
+
+    /**
+     * The one query behind both the index and its export.
+     */
+    private function listQueryBuilder(Request $request): QueryBuilder
+    {
+        $queryBuilder = $this->escorts->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        return $queryBuilder;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function cells(Escort $escort): array
+    {
+        return [
+            'name' => $escort->getName(),
+            'status' => $escort->isActive() ? 'Active' : 'Inactive',
+        ];
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

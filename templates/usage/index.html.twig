@@ -168,4 +168,22 @@
             emptyMessage="No in-page actions recorded in this date range."
         />
     </section>
+
+    <section class="mt-10" aria-labelledby="sign-ins-heading" data-sign-ins>
+        <h2 id="sign-ins-heading" class="font-semibold">Sign-ins</h2>
+        <p class="mb-3 mt-0.5 text-xs text-slate-500">
+            Every sign-in attempt by the address typed and the network address it came from, failures first.
+            Passwords are never recorded, and neither is anything typed that isn't an email address.
+            Attempts are deleted after {{ loginRetentionDays }} days, so a longer window still shows at most that.
+            At most {{ loginLimit }} rows. Same window as above: {{ range.label }}.
+            See <span class="font-mono text-xs">ADR 0028</span>.
+        </p>
+
+        <twig:DataTable
+            :columns="loginColumns"
+            :rows="loginRows"
+            :withActions="false"
+            emptyMessage="No sign-in attempts in this date range."
+        />
+    </section>
 {% endblock %}

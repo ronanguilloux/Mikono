@@ -29,6 +29,43 @@ through Docker + FrankenPHP. A seeded login is created via
 credentials up here; the command is idempotent, so re-run it to reset
 the password.
 
+### Optional: a trusted local certificate (mkcert)
+
+To get rid of the browser warning in local dev only, serve a certificate
+signed by a local CA your OS trusts. From the repo root:
+
+```bash
+brew install mkcert            # macOS; see mkcert's README for other OSes
+mkcert -install                # create the local CA and trust it (asks for sudo)
+mkdir -p frankenphp/certs
+mkcert -cert-file frankenphp/certs/tls.pem -key-file frankenphp/certs/tls.key localhost
+```
+
+Then create `compose.local.yaml` (the `certs` folder is already inside the
+dev bind mount, at `/app/frankenphp/certs`):
+
+```yaml
+services:
+  php:
+    environment:
+      # The default also lists the plain-HTTP `php:80` site, where Caddy
+      # refuses a `tls` directive.
+      SERVER_NAME: localhost
+      CADDY_SERVER_EXTRA_DIRECTIVES: tls /app/frankenphp/certs/tls.pem /app/frankenphp/certs/tls.key
+```
+
+and include it in every local compose command:
+
+```bash
+export COMPOSE_FILE=compose.yaml:compose.override.yaml:compose.local.yaml
+docker compose up -d --wait
+```
+
+Restart the browser once. Both `frankenphp/certs/` and
+`compose.local.yaml` are gitignored — never commit the key. The certificate
+lasts about two years; re-run the last `mkcert` line to renew it. Never use
+this in production, which gets a real certificate from Caddy.
+
 ## Contributing
 
 ### Running tests

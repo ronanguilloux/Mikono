@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Branch;
+use App\Export\ListExport;
 use App\Form\BranchFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\BranchRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -34,6 +37,13 @@ final class BranchController extends AbstractController
         'status' => ['b.isActive'],
     ];
 
+    /** @var list<array{key: string, label: string}> */
+    private const array COLUMNS = [
+        ['key' => 'name', 'label' => 'Name'],
+        ['key' => 'physicalLocation', 'label' => 'Physical location'],
+        ['key' => 'status', 'label' => 'Status'],
+    ];
+
     public function __construct(
         private readonly BranchRepository $branches,
         private readonly EntityManagerInterface $entityManager,
@@ -43,10 +53,7 @@ final class BranchController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $queryBuilder = $this->branches->createOrderedByNameQueryBuilder();
-        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
-
-        $pagination = $this->paginator->paginateQuery($queryBuilder, Branch::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request), Branch::class, $request);
 
         /** @var list<Branch> $branchesOnPage */
         $branchesOnPage = iterator_to_array($pagination, false);
@@ -58,11 +65,7 @@ final class BranchController extends AbstractController
             $referencingCount = null === $id ? 0 : ($referenceCounts[$id] ?? 0);
 
             $rows[] = [
-                'cells' => [
-                    'name' => $branch->getName(),
-                    'physicalLocation' => $branch->getPhysicalLocation(),
-                    'status' => $branch->isActive() ? 'Active' : 'Inactive',
-                ],
+                'cells' => $this->cells($branch),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('branch_edit', ['id' => $id])],
                     $referencingCount > 0
@@ -79,15 +82,45 @@ final class BranchController extends AbstractController
         }
 
         return $this->render('branch/index.html.twig', [
-            'columns' => [
-                ['key' => 'name', 'label' => 'Name'],
-                ['key' => 'physicalLocation', 'label' => 'Physical location'],
-                ['key' => 'status', 'label' => 'Status'],
-            ],
+            'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
+    }
+
+    #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    public function export(Request $request, string $format): StreamedResponse
+    {
+        return ListExport::response('branches', $format, self::COLUMNS, (function () use ($request): \Generator {
+            /** @var Branch $branch */
+            foreach ($this->listQueryBuilder($request)->getQuery()->toIterable() as $branch) {
+                yield $this->cells($branch);
+            }
+        })());
+    }
+
+    /**
+     * The one query behind both the index and its export.
+     */
+    private function listQueryBuilder(Request $request): QueryBuilder
+    {
+        $queryBuilder = $this->branches->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        return $queryBuilder;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function cells(Branch $branch): array
+    {
+        return [
+            'name' => $branch->getName(),
+            'physicalLocation' => $branch->getPhysicalLocation(),
+            'status' => $branch->isActive() ? 'Active' : 'Inactive',
+        ];
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

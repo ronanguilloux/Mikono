@@ -14,6 +14,60 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 #[ResetDatabase]
 final class EscortControllerTest extends WebTestCase
 {
+    use ReadsListExports;
+
+    #[Test]
+    public function theExportCarriesTheOnScreenSortOrEveryRowInDefaultOrder(): void
+    {
+        $client = static::createClient();
+        EscortFactory::createOne(['name' => 'Aisha']);
+        EscortFactory::createOne(['name' => 'Zawadi']);
+        $client->loginUser(UserFactory::createOne());
+
+        $sorted = self::exportedRows($client, '/escorts/export.csv?sort=name&direction=desc&page=2&perPage=25');
+        self::assertSame([['Zawadi', 'Active'], ['Aisha', 'Active']], $sorted);
+
+        $whole = self::exportedRows($client, '/escorts/export.csv');
+        self::assertSame([['Aisha', 'Active'], ['Zawadi', 'Active']], $whole);
+
+        self::assertResponseHeaderSame('Content-Type', 'text/csv; charset=UTF-8');
+        self::assertResponseHeaderSame(
+            'Content-Disposition',
+            sprintf('attachment; filename=escorts-%s.csv', new \DateTimeImmutable('today')->format('Y-m-d')),
+        );
+        self::assertStringStartsWith("\u{FEFF}Name,Status\n", $client->getInternalResponse()->getContent());
+    }
+
+    /**
+     * Excel runs a CSV cell starting with `=` as a formula, and names are
+     * typed in by users.
+     */
+    #[Test]
+    public function theCsvExportDefusesFormulaLikeCells(): void
+    {
+        $client = static::createClient();
+        EscortFactory::createOne(['name' => '=HYPERLINK("http://example.org")']);
+        $client->loginUser(UserFactory::createOne());
+
+        self::assertSame("'=HYPERLINK(\"http://example.org\")", self::exportedRows($client, '/escorts/export.csv')[0][0]);
+    }
+
+    #[Test]
+    public function theIndexOffersBothExportScopes(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/escorts?sort=name&direction=desc&page=2&perPage=50');
+
+        $hrefs = $crawler->filter('[data-export-menu] a')->each(static fn($a): string => (string) $a->attr('href'));
+        self::assertSame([
+            '/escorts/export?sort=name&direction=desc',
+            '/escorts/export.xlsx?sort=name&direction=desc',
+            '/escorts/export',
+            '/escorts/export.xlsx',
+        ], $hrefs);
+    }
+
     #[Test]
     public function indexListsSeededEscorts(): void
     {

@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Volunteer;
+use App\Export\ListExport;
 use App\Form\VolunteerFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ActivityRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/volunteers', name: 'volunteer_')]
@@ -34,6 +37,14 @@ final class VolunteerController extends AbstractController
         'status' => ['isCurrent'],
     ];
 
+    /** @var list<array{key: string, label: string}> */
+    private const array COLUMNS = [
+        ['key' => 'name', 'label' => 'Name'],
+        ['key' => 'email', 'label' => 'Email'],
+        ['key' => 'phone', 'label' => 'Phone'],
+        ['key' => 'status', 'label' => 'Status'],
+    ];
+
     public function __construct(
         private readonly VolunteerRepository $volunteers,
         private readonly ActivityRepository $activities,
@@ -44,10 +55,7 @@ final class VolunteerController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder();
-        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
-
-        $pagination = $this->paginator->paginateQuery($queryBuilder, Volunteer::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request), Volunteer::class, $request);
 
         /** @var list<Volunteer> $volunteersOnPage */
         $volunteersOnPage = iterator_to_array($pagination, false);
@@ -64,12 +72,7 @@ final class VolunteerController extends AbstractController
             $referencingCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
 
             $rows[] = [
-                'cells' => [
-                    'name' => $volunteer->getFullName(),
-                    'email' => $volunteer->getEmail() ?? '—',
-                    'phone' => $volunteer->getPhone() ?? '—',
-                    'status' => null !== $id && isset($staying[$id]) ? 'Active' : 'Inactive',
-                ],
+                'cells' => $this->cells($volunteer, $staying),
                 'actions' => [
                     ['label' => 'View', 'url' => $this->generateUrl('volunteer_show', ['id' => $id])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('volunteer_edit', ['id' => $id])],
@@ -87,16 +90,61 @@ final class VolunteerController extends AbstractController
         }
 
         return $this->render('volunteer/index.html.twig', [
-            'columns' => [
-                ['key' => 'name', 'label' => 'Name'],
-                ['key' => 'email', 'label' => 'Email'],
-                ['key' => 'phone', 'label' => 'Phone'],
-                ['key' => 'status', 'label' => 'Status'],
-            ],
+            'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
+    }
+
+    /**
+     * Declared before show() so `/volunteers/export` is not read as an id.
+     */
+    #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    public function export(Request $request, string $format): StreamedResponse
+    {
+        // getResult() rather than toIterable(): the status cell needs the
+        // whole list up front for findIdsStayingOn(), and the query's HIDDEN
+        // select is not what toIterable() is built for. A few hundred rows at
+        // most — the same load as the index's "All" page size.
+        /** @var list<Volunteer> $volunteers */
+        $volunteers = $this->listQueryBuilder($request)->getQuery()->getResult();
+        $staying = $this->volunteers->findIdsStayingOn($volunteers, new \DateTimeImmutable('today'));
+
+        return ListExport::response(
+            'volunteers',
+            $format,
+            self::COLUMNS,
+            array_map(fn(Volunteer $volunteer): array => $this->cells($volunteer, $staying), $volunteers),
+        );
+    }
+
+    /**
+     * The one query behind both the index and its export.
+     */
+    private function listQueryBuilder(Request $request): QueryBuilder
+    {
+        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        return $queryBuilder;
+    }
+
+    /**
+     * @param array<int, true> $staying volunteer id => true, from findIdsStayingOn()
+     *
+     * @return array<string, string>
+     */
+    private function cells(Volunteer $volunteer, array $staying): array
+    {
+        $id = $volunteer->getId();
+
+        return [
+            'name' => $volunteer->getFullName(),
+            'email' => $volunteer->getEmail() ?? '—',
+            'phone' => $volunteer->getPhone() ?? '—',
+            'status' => null !== $id && isset($staying[$id]) ? 'Active' : 'Inactive',
+        ];
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

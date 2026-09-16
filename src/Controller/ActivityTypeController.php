@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\ActivityType;
+use App\Export\ListExport;
 use App\Form\ActivityTypeFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ActivityTypeRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/activity-types', name: 'activity_type_')]
@@ -29,6 +32,12 @@ final class ActivityTypeController extends AbstractController
         'name' => ['t.name'],
     ];
 
+    /** @var list<array{key: string, label: string}> */
+    private const array COLUMNS = [
+        ['key' => 'name', 'label' => 'Name'],
+        ['key' => 'description', 'label' => 'Description'],
+    ];
+
     public function __construct(
         private readonly ActivityTypeRepository $activityTypes,
         private readonly EntityManagerInterface $entityManager,
@@ -38,18 +47,12 @@ final class ActivityTypeController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $queryBuilder = $this->activityTypes->createOrderedByNameQueryBuilder();
-        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
-
-        $pagination = $this->paginator->paginateQuery($queryBuilder, ActivityType::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request), ActivityType::class, $request);
 
         $rows = [];
         foreach ($pagination as $activityType) {
             $rows[] = [
-                'cells' => [
-                    'name' => $activityType->getName(),
-                    'description' => $activityType->getDescription() ?? '—',
-                ],
+                'cells' => $this->cells($activityType),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('activity_type_edit', ['id' => $activityType->getId()])],
                     [
@@ -64,14 +67,44 @@ final class ActivityTypeController extends AbstractController
         }
 
         return $this->render('activity_type/index.html.twig', [
-            'columns' => [
-                ['key' => 'name', 'label' => 'Name'],
-                ['key' => 'description', 'label' => 'Description'],
-            ],
+            'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
+    }
+
+    #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    public function export(Request $request, string $format): StreamedResponse
+    {
+        return ListExport::response('activity-types', $format, self::COLUMNS, (function () use ($request): \Generator {
+            /** @var ActivityType $activityType */
+            foreach ($this->listQueryBuilder($request)->getQuery()->toIterable() as $activityType) {
+                yield $this->cells($activityType);
+            }
+        })());
+    }
+
+    /**
+     * The one query behind both the index and its export.
+     */
+    private function listQueryBuilder(Request $request): QueryBuilder
+    {
+        $queryBuilder = $this->activityTypes->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        return $queryBuilder;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function cells(ActivityType $activityType): array
+    {
+        return [
+            'name' => $activityType->getName(),
+            'description' => $activityType->getDescription() ?? '—',
+        ];
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

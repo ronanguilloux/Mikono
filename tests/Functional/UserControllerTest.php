@@ -12,6 +12,34 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 #[ResetDatabase]
 final class UserControllerTest extends WebTestCase
 {
+    use ReadsListExports;
+
+    #[Test]
+    public function onlyAnAdminCanExportTheUsers(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/users/export.csv');
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    #[Test]
+    public function theExportCarriesTheOnScreenSortOrEveryRowInDefaultOrder(): void
+    {
+        $client = static::createClient();
+        UserFactory::createOne(['email' => 'zawadi@example.org', 'fullName' => 'Aisha Achieng']);
+        $admin = UserFactory::new()->admin()->create(['email' => 'aisha@example.org', 'fullName' => 'Zawadi Zuma']);
+        $client->loginUser($admin);
+
+        $sorted = self::exportedRows($client, '/users/export.csv?sort=email&direction=asc');
+        self::assertSame(['aisha@example.org', 'zawadi@example.org'], array_column($sorted, 1));
+
+        $whole = self::exportedRows($client, '/users/export.csv');
+        self::assertSame(['Aisha Achieng', 'Zawadi Zuma'], array_column($whole, 0));
+        self::assertSame(['Volunteer Manager', 'Admin'], array_column($whole, 2));
+    }
+
     #[Test]
     public function aRegularRoleUserIsForbiddenFromTheUsersArea(): void
     {

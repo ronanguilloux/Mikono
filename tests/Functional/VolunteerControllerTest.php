@@ -15,6 +15,25 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 #[ResetDatabase]
 final class VolunteerControllerTest extends WebTestCase
 {
+    use ReadsListExports;
+
+    #[Test]
+    public function theExportCarriesTheOnScreenSortOrEveryRowInDefaultOrder(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::new()->inactive()->create(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
+        $client->loginUser(UserFactory::createOne());
+
+        $sorted = self::exportedRows($client, '/volunteers/export.csv?sort=name&direction=asc');
+        self::assertSame(['Aisha Achieng', 'Zawadi Zuma'], array_column($sorted, 0));
+
+        // The default order is active first, and the status column says so.
+        $whole = self::exportedRows($client, '/volunteers/export.csv');
+        self::assertSame(['Zawadi Zuma', 'Aisha Achieng'], array_column($whole, 0));
+        self::assertSame(['Active', 'Inactive'], array_column($whole, 3));
+    }
+
     #[Test]
     public function indexListsSeededVolunteers(): void
     {

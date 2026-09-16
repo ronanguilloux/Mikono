@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-16
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -31,14 +31,11 @@ hostname is the one that isn't ours to solve.
 
 ## Next
 
-1. [Report login attempts on /usage](backlog/usage-login-audit-trail.md) — **D**
-2. [Finish the batch form's typeahead for screen readers](backlog/batch-typeahead-screen-reader.md)
-3. [Where escort should be read back out](backlog/escort-display-and-reporting.md) — **G**
-4. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
-5. [Filter /activities by branch](backlog/activities-branch-filter.md)
-6. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
-7. [Add profile fields and file attachments to volunteers](backlog/volunteer-profile-fields-and-attachments.md) — **D**
-8. [Export any list to CSV or Excel, filtered or whole](backlog/list-contextual-export.md) — **D**
+1. [Where escort should be read back out](backlog/escort-display-and-reporting.md) — **G**
+2. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
+3. [Filter /activities by branch](backlog/activities-branch-filter.md)
+4. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
+5. [Add profile fields and file attachments to volunteers](backlog/volunteer-profile-fields-and-attachments.md) — **D**
 
 ## Later
 

@@ -22,6 +22,60 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 #[ResetDatabase]
 final class ActivityControllerTest extends WebTestCase
 {
+    use ReadsListExports;
+
+    /**
+     * Current view keeps the volunteer filter; whole list drops it (ADR 0029).
+     */
+    #[Test]
+    public function theExportKeepsTheVolunteerFilterOrExportsEveryRow(): void
+    {
+        $client = static::createClient();
+        $aisha = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        ActivityFactory::createMany(2, ['volunteer' => $aisha]);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma'])]);
+        $client->loginUser(UserFactory::createOne());
+
+        $filtered = self::exportedRows($client, '/activities/export.csv?volunteer=' . $aisha->getId() . '&page=2');
+        self::assertSame(['Aisha Achieng', 'Aisha Achieng'], array_column($filtered, 1));
+
+        self::assertCount(3, self::exportedRows($client, '/activities/export.csv'));
+    }
+
+    /**
+     * ADR 0023: a malformed parameter on the export URL degrades to the
+     * default, exactly as it does on the list.
+     */
+    #[Test]
+    public function theExportShrugsOffMalformedParameters(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createMany(3);
+        $client->loginUser(UserFactory::createOne());
+
+        $rows = self::exportedRows($client, '/activities/export.csv?volunteer[]=1&sort[]=x&direction[]=y&page[]=1&perPage=abc&format[]=z');
+        self::assertCount(3, $rows);
+    }
+
+    #[Test]
+    public function theExportAlsoComesAsARealSpreadsheet(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', '/activities/export.xlsx');
+
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        self::assertResponseHeaderSame(
+            'Content-Disposition',
+            sprintf('attachment; filename=activities-%s.xlsx', new \DateTimeImmutable('today')->format('Y-m-d')),
+        );
+        // A zip archive, which is what an .xlsx file is.
+        self::assertStringStartsWith("PK\x03\x04", $client->getInternalResponse()->getContent());
+    }
+
     /**
      * The batch form's "Who attended?" field is a group of same-named
      * checkboxes (one per volunteer) — DomCrawler's array-value form

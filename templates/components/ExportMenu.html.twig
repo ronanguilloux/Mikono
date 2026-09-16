@@ -1,0 +1,34 @@
+{#
+    The Export control on every list index (ADR 0029). "Current view" keeps the
+    filters and the sort on screen and drops only `page` and `perPage`, so the
+    file holds every matching row, not one page. "Whole list" passes nothing,
+    so the file holds every row in the list's default order.
+
+    A <details> disclosure so it needs no JavaScript. data-turbo="false" on the
+    links: Turbo Drive would otherwise fetch the download as a page visit.
+#}
+{% props route %}
+
+{% set current = app.request.query.all|filter((v, k) => k not in ['page', 'perPage'] and v is not iterable) %}
+{% set formats = {csv: 'CSV', xlsx: 'Excel'} %}
+
+<details class="relative print:hidden" data-export-menu>
+    <summary class="cursor-pointer list-none rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:border-brand-500 hover:text-brand-700">
+        Export
+    </summary>
+    <div class="absolute right-0 z-10 mt-1 w-56 space-y-2 rounded-md border border-slate-200 bg-white p-3 text-sm shadow-lg">
+        {% for scope, params in {'Current view': current, 'Whole list': {}} %}
+            <p>
+                <span class="block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ scope }}</span>
+                {% for format, label in formats %}
+                    <a
+                        href="{{ path(route, params|merge({format: format})) }}"
+                        class="text-brand-600 hover:underline"
+                        data-turbo="false"
+                        download
+                    >{{ label }}<span class="sr-only"> — {{ scope|lower }}</span></a>{% if not loop.last %} · {% endif %}
+                {% endfor %}
+            </p>
+        {% endfor %}
+    </div>
+</details>

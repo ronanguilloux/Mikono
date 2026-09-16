@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Export\ListExport;
 use App\Form\UserFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -34,6 +37,14 @@ final class UserController extends AbstractController
         'status' => ['u.isActive'],
     ];
 
+    /** @var list<array{key: string, label: string}> */
+    private const array COLUMNS = [
+        ['key' => 'name', 'label' => 'Name'],
+        ['key' => 'email', 'label' => 'Email'],
+        ['key' => 'role', 'label' => 'Role'],
+        ['key' => 'status', 'label' => 'Status'],
+    ];
+
     public function __construct(
         private readonly UserRepository $users,
         private readonly EntityManagerInterface $entityManager,
@@ -44,20 +55,12 @@ final class UserController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $queryBuilder = $this->users->createOrderedByNameQueryBuilder();
-        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
-
-        $pagination = $this->paginator->paginateQuery($queryBuilder, User::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request), User::class, $request);
 
         $rows = [];
         foreach ($pagination as $user) {
             $rows[] = [
-                'cells' => [
-                    'name' => $user->getFullName(),
-                    'email' => $user->getEmail(),
-                    'role' => $user->isAdmin() ? 'Admin' : 'Volunteer Manager',
-                    'status' => $user->isActive() ? 'Active' : 'Deactivated',
-                ],
+                'cells' => $this->cells($user),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('user_edit', ['id' => $user->getId()])],
                     [
@@ -72,16 +75,46 @@ final class UserController extends AbstractController
         }
 
         return $this->render('user/index.html.twig', [
-            'columns' => [
-                ['key' => 'name', 'label' => 'Name'],
-                ['key' => 'email', 'label' => 'Email'],
-                ['key' => 'role', 'label' => 'Role'],
-                ['key' => 'status', 'label' => 'Status'],
-            ],
+            'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
         ]);
+    }
+
+    #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    public function export(Request $request, string $format): StreamedResponse
+    {
+        return ListExport::response('users', $format, self::COLUMNS, (function () use ($request): \Generator {
+            /** @var User $user */
+            foreach ($this->listQueryBuilder($request)->getQuery()->toIterable() as $user) {
+                yield $this->cells($user);
+            }
+        })());
+    }
+
+    /**
+     * The one query behind both the index and its export.
+     */
+    private function listQueryBuilder(Request $request): QueryBuilder
+    {
+        $queryBuilder = $this->users->createOrderedByNameQueryBuilder();
+        $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
+
+        return $queryBuilder;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function cells(User $user): array
+    {
+        return [
+            'name' => $user->getFullName(),
+            'email' => $user->getEmail(),
+            'role' => $user->isAdmin() ? 'Admin' : 'Volunteer Manager',
+            'status' => $user->isActive() ? 'Active' : 'Deactivated',
+        ];
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

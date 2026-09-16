@@ -84,11 +84,14 @@
                     role="combobox"
                     aria-expanded="false"
                     aria-controls="volunteer-suggestions"
+                    aria-autocomplete="list"
                     class="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
                 >
                 <div
                     id="volunteer-suggestions"
                     data-batch-activity-form-target="suggestions"
+                    role="listbox"
+                    aria-label="Volunteer suggestions"
                     hidden
                     class="absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-y-auto rounded-md border border-slate-300 bg-white shadow-lg"
                 ></div>

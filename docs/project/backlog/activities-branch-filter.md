@@ -28,6 +28,9 @@ the other's.
 - A malformed or unknown `branch` value (blank, `abc`, `branch[]=1`, a
   deleted id) means no filter: never a 400, 404 or 500
   ([ADR 0023](../../adr/0023-degrade-malformed-query-input-to-a-default.md)).
+- The "Current view" export (`/activities/export.csv?branch=<id>`) keeps the
+  filter too, which it does for free if the filter is applied in
+  `listQueryBuilder()`.
 - `ActivityControllerTest` covers the filtered list and one malformed value.
 
 ## Notes & links
