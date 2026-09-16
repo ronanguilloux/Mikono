@@ -6,7 +6,7 @@ namespace App\Dto;
 
 use App\Entity\ActivityType;
 use App\Entity\Escort;
-use App\Entity\Project;
+use App\Entity\Program;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
 
@@ -18,7 +18,7 @@ final class BatchActivityInput
 {
     public ?\DateTimeImmutable $date = null;
 
-    public ?Project $project = null;
+    public ?Program $program = null;
 
     public ?ActivityType $activityType = null;
 

@@ -13,8 +13,7 @@ epic: programs
 
 ## Why
 
-After [programs-switch-activity-to-program](programs-switch-activity-to-program.md),
-the server refuses a type the program doesn't offer. The picker should
+Since activities moved onto programs (2026-09-17), the server refuses a type the program doesn't offer. The picker should
 only show the valid types in the first place.
 
 ## Done when

@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Dto\BatchActivityInput;
 use App\Entity\Activity;
 use App\Entity\Escort;
+use App\Entity\Program;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Volunteer;
@@ -32,7 +33,7 @@ final class ActivityController extends AbstractController
 {
     /**
      * Column key => DQL field(s) for the index's sortable headers; the map is
-     * the whitelist. The three joins in createOrderedByDateDescQueryBuilder()
+     * the whitelist. The four joins in createOrderedByDateDescQueryBuilder()
      * are all to-one, so sorting on a joined name can't multiply rows and the
      * page size keeps meaning what it says.
      *
@@ -46,6 +47,7 @@ final class ActivityController extends AbstractController
         'date' => ['a.date'],
         'volunteer' => ['v.lastName', 'v.firstName'],
         'project' => ['p.name'],
+        'program' => ['prg.name'],
         'activityType' => ['t.name'],
     ];
 
@@ -54,6 +56,7 @@ final class ActivityController extends AbstractController
         ['key' => 'date', 'label' => 'Date'],
         ['key' => 'volunteer', 'label' => 'Volunteer'],
         ['key' => 'project', 'label' => 'Project'],
+        ['key' => 'program', 'label' => 'Program'],
         // Not in SORT_MAP: escorts are a collection (ADR 0013), so there is no
         // single value to order by.
         ['key' => 'escorts', 'label' => 'Accompanied by'],
@@ -150,6 +153,7 @@ final class ActivityController extends AbstractController
             'date' => $activity->getDate()?->format('D j M Y') ?? '—',
             'volunteer' => $activity->getVolunteer()?->getFullName() ?? '—',
             'project' => $activity->getProject()?->getName() ?? '—',
+            'program' => $activity->getProgram()?->getName() ?? '—',
             // ponytail: lazy-loads escorts, one query per row (SQLite, in-process);
             // preload them by page ids if a long page or export ever feels slow.
             // A fetch join in listQueryBuilder() would break the paginator's LIMIT.
@@ -210,7 +214,7 @@ final class ActivityController extends AbstractController
         // cover, and "Assign volunteers" on a quiet project passes that
         // project, so the VM lands on a form that only needs the people.
         $data->date = $this->requestedDate($request) ?? $today;
-        $data->project = $this->requestedProject($request);
+        $data->program = $this->soleProgramOf($this->requestedProject($request));
         $form = $this->createForm(BatchActivityFormType::class, $data);
         $form->handleRequest($request);
 
@@ -222,7 +226,7 @@ final class ActivityController extends AbstractController
                 $activity = new Activity();
                 $activity->setDate($data->date);
                 $activity->setVolunteer($volunteer);
-                $activity->setProject($data->project);
+                $activity->setProgram($data->program);
                 $activity->setActivityType($data->activityType);
                 $activity->setDuration($data->duration);
                 $activity->setDurationOther($data->durationOther);
@@ -235,8 +239,8 @@ final class ActivityController extends AbstractController
             }
 
             // All or nothing: one volunteer without a stay that day, or staying
-            // at another branch than the project's, refuses
-            // the whole batch, rather than logging the others and losing them.
+            // at another branch than the program's, refuses the whole batch,
+            // rather than logging the others and losing them.
             if ($this->resolveStays($form, $activities)) {
                 foreach ($activities as $activity) {
                     $this->entityManager->persist($activity);
@@ -333,28 +337,48 @@ final class ActivityController extends AbstractController
     }
 
     /**
+     * The quiet-project link names a project, not a program: prefill the
+     * program only when the project has exactly one, else leave the choice.
+     */
+    private function soleProgramOf(?Project $project): ?Program
+    {
+        if (null === $project) {
+            return null;
+        }
+
+        $programs = $this->entityManager->getRepository(Program::class)->findBy(['project' => $project], limit: 2);
+
+        return 1 === count($programs) ? $programs[0] : null;
+    }
+
+    /**
      * Ties each activity to its volunteer's stay on the activity's date — the
      * stay is what gives an activity its branch (ADR 0026). Re-resolved on
      * every save, so a changed date or volunteer can't keep the old stay.
      *
-     * A volunteer with no stay that day is refused, the error on the date; a
-     * stay at another branch than the project's is refused too, the error on
-     * the project (ADR 0027). Either makes the form invalid, so render()
-     * answers 422.
+     * Refused, each making the form invalid so render() answers 422:
+     * - a volunteer with no stay that day (error on the date);
+     * - a stay at another branch than the program's project (error on the
+     *   program, ADR 0027);
+     * - a date the program doesn't cover (error on the date) or a type it
+     *   doesn't offer (error on the type), ADR 0030.
      *
      * @param FormInterface<mixed> $form
-     * @param list<Activity>       $activities all sharing one date and one project
+     * @param list<Activity>       $activities all sharing one date, program and type
      */
     private function resolveStays(FormInterface $form, array $activities): bool
     {
         $missing = [];
         $elsewhere = [];
         $date = null;
-        $project = null;
+        $program = null;
+        $activityType = null;
 
         foreach ($activities as $activity) {
             $date = $activity->getDate();
-            $project = $activity->getProject();
+            $program = $activity->getProgram();
+            $activityType = $activity->getActivityType();
+            $branch = $program?->getProject()?->getBranch();
             $volunteer = $activity->getVolunteer();
             $name = $volunteer?->getFullName() ?? 'The volunteer';
             $stay = null === $date ? null : $volunteer?->getStayCovering($date);
@@ -364,13 +388,15 @@ final class ActivityController extends AbstractController
                 continue;
             }
 
-            if ($stay->getBranch() !== $project?->getBranch()) {
+            if ($stay->getBranch() !== $branch) {
                 $elsewhere[] = sprintf('%s is staying at %s', $name, $stay->getBranch()?->getName() ?? 'another branch');
                 continue;
             }
 
             $activity->setStay($stay);
         }
+
+        $valid = true;
 
         if ([] !== $missing) {
             $form->get('date')->addError(new FormError(sprintf(
@@ -379,19 +405,40 @@ final class ActivityController extends AbstractController
                 1 === count($missing) ? 'has' : 'have',
                 $date?->format('j M Y') ?? 'that day',
             )));
+            $valid = false;
         }
 
         if ([] !== $elsewhere) {
-            $form->get('project')->addError(new FormError(sprintf(
-                '%s is a %s project, but on %s %s.',
-                $project?->getName() ?? 'This',
-                $project?->getBranch()?->getName() ?? 'different branch\'s',
+            $form->get('program')->addError(new FormError(sprintf(
+                '%s — %s is a %s program, but on %s %s.',
+                $program?->getProject()?->getName() ?? '?',
+                $program?->getName() ?? 'This',
+                $program?->getProject()?->getBranch()?->getName() ?? 'different branch\'s',
                 $date?->format('j M Y') ?? 'that day',
                 implode('; ', $elsewhere),
             )));
+            $valid = false;
         }
 
-        return [] === $missing && [] === $elsewhere;
+        if (null !== $program && null !== $date && !$program->covers($date)) {
+            $form->get('date')->addError(new FormError(sprintf(
+                '%s doesn\'t run on %s.',
+                $program->getName(),
+                $date->format('j M Y'),
+            )));
+            $valid = false;
+        }
+
+        if (null !== $program && null !== $activityType && !$program->offers($activityType)) {
+            $form->get('activityType')->addError(new FormError(sprintf(
+                '%s doesn\'t offer %s.',
+                $program->getName(),
+                $activityType->getName(),
+            )));
+            $valid = false;
+        }
+
+        return $valid;
     }
 
     private function loggedByUser(): ?User

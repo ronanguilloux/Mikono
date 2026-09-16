@@ -7,7 +7,7 @@
 
     <div class="mb-4">
         <h1 class="text-xl font-semibold">Log a group activity</h1>
-        <p class="mt-1 text-sm text-slate-500">One project, one session — log everyone who attended at once, instead of one form per volunteer.</p>
+        <p class="mt-1 text-sm text-slate-500">One program, one session — log everyone who attended at once, instead of one form per volunteer.</p>
     </div>
 
     {{ form_start(form, {
@@ -51,7 +51,7 @@
         </div>
 
         <div class="mb-4 grid gap-4 sm:grid-cols-2">
-            <div>{{ form_row(form.project) }}</div>
+            <div>{{ form_row(form.program) }}</div>
             <div>{{ form_row(form.activityType) }}</div>
         </div>
 
@@ -112,7 +112,7 @@
 
         <div class="mt-6 border-t border-slate-200 pt-4">
             <p class="mb-3 text-xs text-slate-500">
-                This will create <span class="font-semibold text-slate-900" data-batch-activity-form-target="count">0</span> activity entries — one per volunteer selected, all sharing this date, project, type and duration.
+                This will create <span class="font-semibold text-slate-900" data-batch-activity-form-target="count">0</span> activity entries — one per volunteer selected, all sharing this date, program, type and duration.
             </p>
             <div class="flex flex-wrap items-center gap-3">
                 <button type="submit" name="save_action" value="index" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">

@@ -5,14 +5,10 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\Activity;
-use App\Entity\ActivityType;
 use App\Entity\Escort;
-use App\Entity\Project;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
-use App\Repository\ActivityTypeRepository;
 use App\Repository\EscortRepository;
-use App\Repository\ProjectRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -54,22 +50,8 @@ final class ActivityFormType extends AbstractType
                 },
                 'placeholder' => 'Choose a volunteer',
             ])
-            ->add('project', EntityType::class, [
-                'class' => Project::class,
-                // Native optgroups: an activity's project must share its stay's
-                // branch (ADR 0027), so the picker shows which branch each is at.
-                'group_by' => static fn(Project $project) => $project->getBranch()?->getName(),
-                'choice_label' => static fn(Project $project) => $project->getName() . ($project->isActive() ? '' : ' (inactive)'),
-                'query_builder' => static fn(ProjectRepository $projects): QueryBuilder => $projects->createOrderedByNameQueryBuilder(),
-                'placeholder' => 'Choose a project',
-            ])
-            ->add('activityType', EntityType::class, [
-                'class' => ActivityType::class,
-                'choice_label' => 'name',
-                'query_builder' => static fn(ActivityTypeRepository $activityTypes): QueryBuilder => $activityTypes->createOrderedByNameQueryBuilder(),
-                'placeholder' => 'Choose an activity type',
-                'label' => 'Activity type',
-            ])
+            ->add('program', EntityType::class, ActivityPickers::program())
+            ->add('activityType', EntityType::class, ActivityPickers::activityType())
             ->add('duration', EnumType::class, [
                 'class' => ActivityDuration::class,
                 'choice_label' => static fn(ActivityDuration $duration) => $duration->label(),

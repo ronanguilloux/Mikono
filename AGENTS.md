@@ -71,7 +71,7 @@ implements it.
 - `.claude/agents/` — Claude Code-specific subagents (`adr-scribe`,
   `context-capturer`).
 - `src/Entity/`, `src/Repository/` — Doctrine entities (`User`,
-  `Volunteer`, `Project`, `ActivityType`, `Activity`, `Escort`, `Branch`, `Stay`)
+  `Volunteer`, `Project`, `Program`, `ActivityType`, `Activity`, `Escort`, `Branch`, `Stay`)
   and their repositories, each with a `countReferencingActivities()`
   delete-guard where applicable. `Branch`'s guard counts stays and projects, and its five real rows come from its migration, not the
   fixtures — tests start with them
@@ -89,6 +89,15 @@ implements it.
   stay's branch — checked on activity save, stay edit and project edit, not
   by the schema, so a new write path needs the same check
   ([ADR 0027](docs/adr/0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
+  An activity belongs to a **program**, and its project is derived through
+  it (`Activity::getProject()`, never a column). Its type must be offered by
+  the program and its date covered by the program's optional dates —
+  checked in `ActivityController::resolveStays()`, so a new write path
+  needs the same check. Activity types stay one global list; a program
+  offers a subset
+  ([ADR 0030](docs/adr/0030-insert-programs-between-projects-and-activities.md)).
+  `ActivityFactory` still takes a `project` attribute and builds a program
+  there.
 - `src/Enum/` — backed PHP enums (`ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
 - `src/Controller/`, `src/Form/`, `templates/<area>/` — one set per CRUD

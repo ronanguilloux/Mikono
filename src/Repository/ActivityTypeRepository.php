@@ -22,8 +22,8 @@ class ActivityTypeRepository extends ServiceEntityRepository
     }
 
     /**
-     * The one ordered-by-name query: the paginated index builds on it, and both
-     * activity forms hand it straight to their activity-type picker.
+     * The one ordered-by-name query: the paginated index and the program form
+     * build on it.
      *
      * No findAllOrderedByName() twin here, unlike VolunteerRepository and
      * ProjectRepository — nothing needs every type as an array, and an unused
@@ -33,6 +33,16 @@ class ActivityTypeRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('t')
             ->orderBy('t.name', 'ASC');
+    }
+
+    /**
+     * The activity forms' picker: only types some program offers, since an
+     * activity's type must be offered by its program (ADR 0030).
+     */
+    public function createOfferedOrderedByNameQueryBuilder(): QueryBuilder
+    {
+        return $this->createOrderedByNameQueryBuilder()
+            ->where('EXISTS (SELECT prg.id FROM ' . Program::class . ' prg WHERE t MEMBER OF prg.activityTypes)');
     }
 
     public function countReferencingActivities(ActivityType $activityType): int

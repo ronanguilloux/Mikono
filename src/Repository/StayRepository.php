@@ -64,7 +64,7 @@ class StayRepository extends ServiceEntityRepository
         }
 
         return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a JOIN a.project p WHERE a.stay = :stay AND p.branch <> :branch')
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a JOIN a.program prg JOIN prg.project p WHERE a.stay = :stay AND p.branch <> :branch')
             ->setParameter('stay', $stay)
             ->setParameter('branch', $stay->getBranch())
             ->getSingleScalarResult();

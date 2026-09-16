@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Activity;
+use App\Entity\ActivityType;
 use App\Entity\Program;
 use App\Entity\Project;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -69,5 +72,99 @@ class ProgramRepository extends ServiceEntityRepository
         }
 
         return $counts;
+    }
+
+    /**
+     * The program delete-guard, and the reason a program can't move to
+     * another project (ADR 0030).
+     */
+    public function countActivities(Program $program): int
+    {
+        return (int) $this->getEntityManager()
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.program = :program')
+            ->setParameter('program', $program)
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * @param list<Program> $programs
+     *
+     * @return array<int, int> program id => its activities; absent means none
+     */
+    public function countActivitiesFor(array $programs): array
+    {
+        if ([] === $programs) {
+            return [];
+        }
+
+        /** @var list<array{programId: int|string, total: int|string}> $rows */
+        $rows = $this->getEntityManager()
+            ->createQuery(
+                'SELECT IDENTITY(a.program) AS programId, COUNT(a.id) AS total
+                 FROM ' . Activity::class . ' a
+                 WHERE a.program IN (:programs)
+                 GROUP BY a.program',
+            )
+            ->setParameter('programs', $programs)
+            ->getResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['programId']] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Activities outside the dates the program carries *now* — read before
+     * flushing an edit, so narrowing the dates can't strand them.
+     */
+    public function countActivitiesOutsideItsDates(Program $program): int
+    {
+        $start = $program->getStartDate();
+        $end = $program->getEndDate();
+        if (null === $program->getId() || (null === $start && null === $end)) {
+            return 0;
+        }
+
+        $queryBuilder = $this->getEntityManager()->createQueryBuilder()
+            ->select('COUNT(a.id)')
+            ->from(Activity::class, 'a')
+            ->where('a.program = :program')
+            ->setParameter('program', $program);
+
+        $outside = $queryBuilder->expr()->orX();
+        if (null !== $start) {
+            $outside->add('a.date < :start');
+            $queryBuilder->setParameter('start', $start, Types::DATE_IMMUTABLE);
+        }
+        if (null !== $end) {
+            $outside->add('a.date > :end');
+            $queryBuilder->setParameter('end', $end, Types::DATE_IMMUTABLE);
+        }
+
+        return (int) $queryBuilder->andWhere($outside)->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * The types this program's activities use that it no longer offers —
+     * read before flushing an edit.
+     *
+     * @return list<ActivityType>
+     */
+    public function findUsedActivityTypesNoLongerOffered(Program $program): array
+    {
+        if (null === $program->getId()) {
+            return [];
+        }
+
+        /** @var list<ActivityType> $used */
+        $used = $this->getEntityManager()
+            ->createQuery('SELECT t FROM ' . ActivityType::class . ' t WHERE EXISTS (SELECT a.id FROM ' . Activity::class . ' a WHERE a.program = :program AND a.activityType = t) ORDER BY t.name ASC')
+            ->setParameter('program', $program)
+            ->getResult();
+
+        return array_values(array_filter($used, static fn(ActivityType $type) => !$program->offers($type)));
     }
 }

@@ -6,6 +6,7 @@ namespace App\Factory;
 
 use App\Entity\Activity;
 use App\Enum\ActivityDuration;
+use Zenstruck\Foundry\Object\Instantiator;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
@@ -29,7 +30,6 @@ final class ActivityFactory extends PersistentObjectFactory
             // midnight) for any activity faker happened to date today.
             'date' => \DateTimeImmutable::createFromMutable(self::faker()->dateTimeBetween('-3 months', 'now'))->setTime(0, 0),
             'volunteer' => VolunteerFactory::new(),
-            'project' => ProjectFactory::new(),
             'activityType' => ActivityTypeFactory::new(),
             // Excludes ActivityDuration::Other, which needs a companion
             // durationOther value — set it explicitly via ->with() when a
@@ -40,14 +40,32 @@ final class ActivityFactory extends PersistentObjectFactory
     }
 
     /**
-     * Every activity needs the stay covering its date (ADR 0026). Left unset,
-     * it is the volunteer's stay on that day, or else a one-day stay on it at
-     * the project's branch — a single day nothing covers can't overlap
-     * another stay.
+     * Every activity needs a program that offers its type (ADR 0030). Left
+     * unset, it is a fresh always-on program at the `project` attribute — a
+     * shortcut tests keep using, since an activity no longer stores one — or
+     * at a new project. A given program is made to offer the type.
+     *
+     * Every activity also needs the stay covering its date (ADR 0026). Left
+     * unset, it is the volunteer's stay on that day, or else a one-day stay
+     * on it at the program's branch — a single day nothing covers can't
+     * overlap another stay.
      */
     protected function initialize(): static
     {
-        return $this->afterInstantiate(static function (Activity $activity): void {
+        return $this->instantiateWith(Instantiator::withConstructor()->allowExtra('project'))->afterInstantiate(static function (Activity $activity, array $attributes): void {
+            $activityType = $activity->getActivityType();
+            $program = $activity->getProgram();
+
+            if (null === $program) {
+                $program = ProgramFactory::createOne([
+                    'project' => $attributes['project'] ?? ProjectFactory::new(),
+                    'activityTypes' => null === $activityType ? [] : [$activityType],
+                ]);
+                $activity->setProgram($program);
+            } elseif (null !== $activityType) {
+                $program->addActivityType($activityType);
+            }
+
             $volunteer = $activity->getVolunteer();
             $date = $activity->getDate();
 
@@ -57,7 +75,7 @@ final class ActivityFactory extends PersistentObjectFactory
 
             $activity->setStay($volunteer->getStayCovering($date) ?? StayFactory::createOne(array_filter([
                 'volunteer' => $volunteer,
-                'branch' => $activity->getProject()?->getBranch(),
+                'branch' => $program->getProject()?->getBranch(),
                 'startDate' => $date,
                 'endDate' => $date,
             ])));

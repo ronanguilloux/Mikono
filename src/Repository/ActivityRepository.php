@@ -24,7 +24,7 @@ class ActivityRepository extends ServiceEntityRepository
     /**
      * The paginated index builds on this; findAllOrderedByDateDesc() is the
      * same query without a LIMIT, for the callers that genuinely need every
-     * row. All three joins are to-one, so a LIMIT can't multiply rows and the
+     * row. All four joins are to-one, so a LIMIT can't multiply rows and the
      * page size means what it says.
      *
      * A volunteer narrows the result to that person's activities — the index's
@@ -34,9 +34,10 @@ class ActivityRepository extends ServiceEntityRepository
     public function createOrderedByDateDescQueryBuilder(?Volunteer $volunteer = null): QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('a')
-            ->addSelect('v', 'p', 't')
+            ->addSelect('v', 'prg', 'p', 't')
             ->join('a.volunteer', 'v')
-            ->join('a.project', 'p')
+            ->join('a.program', 'prg')
+            ->join('prg.project', 'p')
             ->join('a.activityType', 't')
             ->orderBy('a.date', 'DESC')
             ->addOrderBy('a.id', 'DESC');
@@ -92,9 +93,10 @@ class ActivityRepository extends ServiceEntityRepository
     {
         /** @var Activity[] $activities */
         $activities = $this->createQueryBuilder('a')
-            ->addSelect('v', 'p', 't', 'e')
+            ->addSelect('v', 'prg', 'p', 't', 'e')
             ->join('a.volunteer', 'v')
-            ->join('a.project', 'p')
+            ->join('a.program', 'prg')
+            ->join('prg.project', 'p')
             ->join('a.activityType', 't')
             ->leftJoin('a.escorts', 'e')
             ->where('a.date = :date')

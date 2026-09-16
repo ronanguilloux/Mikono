@@ -5,14 +5,10 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Dto\BatchActivityInput;
-use App\Entity\ActivityType;
 use App\Entity\Escort;
-use App\Entity\Project;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
-use App\Repository\ActivityTypeRepository;
 use App\Repository\EscortRepository;
-use App\Repository\ProjectRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -29,7 +25,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 /**
  * Backed by BatchActivityInput, not an entity: one submission fans out
  * into one Activity per selected volunteer, all sharing the same
- * date/project/type/duration — see ActivityController::newBatch().
+ * date/program/type/duration — see ActivityController::newBatch().
  */
 final class BatchActivityFormType extends AbstractType
 {
@@ -41,22 +37,10 @@ final class BatchActivityFormType extends AbstractType
                 'input' => 'datetime_immutable',
                 'constraints' => [new Assert\NotNull(message: 'Choose a date.')],
             ])
-            ->add('project', EntityType::class, [
-                'class' => Project::class,
-                // Native optgroups: an activity's project must share its stay's
-                // branch (ADR 0027), so the picker shows which branch each is at.
-                'group_by' => static fn(Project $project) => $project->getBranch()?->getName(),
-                'choice_label' => static fn(Project $project) => $project->getName() . ($project->isActive() ? '' : ' (inactive)'),
-                'query_builder' => static fn(ProjectRepository $projects): QueryBuilder => $projects->createOrderedByNameQueryBuilder(),
-                'placeholder' => 'Choose a project',
-                'constraints' => [new Assert\NotNull(message: 'Choose a project.')],
+            ->add('program', EntityType::class, ActivityPickers::program() + [
+                'constraints' => [new Assert\NotNull(message: 'Choose a program.')],
             ])
-            ->add('activityType', EntityType::class, [
-                'class' => ActivityType::class,
-                'choice_label' => 'name',
-                'query_builder' => static fn(ActivityTypeRepository $activityTypes): QueryBuilder => $activityTypes->createOrderedByNameQueryBuilder(),
-                'placeholder' => 'Choose an activity type',
-                'label' => 'Activity type',
+            ->add('activityType', EntityType::class, ActivityPickers::activityType() + [
                 'constraints' => [new Assert\NotNull(message: 'Choose an activity type.')],
             ])
             ->add('duration', EnumType::class, [

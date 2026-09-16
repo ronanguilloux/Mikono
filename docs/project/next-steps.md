@@ -33,8 +33,7 @@ hostname is the one that isn't ours to solve.
 
 Programs, in order:
 
-1. [Switch Activity from Project to Program](backlog/programs-switch-activity-to-program.md)
-2. [Filter the activity type picker by the chosen program](backlog/programs-type-picker-filter.md)
+1. [Filter the activity type picker by the chosen program](backlog/programs-type-picker-filter.md)
 
 Then:
 

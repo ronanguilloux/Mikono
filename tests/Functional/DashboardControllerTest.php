@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\EscortFactory;
+use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
@@ -115,19 +116,35 @@ final class DashboardControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function assignVolunteersOpensTheBatchFormOnThatProject(): void
+    public function assignVolunteersOpensTheBatchFormOnThatProjectsOnlyProgram(): void
     {
         $client = static::createClient();
-        $project = ProjectFactory::createOne(['name' => 'Nyali Beach']);
+        $program = ProgramFactory::createOne(['project' => ProjectFactory::createOne(['name' => 'Nyali Beach'])]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', sprintf('/activities/new-batch?project=%d', $program->getProject()?->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            $program->getId(),
+            (int) $crawler->filter('#batch_activity_form_program option[selected]')->attr('value'),
+        );
+    }
+
+    /** Two programs at the project: which one is the VM's call, not ours. */
+    #[Test]
+    public function assignVolunteersLeavesTheChoiceWhenTheProjectRunsSeveralPrograms(): void
+    {
+        $client = static::createClient();
+        $project = ProjectFactory::createOne();
+        ProgramFactory::createMany(2, ['project' => $project]);
 
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', sprintf('/activities/new-batch?project=%d', $project->getId()));
 
         self::assertResponseIsSuccessful();
-        self::assertSame(
-            $project->getId(),
-            (int) $crawler->filter('#batch_activity_form_project option[selected]')->attr('value'),
-        );
+        // Only the placeholder is selected, as on an empty form.
+        self::assertSame('', $crawler->filter('#batch_activity_form_program option[selected]')->attr('value'));
     }
 
     #[Test]

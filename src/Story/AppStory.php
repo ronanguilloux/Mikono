@@ -8,6 +8,7 @@ use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
+use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
@@ -68,6 +69,7 @@ final class AppStory extends Story
 
         $activityTypes = [];
         $projects = [];
+        $programs = [];
         foreach ($archive->projects as $key => $project) {
             $activityTypes[$project->activityType] ??= ActivityTypeFactory::createOne([
                 'name' => $project->activityType,
@@ -78,6 +80,14 @@ final class AppStory extends Story
                 'ownership' => $project->ownership,
                 'partnerOrganizationName' => $project->partner,
                 'isActive' => true,
+            ]);
+            // The archive knows one type per project and no programs, so each
+            // project gets one always-on program named after its type
+            // (ADR 0030) — not an invented one (ADR 0012).
+            $programs[$key] = ProgramFactory::createOne([
+                'name' => $project->activityType,
+                'project' => $projects[$key],
+                'activityTypes' => [$activityTypes[$project->activityType]],
             ]);
         }
 
@@ -139,7 +149,7 @@ final class AppStory extends Story
                         'date' => $date,
                         'volunteer' => $volunteers[$slot->name] ?? throw new \RuntimeException(sprintf('Roster names a volunteer the archive does not list: "%s".', $slot->name)),
                         'stay' => $stays[$slot->name],
-                        'project' => $projects[$site->projectKey],
+                        'program' => $programs[$site->projectKey],
                         'activityType' => $activityTypes[$archive->projects[$site->projectKey]->activityType],
                         'duration' => $site->duration,
                         'notes' => $slot->note,

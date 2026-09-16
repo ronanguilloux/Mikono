@@ -39,10 +39,15 @@ class Activity
     #[ORM\JoinColumn(nullable: false)]
     private ?Stay $stay = null;
 
-    #[ORM\ManyToOne(targetEntity: Project::class)]
+    /**
+     * The activity's project is this program's — derived, never stored
+     * alongside it (ADR 0030). ActivityController checks on every save that
+     * the program offers the type and covers the date.
+     */
+    #[ORM\ManyToOne(targetEntity: Program::class)]
     #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull]
-    private ?Project $project = null;
+    #[Assert\NotNull(message: 'Choose a program.')]
+    private ?Program $program = null;
 
     #[ORM\ManyToOne(targetEntity: ActivityType::class)]
     #[ORM\JoinColumn(nullable: false)]
@@ -129,16 +134,21 @@ class Activity
         return $this;
     }
 
-    public function getProject(): ?Project
+    public function getProgram(): ?Program
     {
-        return $this->project;
+        return $this->program;
     }
 
-    public function setProject(?Project $project): static
+    public function setProgram(?Program $program): static
     {
-        $this->project = $project;
+        $this->program = $program;
 
         return $this;
+    }
+
+    public function getProject(): ?Project
+    {
+        return $this->program?->getProject();
     }
 
     public function getActivityType(): ?ActivityType

@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\ActivityType;
 use App\Entity\Program;
+use App\Entity\Project;
 use App\Export\ListExport;
 use App\Form\ProgramFormType;
 use App\Pagination\ListPaginator;
@@ -13,6 +14,8 @@ use App\Repository\ProgramRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -54,21 +57,28 @@ final class ProgramController extends AbstractController
     {
         $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request), Program::class, $request);
 
+        /** @var list<Program> $programsOnPage */
+        $programsOnPage = iterator_to_array($pagination, false);
+        // One query for the page; delete() re-counts per program regardless.
+        $activityCounts = $this->programs->countActivitiesFor($programsOnPage);
+
         $rows = [];
-        /** @var Program $program */
-        foreach ($pagination as $program) {
+        foreach ($programsOnPage as $program) {
             $id = $program->getId();
+            $activityCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
             $rows[] = [
                 'cells' => $this->cells($program),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('program_edit', ['id' => $id])],
-                    [
-                        'label' => 'Delete',
-                        'url' => $this->generateUrl('program_delete', ['id' => $id]),
-                        'method' => 'post',
-                        'confirm' => sprintf('Delete %s?', $program->getName()),
-                        'csrfTokenId' => $this->csrfTokenId($program),
-                    ],
+                    $activityCount > 0
+                        ? ['label' => 'Delete', 'disabledReason' => $this->guardReason($program, $activityCount)]
+                        : [
+                            'label' => 'Delete',
+                            'url' => $this->generateUrl('program_delete', ['id' => $id]),
+                            'method' => 'post',
+                            'confirm' => sprintf('Delete %s?', $program->getName()),
+                            'csrfTokenId' => $this->csrfTokenId($program),
+                        ],
                 ],
             ];
         }
@@ -155,10 +165,11 @@ final class ProgramController extends AbstractController
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Program $program): Response
     {
+        $originalProject = $program->getProject();
         $form = $this->createForm(ProgramFormType::class, $program);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid() && $this->keepsItsActivities($form, $program, $originalProject)) {
             $program->touch();
             $this->entityManager->flush();
 
@@ -167,7 +178,13 @@ final class ProgramController extends AbstractController
             return $this->redirectToRoute('program_index');
         }
 
-        return $this->render('program/edit.html.twig', ['form' => $form, 'program' => $program]);
+        $activityCount = $this->programs->countActivities($program);
+
+        return $this->render('program/edit.html.twig', [
+            'form' => $form,
+            'program' => $program,
+            'deleteGuardReason' => $activityCount > 0 ? $this->guardReason($program, $activityCount) : null,
+        ]);
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
@@ -179,12 +196,75 @@ final class ProgramController extends AbstractController
             return $this->redirectToRoute('program_index');
         }
 
+        $activityCount = $this->programs->countActivities($program);
+        if ($activityCount > 0) {
+            $this->addFlash('error', $this->guardReason($program, $activityCount));
+
+            return $this->redirectToRoute('program_index');
+        }
+
         $this->entityManager->remove($program);
         $this->entityManager->flush();
 
         $this->addFlash('success', sprintf('%s was deleted.', $program->getName()));
 
         return $this->redirectToRoute('program_index');
+    }
+
+    /**
+     * Shared by the index's inert Delete, the edit screen's note and the
+     * flash, so the three can't drift apart.
+     */
+    private function guardReason(Program $program, int $activityCount): string
+    {
+        return sprintf(
+            'Cannot delete %s — %d activit%s belong%s to it.',
+            $program->getName(),
+            $activityCount,
+            1 === $activityCount ? 'y' : 'ies',
+            1 === $activityCount ? 's' : '',
+        );
+    }
+
+    /**
+     * An edit may not strand the program's activities (ADR 0030): not by
+     * moving it to another project, not by dates that leave some outside,
+     * not by dropping a type they use. Each error lands on its field, and
+     * render() then answers 422.
+     *
+     * @param FormInterface<Program> $form
+     */
+    private function keepsItsActivities(FormInterface $form, Program $program, ?Project $originalProject): bool
+    {
+        $kept = true;
+
+        if ($program->getProject() !== $originalProject && $this->programs->countActivities($program) > 0) {
+            $form->get('project')->addError(new FormError('This program has activities, so it stays at its project.'));
+            $kept = false;
+        }
+
+        $outside = $this->programs->countActivitiesOutsideItsDates($program);
+        if ($outside > 0) {
+            $form->get('startDate')->addError(new FormError(sprintf(
+                '%d activit%s of this program would fall outside these dates.',
+                $outside,
+                1 === $outside ? 'y' : 'ies',
+            )));
+            $kept = false;
+        }
+
+        $dropped = $this->programs->findUsedActivityTypesNoLongerOffered($program);
+        if ([] !== $dropped) {
+            $form->get('activityTypes')->addError(new FormError(sprintf(
+                'Activities of this program use %s, so %s stay%s.',
+                implode(', ', array_map(static fn(ActivityType $type) => $type->getName(), $dropped)),
+                1 === count($dropped) ? 'it' : 'they',
+                1 === count($dropped) ? 's' : '',
+            )));
+            $kept = false;
+        }
+
+        return $kept;
     }
 
     private function csrfTokenId(Program $program): string

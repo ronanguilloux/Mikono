@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
@@ -94,5 +95,58 @@ final class ProgramControllerTest extends WebTestCase
 
         self::assertResponseRedirects('/programs');
         self::assertSame(0, self::getContainer()->get(ProgramRepository::class)->count([]));
+    }
+
+    #[Test]
+    public function aProgramWithActivitiesCannotBeDeleted(): void
+    {
+        $client = static::createClient();
+        $program = ProgramFactory::createOne(['name' => 'School support']);
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/programs');
+
+        // A tab opened before the activity existed still offers Delete.
+        ActivityFactory::createOne(['program' => $program]);
+        $client->submitForm('Delete');
+        $client->followRedirect();
+
+        self::assertSelectorTextContains('body', 'Cannot delete School support — 1 activity belongs to it.');
+        $crawler = $client->request('GET', '/programs');
+        self::assertCount(0, $crawler->filter('table tbody form'));
+        self::assertCount(1, $crawler->filter('table tbody [aria-disabled="true"]'));
+    }
+
+    #[Test]
+    public function anEditMayNotStrandTheProgramsActivities(): void
+    {
+        $client = static::createClient();
+        $schoolSupport = ActivityTypeFactory::createOne(['name' => 'School support']);
+        $tuition = ActivityTypeFactory::createOne(['name' => 'Tuition']);
+        $program = ProgramFactory::createOne(['activityTypes' => [$schoolSupport, $tuition]]);
+        ActivityFactory::createOne([
+            'program' => $program,
+            'activityType' => $schoolSupport,
+            'date' => new \DateTimeImmutable('2026-08-10'),
+        ]);
+        $otherProject = ProjectFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/programs/{$program->getId()}/edit");
+        $form = $crawler->selectButton('Save')->form([
+            'program_form[project]' => (string) $otherProject->getId(),
+            'program_form[startDate]' => '2026-09-01',
+        ]);
+        $types = $form['program_form[activityTypes]'];
+        self::assertIsArray($types);
+        foreach ($types as $type) {
+            self::assertInstanceOf(ChoiceFormField::class, $type);
+            $type->availableOptionValues() === [(string) $schoolSupport->getId()] ? $type->untick() : $type->tick();
+        }
+        $client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'This program has activities, so it stays at its project.');
+        self::assertSelectorTextContains('body', '1 activity of this program would fall outside these dates.');
+        self::assertSelectorTextContains('body', 'Activities of this program use School support, so it stays.');
     }
 }

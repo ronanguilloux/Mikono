@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Program;
 use App\Entity\Project;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query\Expr\Join;
@@ -58,7 +59,8 @@ class ProjectRepository extends ServiceEntityRepository
         /** @var list<array{project: Project, lastActivity: \DateTimeImmutable|string|null}> $rows */
         $rows = $this->createQueryBuilder('p')
             ->select('p AS project', 'MAX(a.date) AS lastActivity')
-            ->leftJoin(Activity::class, 'a', Join::WITH, 'a.project = p')
+            ->leftJoin(Program::class, 'prg', Join::WITH, 'prg.project = p')
+            ->leftJoin(Activity::class, 'a', Join::WITH, 'a.program = prg')
             ->where('p.isActive = :active')
             ->setParameter('active', true)
             ->groupBy('p.id')
@@ -71,7 +73,7 @@ class ProjectRepository extends ServiceEntityRepository
     public function countReferencingActivities(Project $project): int
     {
         return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.project = :project')
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a JOIN a.program prg WHERE prg.project = :project')
             ->setParameter('project', $project)
             ->getSingleScalarResult();
     }
@@ -89,7 +91,7 @@ class ProjectRepository extends ServiceEntityRepository
         }
 
         return (int) $this->getEntityManager()
-            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a JOIN a.stay s WHERE a.project = :project AND s.branch <> :branch')
+            ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a JOIN a.stay s JOIN a.program prg WHERE prg.project = :project AND s.branch <> :branch')
             ->setParameter('project', $project)
             ->setParameter('branch', $project->getBranch())
             ->getSingleScalarResult();
@@ -116,10 +118,11 @@ class ProjectRepository extends ServiceEntityRepository
         /** @var list<array{projectId: int|string, total: int|string}> $rows */
         $rows = $this->getEntityManager()
             ->createQuery(
-                'SELECT IDENTITY(a.project) AS projectId, COUNT(a.id) AS total
+                'SELECT IDENTITY(prg.project) AS projectId, COUNT(a.id) AS total
                  FROM ' . Activity::class . ' a
-                 WHERE a.project IN (:projects)
-                 GROUP BY a.project',
+                 JOIN a.program prg
+                 WHERE prg.project IN (:projects)
+                 GROUP BY prg.project',
             )
             ->setParameter('projects', $projects)
             ->getResult();
