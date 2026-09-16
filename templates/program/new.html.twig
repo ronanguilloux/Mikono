@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Add program — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <h1 class="mb-4 text-xl font-semibold">Add program</h1>
+    <twig:FormShell :form="form" cancelUrl="{{ path('program_index') }}" :formAttr="{}" />
+{% endblock %}

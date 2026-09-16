@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Programs — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mb-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold">Programs</h1>
+        <div class="flex items-center gap-3">
+            <twig:ExportMenu route="program_export" />
+            <a
+                href="{{ path('program_new') }}"
+                class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+                Add program
+            </a>
+        </div>
+    </div>
+
+    <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No programs yet — add the first one above." />
+{% endblock %}

@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Activity;
 use App\Entity\ActivityType;
+use App\Entity\Program;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -38,6 +39,14 @@ class ActivityTypeRepository extends ServiceEntityRepository
     {
         return (int) $this->getEntityManager()
             ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.activityType = :activityType')
+            ->setParameter('activityType', $activityType)
+            ->getSingleScalarResult();
+    }
+
+    public function countReferencingPrograms(ActivityType $activityType): int
+    {
+        return (int) $this->getEntityManager()
+            ->createQuery('SELECT COUNT(prg.id) FROM ' . Program::class . ' prg WHERE :activityType MEMBER OF prg.activityTypes')
             ->setParameter('activityType', $activityType)
             ->getSingleScalarResult();
     }

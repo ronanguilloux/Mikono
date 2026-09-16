@@ -8,6 +8,7 @@ use App\Entity\Project;
 use App\Export\ListExport;
 use App\Form\ProjectFormType;
 use App\Pagination\ListPaginator;
+use App\Repository\ProgramRepository;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -49,6 +50,7 @@ final class ProjectController extends AbstractController
 
     public function __construct(
         private readonly ProjectRepository $projects,
+        private readonly ProgramRepository $programs,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
     ) {}
@@ -65,18 +67,19 @@ final class ProjectController extends AbstractController
         // the index can show Delete as unavailable rather than let the reader
         // discover it from a flash after confirming.
         $activityCounts = $this->projects->countReferencingActivitiesFor($projectsOnPage);
+        $programCounts = $this->programs->countForProjects($projectsOnPage);
 
         $rows = [];
         foreach ($projectsOnPage as $project) {
             $id = $project->getId();
-            $referencingCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
+            $guardReason = null === $id ? null : $this->guardReason($project, $activityCounts[$id] ?? 0, $programCounts[$id] ?? 0);
 
             $rows[] = [
                 'cells' => $this->cells($project),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('project_edit', ['id' => $id])],
-                    $referencingCount > 0
-                        ? ['label' => 'Delete', 'disabledReason' => $this->guardReason($project, $referencingCount)]
+                    null !== $guardReason
+                        ? ['label' => 'Delete', 'disabledReason' => $guardReason]
                         : [
                             'label' => 'Delete',
                             'url' => $this->generateUrl('project_delete', ['id' => $id]),
@@ -168,14 +171,10 @@ final class ProjectController extends AbstractController
         // Said here rather than on the index: a reader who wants to delete one
         // project is on that project's screen, and the list already renders
         // Delete inert on the rows this would block.
-        $referencingCount = $this->projects->countReferencingActivities($project);
-
         return $this->render('project/edit.html.twig', [
             'form' => $form,
             'project' => $project,
-            'deleteGuardReason' => $referencingCount > 0
-                ? $this->guardReason($project, $referencingCount)
-                : null,
+            'deleteGuardReason' => $this->currentGuardReason($project),
         ]);
     }
 
@@ -188,9 +187,9 @@ final class ProjectController extends AbstractController
             return $this->redirectToRoute('project_index');
         }
 
-        $referencingCount = $this->projects->countReferencingActivities($project);
-        if ($referencingCount > 0) {
-            $this->addFlash('error', $this->guardReason($project, $referencingCount));
+        $guardReason = $this->currentGuardReason($project);
+        if (null !== $guardReason) {
+            $this->addFlash('error', $guardReason);
 
             return $this->redirectToRoute('project_index');
         }
@@ -204,19 +203,43 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * Why this project can't be deleted, in one sentence. Shared by the
-     * index's greyed-out Delete, the note on the edit screen, and the flash
-     * raised if a delete is attempted anyway, so the warning and the refusal
-     * can't drift apart.
+     * Why this project can't be deleted, in one sentence, or null if it can.
+     * Shared by the index's greyed-out Delete, the note on the edit screen,
+     * and the flash raised if a delete is attempted anyway, so the warning
+     * and the refusal can't drift apart. Programs count too: deleting the
+     * project would orphan them (ADR 0030).
      */
-    private function guardReason(Project $project, int $referencingCount): string
+    private function guardReason(Project $project, int $activityCount, int $programCount): ?string
     {
-        return sprintf(
-            'Cannot delete %s — %d activit%s reference%s it. Mark it inactive instead.',
-            $project->getName(),
-            $referencingCount,
-            1 === $referencingCount ? 'y' : 'ies',
-            1 === $referencingCount ? 's' : '',
+        if ($activityCount > 0) {
+            return sprintf(
+                'Cannot delete %s — %d activit%s reference%s it. Mark it inactive instead.',
+                $project->getName(),
+                $activityCount,
+                1 === $activityCount ? 'y' : 'ies',
+                1 === $activityCount ? 's' : '',
+            );
+        }
+
+        if ($programCount > 0) {
+            return sprintf(
+                'Cannot delete %s — it has %d program%s. Delete %s first, or mark the project inactive.',
+                $project->getName(),
+                $programCount,
+                1 === $programCount ? '' : 's',
+                1 === $programCount ? 'it' : 'them',
+            );
+        }
+
+        return null;
+    }
+
+    private function currentGuardReason(Project $project): ?string
+    {
+        return $this->guardReason(
+            $project,
+            $this->projects->countReferencingActivities($project),
+            $this->programs->countForProject($project),
         );
     }
 

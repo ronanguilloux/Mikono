@@ -165,6 +165,19 @@ final class ActivityTypeController extends AbstractController
             return $this->redirectToRoute('activity_type_index');
         }
 
+        $programCount = $this->activityTypes->countReferencingPrograms($activityType);
+        if ($programCount > 0) {
+            $this->addFlash('error', sprintf(
+                'Cannot delete %s — %d program%s offer%s it.',
+                $activityType->getName(),
+                $programCount,
+                1 === $programCount ? '' : 's',
+                1 === $programCount ? 's' : '',
+            ));
+
+            return $this->redirectToRoute('activity_type_index');
+        }
+
         $this->entityManager->remove($activityType);
         $this->entityManager->flush();
 

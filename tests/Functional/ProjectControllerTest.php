@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Enum\ProjectOwnership;
 use App\Factory\ActivityFactory;
 use App\Factory\BranchFactory;
+use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
 use PHPUnit\Framework\Attributes\Test;
@@ -266,5 +267,21 @@ final class ProjectControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', '1 activity logged here belongs to stays at another branch.');
+    }
+
+    /** Deleting the project would orphan its programs (ADR 0030). */
+    #[Test]
+    public function theIndexShowsDeleteAsUnavailableForAProjectWithAProgram(): void
+    {
+        $client = static::createClient();
+        ProgramFactory::createOne(['project' => ProjectFactory::createOne(['name' => 'Peggy Lucas school'])]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/projects');
+
+        self::assertStringContainsString(
+            'Cannot delete Peggy Lucas school — it has 1 program.',
+            (string) $crawler->filter('table tbody [aria-disabled="true"]')->attr('title'),
+        );
     }
 }

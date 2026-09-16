@@ -6,6 +6,7 @@ namespace App\Tests\Functional;
 
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\ProgramFactory;
 use App\Factory\UserFactory;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -62,6 +63,20 @@ final class ActivityTypeControllerTest extends WebTestCase
         self::assertResponseRedirects('/activity-types');
         $client->followRedirect();
         self::assertSelectorTextContains('body', 'Cannot delete Computer lessons');
+    }
+
+    #[Test]
+    public function deleteIsBlockedWhenAProgramOffersTheType(): void
+    {
+        $client = static::createClient();
+        ProgramFactory::createOne(['activityTypes' => [ActivityTypeFactory::createOne(['name' => 'Computer lessons'])]]);
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/activity-types');
+        $client->submitForm('Delete');
+
+        self::assertResponseRedirects('/activity-types');
+        $client->followRedirect();
+        self::assertSelectorTextContains('body', 'Cannot delete Computer lessons — 1 program offers it.');
     }
 
     #[Test]
