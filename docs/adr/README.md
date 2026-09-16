@@ -67,6 +67,7 @@ drafts and maintains these.
 | [0028](0028-record-login-attempts-with-identifier-and-ip-for-90-days-admin-only.md) | Record login attempts, with identifier and IP, for 90 days, admin-only | Accepted |
 | [0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md) | Export every list view to CSV or XLSX with OpenSpout, open to all signed-in staff | Accepted |
 | [0030](0030-insert-programs-between-projects-and-activities.md) | Insert programs between projects and activities | Accepted |
+| [0031](0031-show-production-errors-on-an-in-app-admin-screen-over-a-rotating-json-error-log.md) | Show production errors on an in-app admin screen over a rotating JSON error log | Proposed |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

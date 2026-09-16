@@ -44,3 +44,4 @@ agent that drafts these.
 | [08](08-off-site-encrypted-backups.md) | Off-site encrypted backups: who can decrypt, who can delete | [0017](../adr/0017-host-production-on-gandicloud-vps-in-france.md) |
 | [09](09-volunteer-stays-at-branches.md) | Volunteer stays at branches | [0025](../adr/0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md), [0026](../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) |
 | [10](10-programs-between-projects-and-activities.md) | Programs between projects and activities | [0030](../adr/0030-insert-programs-between-projects-and-activities.md) |
+| [11](11-in-app-error-report.md) | In-app error report | [0031](../adr/0031-show-production-errors-on-an-in-app-admin-screen-over-a-rotating-json-error-log.md) |
