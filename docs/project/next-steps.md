@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-17
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -31,6 +31,13 @@ hostname is the one that isn't ours to solve.
 
 ## Next
 
+Programs, in order:
+
+1. [Switch Activity from Project to Program](backlog/programs-switch-activity-to-program.md)
+2. [Filter the activity type picker by the chosen program](backlog/programs-type-picker-filter.md)
+
+Then:
+
 1. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
 2. [Filter /activities by branch](backlog/activities-branch-filter.md)
 3. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
@@ -50,7 +57,6 @@ each other, take them in any order or none:
 
 Deferred behind a trigger — each card names the event that wakes it:
 
-- [Add a Programs section between Project and Activity](backlog/programs-section.md) — **Z**
 - [SQLite journal mode (WAL)](backlog/sqlite-wal-journal-mode.md) — **Z**
 - [Task/assignment hand-offs](backlog/task-assignment-handoffs.md) — **Z**
 - [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **Z**

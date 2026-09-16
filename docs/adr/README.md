@@ -66,6 +66,7 @@ drafts and maintains these.
 | [0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md) | Tie projects to a branch and require an activity's project to share its stay's branch | Accepted |
 | [0028](0028-record-login-attempts-with-identifier-and-ip-for-90-days-admin-only.md) | Record login attempts, with identifier and IP, for 90 days, admin-only | Accepted |
 | [0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md) | Export every list view to CSV or XLSX with OpenSpout, open to all signed-in staff | Accepted |
+| [0030](0030-insert-programs-between-projects-and-activities.md) | Insert programs between projects and activities | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

@@ -1,6 +1,6 @@
 # 0027. Tie projects to a branch and require an activity's project to share its stay's branch
 
-Date: 2026-09-14
+Date: 2026-09-17
 
 ## Status
 
@@ -28,10 +28,14 @@ story already refused a volunteer who worked sites in two locations. The
 project owner decided that a volunteer staying at one branch may not log
 activity at another branch's project.
 
+An activity reaches its project through its program
+([ADR 0030](0030-insert-programs-between-projects-and-activities.md)), so
+the rule applies to the program's project.
+
 ## Decision
 
-**Every project belongs to one branch, and an activity's project must be at
-the same branch as the activity's stay.**
+**Every project belongs to one branch, and an activity's project (through
+its program) must be at the same branch as the activity's stay.**
 
 The relation:
 
@@ -50,36 +54,41 @@ The relation:
 The invariant:
 
 - The foreign keys are Activity → Volunteer, Activity → Stay, Activity →
-  Project, Stay → Volunteer, Stay → Branch and Project → Branch. There is
-  no directed cycle; `Branch` and `Volunteer` are sinks. There are two
-  redundant undirected paths, and **each is held by the application, not
-  the schema**:
+  Program, Program → Project, Stay → Volunteer, Stay → Branch and
+  Project → Branch. There is no directed cycle; `Branch` and `Volunteer`
+  are sinks. There are two redundant undirected paths, and **each is held
+  by the application, not the schema**:
   1. `activity.volunteer == activity.stay.volunteer`, held by re-resolving
      the stay on every save (ADR 0026).
-  2. `activity.project.branch == activity.stay.branch`, held by the three
-     guards below.
+  2. `activity.program.project.branch == activity.stay.branch`, held by the
+     four guards below.
 - **Saving an activity** (single new, batch, edit):
   `ActivityController::resolveStays()` refuses a covering stay at a branch
-  other than the project's. The error sits on the `project` field and names
-  the volunteer(s) and their branch. A batch is all-or-nothing.
+  other than the program's project's. The error sits on the `program`
+  field and names the volunteer(s) and their branch. A batch is
+  all-or-nothing.
 - **Editing a stay:** `StayController` refuses a branch change that would
   leave activities logged in that stay at another branch's projects
-  (`StayRepository::countActivitiesAtOtherBranch`). The error sits on
-  `branch`.
+  (`StayRepository::countActivitiesAtOtherBranch`, which joins through the
+  program). The error sits on `branch`.
 - **Editing a project:** `ProjectController` refuses a branch change while
-  activities at that project fall in stays at another branch
-  (`ProjectRepository::countActivitiesAtOtherBranch`). The error sits on
-  `branch`, and the response is 422.
+  activities at that project's programs fall in stays at another branch
+  (`ProjectRepository::countActivitiesAtOtherBranch`, which joins through
+  the program). The error sits on `branch`, and the response is 422.
+- **Editing a program:** `ProgramController` refuses a project change while
+  the program has activities (ADR 0030). That refusal is the guard: a
+  program with activities never changes branch.
 - **Any new write path** that creates or changes an activity, a stay's
-  branch or a project's branch must run the same check, or the invariant
-  silently breaks.
+  branch, a project's branch or a program's project must run the same
+  check, or the invariant silently breaks.
 
 Pickers:
 
-- The project pickers on both activity forms group projects by branch
-  (`group_by`, rendered as native `<optgroup>`). They are **not** filtered
-  by the stay: the stay is resolved from volunteer and date only after
-  submit, so the save-time guard is what enforces the rule.
+- The program pickers on both activity forms group programs by branch
+  (`group_by`, rendered as native `<optgroup>`), each labelled
+  "Project — Program". They are **not** filtered by the stay: the stay is
+  resolved from volunteer and date only after submit, so the save-time
+  guard is what enforces the rule.
 
 Data:
 
@@ -93,28 +102,32 @@ Data:
   sites they worked.
 - Test factories: `ProjectFactory` and `StayFactory` both default to
   "Nairobi (HQ)", never a random branch, so an activity's project and stay
-  agree unless a test says otherwise. `ActivityFactory`'s one-day fallback
-  stay takes the project's branch.
+  agree unless a test says otherwise. `ActivityFactory` builds a program
+  whose project matches the stay's branch.
 
 ## Consequences
 
 - **Positive:** geography has one source, and the VM edits it in the app.
-- **Positive:** the activity forms show projects grouped by branch, and a
+- **Positive:** the activity forms show programs grouped by branch, and a
   cross-branch mistake is caught at save with an error naming the
   volunteer and their branch.
-- **Positive:** a branch reached through the project and through the stay
-  always agree, so any report can group by either.
+- **Positive:** a branch reached through the program's project and through
+  the stay always agree, so any report can group by either.
 - **Negative / trade-offs:** the invariant lives in application code. A
   new write path that skips the check can store an activity whose two
   branches disagree, and the database will accept it.
+- **Negative / trade-offs:** the path to a project's branch is two hops
+  from an activity, so every query that needs it joins through the
+  program.
 - **Negative / trade-offs:** a project with activities cannot simply be
   moved to another branch. Its activities' stays have to move first.
 - **Negative / trade-offs:** the "Kibera (Nairobi)" label is gone. "Kibera"
   survives only in `Branch::$projectZones` text, which nothing queries.
 - **Negative / trade-offs:** `/reports` has no per-branch totals and
   `/activities` has no branch filter; both are backlog work.
-- **Reversibility:** moderate. Dropping the invariant means deleting three
-  guards. Removing `Project::$branch` means a migration that restores a
+- **Reversibility:** moderate. Dropping the invariant means deleting the
+  activity, stay and project guards (the program guard also serves
+  ADR 0030). Removing `Project::$branch` means a migration that restores a
   location value per project and a rewrite of the project form, index
   sort, pickers, archive and factories.
 
@@ -137,11 +150,13 @@ grouped through the project and through the stay would disagree.
 **Rejected.** A stay exists before any activity is logged in it, and it
 drives "active" (ADR 0026). A stay with no activities would have no branch.
 
-### 4. Filter the project picker by the stay's branch
+### 4. Filter the program picker by the stay's branch
 
 **Rejected.** The stay is resolved from volunteer and date after submit,
 and a batch has several volunteers. Grouping by branch in the picker, with
-the check at save, covers it without JavaScript.
+the check at save, covers it without JavaScript. (The type picker is
+filtered in the browser because the program is a form field, not resolved
+after submit; see ADR 0030.)
 
 ### 5. Enforce the invariant with a database trigger or check constraint
 
