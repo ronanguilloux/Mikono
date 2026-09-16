@@ -6,6 +6,16 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-17 — Per-program totals on /reports, program filter on /activities
+
+`/reports` has a fourth tab, "By program", with the same columns as "By
+project" and a fourth table in the print panel. Rows read "Project —
+Program", since "School support" runs at three schools, and the name links
+to `/activities?program=<id>`. That filter sits next to the volunteer one
+in the same form, so the two combine, and it reaches the export through
+`listQueryBuilder()`. `ActivityController::requestedId()` now reads all
+three query-string ids (volunteer, program, project) the ADR 0023 way.
+
 ## 2026-09-17 — Programs between projects and activities
 
 Shipped: [ADR 0030](../adr/0030-insert-programs-between-projects-and-activities.md).

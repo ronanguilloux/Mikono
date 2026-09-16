@@ -9,7 +9,7 @@ use App\Repository\ActivityRepository;
 
 /**
  * The one piece of real domain logic in this app — computing aggregate
- * activity-days per volunteer/project. Duration-to-days conversion lives
+ * activity-days per volunteer/project/program. Duration-to-days conversion lives
  * once, in ActivityDuration::toDays(), not duplicated as SQL that would
  * need to be kept in sync per database dialect.
  */
@@ -32,6 +32,25 @@ final class ActivitySummaryCalculator
         return $this->summarize(
             static fn(Activity $a) => $a->getProject()?->getId(),
             static fn(Activity $a) => $a->getProject()?->getName() ?? 'Unknown',
+        );
+    }
+
+    /**
+     * Labelled with the project too: program names repeat across projects
+     * ("School support" runs at three schools), so the name alone can't tell
+     * the rows apart.
+     *
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     */
+    public function summarizeByProgram(): array
+    {
+        return $this->summarize(
+            static fn(Activity $a) => $a->getProgram()?->getId(),
+            static function (Activity $a): string {
+                $program = $a->getProgram();
+
+                return null === $program ? 'Unknown' : ($program->getProject()?->getName() ?? '?') . ' — ' . $program->getName();
+            },
         );
     }
 

@@ -17,6 +17,7 @@ use App\Form\ActivityFormType;
 use App\Form\BatchActivityFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ActivityRepository;
+use App\Repository\ProgramRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -67,6 +68,7 @@ final class ActivityController extends AbstractController
     public function __construct(
         private readonly ActivityRepository $activities,
         private readonly VolunteerRepository $volunteers,
+        private readonly ProgramRepository $programs,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
     ) {}
@@ -77,8 +79,9 @@ final class ActivityController extends AbstractController
         $today = new \DateTimeImmutable('today');
 
         $volunteer = $this->requestedVolunteer($request);
+        $program = $this->requestedProgram($request);
 
-        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request, $volunteer), Activity::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request, $volunteer, $program), Activity::class, $request);
 
         $rows = [];
         foreach ($pagination as $activity) {
@@ -117,13 +120,16 @@ final class ActivityController extends AbstractController
             // offer: this reads history, and someone who finished their stint
             // has to stay findable.
             'volunteers' => $this->volunteers->findAllOrderedByName(),
+            'program' => $program,
+            // Every program, ended ones included, for the same reason.
+            'programs' => $this->programs->createOrderedQueryBuilder()->getQuery()->getResult(),
         ]);
     }
 
     #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
     public function export(Request $request, string $format): StreamedResponse
     {
-        $queryBuilder = $this->listQueryBuilder($request, $this->requestedVolunteer($request));
+        $queryBuilder = $this->listQueryBuilder($request, $this->requestedVolunteer($request), $this->requestedProgram($request));
 
         return ListExport::response('activities', $format, self::COLUMNS, (function () use ($queryBuilder): \Generator {
             /** @var Activity $activity */
@@ -136,9 +142,9 @@ final class ActivityController extends AbstractController
     /**
      * The one query behind both the index and its export.
      */
-    private function listQueryBuilder(Request $request, ?Volunteer $volunteer): QueryBuilder
+    private function listQueryBuilder(Request $request, ?Volunteer $volunteer, ?Program $program): QueryBuilder
     {
-        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder($volunteer);
+        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder($volunteer, $program);
         $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
 
         return $queryBuilder;
@@ -168,21 +174,35 @@ final class ActivityController extends AbstractController
     }
 
     /**
-     * The index's `?volunteer=<id>` filter, read the way ListPaginator reads
-     * its own params: through query->all(), because InputBag::get() throws on
-     * `?volunteer[]=1` and getInt() throws on `?volunteer=abc`. Anything
-     * unusable — blank, non-numeric, an array, an id that no longer exists —
-     * means no filter rather than a 400 or a 404.
+     * An id from the query string (`?volunteer=`, `?program=`, `?project=`),
+     * read the way ListPaginator reads its own params: through query->all(),
+     * because InputBag::get() throws on `?volunteer[]=1` and getInt() throws
+     * on `?volunteer=abc` (ADR 0023). Anything unusable — blank,
+     * non-numeric, an array — is null, so the caller applies no filter or
+     * prefill rather than answering 400; so is an id that no longer exists,
+     * once the caller's find() comes back empty.
      */
+    private function requestedId(Request $request, string $key): ?int
+    {
+        $raw = $request->query->all()[$key] ?? null;
+
+        return is_scalar($raw) && (int) $raw >= 1 ? (int) $raw : null;
+    }
+
+    /** The index's `?volunteer=<id>` filter. */
     private function requestedVolunteer(Request $request): ?Volunteer
     {
-        $raw = $request->query->all()['volunteer'] ?? null;
+        $id = $this->requestedId($request, 'volunteer');
 
-        if (!is_scalar($raw) || (int) $raw < 1) {
-            return null;
-        }
+        return null === $id ? null : $this->volunteers->find($id);
+    }
 
-        return $this->volunteers->find((int) $raw);
+    /** The index's `?program=<id>` filter, linked from /reports' program tab. */
+    private function requestedProgram(Request $request): ?Program
+    {
+        $id = $this->requestedId($request, 'program');
+
+        return null === $id ? null : $this->programs->find($id);
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
@@ -320,20 +340,14 @@ final class ActivityController extends AbstractController
     }
 
     /**
-     * The batch form's `?project=<id>` prefill. Read exactly like
-     * requestedVolunteer() above: getInt() throws on `?project=abc` and
-     * InputBag::get() throws on `?project[]=1`, and neither belongs on a link
-     * the home screen hands out. Anything unusable means no prefill.
+     * The batch form's `?project=<id>` prefill, from the home screen's links.
+     * Anything unusable means no prefill.
      */
     private function requestedProject(Request $request): ?Project
     {
-        $raw = $request->query->all()['project'] ?? null;
+        $id = $this->requestedId($request, 'project');
 
-        if (!is_scalar($raw) || (int) $raw < 1) {
-            return null;
-        }
-
-        return $this->entityManager->find(Project::class, (int) $raw);
+        return null === $id ? null : $this->entityManager->find(Project::class, $id);
     }
 
     /**
@@ -346,7 +360,7 @@ final class ActivityController extends AbstractController
             return null;
         }
 
-        $programs = $this->entityManager->getRepository(Program::class)->findBy(['project' => $project], limit: 2);
+        $programs = $this->programs->findBy(['project' => $project], limit: 2);
 
         return 1 === count($programs) ? $programs[0] : null;
     }

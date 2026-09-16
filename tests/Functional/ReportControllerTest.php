@@ -8,6 +8,7 @@ use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\EscortFactory;
+use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
@@ -79,9 +80,9 @@ final class ReportControllerTest extends WebTestCase
         $second = $screen->filter('tbody tr')->eq(1);
         self::assertStringContainsString('No escort recorded', $second->text());
         self::assertCount(0, $second->filter('td:first-child a'));
-        self::assertSame('page', $crawler->filter('nav[aria-label="Report breakdown"] a')->eq(2)->attr('aria-current'));
+        self::assertSame('page', $crawler->filter('nav[aria-label="Report breakdown"] a')->eq(3)->attr('aria-current'));
 
-        self::assertCount(3, $crawler->filter('[data-report-panel="print"] table'));
+        self::assertCount(4, $crawler->filter('[data-report-panel="print"] table'));
     }
 
     #[Test]
@@ -336,6 +337,42 @@ final class ReportControllerTest extends WebTestCase
         self::assertStringNotContainsString('Ronan Guilloux', $this->screenPanel($crawler));
     }
 
+    /**
+     * Program names repeat across projects, so each row carries its project,
+     * and the name leads to that program's activities.
+     */
+    #[Test]
+    public function theProgramTabTotalsEachProgramAndLinksToItsActivities(): void
+    {
+        $client = static::createClient();
+        $peggyLucas = ProjectFactory::createOne(['name' => 'Peggy Lucas school']);
+        $schoolSupport = ProgramFactory::createOne(['name' => 'School support', 'project' => $peggyLucas]);
+        $tuition = ProgramFactory::createOne(['name' => 'Computer Tuition', 'project' => $peggyLucas]);
+        ProgramFactory::createOne(['name' => 'School support', 'project' => ProjectFactory::createOne(['name' => 'Mt Hermon school'])]);
+        ActivityFactory::createMany(2, ['program' => $schoolSupport, 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['program' => $tuition, 'duration' => ActivityDuration::HalfDay]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=program');
+
+        self::assertSame('By program', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
+        $rows = $crawler->filter('[data-report-panel="screen"] table tbody tr');
+        // Only programs with activities, most days first.
+        self::assertCount(2, $rows);
+        self::assertSame(
+            ['Peggy Lucas school — School support', '2', '2.0'],
+            $rows->eq(0)->filter('td')->slice(0, 3)->each(static fn($td) => trim($td->text())),
+        );
+        self::assertSame(
+            ['Peggy Lucas school — Computer Tuition', '1', '0.5'],
+            $rows->eq(1)->filter('td')->slice(0, 3)->each(static fn($td) => trim($td->text())),
+        );
+        self::assertSame(
+            '/activities?program=' . $schoolSupport->getId(),
+            $rows->eq(0)->filter('td')->eq(0)->filter('a')->attr('href'),
+        );
+    }
+
     #[Test]
     public function anUnknownTabFallsBackToVolunteersRatherThanFailing(): void
     {
@@ -455,9 +492,11 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
-        self::assertCount(3, $printPanel->filter('table'));
-        self::assertCount(26, $printPanel->filter('table')->eq(0)->filter('tbody tr'));
-        self::assertCount(26, $printPanel->filter('table')->eq(1)->filter('tbody tr'));
+        self::assertCount(4, $printPanel->filter('table'));
+        // Volunteer, project and program tables: 26 rows each.
+        foreach ([0, 1, 2] as $index) {
+            self::assertCount(26, $printPanel->filter('table')->eq($index)->filter('tbody tr'));
+        }
 
         self::assertStringContainsString('hidden print:block', (string) $printPanel->attr('class'));
         self::assertStringContainsString('print:hidden', (string) $crawler->filter('[data-report-panel="screen"]')->attr('class'));
@@ -719,10 +758,10 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
-        self::assertCount(3, $printTables);
-        // "Most recent" is the 4th column on the volunteer and project
-        // tables, the 5th on the escort one.
-        foreach ([0 => 4, 1 => 4, 2 => 5] as $index => $column) {
+        self::assertCount(4, $printTables);
+        // "Most recent" is the 4th column on the volunteer, project and
+        // program tables, the 5th on the escort one.
+        foreach ([0 => 4, 1 => 4, 2 => 4, 3 => 5] as $index => $column) {
             self::assertSame(
                 'Planned',
                 trim($printTables->eq($index)->filter("tbody tr td:nth-child($column) span")->text()),
@@ -736,6 +775,7 @@ final class ReportControllerTest extends WebTestCase
     {
         yield 'volunteer' => ['volunteer'];
         yield 'project' => ['project'];
+        yield 'program' => ['program'];
         yield 'escort' => ['escort'];
     }
 
@@ -746,7 +786,7 @@ final class ReportControllerTest extends WebTestCase
         $client = static::createClient();
         $shared = [
             'volunteer' => VolunteerFactory::createOne(),
-            'project' => ProjectFactory::createOne(),
+            'program' => ProgramFactory::createOne(),
             'escorts' => [EscortFactory::createOne()],
         ];
         ActivityFactory::createOne($shared + ['date' => new \DateTimeImmutable('2026-08-03')]);

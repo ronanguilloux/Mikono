@@ -127,8 +127,10 @@ Data:
   `activity.project` now join through the program.
 - **Negative / trade-offs:** a program cannot move to another project once
   it has activities.
-- **Negative / trade-offs:** `/reports` has no per-program totals and
-  `/activities` has no program filter; both are backlog work.
+- **Positive:** `/reports` has a "By program" tab, each row labelled
+  "Project — Program" because program names repeat across projects, and
+  linking to `/activities?program=<id>`, which filters the list and its
+  export.
 - **Reversibility:** expensive. Undoing it needs a migration that restores
   `activity.project_id` from the program, the removal of the program
   entity, its screens, guards, picker and Stimulus controller, and a

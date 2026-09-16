@@ -20,6 +20,7 @@ final class ReportController extends AbstractController
 {
     private const string TAB_VOLUNTEER = 'volunteer';
     private const string TAB_PROJECT = 'project';
+    private const string TAB_PROGRAM = 'program';
     private const string TAB_ESCORT = 'escort';
 
     /**
@@ -57,7 +58,7 @@ final class ReportController extends AbstractController
         // which would be the error page this line exists to avoid.
         $requestedTab = $request->query->all()['tab'] ?? null;
         $tab = match ($requestedTab) {
-            self::TAB_PROJECT, self::TAB_ESCORT => $requestedTab,
+            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ESCORT => $requestedTab,
             default => self::TAB_VOLUNTEER,
         };
 
@@ -67,6 +68,7 @@ final class ReportController extends AbstractController
         // one of them costs no extra query.
         $byVolunteer = $this->calculator->summarizeByVolunteer();
         $byProject = $this->calculator->summarizeByProject();
+        $byProgram = $this->calculator->summarizeByProgram();
         $byEscort = $this->calculator->summarizeByEscort();
 
         // Sorted before pagination, and across the whole breakdown rather than
@@ -76,6 +78,7 @@ final class ReportController extends AbstractController
         $sorted = $this->paginator->sortArray(
             match ($tab) {
                 self::TAB_PROJECT => $byProject,
+                self::TAB_PROGRAM => $byProgram,
                 self::TAB_ESCORT => $byEscort,
                 default => $byVolunteer,
             },
@@ -103,9 +106,11 @@ final class ReportController extends AbstractController
             // full, and tabbing the screen mustn't quietly halve that.
             'volunteerRows' => $this->toRows($byVolunteer, $today, self::TAB_VOLUNTEER),
             'projectRows' => $this->toRows($byProject, $today, self::TAB_PROJECT),
+            'programRows' => $this->toRows($byProgram, $today, self::TAB_PROGRAM),
             'escortRows' => $this->toRows($byEscort, $today, self::TAB_ESCORT),
             'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
             'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
+            'programColumns' => $this->columnsFor(self::TAB_PROGRAM),
             'escortColumns' => $this->columnsFor(self::TAB_ESCORT),
         ]);
     }
@@ -127,7 +132,11 @@ final class ReportController extends AbstractController
         }
 
         return [
-            ['key' => 'label', 'label' => self::TAB_PROJECT === $tab ? 'Project' : 'Volunteer'],
+            ['key' => 'label', 'label' => match ($tab) {
+                self::TAB_PROJECT => 'Project',
+                self::TAB_PROGRAM => 'Program',
+                default => 'Volunteer',
+            }],
             ['key' => 'count', 'label' => 'Activities'],
             ['key' => 'totalDays', 'label' => 'Total days'],
             ['key' => 'mostRecent', 'label' => 'Most recent'],
@@ -139,9 +148,10 @@ final class ReportController extends AbstractController
      * read-only, which is what DataTable's withActions=false is for.
      *
      * $tab is what the caller knows and this method doesn't: which breakdown
-     * these rows are. Only the volunteer one links its name — a project has no show page, only an edit form, which is not where a
-     * report name should land — and even there the Unknown bucket carries no
-     * id, so it stays plain text. The Most recent date links on every tab, to
+     * these rows are. A volunteer's name links to their page and a program's
+     * to its activities (`/activities?program=<id>`). A project's doesn't — it
+     * has no show page, only an edit form, which is not where a report name
+     * should land. The Unknown bucket carries no id, so it stays plain text. The Most recent date links on every tab, to
      * the edit form of the activity it came from: an activity has no other
      * page. On a date with several activities, that is one of them.
      *
@@ -184,6 +194,9 @@ final class ReportController extends AbstractController
             $links = [];
             if (self::TAB_VOLUNTEER === $tab && null !== $id) {
                 $links['label'] = $this->generateUrl('volunteer_show', ['id' => $id]);
+            }
+            if (self::TAB_PROGRAM === $tab && null !== $id) {
+                $links['label'] = $this->generateUrl('activity_index', ['program' => $id]);
             }
             if (null !== $summary['mostRecentActivityId']) {
                 $links['mostRecent'] = $this->generateUrl('activity_edit', ['id' => $summary['mostRecentActivityId']]);

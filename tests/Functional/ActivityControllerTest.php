@@ -742,6 +742,56 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     /**
+     * /reports' program tab links here; the filter narrows both renderings
+     * and the export, and keeps the volunteer filter alongside it.
+     */
+    #[Test]
+    public function theIndexAndExportFilterByAProgram(): void
+    {
+        $client = static::createClient();
+        $aisha = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        $tuition = ProgramFactory::createOne([
+            'name' => 'Computer Tuition',
+            'project' => ProjectFactory::createOne(['name' => 'Peggy Lucas school']),
+        ]);
+        ActivityFactory::createMany(2, ['program' => $tuition, 'volunteer' => $aisha]);
+        ActivityFactory::createOne(['program' => $tuition]);
+        ActivityFactory::createOne(['volunteer' => $aisha]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities?program=' . $tuition->getId());
+
+        self::assertCount(3, $crawler->filter('table tbody tr'));
+        self::assertCount(3, $crawler->filter('[data-activity-cards] > li'));
+        self::assertStringContainsString('Peggy Lucas school, Computer Tuition', $crawler->filter('h1')->text());
+        self::assertSame(
+            (string) $tuition->getId(),
+            $crawler->filter('#program-filter option[selected]')->attr('value'),
+        );
+        self::assertSame('Nairobi (HQ)', $crawler->filter('#program-filter optgroup')->attr('label'));
+
+        $both = sprintf('/activities?program=%d&volunteer=%d', $tuition->getId(), $aisha->getId());
+        self::assertCount(2, $client->request('GET', $both)->filter('table tbody tr'));
+
+        self::assertCount(3, self::exportedRows($client, '/activities/export.csv?program=' . $tuition->getId()));
+    }
+
+    #[Test]
+    public function theIndexShrugsOffAnUnusableProgramFilter(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createMany(3);
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (['abc', '0', '999999', '', '[]=1'] as $value) {
+            $url = str_starts_with($value, '[') ? '/activities?program' . $value : '/activities?program=' . $value;
+            $crawler = $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertCount(3, $crawler->filter('table tbody tr'), sprintf('%s should not filter', $url));
+        }
+    }
+
+    /**
      * Same contract as the sort and page params: bad input never 400s or 404s,
      * it just leaves the list alone. `volunteer[]=1` is the one that would
      * throw if the controller read it through InputBag::get()/getInt().

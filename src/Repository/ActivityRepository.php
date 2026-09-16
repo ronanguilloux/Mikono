@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Program;
 use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
@@ -29,9 +30,10 @@ class ActivityRepository extends ServiceEntityRepository
      *
      * A volunteer narrows the result to that person's activities — the index's
      * `?volunteer=<id>` filter and the volunteer screen's activity history are
-     * the same query. It reaches DQL as a bound parameter, never interpolated.
+     * the same query. A program narrows it the same way (`?program=<id>`);
+     * both reach DQL as bound parameters, never interpolated.
      */
-    public function createOrderedByDateDescQueryBuilder(?Volunteer $volunteer = null): QueryBuilder
+    public function createOrderedByDateDescQueryBuilder(?Volunteer $volunteer = null, ?Program $program = null): QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('a')
             ->addSelect('v', 'prg', 'p', 't')
@@ -46,6 +48,12 @@ class ActivityRepository extends ServiceEntityRepository
             $queryBuilder
                 ->andWhere('a.volunteer = :volunteer')
                 ->setParameter('volunteer', $volunteer);
+        }
+
+        if (null !== $program) {
+            $queryBuilder
+                ->andWhere('a.program = :program')
+                ->setParameter('program', $program);
         }
 
         return $queryBuilder;

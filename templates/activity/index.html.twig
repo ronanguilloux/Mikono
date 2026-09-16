@@ -8,7 +8,7 @@
        three-line stack. #}
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 class="text-xl font-semibold">
-            Activities{% if volunteer %} — {{ volunteer.fullName }}{% endif %}
+            Activities{% if volunteer %} — {{ volunteer.fullName }}{% endif %}{% if program %} — {{ program.project.name }}, {{ program.name }}{% endif %}
         </h1>
         <div class="flex items-center gap-3">
             <twig:ExportMenu route="activity_export" />
@@ -28,16 +28,18 @@
     </div>
 
     {#
-        The one filter on any index. It sits above both renderings rather than
+        The only filters on any index. They sit above both renderings rather than
         inside either, for the reason PaginationBar is hoisted below: the table
         is in `hidden md:block`, so a control rendered there is invisible on a
         phone. Structure copied from PaginationBar's page-size form, down to
         the sr-only submit button that keeps it working with JavaScript off.
 
-        Nothing else needs to know about `volunteer`: the sort headers, the
-        page links, the page-size form and the mobile sort selects all carry
-        every scalar query param through already, so the filter survives a
-        sort click and page 2 on its own.
+        Nothing else needs to know about `volunteer` or `program`: the sort
+        headers, the page links, the page-size form and the mobile sort
+        selects all carry every scalar query param through already, so the
+        filters survive a sort click and page 2 on their own. One form, so
+        changing one filter keeps the other.
+        The volunteer one is also marked data-volunteer-filter for its tests.
     #}
     <form
         method="get"
@@ -47,7 +49,7 @@
     >
         {# `page` is dropped on purpose: a new filter means a new page 1. #}
         {% for key, value in app.request.query.all %}
-            {% if key not in ['page', 'volunteer'] and value is not iterable %}
+            {% if key not in ['page', 'volunteer', 'program'] and value is not iterable %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endif %}
         {% endfor %}
@@ -68,6 +70,29 @@
             {% endfor %}
         </select>
 
+        <label for="program-filter" class="sr-only">Filter by program</label>
+        <span aria-hidden="true">Program</span>
+        <select
+            id="program-filter"
+            name="program"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            <option value="">All programs</option>
+            {# Programs arrive ordered by branch, so a branch change opens the next group. #}
+            {% for option in programs %}
+                {% set branch = option.project.branch.name %}
+                {% if loop.first or branch != programs[loop.index0 - 1].project.branch.name %}
+                    {% if not loop.first %}</optgroup>{% endif %}
+                    <optgroup label="{{ branch }}">
+                {% endif %}
+                <option value="{{ option.id }}" {{ program and program.id == option.id ? 'selected' : '' }}>
+                    {{ option.project.name }} — {{ option.name }}
+                </option>
+                {% if loop.last %}</optgroup>{% endif %}
+            {% endfor %}
+        </select>
+
         <button type="submit" class="sr-only">Apply</button>
 
         {# Only once the list is narrowed to one person is there a profile to
@@ -84,8 +109,8 @@
         {% endif %}
     </form>
 
-    {% set empty_message = volunteer
-        ? 'No activities recorded for ' ~ volunteer.fullName ~ '.'
+    {% set empty_message = volunteer or program
+        ? 'No activities match these filters.'
         : 'No activities logged yet — log the first one above.'
     %}
 
