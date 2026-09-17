@@ -26,7 +26,7 @@
 
     {% if volunteer.photo %}
         <img
-            src="{{ path('volunteer_photo', {id: volunteer.id, v: volunteer.photo.updatedAt|date('U')}) }}"
+            src="{{ path('volunteer_photo', {id: volunteer.id, v: volunteer.photo.id}) }}"
             alt="Current photo of {{ volunteer.fullName }}"
             class="mb-4 h-24 w-24 rounded-full object-cover"
         >

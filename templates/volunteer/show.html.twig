@@ -9,7 +9,7 @@
         <div class="flex items-center gap-4">
             {% if volunteer.photo %}
                 <img
-                    src="{{ path('volunteer_photo', {id: volunteer.id, v: volunteer.photo.updatedAt|date('U')}) }}"
+                    src="{{ path('volunteer_photo', {id: volunteer.id, v: volunteer.photo.id}) }}"
                     alt="Photo of {{ volunteer.fullName }}"
                     class="h-20 w-20 shrink-0 rounded-full object-cover"
                     data-volunteer-photo

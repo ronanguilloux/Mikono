@@ -23,7 +23,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * RowActions hands it to Twig's `csrf_token()`.
  *
  * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfTokenId?: string, disabledReason?: string}
- * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, links?: array<string, string>, actions?: list<Action>}
+ * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, avatars?: array<string, string|null>, links?: array<string, string>, actions?: list<Action>}
  */
 #[AsTwigComponent]
 final class DataTable
@@ -46,6 +46,11 @@ final class DataTable
      * break every one of those things. A column key absent from the map
      * renders as plain text, which is how the Unknown bucket and By-project
      * names stay unlinked.
+     *
+     * A row's optional `avatars` key maps a column key to a small picture drawn
+     * before that cell's text: an image URL, or null for the generic person
+     * icon. `/volunteers` uses it for photo thumbnails. It is sized to the text
+     * line, so it never makes a row taller.
      *
      * @var list<Row>
      */

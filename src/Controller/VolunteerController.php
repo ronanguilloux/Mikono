@@ -44,6 +44,9 @@ final class VolunteerController extends AbstractController
 
     private const int PHOTO_MAX_EDGE = 800;
 
+    /** The list shows 24 px avatars; 96 px keeps them sharp on 2x screens whatever the aspect ratio. */
+    private const int THUMB_MAX_EDGE = 96;
+
     /** @var list<array{key: string, label: string}> */
     private const array COLUMNS = [
         ['key' => 'name', 'label' => 'Name'],
@@ -80,6 +83,13 @@ final class VolunteerController extends AbstractController
 
             $rows[] = [
                 'cells' => $this->cells($volunteer, $staying),
+                // getPhoto() is an unloaded proxy and its id is known without a
+                // query, so the list never reads photo bytes (ADR 0032).
+                'avatars' => ['name' => null === $volunteer->getPhoto() ? null : $this->generateUrl('volunteer_photo', [
+                    'id' => $id,
+                    'v' => $volunteer->getPhoto()->getId(),
+                    'size' => 'thumb',
+                ])],
                 'actions' => [
                     ['label' => 'View', 'url' => $this->generateUrl('volunteer_show', ['id' => $id])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('volunteer_edit', ['id' => $id])],
@@ -181,16 +191,34 @@ final class VolunteerController extends AbstractController
     public function photo(Request $request, Volunteer $volunteer): Response
     {
         $photo = $volunteer->getPhoto() ?? throw $this->createNotFoundException('This volunteer has no photo.');
+        $query = $request->query->all();
 
         $response = new Response();
         $response->setPrivate();
+        // Pages link here with v=<photo id>. A replaced photo is a new row with
+        // a new id, so a URL naming the current one never changes content and
+        // the browser can keep it; the /volunteers list relies on that.
+        if (isset($query['v']) && is_scalar($query['v']) && (string) $query['v'] === (string) $photo->getId()) {
+            $response->setMaxAge(31_536_000);
+            $response->setImmutable();
+        }
         $response->setLastModified($photo->getUpdatedAt());
         if ($response->isNotModified($request)) {
             return $response;
         }
 
+        $bytes = $photo->getBytes();
+        if ('thumb' === ($query['size'] ?? null)) {
+            // ponytail: resized on every uncached request; store a thumbnail
+            // next to the photo if the list ever gets slow.
+            $image = imagecreatefromstring($bytes);
+            if (false !== $image) {
+                $bytes = self::encodeJpeg($image, self::THUMB_MAX_EDGE);
+            }
+        }
+
         $response->headers->set('Content-Type', 'image/jpeg');
-        $response->setContent($photo->getBytes());
+        $response->setContent($bytes);
 
         return $response;
     }
@@ -358,20 +386,27 @@ final class VolunteerController extends AbstractController
             $image = false === $rotated ? $image : $rotated;
         }
 
+        $volunteer->setPhoto(new VolunteerPhoto(self::encodeJpeg($image, self::PHOTO_MAX_EDGE)));
+
+        return true;
+    }
+
+    /** Scales $image down to fit $maxEdge px and encodes it as a metadata-free JPEG. */
+    private static function encodeJpeg(\GdImage $image, int $maxEdge): string
+    {
         $width = imagesx($image);
         $height = imagesy($image);
-        if (max($width, $height) > self::PHOTO_MAX_EDGE) {
+        if (max($width, $height) > $maxEdge) {
             $image = $width >= $height
-                ? imagescale($image, self::PHOTO_MAX_EDGE)
-                : imagescale($image, (int) round($width * self::PHOTO_MAX_EDGE / $height), self::PHOTO_MAX_EDGE);
+                ? imagescale($image, $maxEdge)
+                : imagescale($image, (int) round($width * $maxEdge / $height), $maxEdge);
             \assert(false !== $image);
         }
 
         ob_start();
         imagejpeg($image, null, 82);
-        $volunteer->setPhoto(new VolunteerPhoto((string) ob_get_clean()));
 
-        return true;
+        return (string) ob_get_clean();
     }
 
     /**

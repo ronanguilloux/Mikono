@@ -57,13 +57,30 @@
                             background colours on paper by default — without a
                             border the pill would vanish from the print panel.
                         #}
-                        <td class="px-4 py-2 align-top">
+                        {# nowrap next to an avatar, or a narrow phone column puts the picture on a line of its own. #}
+                        <td class="px-4 py-2 align-top{{ row.avatars is defined and column.key in row.avatars|keys ? ' whitespace-nowrap' }}">
                             {#
                                 The link wraps the cell text only, never the
                                 badge — and it needs no print variant: an <a>
                                 prints as its own text, so the print panel gets
                                 the same rows without a second code path.
                             #}
+                            {#
+                                Decorative (alt="", aria-hidden): the name next
+                                to it says who it is. The negative margin keeps
+                                the 24 px picture from making the row taller
+                                than its 20 px text line.
+                            #}
+                            {%- if row.avatars is defined and column.key in row.avatars|keys -%}
+                                {%- set avatar = row.avatars[column.key] -%}
+                                {%- if avatar is not null -%}
+                                    <img src="{{ avatar }}" alt="" loading="lazy" class="-my-1 mr-2 inline-block h-6 w-6 rounded-full object-cover align-middle" data-avatar>
+                                {%- else -%}
+                                    <span class="-my-1 mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 align-middle text-slate-400" aria-hidden="true" data-avatar-placeholder>
+                                        <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"><path d="M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 1 1 14 0H3Z"/></svg>
+                                    </span>
+                                {%- endif -%}
+                            {%- endif -%}
                             {%- if row.links[column.key] is defined -%}
                                 <a href="{{ row.links[column.key] }}" class="text-brand-600 hover:underline">{{- row.cells[column.key]|default('') -}}</a>
                             {%- else -%}

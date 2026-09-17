@@ -12,6 +12,7 @@ use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use PHPUnit\Framework\Attributes\Test;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
@@ -648,6 +649,57 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextSame('[data-volunteer-since]', 'First activity planned for ' . $today->modify('+5 days')->format('j F Y'));
         $client->request('GET', "/volunteers/{$newcomer->getId()}");
         self::assertSelectorTextSame('[data-volunteer-since]', 'Added on ' . $newcomer->getCreatedAt()->format('j F Y'));
+    }
+
+    #[Test]
+    public function theListShowsAThumbnailOrAPlaceholderWithoutLoadingPhotoBytes(): void
+    {
+        $client = static::createClient();
+        $with = VolunteerFactory::new()->withPhoto()->create(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
+        $client->loginUser(UserFactory::createOne());
+        $photoId = $with->getPhoto()?->getId();
+        // Foundry built the photo in this same manager; forget it, so the list
+        // loads volunteers from the database as it does in production.
+        $client->getContainer()->get('doctrine')->getManager()->clear();
+
+        $crawler = $client->request('GET', '/volunteers?sort=name&direction=asc');
+
+        $rows = $crawler->filter('table tbody tr');
+        self::assertSame(
+            "/volunteers/{$with->getId()}/photo?v={$photoId}&size=thumb",
+            $rows->eq(0)->filter('img[data-avatar]')->attr('src'),
+        );
+        self::assertCount(1, $rows->eq(1)->filter('[data-avatar-placeholder]'));
+        // The avatar adds no text, so the cell still reads as the bare name.
+        self::assertSame('Aisha Achieng', trim($rows->eq(0)->filter('td')->first()->text()));
+
+        $manager = $client->getContainer()->get('doctrine')->getManager();
+        self::assertInstanceOf(EntityManagerInterface::class, $manager);
+        $listed = $manager->find(Volunteer::class, (int) $with->getId());
+        self::assertNotNull($listed?->getPhoto());
+        self::assertTrue($manager->getUnitOfWork()->isUninitializedObject($listed->getPhoto()), 'The list must not load photo bytes.');
+    }
+
+    #[Test]
+    public function theThumbnailIsSmallAndCachedWhileItsUrlIsCurrent(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        self::submitPhoto($client, (int) $volunteer->getId(), self::jpegWithExif(1200, 600));
+        $photoId = self::reloadVolunteer($client, (int) $volunteer->getId())->getPhoto()?->getId();
+
+        $client->request('GET', "/volunteers/{$volunteer->getId()}/photo?v={$photoId}&size=thumb");
+        self::assertResponseIsSuccessful();
+        $size = getimagesizefromstring((string) $client->getResponse()->getContent());
+        self::assertIsArray($size);
+        self::assertSame([48, 96], [$size[0], $size[1]]);
+        self::assertStringContainsString('immutable', (string) $client->getResponse()->headers->get('Cache-Control'));
+
+        // A stale or missing v must not be cached for a year.
+        $client->request('GET', "/volunteers/{$volunteer->getId()}/photo?v=stale");
+        self::assertStringNotContainsString('immutable', (string) $client->getResponse()->headers->get('Cache-Control'));
     }
 
     private static function submitPhoto(KernelBrowser $client, int $volunteerId, string $path): void
