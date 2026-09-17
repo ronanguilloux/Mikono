@@ -625,6 +625,31 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextSame('[data-branch-of-attachment]', '—');
     }
 
+    /**
+     * The record is often entered weeks after the work started, so the date
+     * comes from the oldest activity, not from createdAt.
+     */
+    #[Test]
+    public function volunteerSinceIsTheOldestActivityDate(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $veteran = VolunteerFactory::createOne();
+        ActivityFactory::createOne(['volunteer' => $veteran, 'date' => $today->modify('-20 days')]);
+        ActivityFactory::createOne(['volunteer' => $veteran, 'date' => $today->modify('-3 days')]);
+        $planned = VolunteerFactory::createOne();
+        ActivityFactory::createOne(['volunteer' => $planned, 'date' => $today->modify('+5 days')]);
+        $newcomer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', "/volunteers/{$veteran->getId()}");
+        self::assertSelectorTextSame('[data-volunteer-since]', 'Volunteer since ' . $today->modify('-20 days')->format('j F Y'));
+        $client->request('GET', "/volunteers/{$planned->getId()}");
+        self::assertSelectorTextSame('[data-volunteer-since]', 'First activity planned for ' . $today->modify('+5 days')->format('j F Y'));
+        $client->request('GET', "/volunteers/{$newcomer->getId()}");
+        self::assertSelectorTextSame('[data-volunteer-since]', 'Added on ' . $newcomer->getCreatedAt()->format('j F Y'));
+    }
+
     private static function submitPhoto(KernelBrowser $client, int $volunteerId, string $path): void
     {
         $form = $client->request('GET', "/volunteers/{$volunteerId}/edit")->selectButton('Save')->form();

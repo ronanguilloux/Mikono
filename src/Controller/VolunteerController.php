@@ -202,6 +202,9 @@ final class VolunteerController extends AbstractController
 
         $totalDays = 0.0;
         $mostRecent = null;
+        // When they started volunteering, which the record's createdAt is not:
+        // the archive and UAT were entered weeks after the work happened.
+        $firstActivity = null;
         $activityCountsByStay = [];
         foreach ($activities as $activity) {
             $totalDays += $activity->getDuration()?->toDays() ?? 0.0;
@@ -214,6 +217,9 @@ final class VolunteerController extends AbstractController
             $date = $activity->getDate();
             if (null !== $date && (null === $mostRecent || $date > $mostRecent)) {
                 $mostRecent = $date;
+            }
+            if (null !== $date && (null === $firstActivity || $date < $firstActivity)) {
+                $firstActivity = $date;
             }
         }
 
@@ -252,6 +258,7 @@ final class VolunteerController extends AbstractController
             'activityCount' => count($activities),
             'totalDays' => $totalDays,
             'mostRecent' => $mostRecent,
+            'firstActivity' => $firstActivity,
             'mostRecentIsPlanned' => null !== $mostRecent && $mostRecent > $today,
             'today' => $today,
         ]);

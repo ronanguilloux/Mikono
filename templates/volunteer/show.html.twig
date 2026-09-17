@@ -38,7 +38,15 @@
                         >Incomplete profile</a>
                     {% endif %}
                 </h1>
-                <p class="mt-1 text-sm text-slate-500">Volunteer since {{ volunteer.createdAt|date('j F Y') }}</p>
+                <p class="mt-1 text-sm text-slate-500" data-volunteer-since>
+                    {% if firstActivity is null %}
+                        Added on {{ volunteer.createdAt|date('j F Y') }}
+                    {% elseif firstActivity > today %}
+                        First activity planned for {{ firstActivity|date('j F Y') }}
+                    {% else %}
+                        Volunteer since {{ firstActivity|date('j F Y') }}
+                    {% endif %}
+                </p>
             </div>
         </div>
         <div class="flex gap-2">
