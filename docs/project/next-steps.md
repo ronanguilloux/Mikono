@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-19
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -48,6 +48,10 @@ each other, take them in any order or none:
 - [Decide what Escort::$isActive is for](backlog/decide-escort-is-active.md) — **D**
 - [/reports walks every activity four times](backlog/reports-triple-walk-performance.md) — **G**
 - [Reconsider knplabs/knp-paginator-bundle](backlog/reconsider-knp-paginator.md) — **D**
+
+Features not yet decided:
+
+- [Geolocate usage with GeoIP](backlog/geoip-usage-location.md) — **D**
 
 Deferred behind a trigger — each card names the event that wakes it:
 

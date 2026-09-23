@@ -59,3 +59,7 @@
 /frankenphp/certs/
 /compose.local.yaml
 ###< local dev TLS ###
+
+###> private geoIP dbs ###
+/private-unversioned/
+###< private geoIP dbs ###

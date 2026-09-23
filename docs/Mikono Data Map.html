@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<!-- saved from url=(0133)file:///private/tmp/claude-501/-Users-ronan-Code-Github-Mine-Mikono/1cb3a3b8-7b00-4b1b-8616-e87fdbc5f813/scratchpad/export/index.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Mikono&#39;s data model explained for non-developer admins: what each list holds, the rules that connect them, and the consequences of past and pending choices.">
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;%F0%9F%97%BA%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;">
+<title>Mikono Data Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="stylesheet" href="./Mikono Data Map_files/css2">
+<style>
+:root{
+  --ground:#f3f7f8; --paper:#ffffff; --ink:#0f252c; --muted:#4f656d; --line:#c9d7dc;
+  --brand:#007f9f; --brand-soft:#dff3f8; --brand-ink:#005a71;
+  --green:#1f7d3a; --green-soft:#e2f2e6;
+  --warn:#9a5b00; --warn-soft:#fbf0dc;
+  --loop:#1f7d3a;
+  --shadow:0 1px 2px rgba(15,37,44,.06),0 6px 20px rgba(15,37,44,.06);
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0c1a1f; --paper:#122830; --ink:#e4eff2; --muted:#9db3ba; --line:#2a4650;
+    --brand:#3fc6e8; --brand-soft:#123845; --brand-ink:#8fdcf0;
+    --green:#5cc97a; --green-soft:#153524;
+    --warn:#f0b050; --warn-soft:#3a2c14;
+    --loop:#5cc97a;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0c1a1f; --paper:#122830; --ink:#e4eff2; --muted:#9db3ba; --line:#2a4650;
+  --brand:#3fc6e8; --brand-soft:#123845; --brand-ink:#8fdcf0;
+  --green:#5cc97a; --green-soft:#153524;
+  --warn:#f0b050; --warn-soft:#3a2c14;
+  --loop:#5cc97a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:17px/1.6 var(--body);padding-inline:16px;padding-block:32px 64px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,3rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:clamp(1.45rem,3vw,1.9rem);font-weight:700}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0}
+.prose{max-width:66ch;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font:600 .78rem/1 var(--body);text-transform:uppercase;letter-spacing:.12em;color:var(--brand-ink)}
+.lede{font-size:1.15rem;color:var(--muted)}
+code,.tbl{font-family:var(--mono);font-size:.82em;color:var(--muted)}
+header{display:flex;flex-direction:column;gap:14px}
+section{display:flex;flex-direction:column;gap:22px}
+
+/* Diagram */
+.diagram{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
+.diagram-scroll{overflow-x:auto}
+.diagram svg{display:block;width:100%;min-width:760px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:.88rem;color:var(--muted);padding-top:12px;border-top:1px solid var(--line);margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend svg{width:38px;height:12px;min-width:0}
+.hint{font-size:.9rem;color:var(--muted)}
+
+.ent rect{fill:var(--paper);stroke:var(--line);stroke-width:1.5}
+.ent .t{font:700 17px var(--display);fill:var(--ink)}
+.ent .s{font:13px var(--body);fill:var(--muted)}
+.ent .k{font:11px var(--mono);fill:var(--muted);opacity:.8}
+.ent{cursor:pointer}
+.ent:focus{outline:none}
+.ent:focus-visible rect{stroke:var(--brand);stroke-width:3}
+.ent.core rect{fill:var(--brand-soft);stroke:var(--brand);stroke-width:2}
+.ent.minor rect{stroke-dasharray:5 4}
+.edge path{fill:none;stroke:var(--muted);stroke-width:1.6}
+.edge text{font:12.5px var(--body);fill:var(--muted);paint-order:stroke;stroke:var(--paper);stroke-width:5px;stroke-linejoin:round}
+.edge.many path{stroke-dasharray:2 4;stroke-linecap:round;stroke-width:2.2}
+.edge.opt path{stroke-dasharray:7 5}
+.edge.loop path{stroke:var(--loop);stroke-width:2.6}
+.edge.loop text{fill:var(--loop);font-weight:700}
+.arrow{fill:var(--muted)} .arrow-loop{fill:var(--loop)}
+svg.focusing .ent:not(.on){opacity:.28}
+svg.focusing .edge:not(.on){opacity:.12}
+svg.focusing .ent.sel rect{stroke:var(--brand);stroke-width:3}
+.ent,.edge{transition:opacity .18s}
+@media (prefers-reduced-motion:reduce){.ent,.edge{transition:none}}
+
+.detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 32px;padding:22px;background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-top:16px}
+.detail header{grid-column:1/-1;gap:4px}
+.detail dl{margin:0;display:flex;flex-direction:column;gap:12px}
+.detail dt{font:700 .78rem/1.2 var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.detail dd{margin:4px 0 0}
+.detail ul{margin:4px 0 0;padding-left:1.1em}
+@media (max-width:720px){.detail{grid-template-columns:1fr}}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:600 .85rem/1 var(--body);padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--paper)}
+.chip:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+
+/* Rules */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.rule{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.rule .so{font-size:.93rem;color:var(--muted)}
+.rule.key{border-color:var(--loop);background:var(--green-soft)}
+.rule.key .so{color:var(--ink)}
+
+/* Decision table */
+.tablewrap{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:.95rem}
+th,td{text-align:left;vertical-align:top;padding:14px 16px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font:700 .78rem/1.2 var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:var(--ground)}
+td:first-child{font-weight:700;width:22%}
+.plus{color:var(--green)} .minus{color:var(--warn)}
+.rev{display:inline-block;font:700 .75rem/1 var(--body);padding:5px 9px;border-radius:999px;white-space:nowrap}
+.rev.easy{background:var(--green-soft);color:var(--green)}
+.rev.mid{background:var(--warn-soft);color:var(--warn)}
+.adr{display:block;font:11px var(--mono);color:var(--muted);font-weight:400;margin-top:4px}
+
+/* Questions */
+.questions{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;counter-reset:q}
+.q{border-top:3px solid var(--brand);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.q .eg{font-size:.9rem;color:var(--muted)}
+
+.open{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.status{align-self:flex-start;font:700 .75rem/1 var(--body);padding:5px 9px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opt{border:1px solid var(--line);border-radius:8px;padding:12px;font-size:.92rem;display:flex;flex-direction:column;gap:6px}
+.opt b{font-family:var(--display)}
+@media (max-width:480px){.opts{grid-template-columns:1fr}}
+
+.backstage{font-size:.95rem;color:var(--muted);border-left:3px solid var(--line);padding-left:16px;max-width:70ch}
+footer{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Mikono · Volunteer Manager UCESCO</span>
+  <h1>What the application keeps, and how it all fits together</h1>
+  <p class="lede prose">Each box below is a <strong>list</strong> that the application keeps (it's called a “table”). Each arrow says that one record <strong>points to</strong> another. No need to read code: this map is for discussing what a change would break or make possible, before making it.</p>
+</header>
+
+<section aria-labelledby="h-carte">
+  <div class="prose">
+    <h2 id="h-carte">The map</h2>
+    <p>In the centre, the <strong>activity log</strong>: this is what the Volunteer Manager enters every day. On the left, the people. On the right, how the field work is organised. At the top, the branches, which connect the two sides.</p>
+  </div>
+
+  <div class="chips" role="group" aria-label="Choose a list">
+    <button class="chip" data-pick="activite" aria-pressed="true">Activity</button>
+    <button class="chip" data-pick="volontaire" aria-pressed="false">Volunteer</button>
+    <button class="chip" data-pick="sejour" aria-pressed="false">Stay</button>
+    <button class="chip" data-pick="branche" aria-pressed="false">Branch</button>
+    <button class="chip" data-pick="projet" aria-pressed="false">Project</button>
+    <button class="chip" data-pick="programme" aria-pressed="false">Program</button>
+    <button class="chip" data-pick="type" aria-pressed="false">Activity type</button>
+    <button class="chip" data-pick="escorte" aria-pressed="false">Escort</button>
+    <button class="chip" data-pick="user" aria-pressed="false">User</button>
+    <button class="chip" data-pick="photo" aria-pressed="false">Photo</button>
+    <button class="chip" data-pick="none" aria-pressed="false">Show all</button>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-scroll">
+    <svg id="map" viewBox="0 0 960 620" role="img" aria-labelledby="map-title map-desc" class="focusing">
+      <title id="map-title">Mikono data diagram</title>
+      <desc id="map-desc">An activity points to a volunteer, a stay, a program, an activity type, a user and zero or more escorts. A stay points to a volunteer and a branch. A program points to a project, which points to a branch. A program offers several activity types. A volunteer has zero or one photo.</desc>
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"></path></marker>
+        <marker id="ahl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-loop"></path></marker>
+      </defs>
+
+      <!-- Edges (drawn first, under boxes) -->
+      <g class="edge loop" data-a="sejour" data-b="branche"><path d="M280,180 L400,112" marker-end="url(#ahl)"></path><text x="262" y="138">in 1 branch</text></g>
+      <g class="edge loop" data-a="projet" data-b="branche"><path d="M680,180 L560,112" marker-end="url(#ahl)"></path><text x="630" y="138">in 1 branch</text></g>
+      <g class="edge loop on" data-a="activite" data-b="sejour"><path d="M420,350 L318,272" marker-end="url(#ahl)"></path><text x="378" y="300">derived from the stay</text></g>
+      <g class="edge loop on" data-a="activite" data-b="programme"><path d="M582,400 L748,400" marker-end="url(#ahl)"></path><text x="598" y="390">in 1 program</text></g>
+      <g class="edge loop" data-a="programme" data-b="projet"><path d="M850,350 L780,272" marker-end="url(#ahl)"></path><text x="826" y="306">of 1 project</text></g>
+      <g class="edge" data-a="sejour" data-b="volontaire"><path d="M190,272 L130,348" marker-end="url(#ah)"></path><text x="60" y="306">of 1 volunteer</text></g>
+      <g class="edge on" data-a="activite" data-b="volontaire"><path d="M378,410 L212,410" marker-end="url(#ah)"></path><text x="232" y="432">1 volunteer</text></g>
+      <g class="edge many" data-a="programme" data-b="type"><path d="M850,452 L850,518" marker-start="url(#ah)" marker-end="url(#ah)"></path><text x="842" y="490" text-anchor="end">offers several</text></g>
+      <g class="edge on" data-a="activite" data-b="type"><path d="M572,452 L748,548" marker-end="url(#ah)"></path><text x="662" y="488">1 type</text></g>
+      <g class="edge many on" data-a="activite" data-b="escorte"><path d="M438,452 L380,518" marker-end="url(#ah)"></path><text x="288" y="490">0, 1 or several</text></g>
+      <g class="edge on" data-a="activite" data-b="user"><path d="M520,452 L548,518" marker-end="url(#ah)"></path><text x="540" y="478">entered by</text></g>
+      <g class="edge opt" data-a="volontaire" data-b="photo"><path d="M110,452 L110,518" marker-end="url(#ah)"></path><text x="120" y="490">0 or 1</text></g>
+
+      <!-- Boxes -->
+      <g class="ent" data-id="branche" tabindex="0" role="button" aria-label="Branch"><rect x="380" y="22" width="200" height="90" rx="10"></rect>
+        <text class="t" x="396" y="50">Branch</text><text class="s" x="396" y="72">Nairobi (HQ), Mombasa…</text><text class="k" x="396" y="96">5 created by default</text></g>
+      <g class="ent on" data-id="sejour" tabindex="0" role="button" aria-label="Stay"><rect x="130" y="182" width="200" height="90" rx="10"></rect>
+        <text class="t" x="146" y="210">Stay</text><text class="s" x="146" y="232">from … to …, in a branch</text><text class="k" x="146" y="256">never 2 at once</text></g>
+      <g class="ent" data-id="projet" tabindex="0" role="button" aria-label="Project"><rect x="630" y="182" width="200" height="90" rx="10"></rect>
+        <text class="t" x="646" y="210">Project</text><text class="s" x="646" y="232">UCESCO or partner</text><text class="k" x="646" y="256">can be switched on/off</text></g>
+      <g class="ent on" data-id="volontaire" tabindex="0" role="button" aria-label="Volunteer"><rect x="10" y="350" width="200" height="100" rx="10"></rect>
+        <text class="t" x="26" y="378">Volunteer</text><text class="s" x="26" y="400">first name required,</text><text class="s" x="26" y="418">everything else optional</text><text class="k" x="26" y="440">“active” = calculated</text></g>
+      <g class="ent core on sel" data-id="activite" tabindex="0" role="button" aria-label="Activity"><rect x="380" y="350" width="200" height="100" rx="10"></rect>
+        <text class="t" x="396" y="378">Activity</text><text class="s" x="396" y="400">1 volunteer, 1 day,</text><text class="s" x="396" y="418">1 task</text><text class="k" x="396" y="440">½ day · full day · other</text></g>
+      <g class="ent on" data-id="programme" tabindex="0" role="button" aria-label="Program"><rect x="750" y="350" width="200" height="100" rx="10"></rect>
+        <text class="t" x="766" y="378">Program</text><text class="s" x="766" y="400">optional dates,</text><text class="s" x="766" y="418">offered types</text><text class="k" x="766" y="440">no “active” checkbox</text></g>
+      <g class="ent minor" data-id="photo" tabindex="0" role="button" aria-label="Photo"><rect x="10" y="520" width="200" height="80" rx="10"></rect>
+        <text class="t" x="26" y="548">Photo</text><text class="s" x="26" y="570">resized, no GPS</text><text class="k" x="26" y="590">stored in the database</text></g>
+      <g class="ent on" data-id="escorte" tabindex="0" role="button" aria-label="Escort"><rect x="250" y="520" width="190" height="80" rx="10"></rect>
+        <text class="t" x="266" y="548">Escort</text><text class="s" x="266" y="570">escort in the field</text><text class="k" x="266" y="590">unique name</text></g>
+      <g class="ent on" data-id="user" tabindex="0" role="button" aria-label="User"><rect x="470" y="520" width="190" height="80" rx="10"></rect>
+        <text class="t" x="486" y="548">User</text><text class="s" x="486" y="570">staff member</text><text class="k" x="486" y="590">admin or not</text></g>
+      <g class="ent on" data-id="type" tabindex="0" role="button" aria-label="Activity type"><rect x="750" y="520" width="200" height="80" rx="10"></rect>
+        <text class="t" x="766" y="548">Activity type</text><text class="s" x="766" y="570">one single shared list</text><text class="k" x="766" y="590">unique name</text></g>
+    </svg>
+    </div>
+    <div class="legend">
+      <span><svg viewBox="0 0 38 12"><line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="1.6"></line><path d="M28,2 L36,6 L28,10z" fill="currentColor"></path></svg>points to exactly one record</span>
+      <span><svg viewBox="0 0 38 12"><line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="1.6" stroke-dasharray="7 5"></line><path d="M28,2 L36,6 L28,10z" fill="currentColor"></path></svg>zero or one</span>
+      <span><svg viewBox="0 0 38 12"><line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="2.2" stroke-dasharray="2 4" stroke-linecap="round"></line><path d="M28,2 L36,6 L28,10z" fill="currentColor"></path></svg>several</span>
+      <span style="color:var(--loop)"><svg viewBox="0 0 38 12"><line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="2.6"></line><path d="M28,2 L36,6 L28,10z" fill="currentColor"></path></svg>the branch loop (rule 3)</span>
+      <span>Dashed frame: depends entirely on its parent record</span>
+    </div>
+  </div>
+
+  <article class="detail" id="detail" aria-live="polite"><header><span class="eyebrow">the log</span><h3 style="font-size:1.5rem">Activity</h3></header>
+  <dl><div><dt>What it contains</dt><dd>What a volunteer did on a given day: the date, the duration (half day, full day, or other with details), notes, and who entered it.</dd></div><div><dt>Connected to</dt><dd><ul><li>1 volunteer</li><li>1 stay, found automatically from the date: never picked by hand</li><li>1 program, and therefore 1 project (derived)</li><li>1 activity type</li><li>0, 1 or several escorts</li><li>1 user (who entered it)</li></ul></dd></div></dl>
+  <dl><div><dt>Rules</dt><dd><ul><li>Refused if no stay covers the date.</li><li>Refused if the project is not in the stay's branch.</li><li>Refused if the program does not offer this type or is not open that day.</li><li>In a batch: all or nothing.</li></ul></dd></div><div><dt>Deleting</dt><dd>Allowed. It is the only record that nothing else references.</dd></div></dl></article>
+  <p class="hint">Click a box (or a button above) to see what it contains, what it connects to and what you are allowed to do with it.</p>
+</section>
+
+<section aria-labelledby="h-regles">
+  <div class="prose">
+    <h2 id="h-regles">Six rules the application enforces</h2>
+    <p>They are what makes the reports reliable. Any new idea must say which of them it affects.</p>
+  </div>
+  <div class="rules">
+    <div class="rule"><h3>1. One row = one volunteer, one day</h3><p class="so">A group of five volunteers sent to a site is five activities. Batch entry creates them in one go, and it is <strong>all or nothing</strong>: if a single volunteer causes a problem, nothing is saved.</p></div>
+    <div class="rule"><h3>2. “Active” is not a checkbox</h3><p class="so">A volunteer is active when one of their stays covers today. Nobody has to update it, and it cannot be wrong. The trade-off: <strong>no stay, no activity entry</strong>.</p></div>
+    <div class="rule key"><h3>3. The branch loop must close</h3><p class="so">An activity's project must be in the same branch as the volunteer's stay on that day. A volunteer staying in Mombasa cannot be logged on a Kibera project. This is the green loop in the diagram.</p></div>
+    <div class="rule"><h3>4. The program frames the task</h3><p class="so">The activity type must be one of those the program offers, and the date must fall within its dates (if it has any).</p></div>
+    <div class="rule"><h3>5. What has been used is never deleted</h3><p class="so">A volunteer, project, type, escort, user or branch already referenced somewhere cannot be deleted: the button is greyed out. You <strong>deactivate</strong> it instead, and the history stays intact.</p></div>
+    <div class="rule"><h3>6. Dates are days in Nairobi</h3><p class="so">No hours, no time zones: an activity takes place on a calendar day, Kenya time, even though the server is in France.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-choix">
+  <div class="prose">
+    <h2 id="h-choix">Choices already made: what they brought, what they cost</h2>
+    <p>Each row corresponds to a written decision (an “ADR”). If one of these costs becomes a problem in the field, that is the right time to raise it again.</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>The choice</th><th>What it allows</th><th>What it costs</th><th>Going back on it</th></tr></thead>
+      <tbody>
+        <tr><td>Several escorts per activity<span class="adr">ADR 0013</span></td><td class="plus">The WhatsApp attendance sheets are copied as they are; “By escort” tab in the reports.</td><td class="minus">We know <em>which days</em> an escort was present, not <em>for how long</em>. Knowing that would require entering it.</td><td><span class="rev mid">Model change</span></td></tr>
+        <tr><td>Optional last name<span class="adr">ADR 0014</span></td><td class="plus">You enter “Daphne” right away, without blocking the entry.</td><td class="minus">Two “Ellen”s without a last name get mixed up in the pick lists.</td><td><span class="rev easy">Easy if the names are filled in</span></td></tr>
+        <tr><td>Presence tied to dated stays<span class="adr">ADR 0026</span></td><td class="plus">“Active” is always right; we know which branch each volunteer was at, every day.</td><td class="minus">One more step: create the stay before the first activity. Two stays cannot overlap.</td><td><span class="rev mid">Affects the whole log</span></td></tr>
+        <tr><td>Every project belongs to a branch<span class="adr">ADR 0027</span></td><td class="plus">Totals per branch possible; adding a country = adding a branch, with no development.</td><td class="minus">Moving a project to another branch is refused if it already has activities elsewhere.</td><td><span class="rev mid">Model change</span></td></tr>
+        <tr><td>A “Program” level between project and activity<span class="adr">ADR 0030</span></td><td class="plus">Offered types and opening dates are framed; totals per program in the reports.</td><td class="minus">A program is needed before anything can be entered on a new project. A program in use can no longer change project.</td><td><span class="rev mid">Affects the whole log</span></td></tr>
+        <tr><td>Photo kept in the database<span class="adr">ADR 0032</span></td><td class="plus">Backed up automatically with everything else; never accessible without being signed in.</td><td class="minus">The database grows (about 100 KB per photo). Only one photo per volunteer.</td><td><span class="rev easy">Reversible</span></td></tr>
+        <tr><td>Sign-ins kept for 90 days<span class="adr">ADR 0028</span></td><td class="plus">Admins see failed attempts and the addresses that keep trying.</td><td class="minus">This is personal data (email + IP address), hence the limited duration and admin-only access.</td><td><span class="rev easy">Reversible</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="h-questions">
+  <div class="prose">
+    <h2 id="h-questions">Four questions before adding a piece of information</h2>
+    <p>A new request (“we'd also like to record…”) almost always comes down to these four questions. Their answers decide where it goes on the map, and therefore what it will cost.</p>
+  </div>
+  <div class="questions">
+    <div class="q"><h3>What does it describe?</h3><p>The volunteer (once and for all) or what they did that day (on every activity)?</p><p class="eg">Profession goes on the volunteer. The number of children seen would go on the activity, and would be entered every day.</p></div>
+    <div class="q"><h3>Required or optional?</h3><p>Required guarantees complete reports, but blocks entry when it isn't known.</p><p class="eg">That is why the last name became optional.</p></div>
+    <div class="q"><h3>Fixed list or free text?</h3><p>A list can be counted and filtered in the reports. Free text can be read, but not counted.</p><p class="eg">Activity types are a list; a volunteer's skills are free text.</p></div>
+    <div class="q"><h3>Does it change over time?</h3><p>If so, and we want the history, it needs dates (“from… to…”), like stays.</p><p class="eg">Otherwise, the old value is overwritten and lost.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-ouvert">
+  <div class="prose">
+    <h2 id="h-ouvert">Pending decisions</h2>
+    <p>Two items in the backlog directly affect the map.</p>
+  </div>
+  <div class="open">
+    <div class="card">
+      <span class="status">To decide</span>
+      <h3>Attaching documents to volunteers</h3>
+      <p>Passport, police clearance, signed agreement: up to about twenty files per volunteer, currently scattered across inboxes and WhatsApp. A new “Document” box attached to Volunteer, like the photo. What remains is choosing where to store the files.</p>
+      <div class="opts">
+        <div class="opt"><b>In the database</b><span class="plus">Backed up by default, like the photos.</span><span class="minus">The database grows fast (several MB per passport): heavier backups.</span></div>
+        <div class="opt"><b>In a separate folder</b><span class="plus">Lightweight database.</span><span class="minus">A second thing to back up and restore, and not to forget.</span></div>
+      </div>
+      <p class="hint">Either way: never accessible without signing in, deleted along with the volunteer.</p>
+    </div>
+    <div class="card">
+      <span class="status">To decide</span>
+      <h3>What is “active” for on an escort?</h3>
+      <p>Escorts have an “active” checkbox, but nothing really uses it yet. Two ways forward:</p>
+      <div class="opts">
+        <div class="opt"><b>Keep it</b><span>And hide inactive ones from the pick lists, as we do for projects.</span></div>
+        <div class="opt"><b>Remove it</b><span>One less setting to keep up to date, at the cost of a list that only ever grows.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-coulisses">
+  <h2 id="h-coulisses">Behind the scenes</h2>
+  <p class="backstage">Two lists exist outside the map because they are not about volunteers: <strong>sign-in attempts</strong> (email typed, success, IP address, erased after 90 days) and anonymous <strong>usage gestures</strong> (“a roster was copied”), which feed the admin-only Usage screen. They are never mixed: one is personal, the other must not be.</p>
+</section>
+
+<footer>State of the model as of 19 September 2026. The “ADR” references point to the decisions written up in <code>docs/adr/</code> in the Mikono repository.</footer>
+</div>
+
+<script>
+const D = {
+  activite:{name:"Activity",tag:"the log",what:"What a volunteer did on a given day: the date, the duration (half day, full day, or other with details), notes, and who entered it.",links:["1 volunteer","1 stay, found automatically from the date: never picked by hand","1 program, and therefore 1 project (derived)","1 activity type","0, 1 or several escorts","1 user (who entered it)"],rules:["Refused if no stay covers the date.","Refused if the project is not in the stay's branch.","Refused if the program does not offer this type or is not open that day.","In a batch: all or nothing."],del:"Allowed. It is the only record that nothing else references."},
+  volontaire:{name:"Volunteer",tag:"a person",what:"First name (required). Optional: last name, email, phone, nationality, country of residence, date of birth, profession, skills, interests, emergency contacts. An incomplete profile is flagged, never blocked.",links:["0 or 1 photo","their stays (received, not chosen here)","their activities (received)"],rules:["“Active” is not stored: it means “a stay covers today”.","The branch shown is that of the current stay, otherwise of the latest one."],del:"Refused if they have activities. Otherwise, their stays and photo go with them."},
+  sejour:{name:"Stay",tag:"a dated presence",what:"A volunteer is at a branch from … to … (days included).",links:["1 volunteer","1 branch"],rules:["Two stays of the same volunteer never overlap: only one place per day.","Changing its dates is refused if activities would fall outside them.","Changing its branch is refused if its activities are on projects of another branch."],del:"Refused if activities are attached to it."},
+  branche:{name:"Branch",tag:"a UCESCO location",what:"Name, address, project zones and program focus (free text). The five real branches are created automatically on installation, on every server.",links:["receives stays","receives projects"],rules:["A new country or a new city = a new branch, with no development.","Zones and focus are free text: readable, not countable."],del:"Refused if a stay or a project is attached to it. It can be deactivated."},
+  projet:{name:"Project",tag:"a site of work in the field",what:"Name, run by UCESCO or by a partner (whose name is recorded), description, active or not.",links:["1 branch (required)","receives programs"],rules:["Changing its branch is refused if its activities are linked to stays at another branch."],del:"Refused if it has programs or activities. It can be deactivated."},
+  programme:{name:"Program",tag:"an offer within a project",what:"Name, optional start and end dates (no dates: always open), suggested roles as free text.",links:["1 project","offers at least one activity type (several possible)"],rules:["No “active” checkbox: its dates are enough.","Once used, it can no longer change project.","Its dates cannot exclude activities already entered."],del:"Refused if it has activities."},
+  type:{name:"Activity type",tag:"the what",what:"Unique name and description. One single list for the whole organisation; each program picks a subset of it.",links:["offered by one or several programs","receives activities"],rules:["The entry lists only show types offered by at least one program."],del:"Refused if it is referenced by an activity or offered by a program."},
+  escorte:{name:"Escort",tag:"the local escort",what:"Unique name, active or not.",links:["referenced by activities (0, 1 or several per activity)"],rules:["The reports count their days present and site visits, not how long they stayed: that is not entered."],del:"Refused if they appear on an activity."},
+  user:{name:"User",tag:"the staff",what:"Email, full name, password (encrypted, unreadable even to us), administrator or not, active or not.",links:["signs the activities they enter"],rules:["Only admins see the Usage screen and the sign-ins."],del:"Refused if they have entered activities, or if it is one's own account. Deactivate them instead."},
+  photo:{name:"Photo",tag:"a portrait",what:"Only one per volunteer, resized to 800 pixels and re-saved as JPEG: the metadata, GPS included, disappear.",links:["belongs to 1 volunteer"],rules:["Never visible without being signed in.","Kept in the database, so in every backup."],del:"Replaced or removed from the volunteer's record; deleted along with them."}
+};
+const svg=document.getElementById('map'), detail=document.getElementById('detail');
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function pick(id){
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.pick===id)));
+  svg.querySelectorAll('.on,.sel').forEach(e=>e.classList.remove('on','sel'));
+  if(!D[id]){svg.classList.remove('focusing');detail.hidden=true;return;}
+  svg.classList.add('focusing');
+  const me=svg.querySelector(`.ent[data-id="${id}"]`); me.classList.add('on','sel');
+  svg.querySelectorAll('.edge').forEach(e=>{
+    if(e.dataset.a===id||e.dataset.b===id){e.classList.add('on');
+      [e.dataset.a,e.dataset.b].forEach(n=>svg.querySelector(`.ent[data-id="${n}"]`).classList.add('on'));}
+  });
+  const d=D[id]; detail.hidden=false;
+  detail.innerHTML=`<header><span class="eyebrow">${esc(d.tag)}</span><h3 style="font-size:1.5rem">${esc(d.name)}</h3></header>
+  <dl><div><dt>What it contains</dt><dd>${esc(d.what)}</dd></div><div><dt>Connected to</dt><dd><ul>${d.links.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></dd></div></dl>
+  <dl><div><dt>Rules</dt><dd><ul>${d.rules.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></dd></div><div><dt>Deleting</dt><dd>${esc(d.del)}</dd></div></dl>`;
+}
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>pick(c.dataset.pick)));
+svg.querySelectorAll('.ent').forEach(g=>{
+  g.addEventListener('click',()=>pick(g.dataset.id));
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(g.dataset.id);}});
+});
+pick('activite');
+</script>
+
+
+</body></html>
