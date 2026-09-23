@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\E2E;
 
 use App\Factory\ActivityTypeFactory;
+use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
@@ -30,6 +31,7 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
             'partnerOrganizationName' => 'Bright Achievers High School',
         ]);
         $activityType = ActivityTypeFactory::createOne(['name' => 'Computer lessons']);
+        $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
 
         $client = static::createPantherClient();
 
@@ -64,16 +66,18 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
         // functional tests; this walk only needs one to exist.
         StayFactory::createOne(['volunteer' => $volunteer]);
 
-        $client->request('GET', '/activities/new');
+        // Arrive the way the volunteer page's "Log activity" does, with the
+        // volunteer ticked: the checkboxes sit in a hidden list behind the
+        // typeahead, where WebDriver can't click them.
+        $client->request('GET', '/activities/new?volunteer=' . $volunteer->getId());
         $client->executeScript(
-            sprintf("document.querySelector('input[name=\"activity_form[date]\"]').value = '%s';", (new \DateTimeImmutable('today'))->format('Y-m-d')),
+            sprintf("document.querySelector('input[name=\"batch_activity_form[date]\"]').value = '%s';", (new \DateTimeImmutable('today'))->format('Y-m-d')),
         );
-        (new WebDriverSelect($client->findElement(WebDriverBy::name('activity_form[volunteer]'))))
-            ->selectByValue((string) $volunteer->getId());
-        (new WebDriverSelect($client->findElement(WebDriverBy::name('activity_form[project]'))))
-            ->selectByValue((string) $project->getId());
-        (new WebDriverSelect($client->findElement(WebDriverBy::name('activity_form[activityType]'))))
+        (new WebDriverSelect($client->findElement(WebDriverBy::name('batch_activity_form[program]'))))
+            ->selectByValue((string) $program->getId());
+        (new WebDriverSelect($client->findElement(WebDriverBy::name('batch_activity_form[activityType]'))))
             ->selectByValue((string) $activityType->getId());
+
         // Reject the form once before saving it. Turbo Drive renders a 4xx
         // response but refuses a non-redirect 200 ("Form responses must
         // redirect to another location") — so if the invalid branch ever stops
@@ -83,8 +87,8 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
         //
         // "Other" with a blank durationOther is the failure a browser can
         // actually submit: the field is required: false, so no HTML5
-        // constraint blocks it, and Activity::validateDurationOther() rejects
-        // it server-side.
+        // constraint blocks it, and ActivityDuration::checkOtherIsSpecified()
+        // rejects it server-side.
         $client->findElement(WebDriverBy::cssSelector('input[value="other"]'))->click();
         $client->findElement(WebDriverBy::cssSelector('button[type=submit]'))->click();
         $client->waitForElementToContain('body', 'Please specify the duration when choosing "Other".');

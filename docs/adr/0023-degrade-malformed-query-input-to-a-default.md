@@ -10,7 +10,7 @@ Accepted
 
 The app has one non-technical daily user who works from bookmarks, and it
 hands out parameterised links itself: the home screen links to
-`/activities/new-batch?project=<id>&date=<Y-m-d>`. A truncated or stale
+`/activities/new?project=<id>&date=<Y-m-d>`. A truncated or stale
 bookmark is therefore the realistic bad URL, not a hand-crafted attack.
 
 Symfony's own readers turn such a URL into an error page:
@@ -50,7 +50,7 @@ a 5xx.**
   - `/reports`: an unknown `?tab=` lands on the default tab.
   - `/activities`: a `?volunteer=` filter that doesn't resolve shows the
     unfiltered list.
-  - `/activities/new-batch`: a `?project=` or `?date=` prefill that doesn't
+  - `/activities/new`: a `?project=` or `?date=` prefill that doesn't
     resolve is simply not applied (the date defaults to today).
   - `/usage`: an unknown `range`, an unparseable date (including overflow
     like `2026-13-45`) or a non-scalar falls back to the **default preset,

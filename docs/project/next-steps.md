@@ -46,7 +46,6 @@ Simplification, from
 each other, take them in any order or none:
 
 - [Cut symfony/ux-live-component](backlog/cut-ux-live-component.md) — **D**
-- [Drop /activities/new](backlog/drop-single-volunteer-activity-form.md) — **D**
 - [/reports walks every activity four times](backlog/reports-triple-walk-performance.md) — **G**
 - [Reconsider knplabs/knp-paginator-bundle](backlog/reconsider-knp-paginator.md) — **D**
 

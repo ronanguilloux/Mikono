@@ -310,7 +310,8 @@ process, hiding template/PHP edits in dev until a restart.
   only, never also `''`.
 - The volunteer pickers on both activity forms list **volunteers with a current or upcoming stay
   only**, and the escort pickers **active escorts only**.
-  `ActivityFormType` also backs edit, so its queries keep the activity's
+  `ActivityFormType` backs edit only (every new activity goes through
+  `/activities/new`), so its queries keep the activity's
   own volunteer and escorts selectable once deactivated, labelled
   `(inactive)`; any future "active only" picker on an edit form needs the
   same escape hatch, or old records become uneditable — and an expanded
@@ -352,7 +353,7 @@ process, hiding template/PHP edits in dev until a restart.
   ```bash
   docker compose exec php php scripts/gremlins.php --login \
     --email=ronan.guilloux@gmail.com --password=<dev-password> \
-    --path=/activities/new-batch --seed=1 --gremlins=500
+    --path=/activities/new --seed=1 --gremlins=500
   docker compose exec php bin/console foundry:load-fixtures --no-interaction
   ```
 

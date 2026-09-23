@@ -185,15 +185,15 @@ final class ActivityControllerTest extends WebTestCase
         $escort = EscortFactory::createOne(['name' => 'Mr Maeba']);
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/activities/new');
+        $this->checkVolunteers($crawler, [$volunteer]);
 
         $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
-            'activity_form[volunteer]' => (string) $volunteer->getId(),
-            'activity_form[program]' => (string) $program->getId(),
-            'activity_form[activityType]' => (string) $activityType->getId(),
-            'activity_form[duration]' => 'full_day',
-            'activity_form[escorts]' => [(string) $escort->getId()],
-            'activity_form[notes]' => 'Delivered Computer lessons to students',
+            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'batch_activity_form[program]' => (string) $program->getId(),
+            'batch_activity_form[activityType]' => (string) $activityType->getId(),
+            'batch_activity_form[duration]' => 'full_day',
+            'batch_activity_form[escorts]' => [(string) $escort->getId()],
+            'batch_activity_form[notes]' => 'Delivered Computer lessons to students',
         ]);
         $client->submit($form);
 
@@ -225,17 +225,18 @@ final class ActivityControllerTest extends WebTestCase
         $editor = UserFactory::createOne(['fullName' => 'Different Editor']);
         $client->loginUser($creator);
         $crawler = $client->request('GET', '/activities/new');
+        $this->checkVolunteers($crawler, [$volunteer]);
         $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
-            'activity_form[volunteer]' => (string) $volunteer->getId(),
-            'activity_form[program]' => (string) $program->getId(),
-            'activity_form[activityType]' => (string) $activityType->getId(),
-            'activity_form[duration]' => 'half_day',
+            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'batch_activity_form[program]' => (string) $program->getId(),
+            'batch_activity_form[activityType]' => (string) $activityType->getId(),
+            'batch_activity_form[duration]' => 'half_day',
         ]);
         $client->submit($form);
 
         $activityRepository = $client->getContainer()->get('doctrine')->getRepository(Activity::class);
         $activityId = $activityRepository->findOneBy([])->getId();
+        self::assertSame('Original Logger', $activityRepository->find($activityId)->getLoggedBy()?->getFullName());
 
         $client->loginUser($editor);
         $crawler = $client->request('GET', "/activities/{$activityId}/edit");
@@ -244,36 +245,19 @@ final class ActivityControllerTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        $activity = $activityRepository->find($activityId);
-        self::assertSame('Original Logger', $activity->getLoggedBy()->getFullName());
+        $activity = $this->reloadActivity($client, (int) $activityId);
+        self::assertSame('Original Logger', $activity->getLoggedBy()?->getFullName());
     }
 
     #[Test]
     public function escortsCanBeSetAndClearedFromTheSingleActivityEditForm(): void
     {
         $client = static::createClient();
-        $volunteer = VolunteerFactory::createOne();
-        $project = ProjectFactory::createOne();
-        $activityType = ActivityTypeFactory::createOne();
-        $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $escort = EscortFactory::createOne(['name' => 'Mr Maeba']);
         // Two escorts on one group is a real roster line — see ADR 0013.
         $secondEscort = EscortFactory::createOne(['name' => 'Ms Njeri']);
+        $activityId = (int) ActivityFactory::createOne(['date' => new \DateTimeImmutable('today')])->getId();
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new');
-        $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
-            'activity_form[volunteer]' => (string) $volunteer->getId(),
-            'activity_form[program]' => (string) $program->getId(),
-            'activity_form[activityType]' => (string) $activityType->getId(),
-            'activity_form[duration]' => 'half_day',
-        ]);
-        $client->submit($form);
-
-        $logged = $client->getContainer()->get('doctrine')->getRepository(Activity::class)->findOneBy([]);
-        self::assertInstanceOf(Activity::class, $logged);
-        $activityId = (int) $logged->getId();
-        self::assertSame([], $logged->getEscortNames());
 
         $crawler = $client->request('GET', "/activities/{$activityId}/edit");
         $this->checkEscorts($crawler, 'activity_form[escorts]', [(int) $escort->getId(), (int) $secondEscort->getId()]);
@@ -288,25 +272,21 @@ final class ActivityControllerTest extends WebTestCase
         self::assertSame([], $this->reloadActivity($client, $activityId)->getEscortNames());
     }
 
+    /**
+     * On the edit form, where Activity::validateDurationOther() is the check;
+     * the batch form's own is aBatchWithOtherDurationRequiresAFreeTextValue().
+     */
     #[Test]
     public function otherDurationRequiresAFreeTextValue(): void
     {
         $client = static::createClient();
-        $volunteer = VolunteerFactory::createOne();
-        $project = ProjectFactory::createOne();
-        $activityType = ActivityTypeFactory::createOne();
-        $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
+        $activity = ActivityFactory::createOne(['date' => new \DateTimeImmutable('today')]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new');
+        $crawler = $client->request('GET', sprintf('/activities/%d/edit', $activity->getId()));
 
-        $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
-            'activity_form[volunteer]' => (string) $volunteer->getId(),
-            'activity_form[program]' => (string) $program->getId(),
-            'activity_form[activityType]' => (string) $activityType->getId(),
+        $client->submit($crawler->selectButton('Save')->form([
             'activity_form[duration]' => 'other',
-        ]);
-        $client->submit($form);
+        ]));
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', 'Please specify the duration when choosing "Other".');
@@ -316,22 +296,14 @@ final class ActivityControllerTest extends WebTestCase
     public function otherDurationWithAFreeTextValueIsAccepted(): void
     {
         $client = static::createClient();
-        $volunteer = VolunteerFactory::createOne();
-        $project = ProjectFactory::createOne();
-        $activityType = ActivityTypeFactory::createOne();
-        $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
+        $activity = ActivityFactory::createOne(['date' => new \DateTimeImmutable('today')]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new');
+        $crawler = $client->request('GET', sprintf('/activities/%d/edit', $activity->getId()));
 
-        $form = $crawler->selectButton('Save')->form([
-            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
-            'activity_form[volunteer]' => (string) $volunteer->getId(),
-            'activity_form[program]' => (string) $program->getId(),
-            'activity_form[activityType]' => (string) $activityType->getId(),
+        $client->submit($crawler->selectButton('Save')->form([
             'activity_form[duration]' => 'other',
             'activity_form[durationOther]' => '2.5h',
-        ]);
-        $client->submit($form);
+        ]));
 
         self::assertResponseRedirects('/activities');
         $client->followRedirect();
@@ -349,7 +321,7 @@ final class ActivityControllerTest extends WebTestCase
         $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $escort = EscortFactory::createOne(['name' => 'Mr Maeba']);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
         $this->checkVolunteers($crawler, [$volunteerA, $volunteerB]);
 
         $form = $crawler->selectButton('Save')->form([
@@ -385,7 +357,7 @@ final class ActivityControllerTest extends WebTestCase
         $activityType = ActivityTypeFactory::createOne();
         $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
         $this->checkVolunteers($crawler, [$volunteer]);
 
         $form = $crawler->selectButton('Save and add another')->form([
@@ -396,7 +368,7 @@ final class ActivityControllerTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/activities/new-batch');
+        self::assertResponseRedirects('/activities/new');
     }
 
     #[Test]
@@ -407,7 +379,7 @@ final class ActivityControllerTest extends WebTestCase
         $activityType = ActivityTypeFactory::createOne();
         $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
 
         $form = $crawler->selectButton('Save')->form([
             'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
@@ -430,7 +402,7 @@ final class ActivityControllerTest extends WebTestCase
         $activityType = ActivityTypeFactory::createOne();
         $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
         $this->checkVolunteers($crawler, [$volunteer]);
 
         $form = $crawler->selectButton('Save')->form([
@@ -446,21 +418,6 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function inactiveVolunteersAreNotOfferedOnTheSingleActivityForm(): void
-    {
-        $client = static::createClient();
-        $active = VolunteerFactory::createOne(['firstName' => 'Still', 'lastName' => 'Here']);
-        $gone = VolunteerFactory::new()->inactive()->create(['firstName' => 'Long', 'lastName' => 'Gone']);
-
-        $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new');
-
-        $offered = $crawler->filter('#activity_form_volunteer option')->extract(['value']);
-        self::assertContains((string) $active->getId(), $offered);
-        self::assertNotContains((string) $gone->getId(), $offered);
-    }
-
-    #[Test]
     public function inactiveVolunteersAreNotOfferedOnTheBatchForm(): void
     {
         $client = static::createClient();
@@ -468,7 +425,7 @@ final class ActivityControllerTest extends WebTestCase
         $gone = VolunteerFactory::new()->inactive()->create(['firstName' => 'Long', 'lastName' => 'Gone']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
 
         $offered = $crawler
             ->filter('[data-batch-activity-form-target="checkboxes"] input[type="checkbox"]')
@@ -501,21 +458,6 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function inactiveEscortsAreNotOfferedOnTheSingleActivityForm(): void
-    {
-        $client = static::createClient();
-        $active = EscortFactory::createOne(['name' => 'Still Here']);
-        $gone = EscortFactory::new()->inactive()->create(['name' => 'Long Gone']);
-
-        $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new');
-
-        $offered = $crawler->filter('input[type="checkbox"][name^="activity_form[escorts]"]')->extract(['value']);
-        self::assertContains((string) $active->getId(), $offered);
-        self::assertNotContains((string) $gone->getId(), $offered);
-    }
-
-    #[Test]
     public function inactiveEscortsAreNotOfferedOnTheBatchForm(): void
     {
         $client = static::createClient();
@@ -523,7 +465,7 @@ final class ActivityControllerTest extends WebTestCase
         $gone = EscortFactory::new()->inactive()->create(['name' => 'Long Gone']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
 
         $offered = $crawler->filter('input[type="checkbox"][name^="batch_activity_form[escorts]"]')->extract(['value']);
         self::assertContains((string) $active->getId(), $offered);
@@ -940,10 +882,33 @@ final class ActivityControllerTest extends WebTestCase
 
         $client->loginUser(UserFactory::createOne());
 
-        foreach (['?project=abc', '?project[]=1', '?project=0', '?project=999999', '?date[]=x', '?date=nonsense'] as $query) {
-            $client->request('GET', '/activities/new-batch' . $query);
+        foreach (['?project=abc', '?project[]=1', '?project=0', '?project=999999', '?date[]=x', '?date=nonsense', '?volunteer=abc', '?volunteer[]=1', '?volunteer=999999'] as $query) {
+            $client->request('GET', '/activities/new' . $query);
             self::assertResponseIsSuccessful(sprintf('%s should render the form, not fail', $query));
         }
+    }
+
+    /**
+     * A volunteer's page links here with `?volunteer=<id>`: that person
+     * arrives ticked. One the form doesn't offer (no current or upcoming
+     * stay) is ignored rather than preselected invisibly.
+     */
+    #[Test]
+    public function theBatchFormPrefillsAVolunteerFromTheQueryString(): void
+    {
+        $client = static::createClient();
+        $here = VolunteerFactory::createOne();
+        VolunteerFactory::createOne(); // offered too, but not ticked
+        $gone = VolunteerFactory::new()->inactive()->create();
+        $client->loginUser(UserFactory::createOne());
+        $checked = '[data-batch-activity-form-target="checkboxes"] input[type="checkbox"][checked]';
+
+        $crawler = $client->request('GET', '/activities/new?volunteer=' . $here->getId());
+        self::assertSame([(string) $here->getId()], $crawler->filter($checked)->extract(['value']));
+
+        $crawler = $client->request('GET', '/activities/new?volunteer=' . $gone->getId());
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter($checked));
     }
 
     /**
@@ -1046,7 +1011,7 @@ final class ActivityControllerTest extends WebTestCase
         $activityType = ActivityTypeFactory::createOne();
         $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
         $this->checkVolunteers($crawler, [$volunteer]);
 
         $client->submit($crawler->selectButton('Save')->form([
@@ -1075,7 +1040,7 @@ final class ActivityControllerTest extends WebTestCase
         $activityType = ActivityTypeFactory::createOne();
         $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
         $this->checkVolunteers($crawler, [$here, $arriving]);
 
         $client->submit($crawler->selectButton('Save')->form([
@@ -1091,53 +1056,42 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function theSingleActivityFormRefusesADateOutsideTheVolunteersStays(): void
+    public function theEditFormRefusesADateOutsideTheVolunteersStays(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Wambui']);
-        $project = ProjectFactory::createOne();
-        $activityType = ActivityTypeFactory::createOne();
-        $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
+        $activity = ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => new \DateTimeImmutable('today')]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new');
+        $crawler = $client->request('GET', sprintf('/activities/%d/edit', $activity->getId()));
 
         $client->submit($crawler->selectButton('Save')->form([
             'activity_form[date]' => (new \DateTimeImmutable('today'))->modify('+6 months')->format('Y-m-d'),
-            'activity_form[volunteer]' => (string) $volunteer->getId(),
-            'activity_form[program]' => (string) $program->getId(),
-            'activity_form[activityType]' => (string) $activityType->getId(),
-            'activity_form[duration]' => 'half_day',
         ]));
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', 'Ann Wambui has no stay covering');
-        ActivityFactory::assert()->count(0);
     }
 
     #[Test]
-    public function theSingleActivityFormRefusesAProjectAtAnotherBranchThanTheStay(): void
+    public function theEditFormRefusesAProgramAtAnotherBranchThanTheStay(): void
     {
         $client = static::createClient();
         // Staying at Nairobi (HQ), the factory default.
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Wambui']);
-        $project = ProjectFactory::createOne(['name' => 'Minto', 'branch' => BranchFactory::find(['name' => 'Mombasa'])]);
         $activityType = ActivityTypeFactory::createOne();
+        $activity = ActivityFactory::createOne(['volunteer' => $volunteer, 'activityType' => $activityType, 'date' => new \DateTimeImmutable('today')]);
+        $project = ProjectFactory::createOne(['name' => 'Minto', 'branch' => BranchFactory::find(['name' => 'Mombasa'])]);
         $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new');
+        $crawler = $client->request('GET', sprintf('/activities/%d/edit', $activity->getId()));
 
         $client->submit($crawler->selectButton('Save')->form([
-            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
-            'activity_form[volunteer]' => (string) $volunteer->getId(),
             'activity_form[program]' => (string) $program->getId(),
-            'activity_form[activityType]' => (string) $activityType->getId(),
-            'activity_form[duration]' => 'half_day',
         ]));
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', 'Minto — ' . $program->getName() . ' is a Mombasa program, but on');
         self::assertSelectorTextContains('body', 'Ann Wambui is staying at Nairobi (HQ)');
-        ActivityFactory::assert()->count(0);
     }
 
     #[Test]
@@ -1154,7 +1108,7 @@ final class ActivityControllerTest extends WebTestCase
         $activityType = ActivityTypeFactory::createOne();
         $program = ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
         $this->checkVolunteers($crawler, [$coast, $city]);
 
         $client->submit($crawler->selectButton('Save')->form([
@@ -1178,35 +1132,30 @@ final class ActivityControllerTest extends WebTestCase
             'project' => ProjectFactory::createOne(['name' => 'Minto', 'branch' => BranchFactory::find(['name' => 'Mombasa'])]),
         ]);
         $client->loginUser(UserFactory::createOne());
-        $client->request('GET', '/activities/new-batch');
+        $client->request('GET', '/activities/new');
 
         self::assertSelectorTextContains('select[name="batch_activity_form[program]"] optgroup[label="Mombasa"]', 'Minto — Orphanage support');
     }
 
     /** The type must be one the program offers (ADR 0030). */
     #[Test]
-    public function theSingleActivityFormRefusesATypeTheProgramDoesNotOffer(): void
+    public function theEditFormRefusesATypeTheProgramDoesNotOffer(): void
     {
         $client = static::createClient();
-        $volunteer = VolunteerFactory::createOne();
         $program = ProgramFactory::createOne(['name' => 'School support']);
+        $activity = ActivityFactory::createOne(['program' => $program, 'date' => new \DateTimeImmutable('today')]);
         // Offered elsewhere, so the picker lists it.
         $clinic = ActivityTypeFactory::createOne(['name' => 'Clinic support']);
         ProgramFactory::createOne(['activityTypes' => [$clinic]]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new');
+        $crawler = $client->request('GET', sprintf('/activities/%d/edit', $activity->getId()));
 
         $client->submit($crawler->selectButton('Save')->form([
-            'activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
-            'activity_form[volunteer]' => (string) $volunteer->getId(),
-            'activity_form[program]' => (string) $program->getId(),
             'activity_form[activityType]' => (string) $clinic->getId(),
-            'activity_form[duration]' => 'half_day',
         ]));
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', "School support doesn't offer Clinic support.");
-        ActivityFactory::assert()->count(0);
     }
 
     #[Test]
@@ -1224,7 +1173,7 @@ final class ActivityControllerTest extends WebTestCase
             'endDate' => $today->modify('+3 days'),
         ]);
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/activities/new-batch');
+        $crawler = $client->request('GET', '/activities/new');
         $this->checkVolunteers($crawler, [$volunteerA, $volunteerB]);
 
         $client->submit($crawler->selectButton('Save')->form([
@@ -1246,7 +1195,7 @@ final class ActivityControllerTest extends WebTestCase
         ProgramFactory::createOne(['activityTypes' => [ActivityTypeFactory::createOne(['name' => 'School support'])]]);
         ActivityTypeFactory::createOne(['name' => 'Unused type']);
         $client->loginUser(UserFactory::createOne());
-        $client->request('GET', '/activities/new-batch');
+        $client->request('GET', '/activities/new');
 
         self::assertSelectorTextContains('#batch_activity_form_activityType', 'School support');
         self::assertSelectorTextNotContains('#batch_activity_form_activityType', 'Unused type');
@@ -1264,9 +1213,10 @@ final class ActivityControllerTest extends WebTestCase
         $shared = ActivityTypeFactory::createOne(['name' => 'School support']);
         $a = ProgramFactory::createOne(['activityTypes' => [$shared]]);
         $b = ProgramFactory::createOne(['activityTypes' => [$shared]]);
+        $activity = ActivityFactory::createOne(['program' => $a, 'activityType' => $shared, 'date' => new \DateTimeImmutable('today')]);
         $client->loginUser(UserFactory::createOne());
 
-        foreach (['/activities/new' => 'activity_form', '/activities/new-batch' => 'batch_activity_form'] as $url => $name) {
+        foreach ([sprintf('/activities/%d/edit', $activity->getId()) => 'activity_form', '/activities/new' => 'batch_activity_form'] as $url => $name) {
             $crawler = $client->request('GET', $url);
 
             self::assertCount(1, $crawler->filter("select#{$name}_program[data-controller=\"program-types\"][data-action=\"program-types#filter\"]"));

@@ -70,7 +70,7 @@ final class DashboardControllerTest extends WebTestCase
         // "+ Plan activity" opens the batch form already dated tomorrow.
         self::assertSame(
             1,
-            $crawler->filter(sprintf('a[href="/activities/new-batch?date=%s"]', $tomorrow->format('Y-m-d')))->count(),
+            $crawler->filter(sprintf('a[href="/activities/new?date=%s"]', $tomorrow->format('Y-m-d')))->count(),
         );
     }
 
@@ -93,7 +93,7 @@ final class DashboardControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', '58 days');
         self::assertSame(
             1,
-            $crawler->filter(sprintf('a[href="/activities/new-batch?project=%d"]', $project->getId()))->count(),
+            $crawler->filter(sprintf('a[href="/activities/new?project=%d"]', $project->getId()))->count(),
         );
     }
 
@@ -122,7 +122,7 @@ final class DashboardControllerTest extends WebTestCase
         $program = ProgramFactory::createOne(['project' => ProjectFactory::createOne(['name' => 'Nyali Beach'])]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', sprintf('/activities/new-batch?project=%d', $program->getProject()?->getId()));
+        $crawler = $client->request('GET', sprintf('/activities/new?project=%d', $program->getProject()?->getId()));
 
         self::assertResponseIsSuccessful();
         self::assertSame(
@@ -140,7 +140,7 @@ final class DashboardControllerTest extends WebTestCase
         ProgramFactory::createMany(2, ['project' => $project]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', sprintf('/activities/new-batch?project=%d', $project->getId()));
+        $crawler = $client->request('GET', sprintf('/activities/new?project=%d', $project->getId()));
 
         self::assertResponseIsSuccessful();
         // Only the placeholder is selected, as on an empty form.

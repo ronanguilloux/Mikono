@@ -27,11 +27,12 @@ final class ActivityFormType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        // Volunteers whose stays have all ended have finished their stint —
-        // offering them when logging an activity is noise. The one exception is this form's other
-        // job, /activities/{id}/edit: the activity's own volunteer stays
-        // selectable even once deactivated, so fixing a typo on an old entry
-        // never forces reassigning it to somebody else. Escorts get the same
+        // Backs /activities/{id}/edit only; new activities go through
+        // BatchActivityFormType. Volunteers whose stays have all ended have
+        // finished their stint, so they aren't offered — except the
+        // activity's own volunteer, who stays selectable even once
+        // deactivated, so fixing a typo on an old entry never forces
+        // reassigning it to somebody else. Escorts get the same
         // hatch, and there it guards more than a typo fix: an escort missing
         // from the expanded choices would be silently dropped on save.
         $data = $options['data'] ?? null;

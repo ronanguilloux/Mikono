@@ -20,7 +20,7 @@ if (isset($options['help'])) {
 
         Usage: docker compose exec php php scripts/gremlins.php [options]
 
-          --path=/activities/new-batch  Page to attack (default: /)
+          --path=/activities/new  Page to attack (default: /)
           --base-url=https://localhost  localhost only — see the warning below
           --login                       Perform the /login form flow first
           --email=...                   Required with --login unless PANTHER_LOGIN_EMAIL is set

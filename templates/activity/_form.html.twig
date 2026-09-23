@@ -1,6 +1,7 @@
-{# Shared by new and edit, so both count as "the activity form". Whether people
-   start logging an activity and give up is the one form question the access
-   log cannot answer — an abandoned form sends no request. ADR 0021. #}
+{# The edit form. It records the same event name as the batch form, so both
+   count as "the activity form". Whether people start logging an activity and
+   give up is the one form question the access log cannot answer — an
+   abandoned form sends no request. ADR 0021. #}
 {{ form_start(form, {attr: {
     class: 'max-w-lg',
     'data-controller': 'usage-event',

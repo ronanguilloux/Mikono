@@ -26,7 +26,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 /**
  * Backed by BatchActivityInput, not an entity: one submission fans out
  * into one Activity per selected volunteer, all sharing the same
- * date/program/type/duration — see ActivityController::newBatch().
+ * date/program/type/duration — see ActivityController::new().
  */
 final class BatchActivityFormType extends AbstractType
 {

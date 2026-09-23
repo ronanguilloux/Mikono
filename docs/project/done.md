@@ -6,6 +6,41 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-24 — One form logs every new activity, at /activities/new
+
+There used to be two forms for logging activities. `/activities/new` was
+the single-volunteer form. `/activities/new-batch` did the same job for one
+volunteer or many, and was where the home screen already linked (ponytail
+audit). We deleted the single-volunteer form, its action and its template.
+Then we moved the batch form to the URL it left free: it is now
+`/activities/new`, route `activity_new`, action `ActivityController::new()`.
+The page is titled "Log activities", and so is the one button on
+`/activities`. The old batch URL has no redirect.
+
+The pilot is still a UAT and test environment, so no bookmark or `/usage`
+history needed preserving.
+
+These names were kept: `BatchActivityFormType`, `BatchActivityInput`, the
+`batch_activity_form[...]` field names and the `batch-activity-form`
+Stimulus controller. They name the one-submission-to-many-activities
+mechanism, not the URL.
+
+A volunteer's page links to `/activities/new?volunteer=<id>`. That new
+prefill ticks the volunteer only when the picker offers them, meaning they
+have a current or upcoming stay (the same query the picker uses). Anything
+else is ignored, not preselected invisibly (ADR 0023).
+
+`ActivityFormType` now backs `/activities/{id}/edit` only. Tests that
+created activities through the old form now seed them with
+`ActivityFactory`, or go through the remaining form. Four validation tests
+now run on the edit form: the "Other" duration, no stay that day, another
+branch's program, and a type the program doesn't offer.
+`resolveStays()` still guards edit, and the batch form had its own tests
+for each case already. The E2E smoke test drives the remaining form. It
+had gone stale: it still selected the `activity_form[project]` field that
+ADR 0030 removed. One `method.nonObject` entry was removed from the PHPStan
+baseline.
+
 ## 2026-09-24 — Escort::$isActive filters the escort pickers
 
 Before this, `Escort::$isActive` was a checkbox and a Status column that

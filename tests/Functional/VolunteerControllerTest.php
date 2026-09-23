@@ -163,6 +163,26 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function showLogsAnActivityWithTheVolunteerAlreadyTicked(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        $link = $crawler->selectLink('Log activity');
+
+        self::assertSame("/activities/new?volunteer={$volunteer->getId()}", $link->attr('href'));
+
+        $crawler = $client->click($link->link());
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            [(string) $volunteer->getId()],
+            $crawler->filter('[data-batch-activity-form-target="checkboxes"] input[type="checkbox"][checked]')->extract(['value']),
+        );
+    }
+
+    #[Test]
     public function editUpdatesTheVolunteer(): void
     {
         $client = static::createClient();

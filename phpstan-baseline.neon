@@ -187,12 +187,6 @@ parameters:
 			path: src/Repository/VolunteerRepository.php
 
 		-
-			message: '#^Cannot call method getFullName\(\) on App\\Entity\\User\|null\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: tests/Functional/ActivityControllerTest.php
-
-		-
 			message: '#^Cannot call method getId\(\) on App\\Entity\\Activity\|null\.$#'
 			identifier: method.nonObject
 			count: 1

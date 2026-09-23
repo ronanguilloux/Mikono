@@ -58,7 +58,7 @@
                             {% endif %}
                         </p>
                     </div>
-                    <a href="{{ path('activity_new_batch', {date: todayRoster.date|date('Y-m-d')}) }}"
+                    <a href="{{ path('activity_new', {date: todayRoster.date|date('Y-m-d')}) }}"
                        class="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700">
                         + Log activity
                     </a>
@@ -93,7 +93,7 @@
                                 <span class="shrink-0 rounded-md border px-2 py-1 text-xs font-semibold {{ project.severity.value == 'critical' ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800' }}">
                                     {{ project.days }} days
                                 </span>
-                                <a href="{{ path('activity_new_batch', {project: project.id}) }}"
+                                <a href="{{ path('activity_new', {project: project.id}) }}"
                                    class="shrink-0 rounded-md border border-slate-300 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:border-brand-500 hover:text-brand-700">
                                     Assign volunteers
                                 </a>
@@ -136,7 +136,7 @@
                                 Copy as text
                             </button>
                         {% endif %}
-                        <a href="{{ path('activity_new_batch', {date: tomorrowRoster.date|date('Y-m-d')}) }}"
+                        <a href="{{ path('activity_new', {date: tomorrowRoster.date|date('Y-m-d')}) }}"
                            class="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700">
                             + Plan activity
                         </a>

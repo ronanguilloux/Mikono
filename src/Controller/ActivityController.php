@@ -197,7 +197,7 @@ final class ActivityController extends AbstractController
         return is_scalar($raw) && (int) $raw >= 1 ? (int) $raw : null;
     }
 
-    /** The index's `?volunteer=<id>` filter. */
+    /** The index's `?volunteer=<id>` filter, and the batch form's prefill. */
     private function requestedVolunteer(Request $request): ?Volunteer
     {
         $id = $this->requestedId($request, 'volunteer');
@@ -224,33 +224,15 @@ final class ActivityController extends AbstractController
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(Request $request): Response
     {
-        $activity = new Activity();
-        $form = $this->createForm(ActivityFormType::class, $activity);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form, [$activity])) {
-            $activity->setLoggedBy($this->loggedByUser());
-            $this->entityManager->persist($activity);
-            $this->entityManager->flush();
-
-            $this->addFlash('success', 'Activity was logged.');
-
-            return $this->redirectToRoute('activity_index');
-        }
-
-        return $this->render('activity/new.html.twig', ['form' => $form]);
-    }
-
-    #[Route('/new-batch', name: 'new_batch', methods: ['GET', 'POST'])]
-    public function newBatch(Request $request): Response
-    {
         $today = new \DateTimeImmutable('today');
         $data = new BatchActivityInput();
         // The home screen links here pre-filled: its rosters pass the day they
         // cover, and "Assign volunteers" on a quiet project passes that
-        // project, so the VM lands on a form that only needs the people.
+        // project, so the VM lands on a form that only needs the people. A
+        // volunteer's page passes that volunteer, ticked already.
         $data->date = $this->requestedDate($request) ?? $today;
         $data->program = $this->soleProgramOf($this->requestedProject($request));
+        $data->volunteers = $this->offerableVolunteer($this->requestedVolunteer($request));
         $form = $this->createForm(BatchActivityFormType::class, $data);
         $form->handleRequest($request);
 
@@ -287,14 +269,14 @@ final class ActivityController extends AbstractController
                 $this->addFlash('success', sprintf('Logged %d %s.', $count, 1 === $count ? 'activity' : 'activities'));
 
                 if ('add_another' === $request->request->get('save_action')) {
-                    return $this->redirectToRoute('activity_new_batch');
+                    return $this->redirectToRoute('activity_new');
                 }
 
                 return $this->redirectToRoute('activity_index');
             }
         }
 
-        return $this->render('activity/new_batch.html.twig', [
+        return $this->render('activity/new.html.twig', [
             'form' => $form,
             'todayIso' => $today->format('Y-m-d'),
             'tomorrowIso' => $today->modify('+1 day')->format('Y-m-d'),
@@ -364,6 +346,28 @@ final class ActivityController extends AbstractController
         $id = $this->requestedId($request, 'project');
 
         return null === $id ? null : $this->entityManager->find(Project::class, $id);
+    }
+
+    /**
+     * The `?volunteer=<id>` prefill, kept only when the form offers that
+     * volunteer — the same current-or-upcoming-stay rule as its picker. A
+     * preselected value outside the choices would be silently dropped.
+     *
+     * @return list<Volunteer>
+     */
+    private function offerableVolunteer(?Volunteer $volunteer): array
+    {
+        if (null === $volunteer) {
+            return [];
+        }
+
+        $offered = $this->volunteers->createWithCurrentOrUpcomingStayQueryBuilder()
+            ->andWhere('v = :volunteer')
+            ->setParameter('volunteer', $volunteer)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $offered instanceof Volunteer ? [$offered] : [];
     }
 
     /**
