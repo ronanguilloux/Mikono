@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Dto\BatchActivityInput;
 use App\Entity\Activity;
+use App\Entity\Branch;
 use App\Entity\Escort;
 use App\Entity\Program;
 use App\Entity\Project;
@@ -17,6 +18,7 @@ use App\Form\ActivityFormType;
 use App\Form\BatchActivityFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ActivityRepository;
+use App\Repository\BranchRepository;
 use App\Repository\ProgramRepository;
 use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -69,6 +71,7 @@ final class ActivityController extends AbstractController
         private readonly ActivityRepository $activities,
         private readonly VolunteerRepository $volunteers,
         private readonly ProgramRepository $programs,
+        private readonly BranchRepository $branches,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
     ) {}
@@ -80,8 +83,9 @@ final class ActivityController extends AbstractController
 
         $volunteer = $this->requestedVolunteer($request);
         $program = $this->requestedProgram($request);
+        $branch = $this->requestedBranch($request);
 
-        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request, $volunteer, $program), Activity::class, $request);
+        $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request, $volunteer, $program, $branch), Activity::class, $request);
 
         $rows = [];
         foreach ($pagination as $activity) {
@@ -123,13 +127,16 @@ final class ActivityController extends AbstractController
             'program' => $program,
             // Every program, ended ones included, for the same reason.
             'programs' => $this->programs->createOrderedQueryBuilder()->getQuery()->getResult(),
+            'branch' => $branch,
+            // Inactive branches too, for the same reason.
+            'branches' => $this->branches->createOrderedByNameQueryBuilder()->getQuery()->getResult(),
         ]);
     }
 
     #[Route('/export.{format}', name: 'export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
     public function export(Request $request, string $format): StreamedResponse
     {
-        $queryBuilder = $this->listQueryBuilder($request, $this->requestedVolunteer($request), $this->requestedProgram($request));
+        $queryBuilder = $this->listQueryBuilder($request, $this->requestedVolunteer($request), $this->requestedProgram($request), $this->requestedBranch($request));
 
         return ListExport::response('activities', $format, self::COLUMNS, (function () use ($queryBuilder): \Generator {
             /** @var Activity $activity */
@@ -142,9 +149,9 @@ final class ActivityController extends AbstractController
     /**
      * The one query behind both the index and its export.
      */
-    private function listQueryBuilder(Request $request, ?Volunteer $volunteer, ?Program $program): QueryBuilder
+    private function listQueryBuilder(Request $request, ?Volunteer $volunteer, ?Program $program, ?Branch $branch): QueryBuilder
     {
-        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder($volunteer, $program);
+        $queryBuilder = $this->activities->createOrderedByDateDescQueryBuilder($volunteer, $program, $branch);
         $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
 
         return $queryBuilder;
@@ -174,7 +181,8 @@ final class ActivityController extends AbstractController
     }
 
     /**
-     * An id from the query string (`?volunteer=`, `?program=`, `?project=`),
+     * An id from the query string (`?volunteer=`, `?program=`, `?branch=`,
+     * `?project=`),
      * read the way ListPaginator reads its own params: through query->all(),
      * because InputBag::get() throws on `?volunteer[]=1` and getInt() throws
      * on `?volunteer=abc` (ADR 0023). Anything unusable — blank,
@@ -203,6 +211,14 @@ final class ActivityController extends AbstractController
         $id = $this->requestedId($request, 'program');
 
         return null === $id ? null : $this->programs->find($id);
+    }
+
+    /** The index's `?branch=<id>` filter. */
+    private function requestedBranch(Request $request): ?Branch
+    {
+        $id = $this->requestedId($request, 'branch');
+
+        return null === $id ? null : $this->branches->find($id);
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

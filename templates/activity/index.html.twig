@@ -8,7 +8,7 @@
        three-line stack. #}
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 class="text-xl font-semibold">
-            Activities{% if volunteer %} — {{ volunteer.fullName }}{% endif %}{% if program %} — {{ program.project.name }}, {{ program.name }}{% endif %}
+            Activities{% if volunteer %} — {{ volunteer.fullName }}{% endif %}{% if program %} — {{ program.project.name }}, {{ program.name }}{% endif %}{% if branch %} — {{ branch.name }}{% endif %}
         </h1>
         <div class="flex items-center gap-3">
             <twig:ExportMenu route="activity_export" />
@@ -34,11 +34,11 @@
         phone. Structure copied from PaginationBar's page-size form, down to
         the sr-only submit button that keeps it working with JavaScript off.
 
-        Nothing else needs to know about `volunteer` or `program`: the sort
+        Nothing else needs to know about `branch`, `volunteer` or `program`: the sort
         headers, the page links, the page-size form and the mobile sort
         selects all carry every scalar query param through already, so the
         filters survive a sort click and page 2 on their own. One form, so
-        changing one filter keeps the other.
+        changing one filter keeps the others.
         The volunteer one is also marked data-volunteer-filter for its tests.
     #}
     <form
@@ -49,10 +49,26 @@
     >
         {# `page` is dropped on purpose: a new filter means a new page 1. #}
         {% for key, value in app.request.query.all %}
-            {% if key not in ['page', 'volunteer', 'program'] and value is not iterable %}
+            {% if key not in ['page', 'branch', 'volunteer', 'program'] and value is not iterable %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endif %}
         {% endfor %}
+
+        <label for="branch-filter" class="sr-only">Filter by branch</label>
+        <span aria-hidden="true">Branch</span>
+        <select
+            id="branch-filter"
+            name="branch"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            <option value="">All branches</option>
+            {% for option in branches %}
+                <option value="{{ option.id }}" {{ branch and branch.id == option.id ? 'selected' : '' }}>
+                    {{ option.name }}{% if not option.isActive %} (inactive){% endif %}
+                </option>
+            {% endfor %}
+        </select>
 
         <label for="volunteer-filter" class="sr-only">Filter by volunteer</label>
         <span aria-hidden="true">Volunteer</span>
@@ -81,10 +97,12 @@
             <option value="">All programs</option>
             {# Programs arrive ordered by branch, so a branch change opens the next group. #}
             {% for option in programs %}
-                {% set branch = option.project.branch.name %}
-                {% if loop.first or branch != programs[loop.index0 - 1].project.branch.name %}
+                {# Not `branch`: a set inside a for loop leaks past it and would
+                   clobber the branch filter. #}
+                {% set group = option.project.branch.name %}
+                {% if loop.first or group != programs[loop.index0 - 1].project.branch.name %}
                     {% if not loop.first %}</optgroup>{% endif %}
-                    <optgroup label="{{ branch }}">
+                    <optgroup label="{{ group }}">
                 {% endif %}
                 <option value="{{ option.id }}" {{ program and program.id == option.id ? 'selected' : '' }}>
                     {{ option.project.name }} — {{ option.name }}
@@ -109,7 +127,7 @@
         {% endif %}
     </form>
 
-    {% set empty_message = volunteer or program
+    {% set empty_message = volunteer or program or branch
         ? 'No activities match these filters.'
         : 'No activities logged yet — log the first one above.'
     %}

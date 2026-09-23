@@ -4,7 +4,7 @@ created: 2026-09-09
 source: ponytail-audit
 status: needs-decision
 size: S
-priority: later
+priority: paused, kept for memory
 labels: [perf]
 epic: simplification
 ---

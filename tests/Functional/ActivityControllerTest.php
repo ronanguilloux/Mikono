@@ -792,6 +792,61 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     /**
+     * The branch comes from each activity's stay (ADR 0026). Stayless
+     * volunteers make the factory build that stay at the program's branch;
+     * a default one covering today sits at a random branch and would make
+     * the counts depend on faker's date. The filter narrows both
+     * renderings and the export, combines with the volunteer filter, and
+     * rides along on the sort links.
+     */
+    #[Test]
+    public function theIndexAndExportFilterByABranch(): void
+    {
+        $client = static::createClient();
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $minto = ProjectFactory::createOne(['name' => 'Minto', 'branch' => $mombasa]);
+        $aisha = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Achieng', 'stays' => []]);
+        ActivityFactory::createOne(['project' => $minto, 'volunteer' => $aisha]);
+        ActivityFactory::createOne(['project' => $minto, 'volunteer' => VolunteerFactory::new(['stays' => []])]);
+        ActivityFactory::createOne([
+            'project' => ProjectFactory::createOne(['branch' => BranchFactory::find(['name' => 'Nairobi (HQ)'])]),
+            'volunteer' => VolunteerFactory::new(['stays' => []]),
+        ]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities?branch=' . $mombasa->getId());
+
+        self::assertCount(2, $crawler->filter('table tbody tr'));
+        self::assertCount(2, $crawler->filter('[data-activity-cards] > li'));
+        self::assertStringContainsString('Mombasa', $crawler->filter('h1')->text());
+        self::assertSame(
+            (string) $mombasa->getId(),
+            $crawler->filter('#branch-filter option[selected]')->attr('value'),
+        );
+        self::assertStringContainsString('branch=' . $mombasa->getId(), (string) $crawler->filter('[data-sort-link="date"]')->attr('href'));
+
+        $both = sprintf('/activities?branch=%d&volunteer=%d', $mombasa->getId(), $aisha->getId());
+        self::assertCount(1, $client->request('GET', $both)->filter('table tbody tr'));
+
+        self::assertCount(2, self::exportedRows($client, '/activities/export.csv?branch=' . $mombasa->getId()));
+    }
+
+    #[Test]
+    public function theIndexShrugsOffAnUnusableBranchFilter(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createMany(3);
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (['abc', '0', '999999', '', '[]=1'] as $value) {
+            $url = str_starts_with($value, '[') ? '/activities?branch' . $value : '/activities?branch=' . $value;
+            $crawler = $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertCount(3, $crawler->filter('table tbody tr'), sprintf('%s should not filter', $url));
+        }
+    }
+
+    /**
      * Same contract as the sort and page params: bad input never 400s or 404s,
      * it just leaves the list alone. `volunteer[]=1` is the one that would
      * throw if the controller read it through InputBag::get()/getInt().

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Branch;
 use App\Entity\Program;
 use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -31,9 +32,11 @@ class ActivityRepository extends ServiceEntityRepository
      * A volunteer narrows the result to that person's activities — the index's
      * `?volunteer=<id>` filter and the volunteer screen's activity history are
      * the same query. A program narrows it the same way (`?program=<id>`);
-     * both reach DQL as bound parameters, never interpolated.
+     * both reach DQL as bound parameters, never interpolated. A branch
+     * (`?branch=<id>`) filters on the stay's branch, where ADR 0026 anchors an
+     * activity's branch; its join is to-one too and only added when filtering.
      */
-    public function createOrderedByDateDescQueryBuilder(?Volunteer $volunteer = null, ?Program $program = null): QueryBuilder
+    public function createOrderedByDateDescQueryBuilder(?Volunteer $volunteer = null, ?Program $program = null, ?Branch $branch = null): QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('a')
             ->addSelect('v', 'prg', 'p', 't')
@@ -54,6 +57,13 @@ class ActivityRepository extends ServiceEntityRepository
             $queryBuilder
                 ->andWhere('a.program = :program')
                 ->setParameter('program', $program);
+        }
+
+        if (null !== $branch) {
+            $queryBuilder
+                ->join('a.stay', 's')
+                ->andWhere('s.branch = :branch')
+                ->setParameter('branch', $branch);
         }
 
         return $queryBuilder;

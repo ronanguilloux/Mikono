@@ -6,6 +6,24 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-24 — /activities filters by branch
+
+`/activities?branch=<id>` narrows the log to one branch, from a Branch
+select next to the volunteer and program ones. It filters on the stay's
+branch (`a.stay` → `s.branch`), where ADR 0026 anchors an activity's
+branch, and the join is added only when filtering. The filter is applied in
+`listQueryBuilder()`, so the "Current view" export keeps it. It combines
+with `?volunteer=` and `?program=`, survives sort and page links, and any
+unusable value means no filter (ADR 0023). The list offers inactive
+branches too, since this page reads history.
+
+One trap turned up. The program select's `<optgroup>` loop had a
+`{% set branch = … %}`, and a `set` inside a Twig `for` leaks past the loop,
+so it overwrote the new `branch` variable. The loop's local is now `group`.
+Also, a factory-default volunteer carries a stay covering today at a random
+branch, so a branch test needs stayless volunteers (`'stays' => []`) for the
+activity factory to build each stay at the program's branch.
+
 ## 2026-09-22 — A fresh checkout now boots with a first paint
 
 A clean clone 500'd on every page, `/login` included: `base.html.twig`

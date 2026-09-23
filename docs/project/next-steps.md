@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-24
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -33,12 +33,11 @@ hostname is the one that isn't ours to solve.
 
 1. [Seed real programs from UCESCO's Volunteer World listing](backlog/seed-programs-from-volunteer-world.md)
 2. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
-3. [Filter /activities by branch](backlog/activities-branch-filter.md)
-4. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
-5. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
-6. [Search the volunteer list](backlog/volunteer-search.md)
-7. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
-8. [Second slice of volunteer profile fields](backlog/volunteer-profile-second-slice.md) — **G**
+3. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
+4. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
+5. [Search the volunteer list](backlog/volunteer-search.md)
+6. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
+7. [Second slice of volunteer profile fields](backlog/volunteer-profile-second-slice.md) — **G**
 
 ## Later
 
