@@ -65,7 +65,7 @@ final class BatchActivityFormType extends AbstractType
             ->add('escorts', EntityType::class, [
                 'class' => Escort::class,
                 'choice_label' => 'name',
-                'query_builder' => static fn(EscortRepository $escorts): QueryBuilder => $escorts->createOrderedByNameQueryBuilder(),
+                'query_builder' => static fn(EscortRepository $escorts): QueryBuilder => $escorts->createActiveOrderedByNameQueryBuilder(),
                 'multiple' => true,
                 'expanded' => true,
                 'required' => false,

@@ -60,9 +60,9 @@ That is what `needs-design` means here.
   covers the real need better than a searchable number column does — the ask
   says "passport information", not "passport number".
 - **Open question 1 — what is a supervisor?** A `User`, an `Escort`, or free
-  text. `Escort` already exists and already has an undecided flag
-  ([decide-escort-is-active](decide-escort-is-active.md)); settle that card
-  first, or the two answers will collide. Free text is the lazy answer and
+  text. `Escort` already exists, and its `isActive` now filters the
+  activity pickers (`done.md`, 2026-09-24), so a supervisor built on
+  `Escort` would inherit that retirement flag. Free text is the lazy answer and
   may well be the right one until someone needs to list a supervisor's
   volunteers.
 - **Open question 2 — history of what?** Past stints at UCESCO are already

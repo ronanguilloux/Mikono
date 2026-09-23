@@ -6,6 +6,28 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-24 — Escort::$isActive filters the escort pickers
+
+Before this, `Escort::$isActive` was a checkbox and a Status column that
+nothing read. Both activity pickers listed inactive escorts, with no label
+(ponytail audit). We kept the field and gave it a job instead of deleting
+it. The escort delete-guard blocks deleting anyone with logged activities,
+so deactivating is the only way to retire a staff member who has left.
+Without the flag, they would stay in the pickers for good.
+
+Both pickers now use `EscortRepository::createActiveOrderedByNameQueryBuilder()`.
+On `/activities/{id}/edit`, `ActivityFormType` passes the activity's own
+escorts as the escape hatch, the same one the volunteer picker has. They
+stay offered and are labelled `(inactive)`. For escorts this matters more
+than it does for volunteers. The field is an expanded multi-select, so an
+escort missing from the choices would be silently removed when the form
+was saved unchanged. A functional test covers that round trip. The index
+and its export still list every escort.
+
+`EscortFactory::inactive()` now has callers in those tests.
+`ProjectFactory::inactive()`, the other dead state the card mentioned, is
+now used by `QuietProjectFinderTest`.
+
 ## 2026-09-24 — /activities filters by branch
 
 `/activities?branch=<id>` narrows the log to one branch, from a Branch

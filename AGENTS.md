@@ -309,10 +309,12 @@ process, hiding template/PHP edits in dev until a restart.
   `required: false` and **no** `empty_data`, so "not recorded" is `null`
   only, never also `''`.
 - The volunteer pickers on both activity forms list **volunteers with a current or upcoming stay
-  only**. `ActivityFormType` also backs edit, so its query keeps the
-  activity's own current volunteer selectable once deactivated; any future
-  "active only" picker on an edit form needs the same escape hatch, or old
-  records become uneditable.
+  only**, and the escort pickers **active escorts only**.
+  `ActivityFormType` also backs edit, so its queries keep the activity's
+  own volunteer and escorts selectable once deactivated, labelled
+  `(inactive)`; any future "active only" picker on an edit form needs the
+  same escape hatch, or old records become uneditable — and an expanded
+  multi-select like escorts silently drops the missing ones on save.
 - `tests/Functional/RouteSmokeTest.php` walks **every GET route**, so a new
   route is covered for free. Don't relax `catchExceptions(false)` or the
   2xx assertion, and add a new entity's id to its prefix map rather than

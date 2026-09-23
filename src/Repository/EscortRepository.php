@@ -21,8 +21,8 @@ class EscortRepository extends ServiceEntityRepository
     }
 
     /**
-     * The one ordered-by-name query: the paginated index builds on it, and both
-     * activity forms hand it straight to their escort picker.
+     * Every escort, ordered by name: the paginated index and its export build
+     * on it. The activity pickers want createActiveOrderedByNameQueryBuilder().
      *
      * No findAllOrderedByName() twin here, unlike VolunteerRepository and
      * ProjectRepository — nothing needs every escort as an array, and an
@@ -32,6 +32,29 @@ class EscortRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('e')
             ->orderBy('e.name', 'ASC');
+    }
+
+    /**
+     * Active escorts only, for both activity pickers. Deactivating is how a
+     * staff member who left is retired, since the delete-guard blocks
+     * deleting anyone with logged activities.
+     *
+     * $alsoInclude is the edit screen's escape hatch: an activity's own
+     * escorts stay offered once deactivated, or saving the form unchanged
+     * would silently drop them.
+     *
+     * @param list<Escort> $alsoInclude
+     */
+    public function createActiveOrderedByNameQueryBuilder(array $alsoInclude = []): QueryBuilder
+    {
+        $builder = $this->createOrderedByNameQueryBuilder()
+            ->where('e.isActive = true');
+
+        if ([] !== $alsoInclude) {
+            $builder->orWhere('e IN (:current)')->setParameter('current', $alsoInclude);
+        }
+
+        return $builder;
     }
 
     public function countReferencingActivities(Escort $escort): int

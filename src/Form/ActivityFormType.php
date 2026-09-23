@@ -31,9 +31,12 @@ final class ActivityFormType extends AbstractType
         // offering them when logging an activity is noise. The one exception is this form's other
         // job, /activities/{id}/edit: the activity's own volunteer stays
         // selectable even once deactivated, so fixing a typo on an old entry
-        // never forces reassigning it to somebody else.
+        // never forces reassigning it to somebody else. Escorts get the same
+        // hatch, and there it guards more than a typo fix: an escort missing
+        // from the expanded choices would be silently dropped on save.
         $data = $options['data'] ?? null;
         $currentVolunteer = $data instanceof Activity ? $data->getVolunteer() : null;
+        $currentEscorts = $data instanceof Activity ? array_values($data->getEscorts()->toArray()) : [];
 
         $builder
             ->add('date', DateType::class, ['widget' => 'single_text'])
@@ -70,8 +73,8 @@ final class ActivityFormType extends AbstractType
             // Sam". Her wording stays the label — see ADR 0013.
             ->add('escorts', EntityType::class, [
                 'class' => Escort::class,
-                'choice_label' => 'name',
-                'query_builder' => static fn(EscortRepository $escorts): QueryBuilder => $escorts->createOrderedByNameQueryBuilder(),
+                'choice_label' => static fn(Escort $escort) => $escort->getName() . ($escort->isActive() ? '' : ' (inactive)'),
+                'query_builder' => static fn(EscortRepository $escorts): QueryBuilder => $escorts->createActiveOrderedByNameQueryBuilder($currentEscorts),
                 'multiple' => true,
                 'expanded' => true,
                 'by_reference' => false,

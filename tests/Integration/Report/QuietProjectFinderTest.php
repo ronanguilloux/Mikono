@@ -91,7 +91,7 @@ final class QuietProjectFinderTest extends KernelTestCase
         $today = new \DateTimeImmutable('today');
         ActivityFactory::createOne([
             'date' => $today->modify('-70 days'),
-            'project' => ProjectFactory::createOne(['name' => 'Closed site', 'isActive' => false]),
+            'project' => ProjectFactory::new()->inactive()->create(['name' => 'Closed site']),
         ]);
 
         self::assertSame([], $this->finder()->find($today));

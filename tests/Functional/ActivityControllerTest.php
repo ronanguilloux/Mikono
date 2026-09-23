@@ -501,6 +501,61 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function inactiveEscortsAreNotOfferedOnTheSingleActivityForm(): void
+    {
+        $client = static::createClient();
+        $active = EscortFactory::createOne(['name' => 'Still Here']);
+        $gone = EscortFactory::new()->inactive()->create(['name' => 'Long Gone']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+
+        $offered = $crawler->filter('input[type="checkbox"][name^="activity_form[escorts]"]')->extract(['value']);
+        self::assertContains((string) $active->getId(), $offered);
+        self::assertNotContains((string) $gone->getId(), $offered);
+    }
+
+    #[Test]
+    public function inactiveEscortsAreNotOfferedOnTheBatchForm(): void
+    {
+        $client = static::createClient();
+        $active = EscortFactory::createOne(['name' => 'Still Here']);
+        $gone = EscortFactory::new()->inactive()->create(['name' => 'Long Gone']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new-batch');
+
+        $offered = $crawler->filter('input[type="checkbox"][name^="batch_activity_form[escorts]"]')->extract(['value']);
+        self::assertContains((string) $active->getId(), $offered);
+        self::assertNotContains((string) $gone->getId(), $offered);
+    }
+
+    #[Test]
+    public function editingAnOldActivityKeepsItsSinceDeactivatedEscort(): void
+    {
+        // An escort missing from the expanded choices would be silently
+        // dropped when the form is saved unchanged.
+        $client = static::createClient();
+        $gone = EscortFactory::new()->inactive()->create(['name' => 'Long Gone']);
+        $activity = ActivityFactory::createOne(['escorts' => [$gone]]);
+        $activityId = (int) $activity->getId();
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/activities/{$activityId}/edit");
+
+        self::assertResponseIsSuccessful();
+        $checkbox = $crawler->filter(sprintf('input[name^="activity_form[escorts]"][value="%d"]', $gone->getId()));
+        self::assertCount(1, $checkbox);
+        self::assertSame('checked', $checkbox->attr('checked'));
+        self::assertStringContainsString('Long Gone (inactive)', $crawler->filter(sprintf('label[for="%s"]', $checkbox->attr('id')))->text());
+
+        $client->submit($crawler->selectButton('Save')->form());
+
+        self::assertResponseRedirects();
+        self::assertSame(['Long Gone'], $this->reloadActivity($client, $activityId)->getEscortNames());
+    }
+
+    #[Test]
     public function theIndexRendersOneMobileCardPerActivityAlongsideTheDesktopTable(): void
     {
         $client = static::createClient();
