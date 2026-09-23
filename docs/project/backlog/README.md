@@ -30,7 +30,7 @@ a working cross-reference between cards.
 | --- | --- | --- |
 | `title` | free text | Sentence case, matches the `#` heading |
 | `created` | `YYYY-MM-DD` | Absolute date, never "last week" |
-| `source` | `ronan` \| `edna` \| `nickson` \| `ponytail-audit` | Who asked. A list when two people asked for the same thing |
+| `source` | `ronan` \| `edna` \| `kingsley` \| `nickson` \| `ponytail-audit` | Who asked. A list when two people asked for the same thing |
 | `status` | `ready` \| `needs-decision` \| `needs-design` \| `deferred` \| `blocked` | See below |
 | `size` | `XS` \| `S` \| `M` \| `L` \| `XL` | XS <1h, S half-day, M a day, L multi-day. **`XL` means split this card**, not "big" |
 | `priority` | `now` \| `next` \| `later` | Maps 1:1 onto the grouping in `next-steps.md` |

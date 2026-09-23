@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-23
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -36,6 +36,9 @@ hostname is the one that isn't ours to solve.
 3. [Filter /activities by branch](backlog/activities-branch-filter.md)
 4. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
 5. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
+6. [Search the volunteer list](backlog/volunteer-search.md)
+7. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
+8. [Second slice of volunteer profile fields](backlog/volunteer-profile-second-slice.md) — **G**
 
 ## Later
 
@@ -52,11 +55,14 @@ each other, take them in any order or none:
 Features not yet decided:
 
 - [Geolocate usage with GeoIP](backlog/geoip-usage-location.md) — **D**
+- [A searchable photo library with metadata](backlog/photo-library-with-metadata.md) — **D**
+- [Offline field capture and sync](backlog/offline-field-capture.md) — **D**
+- [An "Ask UCESCO Africa" AI assistant](backlog/ask-ucesco-ai-assistant.md) — **D**
+- [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **D**
 
 Deferred behind a trigger — each card names the event that wakes it:
 
 - [SQLite journal mode (WAL)](backlog/sqlite-wal-journal-mode.md) — **Z**
 - [Task/assignment hand-offs](backlog/task-assignment-handoffs.md) — **Z**
-- [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **Z**
 - [Scheduled donor digest emails](backlog/scheduled-donor-digest-emails.md) — **Z**
 - [WhatsApp Business API / roster sending](backlog/whatsapp-roster-sending.md) — **Z**
