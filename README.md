@@ -12,6 +12,12 @@ entries), plus a basic per-volunteer/per-project report.
 docker compose up -d --wait   # start (first run auto-bootstraps the app)
 ```
 
+The first run takes a few minutes and needs network access: the entrypoint
+installs Composer dependencies, replays the migrations, and downloads the
+standalone Tailwind binary to build the CSS. None of that output is
+committed — `var/` and `vendor/` are gitignored — so it happens once per
+fresh checkout, and the container only reports healthy once it is done.
+
 ## Quick stop
 
 ```bash
@@ -64,6 +70,20 @@ and include it in every local compose command:
 export COMPOSE_FILE=compose.yaml:compose.override.yaml:compose.local.yaml
 docker compose up -d --wait
 ```
+
+That `export` is per-shell, and forgetting it fails quietly: `docker compose`
+then loads only `compose.yaml` + `compose.override.yaml` and recreates the
+container **without** the `tls` directive, so Caddy falls back to its own
+untrusted certificate and the browser blocks the page again. To check which
+one is being served:
+
+```bash
+echo | openssl s_client -connect localhost:443 -servername localhost 2>/dev/null \
+  | openssl x509 -noout -issuer
+```
+
+`issuer=...mkcert development CA...` is right; `issuer=CN=Caddy Local
+Authority` means the override was not loaded.
 
 Restart the browser once. Both `frankenphp/certs/` and
 `compose.local.yaml` are gitignored — never commit the key. The certificate

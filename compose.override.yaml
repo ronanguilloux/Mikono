@@ -30,3 +30,11 @@ services:
       # Ensure that host.docker.internal is correctly defined on Linux
       - host.docker.internal:host-gateway
     tty: true
+    # On a fresh checkout the entrypoint builds Tailwind's CSS before the
+    # server starts, downloading the standalone binary first — well past the
+    # image's 60s start_period, which would let `up --wait` call the container
+    # unhealthy mid-download. Dev only: production bakes the CSS into the image
+    # and keeps the shorter period, so a genuinely broken start is still caught
+    # quickly there.
+    healthcheck:
+      start_period: 5m

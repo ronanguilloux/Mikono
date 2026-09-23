@@ -38,6 +38,24 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 		fi
 	fi
 
+	# Tailwind's built CSS is generated, never committed: var/ is gitignored,
+	# and compose.override.yaml hides it behind an anonymous volume, so a fresh
+	# checkout starts with none. base.html.twig throws rather than degrade, so
+	# every page — /login included — 500s until this has run once.
+	#
+	# Dev only, and only when it is missing: the production image bakes the CSS
+	# in at build time (Dockerfile, frankenphp_prod_builder), so the glob below
+	# already matches there and this is skipped. The first dev run downloads the
+	# standalone Tailwind binary, which is why compose.override.yaml gives the
+	# healthcheck a longer start_period.
+	#
+	# Restyling later is still manual — `bin/console tailwind:build`, or
+	# `--watch` during template work. This only guarantees a first paint.
+	if [ -z "$(ls -A var/tailwind/*.built.css 2>/dev/null)" ]; then
+		echo 'Building Tailwind CSS (first run downloads the standalone binary)...'
+		php bin/console tailwind:build
+	fi
+
 	echo 'PHP app ready!'
 fi
 

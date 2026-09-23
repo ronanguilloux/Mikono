@@ -261,7 +261,16 @@ docker compose exec php bin/console doctrine:migrations:migrate --no-interaction
 
 **Tailwind CSS** doesn't rebuild itself: run
 `docker compose exec php bin/console tailwind:build` after a styling change,
-or `tailwind:build --watch` in the background during template work.
+or `tailwind:build --watch` in the background during template work. The
+**first** build is the entrypoint's job, not yours — it runs `tailwind:build`
+when `var/tailwind/*.built.css` matches nothing, which is the case on every
+fresh checkout (`var/` is gitignored and `compose.override.yaml` hides it
+behind an anonymous volume). Without it `base.html.twig` throws and every
+page 500s, `/login` included. The glob is the environment check: production
+bakes the CSS in at build time, so the step is skipped there — don't add an
+`APP_ENV` branch. It also puts a cold `up -d --wait` past three minutes,
+which is why `compose.override.yaml` overrides `start_period` to `5m` in dev
+only (`done.md`, 2026-09-22).
 
 **Don't reintroduce:** the base `10-app.ini` sets
 `opcache.enable_file_override=1` (a prod optimization). Under FrankenPHP's

@@ -6,6 +6,42 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-22 — A fresh checkout now boots with a first paint
+
+A clean clone 500'd on every page, `/login` included: `base.html.twig`
+throws when `var/tailwind/` holds no built CSS, and nothing in dev ever
+built it. The production image was fine and always had been — its builder
+stage runs `tailwind:build --minify` before `asset-map:compile`, so the CSS
+ships baked in. Dev had no equivalent: `frankenphp_dev` copies no
+application source (it lives on the bind mount), so the image can't build
+it; `var/` is gitignored and `compose.override.yaml` hides it behind an
+anonymous volume, so nothing on the host reaches it either. The README's
+"first run auto-bootstraps the app" was true for vendor, database and
+migrations, and false for the stylesheet.
+
+`frankenphp/docker-entrypoint.sh` now builds it when `var/tailwind/*.built.css`
+matches nothing, next to the `composer install` guard that already worked
+this way. The glob does the environment check on its own: production's copy
+exists, so the step is skipped there, and one entrypoint stays one
+entrypoint. Restyling later is still manual, unchanged.
+
+`compose.override.yaml` gives the healthcheck `start_period: 5m`, dev only.
+Downloading the standalone binary and building put the first
+`up -d --wait` at 3 min 13 — the image's 60s would have called the container
+unhealthy mid-download. Production keeps the short period, so a genuinely
+broken start is still caught quickly there.
+
+Verified by wiping `var/tailwind/` entirely, rebuilding the dev image and
+starting from cold: `Healthy`, CSS present, `/login` 200. A restart after
+that skips the build.
+
+The README also gained the `export COMPOSE_FILE=…compose.local.yaml` trap
+that surfaced alongside this: forgetting it in a new shell recreates the
+container without the `tls` directive, Caddy silently falls back to its own
+untrusted certificate, and the browser blocks the page — which looks exactly
+like the Tailwind 500 from the outside. `openssl s_client … | openssl x509
+-noout -issuer` tells the two apart.
+
 ## 2026-09-17 — Volunteer profile fields and photo
 
 See [ADR 0032](../adr/0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md). Document attachments were split out to [their own card](backlog/volunteer-document-attachments.md).
