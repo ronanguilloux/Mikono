@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Fixture;
 
 use App\Fixture\RosterArchive;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -32,6 +33,132 @@ final class RosterArchiveTest extends TestCase
         self::assertNotEmpty($archive->escorts);
         self::assertNotEmpty($archive->projects);
         self::assertNotEmpty($archive->rosters);
+        self::assertNotEmpty($archive->programs);
+    }
+
+    #[Test]
+    public function everyRosterSiteResolvesToASingleProgramOfferingItsType(): void
+    {
+        // AppStory gives each roster activity the listed program at its
+        // project that offers its type, or the project's generated always-on
+        // program when none does. `listedProgramFor()` throws when two match.
+        $archive = self::archive();
+
+        foreach ($archive->rosters as $roster) {
+            foreach ($roster->sites as $site) {
+                $type = $archive->projects[$site->projectKey]->activityType;
+                self::assertNotNull($type, "Site \"{$site->projectKey}\" has no activity type.");
+
+                $program = $archive->listedProgramFor($site->projectKey, $type);
+                if (null !== $program) {
+                    self::assertTrue(
+                        (null === $program->startDate) && (null === $program->endDate),
+                        "Program \"{$program->name}\" is dated; check it covers the shifted roster days.",
+                    );
+                }
+            }
+        }
+    }
+
+    #[Test]
+    public function peggyLucasRunsComputerTuitionBesideItsSchoolSupport(): void
+    {
+        // The case programs exist for (ADR 0030, brainstorm 10): two programs
+        // at one project, the roster's school support work untouched by it.
+        $archive = self::archive();
+
+        self::assertNotNull($archive->listedProgramFor('peggy_lucas', 'Computer tuition'));
+        self::assertNull($archive->listedProgramFor('peggy_lucas', 'School support'));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function malformedPrograms(): iterable
+    {
+        yield 'unknown project' => [
+            "  - {name: Tuition, project: nowhere, activity_types: [School support]}\n",
+            'references unknown project "nowhere"',
+        ];
+        yield 'no activity type' => [
+            "  - {name: Tuition, project: school, activity_types: []}\n",
+            'offers no activity type',
+        ];
+        yield 'end before start' => [
+            "  - {name: Tuition, project: school, activity_types: [School support], start: 2026-09-10, end: 2026-09-01}\n",
+            'ends before it starts',
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('malformedPrograms')]
+    public function aMalformedProgramRefusesToLoad(string $programs, string $message): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage($message);
+
+        self::archiveWithPrograms($programs);
+    }
+
+    #[Test]
+    public function twoProgramsOfferingARosterSitesTypeLeaveItsProgramAGuess(): void
+    {
+        $archive = self::archiveWithPrograms(
+            "  - {name: Tuition, project: school, activity_types: [School support]}\n"
+            . "  - {name: Mentoring, project: school, activity_types: [School support]}\n",
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Several programs at project "school" offer "School support"');
+
+        $archive->listedProgramFor('school', 'School support');
+    }
+
+    #[Test]
+    public function aRosterSiteAtAProjectWithNoActivityTypeRefusesToLoad(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('project "hub", which has no activity_type');
+
+        self::archiveWithPrograms('', 'hub');
+    }
+
+    /**
+     * A one-roster archive around the given `programs:` entries, written to
+     * a temp file since `fromFile()` is the only way in.
+     */
+    private static function archiveWithPrograms(string $programs, string $rosterProject = 'school'): RosterArchive
+    {
+        $yaml = <<<YAML
+            volunteers:
+              - {name: Ada, active: true}
+            escorts: []
+            projects:
+              - {key: school, name: School, branch: Nairobi (HQ), ownership: ucesco, activity_type: School support}
+              - {key: hub, name: Hub, branch: Nairobi (HQ), ownership: ucesco}
+            programs:
+
+            YAML
+            . ('' === $programs ? "  []\n" : $programs)
+            . <<<YAML
+            rosters:
+              - date: 2026-09-01
+                anchor: today
+                sites:
+                  - project: {$rosterProject}
+                    volunteers: [{name: Ada}]
+
+            YAML;
+
+        $path = tempnam(sys_get_temp_dir(), 'roster');
+        self::assertIsString($path);
+        file_put_contents($path, $yaml);
+
+        try {
+            return RosterArchive::fromFile($path);
+        } finally {
+            unlink($path);
+        }
     }
 
     #[Test]

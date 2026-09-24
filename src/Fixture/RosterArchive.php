@@ -12,9 +12,11 @@ use Symfony\Component\Yaml\Yaml;
  * The real UCESCO roster archive — `docs/fixtures/rosters.yaml`, transcribed
  * by hand from the VM's WhatsApp roster messages.
  *
- * This is the only source `AppStory` seeds from: the app is never populated
- * with generated people, sites or dates. See ADR 0012, and
- * `docs/fixtures/README.md` for the transcription rules the file obeys.
+ * Its `programs:` section comes from a second real source, UCESCO's public
+ * Volunteer World listing, since the rosters never name a program. Nothing
+ * `AppStory` seeds is generated: no invented people, sites, programs or
+ * dates. See ADR 0012, and `docs/fixtures/README.md` for the transcription
+ * rules the file obeys.
  *
  * Everything here fails loudly on a malformed file rather than seeding a
  * half-empty database — a fixture that quietly skips rows is worse than one
@@ -29,12 +31,14 @@ final readonly class RosterArchive
      * @param list<string>                   $escorts
      * @param array<string, ArchivedProject> $projects   keyed by the YAML's project key
      * @param list<ArchivedRoster>           $rosters
+     * @param list<ArchivedProgram>          $programs
      */
     private function __construct(
         public array $volunteers,
         public array $escorts,
         public array $projects,
         public array $rosters,
+        public array $programs,
     ) {}
 
     public static function fromFile(string $path): self
@@ -66,7 +70,36 @@ final readonly class RosterArchive
                 self::string($row, 'branch'),
                 ProjectOwnership::from(self::string($row, 'ownership')),
                 self::nullableString($row, 'partner'),
-                self::string($row, 'activity_type'),
+                self::nullableString($row, 'activity_type'),
+            );
+        }
+
+        $programs = [];
+        foreach (self::rows($parsed, 'programs') as $row) {
+            $name = self::string($row, 'name');
+            $projectKey = self::string($row, 'project');
+            if (!isset($projects[$projectKey])) {
+                throw new \RuntimeException(sprintf('Program "%s" references unknown project "%s".', $name, $projectKey));
+            }
+
+            $activityTypes = self::strings($row, 'activity_types');
+            if ([] === $activityTypes) {
+                throw new \RuntimeException(sprintf('Program "%s" offers no activity type.', $name));
+            }
+
+            $startDate = self::nullableDate($row, 'start');
+            $endDate = self::nullableDate($row, 'end');
+            if (null !== $startDate && null !== $endDate && $endDate < $startDate) {
+                throw new \RuntimeException(sprintf('Program "%s" ends before it starts.', $name));
+            }
+
+            $programs[] = new ArchivedProgram(
+                $name,
+                $projectKey,
+                $activityTypes,
+                self::nullableString($row, 'suggested_roles'),
+                $startDate,
+                $endDate,
             );
         }
 
@@ -85,6 +118,10 @@ final readonly class RosterArchive
                 $projectKey = self::string($site, 'project');
                 if (!isset($projects[$projectKey])) {
                     throw new \RuntimeException(sprintf('Roster references unknown project "%s".', $projectKey));
+                }
+
+                if (null === $projects[$projectKey]->activityType) {
+                    throw new \RuntimeException(sprintf('Roster sends volunteers to project "%s", which has no activity_type.', $projectKey));
                 }
 
                 $duration = self::nullableString($site, 'duration');
@@ -108,7 +145,29 @@ final readonly class RosterArchive
             );
         }
 
-        return new self($volunteers, self::strings($parsed, 'escorts'), $projects, $rosters);
+        return new self($volunteers, self::strings($parsed, 'escorts'), $projects, $rosters, $programs);
+    }
+
+    /**
+     * The listed program at a project that offers a type, if there is one.
+     *
+     * A roster activity takes this program; when there is none, the project's
+     * generated always-on program stands in (`AppStory`). Two listed programs
+     * matching would leave the activity's program a guess, so that fails.
+     */
+    public function listedProgramFor(string $projectKey, string $activityType): ?ArchivedProgram
+    {
+        $matches = array_values(array_filter(
+            $this->programs,
+            static fn(ArchivedProgram $program) => $program->projectKey === $projectKey
+                && \in_array($activityType, $program->activityTypes, true),
+        ));
+
+        if (\count($matches) > 1) {
+            throw new \RuntimeException(sprintf('Several programs at project "%s" offer "%s"; a roster activity there has no single program.', $projectKey, $activityType));
+        }
+
+        return $matches[0] ?? null;
     }
 
     /**
@@ -213,6 +272,12 @@ final readonly class RosterArchive
         }
 
         return $value;
+    }
+
+    /** @param array<mixed> $row */
+    private static function nullableDate(array $row, string $key): ?\DateTimeImmutable
+    {
+        return null === ($row[$key] ?? null) ? null : self::date($row, $key);
     }
 
     /** @param array<mixed> $row */

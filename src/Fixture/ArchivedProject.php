@@ -15,7 +15,9 @@ use App\Enum\ProjectOwnership;
  *
  * `activityType` is the work that site means — "Peggy Lucas school" is
  * school support, "ACK clinic" is clinic support. The rosters name the place
- * and leave the rest understood.
+ * and leave the rest understood. It is null for a project no roster sends
+ * anyone to — a branch's hub for its listed programs — since there is no
+ * roster work to name.
  */
 final readonly class ArchivedProject
 {
@@ -25,6 +27,6 @@ final readonly class ArchivedProject
         public string $branch,
         public ProjectOwnership $ownership,
         public ?string $partner,
-        public string $activityType,
+        public ?string $activityType,
     ) {}
 }

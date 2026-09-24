@@ -21,10 +21,11 @@ use Zenstruck\Foundry\Story;
 /**
  * The dev and demo dataset — every row of it real.
  *
- * Nothing here is generated: the volunteers, escorts, sites, dates and roster
- * notes all come from `docs/fixtures/rosters.yaml`, transcribed from a month
- * of the VM's own WhatsApp roster messages. See ADR 0012 for why, and
- * `docs/fixtures/README.md` for what the archive can and cannot supply.
+ * Nothing here is generated. Everything comes from `docs/fixtures/rosters.yaml`:
+ * the volunteers, escorts, sites, dates and roster notes from a month of the
+ * VM's own WhatsApp roster messages, and the programs from UCESCO's public
+ * Volunteer World listing. See ADR 0012 for why, and
+ * `docs/fixtures/README.md` for what each source can and cannot supply.
  *
  * To grow the dataset, add to the archive — not to this file.
  */
@@ -67,13 +68,17 @@ final class AppStory extends Story
             $escorts[$name] = EscortFactory::createOne(['name' => $name]);
         }
 
+        $typeNames = array_merge(
+            array_map(static fn($project) => $project->activityType, array_values($archive->projects)),
+            ...array_map(static fn($program) => $program->activityTypes, $archive->programs),
+        );
         $activityTypes = [];
+        foreach (array_unique(array_filter($typeNames, static fn(?string $name) => null !== $name)) as $name) {
+            $activityTypes[$name] = ActivityTypeFactory::createOne(['name' => $name]);
+        }
+
         $projects = [];
-        $programs = [];
         foreach ($archive->projects as $key => $project) {
-            $activityTypes[$project->activityType] ??= ActivityTypeFactory::createOne([
-                'name' => $project->activityType,
-            ]);
             $projects[$key] = ProjectFactory::createOne([
                 'name' => $project->name,
                 'branch' => BranchFactory::find(['name' => $project->branch]),
@@ -81,14 +86,42 @@ final class AppStory extends Story
                 'partnerOrganizationName' => $project->partner,
                 'isActive' => true,
             ]);
-            // The archive knows one type per project and no programs, so each
-            // project gets one always-on program named after its type
-            // (ADR 0030) — not an invented one (ADR 0012).
-            $programs[$key] = ProgramFactory::createOne([
-                'name' => $project->activityType,
-                'project' => $projects[$key],
-                'activityTypes' => [$activityTypes[$project->activityType]],
+        }
+
+        // Listed dates are real calendar dates, so they don't take the
+        // archive's shift below. None are dated yet.
+        $listedPrograms = [];
+        foreach ($archive->programs as $index => $program) {
+            $listedPrograms[$index] = ProgramFactory::createOne([
+                'name' => $program->name,
+                'project' => $projects[$program->projectKey],
+                'activityTypes' => array_map(static fn(string $name) => $activityTypes[$name], $program->activityTypes),
+                'suggestedRoles' => $program->suggestedRoles,
+                'startDate' => $program->startDate,
+                'endDate' => $program->endDate,
             ]);
+        }
+
+        // A roster site's work belongs to the listed program at its project
+        // that offers its type. Where none does, the project gets one
+        // always-on program named after that type (ADR 0030), not an invented
+        // one (ADR 0012).
+        $programs = [];
+        $rosterTypes = [];
+        foreach ($archive->projects as $key => $project) {
+            if (null === $project->activityType) {
+                continue;
+            }
+
+            $rosterTypes[$key] = $activityTypes[$project->activityType];
+            $listed = $archive->listedProgramFor($key, $project->activityType);
+            $programs[$key] = null !== $listed
+                ? $listedPrograms[array_search($listed, $archive->programs, true)]
+                : ProgramFactory::createOne([
+                    'name' => $project->activityType,
+                    'project' => $projects[$key],
+                    'activityTypes' => [$rosterTypes[$key]],
+                ]);
         }
 
         // The whole archive slides onto the day the fixtures load: the calendar
@@ -144,13 +177,18 @@ final class AppStory extends Story
                     $site->escorts,
                 );
 
+                $program = $programs[$site->projectKey];
+                if (!$program->covers($date)) {
+                    throw new \RuntimeException(sprintf('Program "%s" does not cover the roster day %s at "%s".', $program->getName(), $date->format('Y-m-d'), $site->projectKey));
+                }
+
                 foreach ($site->volunteers as $slot) {
                     ActivityFactory::createOne([
                         'date' => $date,
                         'volunteer' => $volunteers[$slot->name] ?? throw new \RuntimeException(sprintf('Roster names a volunteer the archive does not list: "%s".', $slot->name)),
                         'stay' => $stays[$slot->name],
-                        'program' => $programs[$site->projectKey],
-                        'activityType' => $activityTypes[$archive->projects[$site->projectKey]->activityType],
+                        'program' => $program,
+                        'activityType' => $rosterTypes[$site->projectKey],
                         'duration' => $site->duration,
                         'notes' => $slot->note,
                         'escorts' => $siteEscorts,

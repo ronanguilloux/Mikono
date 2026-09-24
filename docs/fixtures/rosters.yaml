@@ -140,6 +140,212 @@ projects:
     branch: Nairobi (HQ)
     ownership: ucesco
     activity_type: Orientation
+  # The two hubs below exist for the Volunteer World listing's programs, not
+  # for any roster: no roster sends anyone to Samburu or Uganda, so they have
+  # no activity_type. Each is named after its branch's physical location, as
+  # the branch migration records it (ADR 0025), never after the region.
+  - key: samburu_hub
+    name: Ichingei Village
+    branch: Samburu
+    ownership: ucesco
+  - key: uganda_hub
+    name: Ggaba
+    branch: Uganda
+    ownership: ucesco
+
+# UCESCO's programs, from its public Volunteer World listing — the second
+# source this archive admits (ADR 0012; rules in README.md). Fetched
+# 2026-09-24 from
+# https://www.volunteerworld.com/en/filter?ProjectId=71f31166-6a8c-45fb-acb5-cccd69a2a98e
+# — 40 programs, each read from its own page.
+#
+# The listing places a program in a city, never at a site, so each one sits
+# on its branch's hub project: `ucesco_hq` for Nairobi, `mombasa_office` for
+# Mombasa, `samburu_hub` for Maralal, `uganda_hub` for Kampala. `name` is the
+# listing's title; `suggested_roles` condenses the tasks its page lists. No
+# program has dates: the listing's "1–50 weeks" is how long a volunteer may
+# stay, not when the program runs.
+programs:
+  # Named by Ronan as the first real program (docs/brainstorm/10), not taken
+  # from the listing — the one program tied to an archive site.
+  - name: Computer Tuition
+    project: peggy_lucas
+    activity_types: [Computer tuition]
+
+  # --- Nairobi ---
+  - name: Teaching and School Support Assistant
+    project: ucesco_hq
+    activity_types: [School support]
+    suggested_roles: Classroom assistant, small-group tutor in reading, writing and numeracy, break-time supervisor
+  - name: Childcare & Early Childhood Development Assistant
+    project: ucesco_hq
+    activity_types: [Childcare]
+    suggested_roles: Early-childhood classroom assistant, daycare helper, storytelling and play leader
+  # The listing cuts this title off at "Training Assista"; only the last word
+  # is completed.
+  - name: ICT, Web Design & Computer Skills Training Assistant
+    project: ucesco_hq
+    activity_types: [Computer tuition]
+    suggested_roles: Computer skills tutor, web design mentor, digital literacy and internet safety trainer
+  - name: Chinese Teacher in our Local Schools
+    project: ucesco_hq
+    activity_types: [Language tuition]
+    suggested_roles: Mandarin teacher, lesson-plan and materials assistant, conversation practice lead
+  # The listing spells it "assitant".
+  - name: French Language Assistant Tutor (Francophone)
+    project: ucesco_hq
+    activity_types: [Language tuition]
+    suggested_roles: French tutor for youth and community learners
+  # The listing spells it "Assitant".
+  - name: Italian Language Teacher Assistant
+    project: ucesco_hq
+    activity_types: [Language tuition]
+    suggested_roles: Italian teacher for children aged 4–14, language activity assistant
+  - name: Life Skills Speaker & Counselor
+    project: ucesco_hq
+    activity_types: [Counselling]
+    suggested_roles: Guest speaker on health, budgeting, CV writing, interviews, time management or conflict resolution
+  - name: Mental Health & Psychosocial Support
+    project: ucesco_hq
+    activity_types: [Counselling]
+    suggested_roles: Counsellor (addiction, grief, career), psychotherapist, special-needs daycare helper
+  - name: Local Medical & Clinical Experience
+    project: ucesco_hq
+    activity_types: [Clinic support, Health outreach]
+    suggested_roles: Medical camp volunteer, clinic assistant, hospital shadow, medical or nursing elective student
+  - name: Dental Outreach & Oral Health Education
+    project: ucesco_hq
+    activity_types: [Clinic support, Health outreach]
+    suggested_roles: Dental screening assistant, assistant dentist (professionals), oral hygiene educator
+  - name: Cook and Nutritionist Assistant
+    project: ucesco_hq
+    activity_types: [Cooking & nutrition]
+  - name: Community Service Supporter
+    project: ucesco_hq
+    activity_types: [Community service]
+    suggested_roles: Donation drive organiser, school walk-home escort, community event helper, gardening volunteer
+  - name: Giving Support to Vulnerable Communities
+    project: ucesco_hq
+    activity_types: [Community service]
+    suggested_roles: Donation sorter, outreach event helper, grounds clean-up and landscaping volunteer
+  - name: EcoAction & Environmental Conservation Assistant
+    project: ucesco_hq
+    activity_types: [Environmental conservation]
+    suggested_roles: Tree planter, school garden builder, clean-up lead, environmental educator
+  - name: School Renovation and Construction Assistant
+    project: ucesco_hq
+    activity_types: [Construction & renovation]
+    suggested_roles: Construction helper (walls, roofs, floors, tiling), painter, furniture repairer
+  - name: Painting & Remodeling Assistance
+    project: ucesco_hq
+    activity_types: [Construction & renovation]
+    suggested_roles: Painter, muralist, interior decoration assistant
+  - name: Women Empowerment through Micro-Finance
+    project: ucesco_hq
+    activity_types: [Women's empowerment]
+    suggested_roles: Financial literacy trainer, savings group supporter, small business mentor
+  - name: Local Women Empowerment Assistance
+    project: ucesco_hq
+    activity_types: [Women's empowerment, Vocational training support]
+    suggested_roles: Nail art and beauty trainer
+  - name: Creative Arts and Culture Assistant
+    project: ucesco_hq
+    activity_types: [Creative arts]
+    suggested_roles: Music teacher, art and craft workshop lead, dance session lead, cultural event organiser
+  - name: Sports & Recreation Coaching Assistant
+    project: ucesco_hq
+    activity_types: [Sports]
+    suggested_roles: Football, volleyball or athletics coach, tournament organiser
+  - name: NGO Management, Media & Administration Assistant
+    project: ucesco_hq
+    activity_types: [Office/admin support, Media & communications]
+    suggested_roles: Office administrator, data and reporting assistant, content creator, fundraising and events assistant
+
+  # --- Mombasa ---
+  # The listing truncates this title to "…School Support Vol"; the page's own
+  # heading gives it in full.
+  - name: Transform Lives as a Teaching & School Support Volunteer
+    project: mombasa_office
+    activity_types: [School support]
+    suggested_roles: Classroom assistant, mentor, school project helper
+  - name: Healthcare Assistant - Gain practical experience
+    project: mombasa_office
+    activity_types: [Clinic support]
+    suggested_roles: Pre-medical or medical student, nurse or nursing student, allied health professional
+  - name: HIV & AIDS Awareness in Local Communities
+    project: mombasa_office
+    activity_types: [Health outreach, Counselling]
+    suggested_roles: Counselling group supporter, behaviour-change discussion facilitator, first-aid giver, fundraiser
+  - name: Beach Clean-Up & Marine Conservation
+    project: mombasa_office
+    activity_types: [Beach clean-up, Environmental conservation]
+    suggested_roles: Beach and waterway clean-up volunteer, ocean literacy educator, children's swimming instructor
+  - name: Turtles and Marine Conservation Support
+    project: mombasa_office
+    activity_types: [Environmental conservation]
+    suggested_roles: Marine conservation assistant, mangrove nursery helper
+  - name: Eco-farm Support & Eco-tourism
+    project: mombasa_office
+    activity_types: [Farming, Environmental conservation]
+    suggested_roles: Farm and garden hand, agroforestry planter, animal carer, environmental educator
+  - name: Women's Entrepreneurial Empowerment
+    project: mombasa_office
+    activity_types: [Women's empowerment]
+    suggested_roles: Entrepreneurship trainer, financial literacy guide, marketing and digital selling mentor
+  - name: Fashion Design & Tailoring Technology
+    project: mombasa_office
+    activity_types: [Vocational training support]
+    suggested_roles: Tailoring trainer, pattern-making and garment construction teacher, fashion design mentor
+  - name: Empower Youth Through Music, Dance & Art
+    project: mombasa_office
+    activity_types: [Creative arts]
+    suggested_roles: Music, dance or art teacher for youth
+  - name: Content Creator & Social Media Assistant
+    project: mombasa_office
+    activity_types: [Media & communications]
+    suggested_roles: Storyteller, photographer or videographer, social media assistant
+  - name: Yoga & Physical Exercise Coach
+    project: mombasa_office
+    activity_types: [Yoga & fitness]
+    suggested_roles: Yoga and fitness instructor for youth, students and women
+  - name: Swim Instructor & Lifeguard Assistant
+    project: mombasa_office
+    activity_types: [Sports]
+    suggested_roles: Swim instructor, lifeguard
+
+  # --- Samburu (Maralal) ---
+  - name: School Building & Renovation Assistance
+    project: samburu_hub
+    activity_types: [Construction & renovation]
+    suggested_roles: Construction helper (walls, roofs, floors, scaffolding), painter
+  - name: Climate-Smart Agriculture and Livestock Technician
+    project: samburu_hub
+    activity_types: [Farming]
+    suggested_roles: Farm hand (planting, weeding, harvesting), greenhouse and organic farming learner
+  - name: Community Health Promoters(CHPs) Assistant
+    project: samburu_hub
+    activity_types: [Health outreach]
+    suggested_roles: Community health promoter assistant, health educator, medical camp volunteer
+  # The page gives the location as "Mralal", Kenya, though its web address
+  # says Kampala. Read as Maralal, since the page names it.
+  - name: Lifestyle and Yoga Instructor
+    project: samburu_hub
+    activity_types: [Yoga & fitness]
+    suggested_roles: Yoga instructor for women, youth and children new to yoga
+
+  # --- Uganda (Kampala) ---
+  - name: Make a Difference in Medical & Clinical Support
+    project: uganda_hub
+    activity_types: [Clinic support, Health outreach]
+    suggested_roles: Medical or pre-health student, doctor, clinical officer, nurse or midwife, pharmacist, lab technician
+  - name: Recreation & Sport Coaching Assistant
+    project: uganda_hub
+    activity_types: [Sports]
+    suggested_roles: Youth coach (soccer, netball, basketball, athletics, swimming and more)
+  - name: Photography and Film Assistant
+    project: uganda_hub
+    activity_types: [Media & communications]
+    suggested_roles: Photographer, videographer and editor, graphic designer
 
 rosters:
   - date: 2026-08-04

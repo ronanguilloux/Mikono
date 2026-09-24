@@ -6,6 +6,43 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-24 — Seed real programs from UCESCO's Volunteer World listing
+
+`docs/fixtures/rosters.yaml` has a `programs:` section: the 40 programs on
+UCESCO's Volunteer World listing, each read from its own page, plus
+Computer Tuition at Peggy Lucas. The demo now shows projects running
+several programs. The listing gives a city, never a site, so each program
+sits on its branch's hub: UCESCO HQ (21 programs), the Mombasa Office (12),
+and two new hub projects, Ichingei Village for Samburu (4) and Ggaba for
+Uganda (3). Only Peggy Lucas runs two programs at an archive site.
+Which program runs at which site is now a question for Edna
+([roster-archive-open-questions](backlog/roster-archive-open-questions.md)).
+
+What the listing could not supply: **dates**. "1–50 weeks" is how long a
+volunteer may stay, so every program is seeded always-on, and the card's
+hope of a dated demo program is unmet until a real source gives one. For
+the same reason, the card's check for "a roster activity no program
+covers" is the resolution test, not a date test. `AppStory` still throws if
+a program ever fails to cover its roster day.
+
+`RosterArchive` parses the section into `ArchivedProgram`s and refuses to
+load on:
+
+- an unknown project
+- an empty `activity_types`
+- an end before its start
+- a roster site at a project with no `activity_type` (the hubs have none)
+
+`listedProgramFor()` resolves a roster activity's program and throws when
+two listed programs would match. Where none matches, `AppStory` keeps the
+project's generated always-on program. That covers every archive site
+except Peggy Lucas's Computer Tuition, which sits beside its School
+support. `RosterArchiveTest` gains resolution tests and five rejection
+cases built from temp YAML.
+
+Rules: `docs/fixtures/README.md`, "Second source". ADR 0012 was rewritten
+to admit the listing.
+
 ## 2026-09-24 — Search the volunteer list
 
 `/volunteers?q=<text>` lists only volunteers whose full name or email

@@ -8,8 +8,8 @@ this file is the working detail.
 ## What lives here
 
 - **`rosters.yaml`** — committed. The derived dataset:
-  volunteers, escorts, projects, and one entry per roster line the VM
-  posted. `src/Story/AppStory.php` reads it through
+  volunteers, escorts, projects, UCESCO's programs, and one entry per
+  roster line the VM posted. `src/Story/AppStory.php` reads it through
   `App\Fixture\RosterArchive`; nothing else in the app touches it.
 - **`*_dumps.txt`** — **gitignored, never committed.** The raw WhatsApp
   exports the extract is transcribed from. They stay on the machine that
@@ -72,6 +72,44 @@ are the reason this is a human pass rather than a parser.
     their last roster appearance, or at the archive's last day for
     `active: true` — so it is what makes them active or not once loaded.
     A volunteer's sites must therefore all share one `branch`.
+
+## Second source: the Volunteer World listing
+
+The rosters never name a program, so `programs:` comes from UCESCO's
+public
+[Volunteer World listing](https://www.volunteerworld.com/en/filter?ProjectId=71f31166-6a8c-45fb-acb5-cccd69a2a98e),
+with each program read from its own page. The one exception is Computer
+Tuition at Peggy Lucas, which Ronan named (`docs/brainstorm/10`); its
+comment says so. These rules apply alongside the ones above:
+
+1. **Program facts only.** Title, city, activities, the kind of volunteer
+   wanted. Each page also carries reviews signed by volunteers; no
+   reviewer's name, and no child's, donor's or staff member's, reaches the
+   file.
+2. **A program sits on its branch's hub project** unless a source names the
+   site. The listing gives a city, never a site: Nairobi →
+   `ucesco_hq`, Mombasa → `mombasa_office`, Maralal → `samburu_hub`,
+   Kampala → `uganda_hub`. The two hubs no roster uses have no
+   `activity_type`. Don't guess a site from a program's subject; ask Edna
+   ([roster-archive-open-questions](../project/backlog/roster-archive-open-questions.md)).
+3. **Trust the page's location, not its web address.** Several addresses
+   name another city than the page states (the photography program's says
+   Mombasa; its page says Kampala).
+4. **No dates are invented.** The listing's "1–50 weeks" is how long a
+   volunteer may stay, not when a program runs, so every program is
+   always-on. `start`/`end` exist for a source that gives real dates.
+5. **`name` is the listing's title.** Correct only an obvious misspelling
+   or a cut-off last word, with a comment quoting what the listing says.
+6. **`suggested_roles` condenses the tasks the page lists**, in its own
+   terms. Leave it out when the page lists none.
+7. **Record the fetch date** in the section's header comment, and refresh
+   it when the section is re-read against the listing.
+
+A roster activity takes the listed program at its project that offers its
+type. Where none does, the project gets one always-on program named after
+that type. Two listed programs at one project offering a roster site's
+type make the fixtures refuse to load, because the activity's program
+would be a guess.
 
 ## What the archive cannot supply
 
