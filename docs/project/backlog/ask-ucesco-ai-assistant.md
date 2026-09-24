@@ -40,6 +40,8 @@ An ADR decides, before any code:
 
 ## Notes & links
 
+**In priority: explore implementing an API and / or an MCP server to that these questions would be answered using an agent.
+
 **Most of the example questions cannot be answered from today's data. That
 is the finding, not a footnote:**
 
