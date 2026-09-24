@@ -37,15 +37,29 @@ class VolunteerRepository extends ServiceEntityRepository
      * they order by name alone, without the active-first tie-break above, so that
      * an activity's own deactivated volunteer stays in alphabetical place
      * rather than sinking to the bottom of the dropdown.
+     *
+     * $search narrows it to volunteers whose full name or email contains the
+     * text, ignoring case. Matching the full name rather than each part lets
+     * "aisha nj" find Aisha Njoroge; lastName is nullable (ADR 0014), hence
+     * the COALESCE, without which CONCAT is null and the name never matches.
      */
-    public function createOrderedByNameQueryBuilder(): QueryBuilder
+    public function createOrderedByNameQueryBuilder(?string $search = null): QueryBuilder
     {
-        return $this->createQueryBuilder('v')
+        $queryBuilder = $this->createQueryBuilder('v')
             ->addSelect('(SELECT COUNT(cs.id) FROM ' . Stay::class . ' cs WHERE cs.volunteer = v AND cs.startDate <= :today AND cs.endDate >= :today) AS HIDDEN isCurrent')
             ->setParameter('today', new \DateTimeImmutable('today'), Types::DATE_IMMUTABLE)
             ->orderBy('isCurrent', 'DESC')
             ->addOrderBy('v.lastName', 'ASC')
             ->addOrderBy('v.firstName', 'ASC');
+
+        if (null !== $search) {
+            // `!` escapes LIKE's own wildcards, so "100%" is looked up literally.
+            $queryBuilder
+                ->andWhere("LOWER(CONCAT(v.firstName, ' ', COALESCE(v.lastName, ''))) LIKE :search ESCAPE '!' OR LOWER(v.email) LIKE :search ESCAPE '!'")
+                ->setParameter('search', '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($search)) . '%');
+        }
+
+        return $queryBuilder;
     }
 
     /**

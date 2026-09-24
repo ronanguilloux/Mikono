@@ -41,6 +41,73 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSame(['Active', 'Inactive'], array_column($whole, 3));
     }
 
+    /**
+     * The search matches the full name or the email, ignoring case, and
+     * reaches the export through the shared listQueryBuilder(). A last name
+     * is optional (ADR 0014), so a first-name-only volunteer must still match.
+     */
+    #[Test]
+    public function theIndexAndExportSearchByNameOrEmail(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge', 'email' => 'aisha@example.org']);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma', 'email' => 'z.zuma@example.org']);
+        VolunteerFactory::createOne(['firstName' => 'Kip', 'lastName' => null, 'email' => null]);
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (['aisha nj' => ['Aisha Njoroge'], 'ZUMA@' => ['Zawadi Zuma'], 'kip' => ['Kip'], 'example' => ['Aisha Njoroge', 'Zawadi Zuma']] as $q => $expected) {
+            $crawler = $client->request('GET', '/volunteers?q=' . urlencode($q));
+            self::assertResponseIsSuccessful();
+            $names = $crawler->filter('table tbody tr')->each(static fn($row): string => trim($row->filter('td')->first()->text()));
+            sort($names);
+            self::assertSame($expected, $names, sprintf('q=%s', $q));
+        }
+
+        $crawler = $client->request('GET', '/volunteers?q=nobody');
+        self::assertCount(0, $crawler->filter('table tbody tr td a'));
+        self::assertSelectorTextContains('body', 'No volunteers match “nobody”.');
+
+        // A LIKE wildcard is looked up literally, not as "anything".
+        $crawler = $client->request('GET', '/volunteers?q=%25');
+        self::assertSelectorTextContains('body', 'No volunteers match');
+
+        self::assertSame(['Zawadi Zuma'], array_column(self::exportedRows($client, '/volunteers/export.csv?q=zuma'), 0));
+    }
+
+    /**
+     * The search rides along on the sort links, and a new search drops `page`.
+     */
+    #[Test]
+    public function theSearchSurvivesASortAndResetsThePage(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/volunteers?q=aisha&page=2&perPage=10');
+        self::assertStringContainsString('q=aisha', (string) $crawler->filter('table thead th a')->first()->attr('href'));
+
+        $form = $crawler->filter('form[data-volunteer-search]');
+        self::assertSame('aisha', $form->filter('input[name=q]')->attr('value'));
+        self::assertCount(0, $form->filter('input[name=page]'));
+        self::assertCount(1, $form->filter('input[name=perPage]'));
+    }
+
+    /** ADR 0023: an unusable search is no search, never an error. */
+    #[Test]
+    public function theIndexShrugsOffAnUnusableSearch(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createMany(3);
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (['/volunteers?q=', '/volunteers?q=%20%20', '/volunteers?q[]=x'] as $url) {
+            $crawler = $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertCount(3, $crawler->filter('table tbody tr'), sprintf('%s should not filter', $url));
+        }
+    }
+
     #[Test]
     public function indexListsSeededVolunteers(): void
     {

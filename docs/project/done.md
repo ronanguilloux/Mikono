@@ -6,6 +6,26 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-24 — Search the volunteer list
+
+`/volunteers?q=<text>` lists only volunteers whose full name or email
+contains the text, ignoring case — Kingsley's request, for when the list
+runs to hundreds. It matches the full name rather than each part, so
+"aisha nj" finds Aisha Njoroge; `COALESCE` keeps first-name-only volunteers
+matchable (ADR 0014). LIKE's `%` and `_` are escaped, so they are searched
+literally.
+
+The filter is an optional argument to
+`VolunteerRepository::createOrderedByNameQueryBuilder()`, applied in
+`VolunteerController::listQueryBuilder()`, so the "Current view" export
+keeps it with no second query (ADR 0029). A blank, whitespace-only or
+`q[]=x` value means no filter (ADR 0023). The search box sits above the
+table, copies the activity filter form's shape (other params carried
+through, `page` dropped), submits on Enter or blur via `auto-submit`, and
+offers "Clear search" once a search is active. Three tests in
+`VolunteerControllerTest`: matches and export, sort/page carry-through,
+malformed values.
+
 ## 2026-09-24 — One form logs every new activity, at /activities/new
 
 There used to be two forms for logging activities. `/activities/new` was

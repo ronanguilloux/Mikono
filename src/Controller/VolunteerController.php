@@ -111,6 +111,7 @@ final class VolunteerController extends AbstractController
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
+            'search' => $this->requestedSearch($request),
         ]);
     }
 
@@ -141,10 +142,22 @@ final class VolunteerController extends AbstractController
      */
     private function listQueryBuilder(Request $request): QueryBuilder
     {
-        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder();
+        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder($this->requestedSearch($request));
         $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
 
         return $queryBuilder;
+    }
+
+    /**
+     * The index's `?q=` search, read through query->all() so `q[]=x` degrades
+     * to no filter rather than a 400 (ADR 0023). Blank means no filter too.
+     */
+    private function requestedSearch(Request $request): ?string
+    {
+        $raw = $request->query->all()['q'] ?? null;
+        $search = is_scalar($raw) ? trim((string) $raw) : '';
+
+        return '' === $search ? null : $search;
     }
 
     /**

@@ -22,5 +22,50 @@
         the one screen where someone is actually trying to delete a volunteer,
         volunteer/edit.html.twig.
     #}
-    <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No volunteers yet — add the first one above." />
+    {#
+        Same shape as the filter form on activity/index.html.twig; its comment
+        explains the carried-through params and why `page` is dropped. The
+        change event fires on Enter or on leaving the box, not per keystroke,
+        so a search is one request.
+    #}
+    <form
+        method="get"
+        role="search"
+        class="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600 print:hidden"
+        data-controller="auto-submit"
+        data-volunteer-search
+    >
+        {% for key, value in app.request.query.all %}
+            {% if key not in ['page', 'q'] and value is not iterable %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
+
+        <label for="volunteer-search" class="sr-only">Search volunteers</label>
+        <input
+            type="search"
+            id="volunteer-search"
+            name="q"
+            value="{{ search }}"
+            placeholder="Search by name or email"
+            class="w-full max-w-xs rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+        <button type="submit" class="sr-only">Search</button>
+
+        {% if search %}
+            <a
+                href="{{ path('volunteer_index', app.request.query.all|filter((v, k) => k not in ['page', 'q'] and v is not iterable)) }}"
+                class="text-brand-600 hover:underline"
+            >Clear search</a>
+        {% endif %}
+    </form>
+
+    <twig:DataTable
+        :columns="columns"
+        :rows="rows"
+        :pagination="pagination"
+        :sortState="sortState"
+        :emptyMessage="search ? 'No volunteers match “' ~ search ~ '”.' : 'No volunteers yet — add the first one above.'"
+    />
 {% endblock %}

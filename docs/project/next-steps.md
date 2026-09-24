@@ -35,9 +35,8 @@ hostname is the one that isn't ours to solve.
 2. [Two open questions for Edna about the roster archive](backlog/roster-archive-open-questions.md) — **B**
 3. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
 4. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
-5. [Search the volunteer list](backlog/volunteer-search.md)
-6. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
-7. [Second slice of volunteer profile fields](backlog/volunteer-profile-second-slice.md) — **G**
+5. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
+6. [Second slice of volunteer profile fields](backlog/volunteer-profile-second-slice.md) — **G**
 
 ## Later
 
