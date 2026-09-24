@@ -9,8 +9,6 @@ labels: [ops]
 epic: production-readiness
 ---
 
-# Size production off the 1 GB plan
-
 ## Why
 
 The second of three gates on real data reaching a server. The UAT box

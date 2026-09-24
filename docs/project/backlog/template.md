@@ -9,8 +9,6 @@ labels: []               # free list, e.g. [ops, security, ux, docs, perf, a11y]
 epic:                    # optional, omit the key entirely when the card stands alone
 ---
 
-# <Card title>
-
 ## Why
 
 <One paragraph. Who asked, and what breaks or stays broken without it.>

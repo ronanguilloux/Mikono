@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Report;
 
+use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
+use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\VolunteerFactory;
 use App\Report\ActivitySummaryCalculator;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -86,6 +89,36 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
         ActivityFactory::createMany(2, ['date' => $date, 'escorts' => [$busy]]);
 
         self::assertSame(['Busy', 'Light'], array_column($this->normalized(), 'label'));
+    }
+
+    /**
+     * Counted by the stay's branch (ADR 0026), with the same duration rules as
+     * every other total: a half day is 0.5, an "Other" duration counts as an
+     * activity but adds no days. A branch with no activity has no row.
+     */
+    #[Test]
+    public function branchTotalsFollowTheStayBranchAndTheDurationRules(): void
+    {
+        self::bootKernel();
+        $nairobi = BranchFactory::find(['name' => 'Nairobi (HQ)']);
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $nairobiProject = ProjectFactory::createOne(['branch' => $nairobi]);
+        $mombasaProject = ProjectFactory::createOne(['branch' => $mombasa]);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::new()->withoutStay(), 'date' => new \DateTimeImmutable('2026-08-04'), 'project' => $mombasaProject, 'duration' => ActivityDuration::FullDay]);
+        $latest = ActivityFactory::createOne(['volunteer' => VolunteerFactory::new()->withoutStay(), 'date' => new \DateTimeImmutable('2026-08-05'), 'project' => $mombasaProject, 'duration' => ActivityDuration::HalfDay]);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::new()->withoutStay(), 'date' => new \DateTimeImmutable('2026-08-06'), 'project' => $nairobiProject, 'duration' => ActivityDuration::Other, 'durationOther' => '2 hours']);
+
+        $calculator = self::getContainer()->get(ActivitySummaryCalculator::class);
+        self::assertInstanceOf(ActivitySummaryCalculator::class, $calculator);
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $rows = $calculator->summarizeByBranch();
+        self::assertSame(['Mombasa', 'Nairobi (HQ)'], array_column($rows, 'label'));
+        self::assertSame([$mombasa->getId(), $nairobi->getId()], array_column($rows, 'id'));
+        self::assertSame([2, 1], array_column($rows, 'count'));
+        self::assertSame([1.5, 0.0], array_column($rows, 'totalDays'));
+        self::assertEquals(new \DateTimeImmutable('2026-08-05'), $rows[0]['mostRecent']);
+        self::assertSame($latest->getId(), $rows[0]['mostRecentActivityId']);
     }
 
     /**

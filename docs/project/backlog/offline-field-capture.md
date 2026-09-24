@@ -8,8 +8,6 @@ priority: later
 labels: [ux, data]
 ---
 
-# Offline field capture and sync
-
 ## Why
 
 Kingsley asked whether a field officer in Samburu, or anywhere without

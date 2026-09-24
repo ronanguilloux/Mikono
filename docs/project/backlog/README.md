@@ -28,7 +28,7 @@ a working cross-reference between cards.
 
 | Field | Values | Notes |
 | --- | --- | --- |
-| `title` | free text | Sentence case, matches the `#` heading |
+| `title` | free text | Sentence case. The card's only title — no `#` heading in the body (markdownlint MD025 counts this as the H1) |
 | `created` | `YYYY-MM-DD` | Absolute date, never "last week" |
 | `source` | `ronan` \| `edna` \| `kingsley` \| `nickson` \| `ponytail-audit` | Who asked. A list when two people asked for the same thing |
 | `status` | `ready` \| `needs-decision` \| `needs-design` \| `deferred` \| `blocked` | See below |

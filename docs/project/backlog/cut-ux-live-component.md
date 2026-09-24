@@ -9,8 +9,6 @@ labels: [perf]
 epic: simplification
 ---
 
-# Cut symfony/ux-live-component
-
 ## Why
 
 Zero `AsLiveComponent`, zero `data-live` — but `live_controller.js` and

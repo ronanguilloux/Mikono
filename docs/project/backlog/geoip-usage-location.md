@@ -8,8 +8,6 @@ priority: later
 labels: [ops, security, data]
 ---
 
-# Geolocate usage with GeoIP
-
 ## Why
 
 `/usage` shows which screens get used, but not where the requests come

@@ -8,8 +8,6 @@ priority: next
 labels: [data, security]
 ---
 
-# Attach documents to volunteers
-
 ## Why
 
 UCESCO wants to keep each volunteer's documents in the app, up to about

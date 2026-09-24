@@ -8,8 +8,6 @@ priority: later
 labels: [ops]
 ---
 
-# Scheduled donor digest emails
-
 ## Why
 
 Needs a mailer/scheduler decision, which is new infrastructure this app

@@ -8,8 +8,6 @@ priority: next
 labels: [docs]
 ---
 
-# Requirements from the UCESCO meeting, raw
-
 ## Why
 
 Nickson sent back the key points from the last meeting as one block. It is

@@ -22,6 +22,7 @@ final class ReportController extends AbstractController
     private const string TAB_PROJECT = 'project';
     private const string TAB_PROGRAM = 'program';
     private const string TAB_ESCORT = 'escort';
+    private const string TAB_BRANCH = 'branch';
 
     /**
      * Column key => SummaryRow key for the breakdowns' sortable headers. The
@@ -58,18 +59,19 @@ final class ReportController extends AbstractController
         // which would be the error page this line exists to avoid.
         $requestedTab = $request->query->all()['tab'] ?? null;
         $tab = match ($requestedTab) {
-            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ESCORT => $requestedTab,
+            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ESCORT, self::TAB_BRANCH => $requestedTab,
             default => self::TAB_VOLUNTEER,
         };
 
-        // Both breakdowns are computed either way: they come from one in-memory
-        // pass over the activities, the "Top volunteers" card needs the whole
-        // volunteer list, and the print panel needs both complete. Paginating
-        // one of them costs no extra query.
+        // Every breakdown is computed either way: each is an in-memory pass
+        // over the activities, the "Top volunteers" card needs the whole
+        // volunteer list, and the print panel needs all of them complete.
+        // Paginating one of them costs no extra query.
         $byVolunteer = $this->calculator->summarizeByVolunteer();
         $byProject = $this->calculator->summarizeByProject();
         $byProgram = $this->calculator->summarizeByProgram();
         $byEscort = $this->calculator->summarizeByEscort();
+        $byBranch = $this->calculator->summarizeByBranch();
 
         // Sorted before pagination, and across the whole breakdown rather than
         // the page — sorting a page would only shuffle the 25 rows already on
@@ -80,6 +82,7 @@ final class ReportController extends AbstractController
                 self::TAB_PROJECT => $byProject,
                 self::TAB_PROGRAM => $byProgram,
                 self::TAB_ESCORT => $byEscort,
+                self::TAB_BRANCH => $byBranch,
                 default => $byVolunteer,
             },
             $request,
@@ -102,16 +105,18 @@ final class ReportController extends AbstractController
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
             // Complete and unpaginated, for the print-only panel. The
-            // print-friendly view has always put both breakdowns on paper in
+            // print-friendly view has always put every breakdown on paper in
             // full, and tabbing the screen mustn't quietly halve that.
             'volunteerRows' => $this->toRows($byVolunteer, $today, self::TAB_VOLUNTEER),
             'projectRows' => $this->toRows($byProject, $today, self::TAB_PROJECT),
             'programRows' => $this->toRows($byProgram, $today, self::TAB_PROGRAM),
             'escortRows' => $this->toRows($byEscort, $today, self::TAB_ESCORT),
+            'branchRows' => $this->toRows($byBranch, $today, self::TAB_BRANCH),
             'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
             'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
             'programColumns' => $this->columnsFor(self::TAB_PROGRAM),
             'escortColumns' => $this->columnsFor(self::TAB_ESCORT),
+            'branchColumns' => $this->columnsFor(self::TAB_BRANCH),
         ]);
     }
 
@@ -135,6 +140,7 @@ final class ReportController extends AbstractController
             ['key' => 'label', 'label' => match ($tab) {
                 self::TAB_PROJECT => 'Project',
                 self::TAB_PROGRAM => 'Program',
+                self::TAB_BRANCH => 'Branch',
                 default => 'Volunteer',
             }],
             ['key' => 'count', 'label' => 'Activities'],
@@ -149,7 +155,8 @@ final class ReportController extends AbstractController
      *
      * $tab is what the caller knows and this method doesn't: which breakdown
      * these rows are. A volunteer's name links to their page and a program's
-     * to its activities (`/activities?program=<id>`). A project's doesn't — it
+     * or a branch's to its activities (`/activities?program=<id>`,
+     * `?branch=<id>`). A project's doesn't — it
      * has no show page, only an edit form, which is not where a report name
      * should land. The Unknown bucket carries no id, so it stays plain text. The Most recent date links on every tab, to
      * the edit form of the activity it came from: an activity has no other
@@ -197,6 +204,9 @@ final class ReportController extends AbstractController
             }
             if (self::TAB_PROGRAM === $tab && null !== $id) {
                 $links['label'] = $this->generateUrl('activity_index', ['program' => $id]);
+            }
+            if (self::TAB_BRANCH === $tab && null !== $id) {
+                $links['label'] = $this->generateUrl('activity_index', ['branch' => $id]);
             }
             if (null !== $summary['mostRecentActivityId']) {
                 $links['mostRecent'] = $this->generateUrl('activity_edit', ['id' => $summary['mostRecentActivityId']]);

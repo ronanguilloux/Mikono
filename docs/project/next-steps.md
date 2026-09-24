@@ -32,10 +32,9 @@ hostname is the one that isn't ours to solve.
 ## Next
 
 1. [Open questions for Edna about the fixture data](backlog/roster-archive-open-questions.md) — **B**
-2. [Totals per branch on /reports](backlog/reports-totals-per-branch.md) — **G**
-3. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
-4. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
-5. [Second slice of volunteer profile fields](backlog/volunteer-profile-second-slice.md) — **G**
+2. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
+3. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
+4. [Second slice of volunteer profile fields](backlog/volunteer-profile-second-slice.md) — **G**
 
 ## Later
 

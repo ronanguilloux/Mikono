@@ -8,8 +8,6 @@ priority: next
 labels: [data, ux]
 ---
 
-# Second slice of volunteer profile fields
-
 ## Why
 
 Kingsley listed eleven things the volunteer editing form should hold. Seven

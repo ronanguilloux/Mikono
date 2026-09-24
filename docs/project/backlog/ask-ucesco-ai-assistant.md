@@ -8,8 +8,6 @@ priority: later
 labels: [data, security]
 ---
 
-# An "Ask UCESCO Africa" AI assistant
-
 ## Why
 
 Kingsley asked for a secure assistant connected to UCESCO's own database,

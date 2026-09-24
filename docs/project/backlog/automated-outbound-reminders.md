@@ -8,8 +8,6 @@ priority: later
 labels: [ops, ux]
 ---
 
-# Automated outbound reminders
-
 ## Why
 
 **This card's trigger has fired.** It was deferred until someone at UCESCO

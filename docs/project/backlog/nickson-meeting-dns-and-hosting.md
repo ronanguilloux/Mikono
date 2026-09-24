@@ -9,8 +9,6 @@ labels: [ops, docs]
 epic: production-readiness
 ---
 
-# Meet Nickson about the production hostname and DNS
-
 ## Why
 
 **This is what gates production.** Nickson is UCESCO's technical contact,

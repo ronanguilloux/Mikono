@@ -9,8 +9,6 @@ labels: [ops, security]
 epic: production-readiness
 ---
 
-# An encrypted off-site copy of the backups
-
 ## Why
 
 The daily cron runs and the restore drill passed, but every copy still

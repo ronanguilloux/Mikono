@@ -8,8 +8,6 @@ priority: later
 labels: [ux]
 ---
 
-# Task/assignment hand-offs between users
-
 ## Why
 
 E.g. assigning a follow-up to a colleague. Two people who speak daily do

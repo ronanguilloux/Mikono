@@ -9,8 +9,6 @@ labels: [ops]
 epic: production-readiness
 ---
 
-# A production hostname that resolves
-
 ## Why
 
 The third gate on real data. Mechanically this is small — A/AAAA records

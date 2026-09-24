@@ -9,7 +9,7 @@ use App\Repository\ActivityRepository;
 
 /**
  * The one piece of real domain logic in this app — computing aggregate
- * activity-days per volunteer/project/program. Duration-to-days conversion lives
+ * activity-days per volunteer/project/program/branch.Duration-to-days conversion lives
  * once, in ActivityDuration::toDays(), not duplicated as SQL that would
  * need to be kept in sync per database dialect.
  */
@@ -51,6 +51,21 @@ final class ActivitySummaryCalculator
 
                 return null === $program ? 'Unknown' : ($program->getProject()?->getName() ?? '?') . ' — ' . $program->getName();
             },
+        );
+    }
+
+    /**
+     * Counted by the stay's branch, where ADR 0026 anchors an activity's
+     * branch — the same rule as the `/activities?branch=` filter. A branch
+     * with no activity has no row, like every other breakdown.
+     *
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     */
+    public function summarizeByBranch(): array
+    {
+        return $this->summarize(
+            static fn(Activity $a) => $a->getStay()?->getBranch()?->getId(),
+            static fn(Activity $a) => $a->getStay()?->getBranch()?->getName() ?? 'Unknown',
         );
     }
 

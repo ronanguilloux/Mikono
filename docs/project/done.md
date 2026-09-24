@@ -6,6 +6,35 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-24 — Totals per branch on /reports
+
+`/reports` has a fifth tab, **By branch**. It has the same columns and
+duration-to-days rules as By project, and the branch name links to
+`/activities?branch=<id>`. `ActivitySummaryCalculator::summarizeByBranch()`
+counts an activity **by its stay's branch** (ADR 0026), the same rule as
+the Activities filter. It doesn't use the project's branch, though ADR 0027
+keeps the two equal on every write path.
+
+How the card's design questions were settled:
+
+- **Shape:** a tab, so no tiles and no project rows grouped under a
+  branch. It reuses the existing breakdown and `DataTable` code without
+  changes.
+- **Zero rows:** hidden. Branches with no activity (Samburu, Uganda, USA
+  today) get no row, like every other breakdown.
+- **Print panel:** it carries the branch table too, so it now prints five
+  tables.
+
+Tests:
+
+- `ActivitySummaryCalculatorTest` covers the half day, the "Other"
+  duration (counted, no days) and the missing branch.
+- `ReportControllerTest` covers the tab and the link.
+
+Both use volunteers with no stay. The default volunteer's Nairobi stay
+covers random factory dates, and it pulled a "Mombasa" activity onto
+Nairobi.
+
 ## 2026-09-24 — Seed real programs from UCESCO's Volunteer World listing
 
 `docs/fixtures/rosters.yaml` has a `programs:` section: the 40 programs on

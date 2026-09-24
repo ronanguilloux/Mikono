@@ -8,8 +8,6 @@ priority: later
 labels: [ops]
 ---
 
-# WhatsApp Business API / automated roster sending
-
 ## Why
 
 The manual copy-paste in the home screen's "Tomorrow's roster" takes well

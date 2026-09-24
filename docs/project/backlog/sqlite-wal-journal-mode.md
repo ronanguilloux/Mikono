@@ -8,8 +8,6 @@ priority: later
 labels: [ops, perf, data]
 ---
 
-# SQLite journal mode (WAL)
-
 ## Why
 
 Still the default rollback journal, and the single-writer limit

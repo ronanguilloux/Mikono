@@ -8,10 +8,10 @@ priority: later
 labels: [perf]
 ---
 
-# /reports walks every activity four times
-
 The fourth walk is `summarizeByEscort()` (2026-09-16), a separate query
 that fetch-joins escorts.
+The fifth is `summarizeByBranch()` (2026-09-24). It reads the stay and its
+branch lazily, which adds one query per distinct stay.
 
 ## Why
 

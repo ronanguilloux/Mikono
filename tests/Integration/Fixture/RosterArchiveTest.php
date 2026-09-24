@@ -95,7 +95,7 @@ final class RosterArchiveTest extends TestCase
     public function aMalformedProgramRefusesToLoad(string $programs, string $message): void
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage($message);
+        $this->expectExceptionMessageIsOrContains($message);
 
         self::archiveWithPrograms($programs);
     }
@@ -109,7 +109,7 @@ final class RosterArchiveTest extends TestCase
         );
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Several programs at project "school" offer "School support"');
+        $this->expectExceptionMessageIsOrContains('Several programs at project "school" offer "School support"');
 
         $archive->listedProgramFor('school', 'School support');
     }
@@ -118,7 +118,7 @@ final class RosterArchiveTest extends TestCase
     public function aRosterSiteAtAProjectWithNoActivityTypeRefusesToLoad(): void
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('project "hub", which has no activity_type');
+        $this->expectExceptionMessageIsOrContains('project "hub", which has no activity_type');
 
         self::archiveWithPrograms('', 'hub');
     }

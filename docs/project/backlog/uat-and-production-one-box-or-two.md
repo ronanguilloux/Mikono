@@ -9,8 +9,6 @@ labels: [ops]
 epic: production-readiness
 ---
 
-# Decide whether UAT and production share one box
-
 ## Why
 
 UAT and production are two deployments.

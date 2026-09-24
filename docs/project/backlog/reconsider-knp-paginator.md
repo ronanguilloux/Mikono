@@ -9,8 +9,6 @@ labels: [perf]
 epic: simplification
 ---
 
-# Reconsider knplabs/knp-paginator-bundle
-
 ## Why
 
 The honest caveat first: this is

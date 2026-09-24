@@ -8,8 +8,6 @@ priority: next
 labels: [data, docs]
 ---
 
-# Open questions for Edna about the fixture data
-
 ## Why
 
 Gaps in the transcribed fixture data that only Edna can close. None

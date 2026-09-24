@@ -8,8 +8,6 @@ priority: later
 labels: [data, ux]
 ---
 
-# A searchable photo library with metadata
-
 ## Why
 
 Kingsley asked for photos tagged with date, location, project, activity,

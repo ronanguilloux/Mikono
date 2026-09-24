@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
@@ -82,7 +83,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertCount(0, $second->filter('td:first-child a'));
         self::assertSame('page', $crawler->filter('nav[aria-label="Report breakdown"] a')->eq(3)->attr('aria-current'));
 
-        self::assertCount(4, $crawler->filter('[data-report-panel="print"] table'));
+        self::assertCount(5, $crawler->filter('[data-report-panel="print"] table'));
     }
 
     #[Test]
@@ -373,6 +374,38 @@ final class ReportControllerTest extends WebTestCase
         );
     }
 
+    /**
+     * Mombasa versus Nairobi without adding up project rows by hand, and the
+     * name leads to that branch's activities.
+     */
+    #[Test]
+    public function theBranchTabTotalsEachBranchAndLinksToItsActivities(): void
+    {
+        $client = static::createClient();
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        ActivityFactory::createMany(2, ['volunteer' => VolunteerFactory::new()->withoutStay(), 'project' => ProjectFactory::createOne(['branch' => $mombasa]), 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::new()->withoutStay(), 'project' => ProjectFactory::createOne(['branch' => BranchFactory::find(['name' => 'Nairobi (HQ)'])]), 'duration' => ActivityDuration::HalfDay]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=branch');
+
+        self::assertSame('By branch', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
+        $screen = $crawler->filter('[data-report-panel="screen"]');
+        self::assertSame(
+            ['Branch', 'Activities', 'Total days', 'Most recent'],
+            $screen->filter('thead th')->each(static fn($th) => trim($th->text())),
+        );
+        $rows = $screen->filter('table tbody tr');
+        // Only branches with activities, most days first.
+        self::assertCount(2, $rows);
+        self::assertSame(['Mombasa', '2', '2.0'], $rows->eq(0)->filter('td')->slice(0, 3)->each(static fn($td) => trim($td->text())));
+        self::assertSame(['Nairobi (HQ)', '1', '0.5'], $rows->eq(1)->filter('td')->slice(0, 3)->each(static fn($td) => trim($td->text())));
+        self::assertSame(
+            '/activities?branch=' . $mombasa->getId(),
+            $rows->eq(0)->filter('td')->eq(0)->filter('a')->attr('href'),
+        );
+    }
+
     #[Test]
     public function anUnknownTabFallsBackToVolunteersRatherThanFailing(): void
     {
@@ -492,7 +525,7 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
-        self::assertCount(4, $printPanel->filter('table'));
+        self::assertCount(5, $printPanel->filter('table'));
         // Volunteer, project and program tables: 26 rows each.
         foreach ([0, 1, 2] as $index) {
             self::assertCount(26, $printPanel->filter('table')->eq($index)->filter('tbody tr'));
@@ -758,10 +791,10 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
-        self::assertCount(4, $printTables);
-        // "Most recent" is the 4th column on the volunteer, project and
-        // program tables, the 5th on the escort one.
-        foreach ([0 => 4, 1 => 4, 2 => 4, 3 => 5] as $index => $column) {
+        self::assertCount(5, $printTables);
+        // "Most recent" is the 4th column on the volunteer, project, program
+        // and branch tables, the 5th on the escort one.
+        foreach ([0 => 4, 1 => 4, 2 => 4, 3 => 5, 4 => 4] as $index => $column) {
             self::assertSame(
                 'Planned',
                 trim($printTables->eq($index)->filter("tbody tr td:nth-child($column) span")->text()),
@@ -777,6 +810,7 @@ final class ReportControllerTest extends WebTestCase
         yield 'project' => ['project'];
         yield 'program' => ['program'];
         yield 'escort' => ['escort'];
+        yield 'branch' => ['branch'];
     }
 
     #[Test]
