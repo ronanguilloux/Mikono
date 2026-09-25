@@ -587,6 +587,141 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     /**
+     * The second slice is situational — a Kenyan volunteer has no pickup
+     * airport — so it doesn't count towards the Incomplete profile pill.
+     */
+    #[Test]
+    public function editSavesTheSecondSliceFieldsAndBlanksStoreNull(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha']);
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[accommodationPreference]' => 'Host family',
+            'volunteer_form[pickupAirport]' => 'JKIA, Nairobi',
+            'volunteer_form[socialMediaUrl]' => 'https://example.org/aisha',
+            'volunteer_form[supervisor]' => '',
+        ]));
+
+        self::assertResponseRedirects('/volunteers');
+        $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
+        self::assertSame('Host family', $volunteer->getAccommodationPreference());
+        self::assertSame('JKIA, Nairobi', $volunteer->getPickupAirport());
+        self::assertSame('https://example.org/aisha', $volunteer->getSocialMediaUrl());
+        self::assertNull($volunteer->getSupervisor());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        self::assertSelectorTextContains('[data-profile]', 'Host family');
+        self::assertSelectorTextContains('[data-profile]', 'JKIA, Nairobi');
+        $link = $crawler->filter('[data-profile] a[href="https://example.org/aisha"]');
+        self::assertCount(1, $link);
+        self::assertStringContainsString('noopener', (string) $link->attr('rel'));
+    }
+
+    #[Test]
+    public function aSocialMediaLinkThatIsNotAUrlIsRefused(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[socialMediaUrl]' => 'not a link',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    /**
+     * The number is stored encrypted — the raw column never holds it — yet
+     * the profile and the edit form read it back, and a blank removes it
+     * (ADR 0033).
+     */
+    #[Test]
+    public function thePassportNumberIsStoredEncryptedAndReadBack(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $id = (int) $volunteer->getId();
+        $crawler = $client->request('GET', "/volunteers/{$id}/edit");
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[passportNumber]' => 'c01x 00t47',
+            'volunteer_form[passportExpiresOn]' => (new \DateTimeImmutable('+2 years'))->format('Y-m-d'),
+        ]));
+
+        self::assertResponseRedirects('/volunteers');
+        $stored = self::getContainer()->get('doctrine.dbal.default_connection')
+            ->fetchOne('SELECT passport_number_ciphertext FROM volunteer WHERE id = ?', [$id]);
+        self::assertIsString($stored);
+        self::assertStringNotContainsStringIgnoringCase('C01X00T47', $stored);
+
+        $client->request('GET', "/volunteers/{$id}");
+        self::assertSelectorTextContains('[data-passport]', 'C01X00T47');
+        self::assertSelectorNotExists('[data-passport-expired]');
+        self::assertSelectorNotExists('[data-passport-expiring]');
+
+        $crawler = $client->request('GET', "/volunteers/{$id}/edit");
+        self::assertInputValueSame('volunteer_form[passportNumber]', 'C01X00T47');
+
+        $client->submit($crawler->selectButton('Save')->form(['volunteer_form[passportNumber]' => '']));
+        self::assertNull(self::reloadVolunteer($client, $id)->getPassportNumberCiphertext());
+    }
+
+    #[Test]
+    public function aPassportNumberWithPunctuationIsRefused(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[passportNumber]' => 'C01-X00',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'A passport number has letters and digits only.');
+    }
+
+    #[Test]
+    public function theProfileFlagsAnExpiredOrSoonExpiringPassport(): void
+    {
+        $client = static::createClient();
+        $expired = VolunteerFactory::createOne(['passportExpiresOn' => new \DateTimeImmutable('-1 day midnight')]);
+        $soon = VolunteerFactory::createOne(['passportExpiresOn' => new \DateTimeImmutable('+3 months midnight')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', "/volunteers/{$expired->getId()}");
+        self::assertSelectorExists('[data-passport-expired]');
+        self::assertSelectorTextContains('[data-passport]', 'Number not on file');
+
+        $client->request('GET', "/volunteers/{$soon->getId()}");
+        self::assertSelectorExists('[data-passport-expiring]');
+    }
+
+    /** A spreadsheet leaves the app's access control once downloaded (ADR 0029, ADR 0033). */
+    #[Test]
+    public function theExportCarriesNoSecondSliceOrPassportData(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'supervisor' => 'Kingsley']);
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+        $client->submit($crawler->selectButton('Save')->form(['volunteer_form[passportNumber]' => 'C01X00T47']));
+
+        $client->request('GET', '/volunteers/export.csv');
+        $body = $client->getInternalResponse()->getContent();
+        self::assertStringContainsString('Aisha', $body);
+        self::assertStringNotContainsString('C01X00T47', $body);
+        self::assertStringNotContainsString('Kingsley', $body);
+    }
+
+    /**
      * A landscape JPEG tagged "rotate 90° clockwise" with a GPS tag, as a phone
      * would send it: stored upright, at most 800 px, with no metadata left.
      */

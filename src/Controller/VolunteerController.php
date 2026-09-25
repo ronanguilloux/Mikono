@@ -11,6 +11,7 @@ use App\Form\VolunteerFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ActivityRepository;
 use App\Repository\VolunteerRepository;
+use App\Security\PassportNumberCipher;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -60,6 +61,7 @@ final class VolunteerController extends AbstractController
         private readonly ActivityRepository $activities,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
+        private readonly PassportNumberCipher $passportCipher,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -185,6 +187,7 @@ final class VolunteerController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid() && $this->applyPhoto($form, $volunteer)) {
+            $this->applyPassportNumber($form, $volunteer);
             $this->entityManager->persist($volunteer);
             $this->entityManager->flush();
 
@@ -294,6 +297,7 @@ final class VolunteerController extends AbstractController
             // Names, not codes; Countries is already here for the form's CountryType.
             'nationalityName' => null === $volunteer->getNationality() ? null : Countries::getName($volunteer->getNationality()),
             'residenceName' => null === $volunteer->getCountryOfResidence() ? null : Countries::getName($volunteer->getCountryOfResidence()),
+            'passportNumber' => $this->passportNumber($volunteer),
             'stays' => $stays,
             'activities' => $activities,
             'activityCount' => count($activities),
@@ -309,9 +313,11 @@ final class VolunteerController extends AbstractController
     public function edit(Request $request, Volunteer $volunteer): Response
     {
         $form = $this->createForm(VolunteerFormType::class, $volunteer);
+        $form->get('passportNumber')->setData($this->passportNumber($volunteer));
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid() && $this->applyPhoto($form, $volunteer)) {
+            $this->applyPassportNumber($form, $volunteer);
             $volunteer->touch();
             $this->entityManager->flush();
 
@@ -356,6 +362,29 @@ final class VolunteerController extends AbstractController
         $this->addFlash('success', sprintf('%s was deleted.', $volunteer->getFullName()));
 
         return $this->redirectToRoute('volunteer_index');
+    }
+
+    /** The decrypted passport number, if one is on file (ADR 0033). */
+    private function passportNumber(Volunteer $volunteer): ?string
+    {
+        $stored = $volunteer->getPassportNumberCiphertext();
+
+        return null === $stored ? null : $this->passportCipher->decrypt($stored);
+    }
+
+    /**
+     * Encrypts the form's unmapped passport number onto the volunteer; a blank
+     * field removes it. Stored uppercase and without spaces, as printed on
+     * the passport's data page.
+     *
+     * @param FormInterface<mixed> $form
+     */
+    private function applyPassportNumber(FormInterface $form, Volunteer $volunteer): void
+    {
+        $submitted = $form->get('passportNumber')->getData();
+        $number = is_string($submitted) ? strtoupper(str_replace(' ', '', $submitted)) : '';
+
+        $volunteer->setPassportNumberCiphertext('' === $number ? null : $this->passportCipher->encrypt($number));
     }
 
     /**

@@ -6,6 +6,15 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-25 — Second slice of volunteer profile fields
+
+Supervisor, accommodation preference, pickup airport, social media link and
+passport (number + expiry) are on the volunteer form and profile; history
+is derived from past stays. See
+[ADR 0032](../adr/0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md)
+and, for the encrypted passport number,
+[ADR 0033](../adr/0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md).
+
 ## 2026-09-24 — Totals per branch on /reports
 
 `/reports` has a fifth tab, **By branch**. It has the same columns and

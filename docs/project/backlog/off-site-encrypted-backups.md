@@ -43,5 +43,9 @@ production its own remote and its own key rather than sharing UAT's.
   than assuming it — read it before installing anything.
 - The crypt layer is what keeps the destination cheaply changeable later:
   the remote holds ciphertext, and the key never goes on the server.
+- **`PASSPORT_ENCRYPTION_KEY` must not travel with the copy.** Passport
+  numbers in the `.db` are encrypted under it
+  ([ADR 0033](../../adr/0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)); a restore needs it, so it lives in the password
+  manager beside `APP_SECRET`, never in the remote or next to the crypt key.
 - Local side already exists: `scripts/backup-db.sh`, host-side hot
   `VACUUM INTO`, no downtime and no `sqlite3` binary needed.

@@ -1,6 +1,6 @@
 # 17. Host production on GandiCloud VPS in France, not in Kenya
 
-Date: 2026-09-05
+Date: 2026-09-25
 
 ## Status
 
@@ -47,12 +47,13 @@ for now.**
   image, at about a third of the cost, with one provider for domain, DNS and
   server.
 - **Negative / trade-offs:**
-  - **Cross-border transfer is an ongoing obligation.** Mikono holds
-    personal data about Kenyan volunteers; Kenya's Data Protection Act 2019
-    Part VI allows transfer abroad with safeguards or consent, and France is
-    easy to argue a safeguard for — defensible, not disqualified. But UCESCO
-    has to own that documentation, and has no DPO. This is governance, not a
-    technical task, and not legal advice.
+  - **Cross-border transfer is an ongoing obligation.** Hosting in France
+    holds only under the conditions of
+    [ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md) rule 3:
+    UCESCO keeps proof of safeguards (s.48), and sensitive personal data,
+    which includes emergency contacts naming family, also needs the
+    volunteer's consent (s.49(1)). This is governance, not a technical task,
+    and not legal advice.
   - **Governance concentration.** Domain, DNS and server sit in the
     maintainer's personal Gandi account, not UCESCO's.
   - **Support does not cover a Nairobi night.** Email only, 08:00–24:00

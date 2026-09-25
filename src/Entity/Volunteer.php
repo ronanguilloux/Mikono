@@ -65,6 +65,29 @@ class Volunteer
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $emergencyContacts = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $accommodationPreference = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $pickupAirport = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(requireTld: true)]
+    private ?string $socialMediaUrl = null;
+
+    // Free text until someone needs to list a supervisor's volunteers; it may
+    // become a User or an Escort then. See ADR 0032.
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $supervisor = null;
+
+    // Only ever written through PassportNumberCipher, never from a form or a
+    // fixture: a leaked .db or backup must not carry the number. See ADR 0033.
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $passportNumberCiphertext = null;
+
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $passportExpiresOn = null;
+
     // Owning side, so Doctrine loads it lazily and list pages never read the
     // bytes; an inverse one-to-one would always be fetched.
     #[ORM\OneToOne(targetEntity: VolunteerPhoto::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -249,7 +272,98 @@ class Volunteer
         return $this;
     }
 
-    /** True while any profile field is still unrecorded; the profile page nudges on it. */
+    public function getAccommodationPreference(): ?string
+    {
+        return $this->accommodationPreference;
+    }
+
+    public function setAccommodationPreference(?string $accommodationPreference): static
+    {
+        $this->accommodationPreference = self::nullIfBlank($accommodationPreference);
+
+        return $this;
+    }
+
+    public function getPickupAirport(): ?string
+    {
+        return $this->pickupAirport;
+    }
+
+    public function setPickupAirport(?string $pickupAirport): static
+    {
+        $this->pickupAirport = self::nullIfBlank($pickupAirport);
+
+        return $this;
+    }
+
+    public function getSocialMediaUrl(): ?string
+    {
+        return $this->socialMediaUrl;
+    }
+
+    public function setSocialMediaUrl(?string $socialMediaUrl): static
+    {
+        $this->socialMediaUrl = self::nullIfBlank($socialMediaUrl);
+
+        return $this;
+    }
+
+    public function getSupervisor(): ?string
+    {
+        return $this->supervisor;
+    }
+
+    public function setSupervisor(?string $supervisor): static
+    {
+        $this->supervisor = self::nullIfBlank($supervisor);
+
+        return $this;
+    }
+
+    public function getPassportNumberCiphertext(): ?string
+    {
+        return $this->passportNumberCiphertext;
+    }
+
+    public function setPassportNumberCiphertext(?string $passportNumberCiphertext): static
+    {
+        $this->passportNumberCiphertext = $passportNumberCiphertext;
+
+        return $this;
+    }
+
+    public function getPassportExpiresOn(): ?\DateTimeImmutable
+    {
+        return $this->passportExpiresOn;
+    }
+
+    public function setPassportExpiresOn(?\DateTimeImmutable $passportExpiresOn): static
+    {
+        $this->passportExpiresOn = $passportExpiresOn;
+
+        return $this;
+    }
+
+    public function isPassportExpired(\DateTimeImmutable $today): bool
+    {
+        return null !== $this->passportExpiresOn && $this->passportExpiresOn < $today;
+    }
+
+    /** Kenya wants six months of validity left on entry. */
+    public function isPassportExpiringSoon(\DateTimeImmutable $today): bool
+    {
+        return null !== $this->passportExpiresOn
+            && !$this->isPassportExpired($today)
+            && $this->passportExpiresOn < $today->modify('+6 months');
+    }
+
+    /**
+     * True while any profile field is still unrecorded; the profile page nudges on it.
+     * The second-slice fields (accommodation, airport, social link, supervisor,
+     * passport) are left out: they don't apply to every volunteer — a Kenyan
+     * volunteer has no pickup airport — so counting them would make the pill
+     * permanent.
+     */
     public function isProfileIncomplete(): bool
     {
         return in_array(null, [

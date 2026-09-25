@@ -212,6 +212,7 @@ umask 077
 cat > /opt/mikono/deploy.env <<ENV
 SERVER_NAME=vm.example.org
 APP_SECRET=$(openssl rand -hex 16)
+PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32)
 DEFAULT_URI=https://vm.example.org
 IMAGES_PREFIX=ghcr.io/ronanguilloux/
 IMAGE_TAG=latest
@@ -251,7 +252,12 @@ Two rules that matter:
 
 Never commit `deploy.env`; it lives only on the server. Keep a copy of
 `APP_SECRET` in whatever password manager the project uses — losing it
-invalidates every existing session and any signed URL.
+invalidates every existing session and any signed URL. Keep
+`PASSPORT_ENCRYPTION_KEY` there too, and never beside a database copy:
+losing it loses every stored passport number, and a backup that carries it
+protects nothing
+([ADR 0033](../adr/0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)). It is a runtime variable for the same reason as
+`APP_SECRET`; without it every volunteer screen errors.
 
 ## 5. First deployment
 
@@ -654,6 +660,7 @@ umask 077
 cat > deploy.env.dryrun <<ENV
 SERVER_NAME=localhost
 APP_SECRET=$(openssl rand -hex 16)
+PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32)
 DEFAULT_URI=https://localhost
 IMAGES_PREFIX=ghcr.io/ronanguilloux/
 IMAGE_TAG=latest

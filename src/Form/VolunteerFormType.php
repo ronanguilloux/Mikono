@@ -14,9 +14,12 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Image;
+use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Validator\Constraints\Regex;
 
 final class VolunteerFormType extends AbstractType
 {
@@ -44,6 +47,33 @@ final class VolunteerFormType extends AbstractType
             ->add('emergencyContacts', TextareaType::class, [
                 'required' => false,
                 'help' => 'Name, relationship and phone number, one contact per line.',
+            ])
+            ->add('accommodationPreference', TextType::class, ['required' => false])
+            ->add('pickupAirport', TextType::class, [
+                'required' => false,
+                'label' => 'Airport for pickup',
+            ])
+            ->add('socialMediaUrl', UrlType::class, [
+                'required' => false,
+                'label' => 'Social media link',
+                'default_protocol' => 'https',
+            ])
+            ->add('supervisor', TextType::class, ['required' => false])
+            // Unmapped: the controller encrypts it into passportNumberCiphertext
+            // (ADR 0033), so the plain number never reaches the entity.
+            ->add('passportNumber', TextType::class, [
+                'mapped' => false,
+                'required' => false,
+                'constraints' => [
+                    new Length(max: 20),
+                    new Regex(pattern: '/^[A-Za-z0-9 ]*$/', message: 'A passport number has letters and digits only.'),
+                ],
+            ])
+            ->add('passportExpiresOn', DateType::class, [
+                'required' => false,
+                'widget' => 'single_text',
+                'input' => 'datetime_immutable',
+                'label' => 'Passport expiry date',
             ])
             // Unmapped: the controller re-encodes the upload before it becomes a
             // VolunteerPhoto (ADR 0032). Listing the types in `accept` makes iOS

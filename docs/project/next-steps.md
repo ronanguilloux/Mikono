@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-25
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -28,13 +28,21 @@ hostname is the one that isn't ours to solve.
 3. [Decide whether UAT and production share one box](backlog/uat-and-production-one-box-or-two.md) — **D**
 4. [Size production off the 1 GB plan](backlog/production-vps-sizing.md) — **B**
 5. [A production hostname that resolves](backlog/production-hostname-dns.md) — **B**
+6. [UCESCO's data-protection paperwork under the Kenya DPA](backlog/dpa-governance-for-ucesco.md) — **B**
+7. [A privacy notice and a consent record for volunteers](backlog/volunteer-privacy-notice-and-consent.md) — **G**
 
 ## Next
 
 1. [Open questions for Edna about the fixture data](backlog/roster-archive-open-questions.md) — **B**
 2. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
 3. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
-4. [Second slice of volunteer profile fields](backlog/volunteer-profile-second-slice.md) — **G**
+4. [Arrival and birthday reminders on the dashboard](backlog/dashboard-arrival-and-birthday-reminders.md)
+5. [Record achievements on a volunteer's stay](backlog/achievements-on-a-stay.md) — **D**
+6. [Achievement anniversary reminders on the dashboard](backlog/achievement-anniversary-reminders.md) — **G**
+7. [A breach-response runbook with the Act's clocks](backlog/breach-response-runbook.md)
+8. [Refuse a volunteer date of birth under 18](backlog/refuse-minors-as-volunteers.md)
+9. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
+10. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
 
 ## Later
 

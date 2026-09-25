@@ -98,6 +98,12 @@ implements it.
   ([ADR 0030](docs/adr/0030-insert-programs-between-projects-and-activities.md)).
   `ActivityFactory` still takes a `project` attribute and builds a program
   there.
+- **Personal data is admitted only under
+  [ADR 0034](docs/adr/0034-comply-with-kenyas-data-protection-act-2019.md)**
+  (Kenya's Data Protection Act 2019). A new personal-data field, store,
+  export or third-party service states its purpose, sensitivity (s.2 counts
+  family details, so emergency contacts, as sensitive), retention and
+  transfer basis in its own ADR.
 - `src/Enum/` — backed PHP enums (`ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
 - `src/Controller/`, `src/Form/`, `templates/<area>/` — one set per CRUD
@@ -416,7 +422,13 @@ in [`deployment-plan.md`](docs/project/deployment-plan.md)):
   `deployment-plan.md` §3 is about `debian`; §6, the routine deploy, about
   `deploy`.
 - `APP_SECRET` is a **runtime** variable, never a build argument — the
-  image is public.
+  image is public. So is `PASSPORT_ENCRYPTION_KEY`: a volunteer's passport
+  number is only ever written and read through
+  `App\Security\PassportNumberCipher` (an unmapped form field, a
+  `passportNumberCiphertext` column), never mapped as a plain field, exported
+  or put in a fixture. Losing the key loses every number; it never travels
+  with a database copy
+  ([ADR 0033](docs/adr/0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)).
 - In `frankenphp_prod_builder`, `tailwind:build` must run **before**
   `asset-map:compile`, or the image build fails. Don't reorder or drop it.
 - `date.timezone` is `Africa/Nairobi`, not UTC

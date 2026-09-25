@@ -57,9 +57,15 @@ the other.
 - Arrivals need `Stay::$startDate`, which
   [ADR 0026](../../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)
   shipped.
-- **Anniversaries of an achievement have no data behind them.** Nothing
-  records that a project began with a given volunteer's idea. That needs a
-  field before it needs a channel — and probably its own card.
+- **Anniversaries of an achievement have no data behind them** yet —
+  [achievements-on-a-stay](achievements-on-a-stay.md) adds it.
 
 Both fields were missing when this card was first written; that is why it
 said an outbound channel was the only blocker.
+
+**The in-app half is split out.** All three kinds are shown on the
+dashboard first, with no outbound channel:
+[dashboard-arrival-and-birthday-reminders](dashboard-arrival-and-birthday-reminders.md)
+and [achievement-anniversary-reminders](achievement-anniversary-reminders.md).
+This card is now only about *sending* them (SMS or email), and its ADR can
+weigh that against the in-app panel once it has been used.

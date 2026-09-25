@@ -69,6 +69,8 @@ drafts and maintains these.
 | [0030](0030-insert-programs-between-projects-and-activities.md) | Insert programs between projects and activities | Accepted |
 | [0031](0031-show-production-errors-on-an-in-app-admin-screen-over-a-rotating-json-error-log.md) | Show production errors on an in-app admin screen over a rotating JSON error log | Proposed |
 | [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) | Store volunteer profile fields as optional and photos as re-encoded JPEG blobs in SQLite | Accepted |
+| [0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md) | Encrypt passport numbers at rest with a runtime sodium key | Accepted |
+| [0034](0034-comply-with-kenyas-data-protection-act-2019.md) | Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018
