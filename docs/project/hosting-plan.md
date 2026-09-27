@@ -1,6 +1,6 @@
 # Hosting plan
 
-**Last updated:** 2026-09-04
+**Last updated:** 2026-09-27
 
 What Mikono's architecture requires of a server, and where that server
 should be. A living document — it is edited in place as the answers firm
@@ -10,14 +10,13 @@ deliberately left hosting out of v0.1's scope; this file is where that
 deferred question gets answered. The *how to ship it* half lives in
 [`deployment-plan.md`](deployment-plan.md).
 
-**Still open:** which provider. The *class* of machine is settled — a
-KVM VPS with root, in Nairobi if a provider clears the bar in §5 — and
-shared hosting is ruled out entirely, for reasons set out there. What
-remains is the choice among four named candidates (§5, verified against
-the providers' own pages on 2026-09-04), and that becomes an ADR once
-the five pre-sales questions are answered in writing —
-[`provider-questions.md`](provider-questions.md) is the email that asks
-them.
+**Settled:** production runs on a Compute Engine `e2-small` in
+Johannesburg
+([ADR 0035](../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md));
+UAT stays on the GandiCloud VPS in France
+([ADR 0017](../adr/0017-host-production-on-gandicloud-vps-in-france.md)).
+The requirements below apply to both boxes. §5's Nairobi research stays
+so that reopening the question starts from it.
 
 ## 1. What the architecture forces
 

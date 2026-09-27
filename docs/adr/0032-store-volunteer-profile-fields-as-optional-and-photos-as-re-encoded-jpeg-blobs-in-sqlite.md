@@ -25,16 +25,13 @@ These facts drive the decision:
   which has no birth dates, nationalities or contacts.
   [ADR 0014](0014-make-a-volunteers-last-name-optional.md) already made the
   last name optional for the same reason.
-- **This is personal data about people in Kenya, hosted in France.**
-  Production runs in France
-  ([ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md)). The
-  Kenya Data Protection Act 2019 and the GDPR both apply. A phone photo
-  carries EXIF metadata, including GPS coordinates.
-  [ADR 0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md),
-  which covers the passport number, was framed under the assumption that
-  production will move to Kenya; that assumption is not a decision, and
-  ADR 0017 stays in force until it is revisited. Nothing in this ADR
-  depends on which country hosts the server.
+- **This is personal data about people in Kenya, hosted in South
+  Africa.** Production runs in Johannesburg
+  ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)), so the
+  Kenya Data Protection Act 2019 applies to a cross-border transfer
+  ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md)). A
+  phone photo carries EXIF metadata, including GPS coordinates. Nothing in
+  this ADR depends on which country hosts the server.
 - **Not every field applies to every volunteer.** A Kenyan volunteer has
   no pickup airport and may hold no passport, and the choices for
   accommodation and airports have not been listed by anyone.

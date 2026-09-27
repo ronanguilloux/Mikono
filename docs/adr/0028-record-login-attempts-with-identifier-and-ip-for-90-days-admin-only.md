@@ -24,8 +24,8 @@ cannot say who signs in, or who fails to:
   any trace an admin can see.
 
 Other constraints: the repo is public, the app is used by a handful of
-UCESCO colleagues, and production is hosted in France
-([ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md)). This is
+UCESCO colleagues, and production is hosted in South Africa
+([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)). This is
 personal data, so it needs a purpose, a minimum and a retention period.
 
 ## Decision

@@ -441,9 +441,11 @@ and the log holds no error.
 
 **A local backup is not a backup.** Copy the directory off the machine —
 `rclone`/`rsync` to object storage or another host, on the same schedule.
-The destination follows the server rather than being chosen freshly:
-production is in France (ADR 0017), so a European remote raises no
-question that decision has not already answered. Use an `rclone` **crypt**
+The destination is chosen in
+[`backlog/off-site-encrypted-backups.md`](backlog/off-site-encrypted-backups.md):
+production moved to South Africa (ADR 0035), so it no longer simply
+follows the server into Europe, and it is a cross-border transfer in
+its own right (ADR 0034 rule 3). Use an `rclone` **crypt**
 remote with the key held off the server — the destination then holds
 ciphertext it cannot read, which is both the right posture for a file
 containing every volunteer record and what keeps the destination cheaply

@@ -16,10 +16,13 @@ sits on the same disk as the database it protects, which is not a backup.
 This is the first of three things gating real volunteer data landing on a
 server.
 
-The destination question is settled by
-[ADR 0017](../../adr/0017-host-production-on-gandicloud-vps-in-france.md) —
-the off-site copy follows the server into Europe — so what is left is
-mechanical.
+**The destination is open again.** It was settled when production was
+in France, where the copy followed the server into Europe. Production now
+moves to Johannesburg
+([ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)), so choose where the
+copy goes before configuring the remote. It is a cross-border transfer
+under [ADR 0034](../../adr/0034-comply-with-kenyas-data-protection-act-2019.md)
+rule 3, like the server itself. The rest is mechanical.
 
 ## Done when
 

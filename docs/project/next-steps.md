@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-25
+**Last updated:** 2026-09-27
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -23,13 +23,12 @@ ready to open and work.
 Three things gate real volunteer data landing on a server, and the
 hostname is the one that isn't ours to solve.
 
-1. [An encrypted off-site copy of the backups](backlog/off-site-encrypted-backups.md)
-2. [Meet Nickson about the production hostname and DNS](backlog/nickson-meeting-dns-and-hosting.md)
-3. [Decide whether UAT and production share one box](backlog/uat-and-production-one-box-or-two.md) — **D**
-4. [Size production off the 1 GB plan](backlog/production-vps-sizing.md) — **B**
-5. [A production hostname that resolves](backlog/production-hostname-dns.md) — **B**
-6. [UCESCO's data-protection paperwork under the Kenya DPA](backlog/dpa-governance-for-ucesco.md) — **B**
-7. [A privacy notice and a consent record for volunteers](backlog/volunteer-privacy-notice-and-consent.md) — **G**
+1. [Stand up production on a Compute Engine e2-small in Johannesburg](backlog/production-on-compute-engine-johannesburg.md) — **B**
+2. [An encrypted off-site copy of the backups](backlog/off-site-encrypted-backups.md)
+3. [Meet Nickson about the production hostname and DNS](backlog/nickson-meeting-dns-and-hosting.md)
+4. [A production hostname that resolves](backlog/production-hostname-dns.md) — **B**
+5. [UCESCO's data-protection paperwork under the Kenya DPA](backlog/dpa-governance-for-ucesco.md) — **B**
+6. [A privacy notice and a consent record for volunteers](backlog/volunteer-privacy-notice-and-consent.md) — **G**
 
 ## Next
 

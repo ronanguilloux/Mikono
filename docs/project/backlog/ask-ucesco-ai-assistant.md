@@ -27,8 +27,8 @@ An ADR decides, before any code:
   questions have no data behind them (below).
 - **What leaves the server.** Sending volunteer records to a third-party
   model is a DPA 2019 and GDPR question — personal data about people in
-  Kenya, hosted in France
-  ([ADR 0017](../../adr/0017-host-production-on-gandicloud-vps-in-france.md)).
+  Kenya, hosted in South Africa
+  ([ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)).
   A local model, a hosted one, or none at all are three different answers.
 - **Who may ask.** The app has exactly two roles today, `ROLE_USER` and
   `ROLE_ADMIN`. An assistant that can read every record is at least as

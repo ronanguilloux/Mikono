@@ -18,7 +18,7 @@ records. See
 The development machine has no PHP or Composer installed. The choices below
 were made together as one stack, so they share one ADR. Deployment is
 [ADR 0010](0010-build-in-ci-and-deploy-by-image-pull.md) and
-[ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md).
+[ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md).
 
 ## Decision
 

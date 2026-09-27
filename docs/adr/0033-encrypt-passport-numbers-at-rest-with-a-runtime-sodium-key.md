@@ -28,9 +28,9 @@ The number needs its own decision, for these reasons:
   that production will be hosted in Kenya. Under Kenyan hosting there is
   no cross-border transfer question, but protection at rest still matters,
   because backups leave the server either way.
-  [ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md), which
-  hosts production on GandiCloud in France, is not reopened here and stays
-  in force; it is to be revisited separately. This decision holds whichever
+  Production is in fact hosted in South Africa
+  ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)), which makes
+  the backups a cross-border transfer too. This decision holds whichever
   country hosts the server.
 
 ## Decision

@@ -21,7 +21,7 @@ Four facts decide it:
 - **Every page is behind a login**, so every event is a named staff
   member's behaviour, and URLs like `/volunteers/12/edit` carry record
   identifiers. Sending that to a US provider reopens the cross-border
-  transfer question [ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md)
+  transfer question [ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)
   already has to carry.
 - **The app has one regular user.** Funnels, audiences and attribution —
   GA4's strengths — have nothing to work on.

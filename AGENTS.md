@@ -394,7 +394,8 @@ docker compose exec php composer rector     # preview refactors — dry-run only
 
 **Deployment**
 ([ADR 0010](docs/adr/0010-build-in-ci-and-deploy-by-image-pull.md),
-[ADR 0017](docs/adr/0017-host-production-on-gandicloud-vps-in-france.md);
+[ADR 0035](docs/adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md);
+UAT: [ADR 0017](docs/adr/0017-host-production-on-gandicloud-vps-in-france.md);
 requirements in [`hosting-plan.md`](docs/project/hosting-plan.md), runbook
 in [`deployment-plan.md`](docs/project/deployment-plan.md)):
 

@@ -3,7 +3,8 @@
 **Last updated:** 2026-09-04
 
 > **Dormant since 2026-09-05: this was never sent, and is not going to be
-> for now.** Production is on GandiCloud VPS in France (ADR 0017). Kept
+> for now.** Production goes to a Google Compute Engine VM in Johannesburg
+> (ADR 0035); UAT stays on GandiCloud in France (ADR 0017). Kept
 > ready to send unchanged if the Kenyan option is ever reopened — the
 > candidates it addresses are in
 > [`hosting-plan.md`](hosting-plan.md) §5.

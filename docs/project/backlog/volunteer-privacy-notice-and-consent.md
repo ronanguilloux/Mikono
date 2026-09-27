@@ -18,7 +18,7 @@ is voluntary. Nothing does that today.
 
 s.49(1) goes further for sensitive personal data processed outside Kenya:
 it needs the volunteer's **consent** as well as safeguards. Production is
-in France, and emergency contacts name family members, which s.2 counts
+in South Africa, and emergency contacts name family members, which s.2 counts
 as sensitive. So emergency contacts cannot lawfully be kept until consent
 exists and can be proven: under s.32(1) the burden of proof is UCESCO's.
 See [ADR 0034](../../adr/0034-comply-with-kenyas-data-protection-act-2019.md) rules 2–4.

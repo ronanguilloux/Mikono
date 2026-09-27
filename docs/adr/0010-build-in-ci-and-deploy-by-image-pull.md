@@ -19,7 +19,7 @@ SQLite means one machine and one container, so this is a single-server
 deployment with no orchestration
 ([`hosting-plan.md`](../project/hosting-plan.md)). The open question is where
 the image is built and how it reaches the server. The provider is
-[ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md).
+[ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md).
 
 ## Decision
 

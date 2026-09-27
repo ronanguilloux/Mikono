@@ -29,8 +29,8 @@ receipts, IDs, certificates, contracts, bank documents.
 - **That ADR rules on video explicitly, or excludes it.** Video is one to
   two orders of magnitude larger than the documents this card was sized on,
   and on its own settles the blobs-vs-files question: a `VACUUM INTO` copy
-  of the whole `.db` file on every backup, shipped off-site, on a 1 GB VPS
-  ([production-vps-sizing](production-vps-sizing.md)) does not absorb it.
+  of the whole `.db` file on every backup, shipped off-site, on a 2 GB VM
+  with a 20 GB disk ([ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)) does not absorb it.
 - On the volunteer page, staff can upload, list, download and delete
   documents.
 - Documents are never served from a public path. Downloads go through an
@@ -53,11 +53,11 @@ receipts, IDs, certificates, contracts, bank documents.
   in [off-site-encrypted-backups](off-site-encrypted-backups.md).
 - **If blobs:** a document row per file, with no inverse association on
   `Volunteer`. Stream downloads, and check what the database size does to
-  backup time and to the 1 GB VPS.
+  backup time and to the 2 GB VM.
 - PDF and image metadata: re-encoding PDFs isn't practical the way it is
   for photos. Decide whether stored metadata is acceptable.
-- This repo is public, and Kenya's DPA 2019 applies (server in France,
-  [ADR 0017](../../adr/0017-host-production-on-gandicloud-vps-in-france.md)).
+- This repo is public, and Kenya's DPA 2019 applies (server in South Africa,
+  [ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)).
   Fixtures and tests never carry real documents. Consider a retention rule.
 - Bank documents and IDs raise the sensitivity a step above passport scans.
   Whatever retention rule the ADR sets, they are the reason it needs one.

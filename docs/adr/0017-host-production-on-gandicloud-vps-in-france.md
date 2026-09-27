@@ -1,6 +1,6 @@
-# 17. Host production on GandiCloud VPS in France, not in Kenya
+# 17. Host UAT on GandiCloud VPS in France
 
-Date: 2026-09-25
+Date: 2026-09-27
 
 ## Status
 
@@ -8,89 +8,55 @@ Accepted
 
 ## Context
 
-[ADR 0010](0010-build-in-ci-and-deploy-by-image-pull.md) settled how the
-image reaches a server; this ADR settles which server.
-[`hosting-plan.md`](../project/hosting-plan.md) holds the requirements and
-the research: §5 ranked a Nairobi VPS first, South Africa second, Europe
-last, with four Kenyan candidates and five pre-sales questions (which
-datacentre, KVM or not, UDP 443 filtering, snapshots, support).
+UCESCO accepts the app on a UAT deployment, `deploy.mikono.guilloux.org`,
+which stays up after production goes live. Production runs on its own box,
+chosen in
+[ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md).
 
-The two sides were not equally known:
-
-- **The Kenyan candidates answered nothing.** The pre-sales email in
-  [`provider-questions.md`](../project/provider-questions.md) was never
-  sent, and the cheapest candidate does not say where its machines are.
-- **The European candidate was proven on real hardware.** `srv-mikono`
-  (GandiCloud VPS, Paris) runs the production image: Let's Encrypt issuance
-  works (so port 80 is reachable), HTTP/3 negotiates (UDP 443 not filtered),
-  and the image runs as `linux/amd64`.
-
-Cost: about €72/year at Gandi against roughly $275/year for the
-§2-recommended box in Nairobi. `guilloux.org` is already at Gandi, so
-domain, DNS and server share one account.
+`srv-mikono` (GandiCloud VPS, Paris) is already proven with the production
+image. Let's Encrypt issuance works, so port 80 is reachable. HTTP/3
+negotiates, so UDP 443 is not filtered. The image runs as `linux/amd64`.
+The box was resized from 1 GB to 1 vCPU / 2 GB on 2026-09-06.
+`guilloux.org` is registered at Gandi, so domain, DNS and the box are in
+one account.
 
 ## Decision
 
-**Production runs on GandiCloud VPS in France; Kenyan hosting is not pursued
-for now.**
+**UAT runs on `srv-mikono`, a GandiCloud VPS in France, and holds no real
+data.**
 
-- `srv-mikono` is the production host; ADR 0010's model is unchanged.
-- The Kenyan candidates are not contacted. `hosting-plan.md` §5 and
-  `provider-questions.md` stay in the repository so reopening starts from
-  research.
-- The off-site backup destination follows the server into Europe.
-- "For now" is literal: moving is cheap (see Reversibility).
+- It runs the production image with the
+  [ADR 0010](0010-build-in-ci-and-deploy-by-image-pull.md) deploy path,
+  the same one production uses.
+- **No real volunteer data ever reaches it.** Never restore or copy a
+  production backup onto it, not even to debug. Because the box holds no
+  personal data, it is not a transfer under
+  [ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md).
+- The admin login is `debian`, as
+  [`deployment-plan.md`](../project/deployment-plan.md) §3 describes. A
+  deploy runs as `deploy`.
 
 ## Consequences
 
-- **Positive:** production runs on a machine already proven with this exact
-  image, at about a third of the cost, with one provider for domain, DNS and
-  server.
-- **Negative / trade-offs:**
-  - **Cross-border transfer is an ongoing obligation.** Hosting in France
-    holds only under the conditions of
-    [ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md) rule 3:
-    UCESCO keeps proof of safeguards (s.48), and sensitive personal data,
-    which includes emergency contacts naming family, also needs the
-    volunteer's consent (s.49(1)). This is governance, not a technical task,
-    and not legal advice.
-  - **Governance concentration.** Domain, DNS and server sit in the
-    maintainer's personal Gandi account, not UCESCO's.
-  - **Support does not cover a Nairobi night.** Email only, 08:00–24:00
-    Paris, six days a week — roughly 09:00–01:00 EAT.
-  - **Provider snapshots are not trusted.** Gandi's documentation
-    contradicts itself; backups are `scripts/backup-db.sh` plus an off-site
-    copy, never snapshots.
-  - **About 130 ms more per round trip** than Nairobi. The mobile access
-    leg adds 40–100 ms regardless, and a server-rendered Turbo app makes a
-    handful of navigations per session, so the cost is real but well under a
-    second per working session.
-  - **The off-site backup copy** — the whole database in one file, the
-    artifact residency matters most for — inherits this decision.
-  - Sizing the box is tracked in
-    [`production-vps-sizing`](../project/backlog/production-vps-sizing.md).
-- **Reversibility:** genuinely cheap. Moving to a Kenyan or South African
-  VPS is a `docker compose pull` on the new box, one SQLite file copied and
-  one DNS record changed; the restore drill in `deployment-plan.md` §7
-  rehearses most of it.
+- **Positive:** a cheap box, already proven, where UCESCO can test freely.
+  Nothing done there can expose a volunteer.
+- **Negative / trade-offs:** UAT and production are with different
+  providers. A pass on UAT proves the app and the image, but not Google
+  Cloud's firewall, login or disk. Domain, DNS and UAT stay in the
+  maintainer's personal Gandi account. That is acceptable only because the
+  box holds no personal data.
+- **Reversibility:** cheap. The box can be rebuilt anywhere with a
+  `docker compose pull` and one DNS record, since there is no data to move.
 
 ## Alternatives considered
 
-### 1. A Nairobi VPS (Lineserve, Truehost, Hostnali, HostPinnacle)
+### 1. Share production's VM
 
-**Rejected**, overriding hosting-plan §5's ranking knowingly: roughly three
-times the price, and not one candidate has said where its machine is or
-answered the other four questions. Paying a premium for an unknown over a
-box that already runs this image.
+**Rejected.** Real volunteer data would sit on the same disk as the
+environment kept empty on purpose. Two FrankenPHP workers, each with a
+256 MB opcache, plus a deploy's overlap would use most of a 2 GB box.
 
-### 2. South Africa (Vultr Johannesburg, AWS `af-south-1`)
+### 2. Move UAT to Compute Engine next to production
 
-**Rejected.** Buys latency only (60–90 ms instead of 120–160) while reopening
-the identical cross-border question at a higher price. AWS's cheap
-`af-south-1` instances are arm64, and `build-image.yml` publishes amd64 only.
-
-### 3. A European VPS behind Cloudflare
-
-**Rejected.** Terminates TLS outside Kenya anyway, in a worse form for the
-transfer question; breaks Caddy's HTTP-01 issuance; and needs
-`framework.trusted_proxies`, which the app does not set.
+**Rejected.** It would add a second bill of about $20 a month for a box
+with no data, and replace a Gandi box that already works and costs less.

@@ -18,8 +18,8 @@ it a blocked card rather than an afternoon.
 
 **Blocked on** [`nickson-meeting-dns-and-hosting`](nickson-meeting-dns-and-hosting.md)
 for the name itself, and on
-[`uat-and-production-one-box-or-two`](uat-and-production-one-box-or-two.md)
-for the IP it points at.
+[`production-on-compute-engine-johannesburg`](production-on-compute-engine-johannesburg.md)
+for the IP it points at (the VM's reserved static IPv4).
 
 ## Done when
 

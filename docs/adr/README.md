@@ -55,7 +55,7 @@ drafts and maintains these.
 | [0013](0013-record-every-escort-on-an-activity.md) | Record every escort on an activity, not just one | Accepted |
 | [0014](0014-make-a-volunteers-last-name-optional.md) | Make a volunteer's last name optional | Accepted |
 | [0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md) | Node.js as a test dependency and ancillary tool, never as application code | Accepted |
-| [0017](0017-host-production-on-gandicloud-vps-in-france.md) | Host production on GandiCloud VPS in France, not in Kenya | Accepted |
+| [0017](0017-host-production-on-gandicloud-vps-in-france.md) | Host UAT on GandiCloud VPS in France | Accepted |
 | [0020](0020-keep-sessions-on-the-database-volume-in-files.md) | Keep sessions on the database volume, in files | Accepted |
 | [0021](0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md) | Usage from the Caddy access log, read in an in-app `/usage` screen | Accepted |
 | [0022](0022-split-next-steps-into-backlog-cards-and-a-thin-index.md) | Open work as per-item backlog cards behind a thin ordered index | Accepted |
@@ -71,6 +71,7 @@ drafts and maintains these.
 | [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) | Store volunteer profile fields as optional and photos as re-encoded JPEG blobs in SQLite | Accepted |
 | [0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md) | Encrypt passport numbers at rest with a runtime sodium key | Accepted |
 | [0034](0034-comply-with-kenyas-data-protection-act-2019.md) | Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor | Accepted |
+| [0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md) | Host production on a Compute Engine e2-small in Johannesburg | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018
