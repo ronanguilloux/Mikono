@@ -78,6 +78,20 @@ class VolunteerRepository extends ServiceEntityRepository
     }
 
     /**
+     * Volunteers the batch form offers: anyone with a stay, stays fetched in
+     * the same query so the form can tell the browser which dates each one
+     * covers — logging a past session names people who have since left.
+     */
+    public function createWithAnyStayQueryBuilder(): QueryBuilder
+    {
+        return $this->createQueryBuilder('v')
+            ->innerJoin('v.stays', 's')
+            ->addSelect('s')
+            ->orderBy('v.lastName', 'ASC')
+            ->addOrderBy('v.firstName', 'ASC');
+    }
+
+    /**
      * Which of a page of volunteers have a stay covering $day, in one query —
      * the index's Status column, without a stays lazy-load per row.
      *

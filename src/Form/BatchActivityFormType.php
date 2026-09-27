@@ -6,6 +6,7 @@ namespace App\Form;
 
 use App\Dto\BatchActivityInput;
 use App\Entity\Escort;
+use App\Entity\Stay;
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
 use App\Repository\EscortRepository;
@@ -77,11 +78,14 @@ final class BatchActivityFormType extends AbstractType
                 'choice_label' => static fn(Volunteer $volunteer) => $volunteer->getFullName(),
                 'choice_attr' => static fn(Volunteer $volunteer) => [
                     'data-name' => $volunteer->getFullName(),
+                    // "start..end" per stay: the Stimulus controller offers
+                    // only volunteers whose stay covers the chosen date, so a
+                    // past session can still name someone who has since left.
+                    'data-stays' => implode(' ', $volunteer->getStays()->map(
+                        static fn(Stay $stay) => $stay->getStartDate()?->format('Y-m-d') . '..' . $stay->getEndDate()?->format('Y-m-d'),
+                    )->toArray()),
                 ],
-                // Current or upcoming stays only — this form only ever creates
-                // new activities, so somebody who has finished their stint is
-                // never a valid answer to "who attended?".
-                'query_builder' => static fn(VolunteerRepository $volunteers): QueryBuilder => $volunteers->createWithCurrentOrUpcomingStayQueryBuilder(),
+                'query_builder' => static fn(VolunteerRepository $volunteers): QueryBuilder => $volunteers->createWithAnyStayQueryBuilder(),
                 'multiple' => true,
                 'expanded' => true,
                 'label' => 'Who attended?',

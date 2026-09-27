@@ -417,12 +417,19 @@ final class ActivityControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Please specify the duration when choosing "Other".');
     }
 
+    /**
+     * Anyone with a stay is offered, each tagged with the dates their stays
+     * cover: the browser narrows the list to the chosen date, so a past
+     * session can still name someone who has since left.
+     */
     #[Test]
-    public function inactiveVolunteersAreNotOfferedOnTheBatchForm(): void
+    public function theBatchFormOffersEveryVolunteerWithAStayTaggedWithItsDates(): void
     {
         $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
         $active = VolunteerFactory::createOne(['firstName' => 'Still', 'lastName' => 'Here']);
         $gone = VolunteerFactory::new()->inactive()->create(['firstName' => 'Long', 'lastName' => 'Gone']);
+        $never = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'No', 'lastName' => 'Stay']);
 
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/activities/new');
@@ -431,7 +438,34 @@ final class ActivityControllerTest extends WebTestCase
             ->filter('[data-batch-activity-form-target="checkboxes"] input[type="checkbox"]')
             ->extract(['value']);
         self::assertContains((string) $active->getId(), $offered);
-        self::assertNotContains((string) $gone->getId(), $offered);
+        self::assertContains((string) $gone->getId(), $offered);
+        self::assertNotContains((string) $never->getId(), $offered);
+        self::assertSame(
+            $today->modify('-6 months')->format('Y-m-d') . '..' . $today->modify('-5 months')->format('Y-m-d'),
+            $crawler->filter(sprintf('input[value="%d"][data-stays]', $gone->getId()))->attr('data-stays'),
+        );
+    }
+
+    #[Test]
+    public function aBatchCanLogAPastSessionForSomebodyWhoHasSinceLeft(): void
+    {
+        $client = static::createClient();
+        $gone = VolunteerFactory::new()->inactive()->create(['firstName' => 'Long', 'lastName' => 'Gone']);
+        $activityType = ActivityTypeFactory::createOne();
+        $program = ProgramFactory::createOne(['project' => ProjectFactory::createOne(), 'activityTypes' => [$activityType]]);
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+        $this->checkVolunteers($crawler, [$gone]);
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->modify('-5 months -3 days')->format('Y-m-d'),
+            'batch_activity_form[program]' => (string) $program->getId(),
+            'batch_activity_form[activityType]' => (string) $activityType->getId(),
+            'batch_activity_form[duration]' => 'half_day',
+        ]));
+
+        self::assertResponseRedirects('/activities');
+        ActivityFactory::assert()->count(1);
     }
 
     #[Test]

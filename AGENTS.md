@@ -314,8 +314,12 @@ process, hiding template/PHP edits in dev until a restart.
   case: an optional field (`VolunteerFormType`'s `lastName`) has
   `required: false` and **no** `empty_data`, so "not recorded" is `null`
   only, never also `''`.
-- The volunteer pickers on both activity forms list **volunteers with a current or upcoming stay
-  only**, and the escort pickers **active escorts only**.
+- The batch form (`/activities/new`) lists **every volunteer with a
+  stay**, each tagged `data-stays`, and its Stimulus controller narrows
+  the list to the chosen date — filtering on *today* made back-dated
+  logging impossible. The edit form and the `?volunteer=` prefill keep
+  **current or upcoming stay only**; the escort pickers **active escorts
+  only**.
   `ActivityFormType` backs edit only (every new activity goes through
   `/activities/new`), so its queries keep the activity's
   own volunteer and escorts selectable once deactivated, labelled

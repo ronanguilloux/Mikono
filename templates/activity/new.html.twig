@@ -30,7 +30,7 @@
         <div class="mb-4">
             {{ form_label(form.date) }}
             <div class="flex flex-wrap items-center gap-2">
-                {{ form_widget(form.date, {attr: {style: 'max-width: 190px', 'data-batch-activity-form-target': 'dateInput'}}) }}
+                {{ form_widget(form.date, {attr: {style: 'max-width: 190px', 'data-batch-activity-form-target': 'dateInput', 'data-action': 'change->batch-activity-form#onDateChange'}}) }}
                 <button
                     type="button"
                     data-action="batch-activity-form#setToday"

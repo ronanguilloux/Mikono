@@ -22,10 +22,33 @@ export default class extends Controller {
 
     setToday() {
         this.dateInputTarget.value = this.todayValue;
+        this.onDateChange();
     }
 
     setTomorrow() {
         this.dateInputTarget.value = this.tomorrowValue;
+        this.onDateChange();
+    }
+
+    // A volunteer ticked for another date may have no stay on this one.
+    onDateChange() {
+        this.checkboxes()
+            .filter((checkbox) => checkbox.checked && !this.coversDate(checkbox))
+            .forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+        this.renderChips();
+    }
+
+    // data-stays is "YYYY-MM-DD..YYYY-MM-DD" per stay; ISO dates compare as strings.
+    coversDate(checkbox) {
+        const date = this.dateInputTarget.value;
+
+        return date === '' || (checkbox.dataset.stays || '').split(' ').some((range) => {
+            const [start, end] = range.split('..');
+
+            return start <= date && date <= end;
+        });
     }
 
     toggleOtherField() {
@@ -127,7 +150,8 @@ export default class extends Controller {
 
     renderSuggestions() {
         const query = this.searchTarget.value.trim().toLowerCase();
-        const available = this.checkboxes().filter((checkbox) => !checkbox.checked);
+        const staying = this.checkboxes().filter((checkbox) => this.coversDate(checkbox));
+        const available = staying.filter((checkbox) => !checkbox.checked);
         const matches = available
             .filter((checkbox) => query === '' || checkbox.dataset.name.toLowerCase().includes(query))
             .slice(0, 6);
@@ -138,7 +162,11 @@ export default class extends Controller {
         if (!matches.length) {
             const empty = document.createElement('div');
             empty.className = 'px-3 py-2 text-xs text-slate-500';
-            empty.textContent = query ? `No volunteer matches "${this.searchTarget.value}"` : 'Everyone is already selected';
+            if (!staying.length) {
+                empty.textContent = `No volunteer has a stay on ${this.dateInputTarget.value}. Add a stay on their profile first.`;
+            } else {
+                empty.textContent = query ? `No volunteer matches "${this.searchTarget.value}"` : 'Everyone is already selected';
+            }
             this.suggestionsTarget.appendChild(empty);
         } else {
             matches.forEach((checkbox) => {

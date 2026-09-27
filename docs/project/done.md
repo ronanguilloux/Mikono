@@ -6,6 +6,15 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-27 — "Who attended?" picker empty on /activities/new
+
+The picker offered only volunteers whose stay ends today or later. Once
+every stay had ended (locally and on UAT) the list was empty, and the JS
+said "No volunteer matches". It now offers every volunteer with a stay and
+filters by the form's date on the client, so a past session can be logged
+for someone who has since left. When nobody's stay covers the date, it
+says so and points to adding a stay. `resolveStays()` still checks on save.
+
 ## 2026-09-27 — Prod 500 on the volunteer screens: missing passport key
 
 The server's `deploy.env` predated ADR 0033 and had no

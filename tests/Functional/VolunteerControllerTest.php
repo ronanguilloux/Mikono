@@ -366,6 +366,23 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function theEditScreenLinksToAddingAndEditingStays(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $stay = $volunteer->getStays()->first();
+        self::assertNotFalse($stay);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers/' . $volunteer->getId() . '/edit');
+
+        self::assertResponseIsSuccessful();
+        $links = $crawler->filter('[data-stays] a')->extract(['href']);
+        self::assertContains('/volunteers/' . $volunteer->getId() . '/stays/new', $links);
+        self::assertContains('/stays/' . $stay->getId() . '/edit', $links);
+    }
+
+    #[Test]
     public function theEditScreenSaysWhyDeleteIsUnavailable(): void
     {
         $client = static::createClient();

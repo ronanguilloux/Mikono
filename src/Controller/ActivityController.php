@@ -350,8 +350,8 @@ final class ActivityController extends AbstractController
 
     /**
      * The `?volunteer=<id>` prefill, kept only when the form offers that
-     * volunteer — the same current-or-upcoming-stay rule as its picker. A
-     * preselected value outside the choices would be silently dropped.
+     * volunteer with a current or upcoming stay — the form's default date is
+     * today, so an ended stay would arrive ticked but hidden by the picker.
      *
      * @return list<Volunteer>
      */
