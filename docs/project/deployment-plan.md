@@ -1,6 +1,6 @@
 # Deployment plan
 
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-27
 
 ## In a nutshell
 
@@ -257,7 +257,26 @@ invalidates every existing session and any signed URL. Keep
 losing it loses every stored passport number, and a backup that carries it
 protects nothing
 ([ADR 0033](../adr/0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)). It is a runtime variable for the same reason as
-`APP_SECRET`; without it every volunteer screen errors.
+`APP_SECRET`.
+
+**Compose refuses to start without either one.**
+[`compose.prod.yaml`](../../compose.prod.yaml) reads both as
+`${VAR:?…}`, so a `deploy.env` missing `APP_SECRET` or
+`PASSPORT_ENCRYPTION_KEY` fails at `pull`/`up` with *"required variable …
+is missing a value"*. That check exists because a blank key once deployed
+"healthy" and returned a 500 on every volunteer screen (`done.md`,
+2026-09-27). A `deploy.env` written before ADR 0033 lacks the key. Add it
+once, as `deploy`, then deploy as usual:
+
+```bash
+cd /opt/mikono && umask 077
+grep -q '^PASSPORT_ENCRYPTION_KEY=.' deploy.env \
+  || echo "PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> deploy.env
+```
+
+Generate a new key only when no passport number has ever been stored
+under an old one. Replacing a key that has been used makes every stored
+number unreadable.
 
 ## 5. First deployment
 
@@ -390,7 +409,9 @@ back. Take a backup immediately before any deploy carrying a migration.
 ## 7. Backups
 
 Run [`scripts/backup-db.sh`](../../scripts/backup-db.sh) from the
-deployment directory. It snapshots the live database with `VACUUM INTO`
+deployment directory. By default it passes `--env-file deploy.env` and
+both production compose files. The env file is needed even for `exec`,
+because Compose checks the required variables (§4) on every command. It snapshots the live database with `VACUUM INTO`
 (no downtime), verifies it with `PRAGMA integrity_check`, copies it to
 the host, and prunes old local copies.
 
@@ -608,8 +629,9 @@ anyone.
 - [ ] 80/tcp, 443/tcp, 443/udp open; nothing else bound to 80/443.
 - [ ] Docker Engine and Compose v2 ≥ 2.30 installed; daemon log rotation set.
 - [ ] SSH keys only, non-root deploy user, unattended-upgrades on.
-- [ ] `deploy.env` present, `chmod 600`, with a real `SERVER_NAME` and a
-      freshly generated `APP_SECRET`.
+- [ ] `deploy.env` present, `chmod 600`, with a real `SERVER_NAME`, a
+      freshly generated `APP_SECRET` and a `PASSPORT_ENCRYPTION_KEY`
+      saved in the password manager.
 - [ ] Deploy commands always pass **both** compose files.
 - [ ] `$COMPOSE ps` reports healthy; migrations applied.
 - [ ] The VM's account exists and can log in.

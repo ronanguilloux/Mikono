@@ -19,8 +19,8 @@ services:
     environment:
       # Runtime-only, never a build arg: the published image is public, and
       # `composer dump-env prod` would bake a build-time value into it.
-      APP_SECRET: ${APP_SECRET}
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET in deploy.env}
       # Same rule; losing it loses every stored passport number (ADR 0033).
-      PASSPORT_ENCRYPTION_KEY: ${PASSPORT_ENCRYPTION_KEY}
+      PASSPORT_ENCRYPTION_KEY: ${PASSPORT_ENCRYPTION_KEY:?set PASSPORT_ENCRYPTION_KEY in deploy.env (openssl rand -base64 32)}
       # Used by CLI commands that generate URLs; no HTTP request context there.
       DEFAULT_URI: ${DEFAULT_URI:-https://${SERVER_NAME:-localhost}}

@@ -6,6 +6,17 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-27 — Prod 500 on the volunteer screens: missing passport key
+
+The server's `deploy.env` predated ADR 0033 and had no
+`PASSPORT_ENCRYPTION_KEY`. Compose only warned and passed a blank value.
+`PassportNumberCipher` then threw in its constructor, so every volunteer
+screen returned a 500, while the healthcheck still reported healthy.
+`compose.prod.yaml` now uses `${VAR:?…}` for `APP_SECRET` and the key, so a
+deploy missing either one fails before it starts. `scripts/backup-db.sh`
+now passes `--env-file deploy.env` by default, because interpolation runs on
+`exec` too.
+
 ## 2026-09-25 — Second slice of volunteer profile fields
 
 Supervisor, accommodation preference, pickup airport, social media link and

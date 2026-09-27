@@ -12,7 +12,7 @@
 #   scripts/backup-db.sh [destination-dir]
 #
 # Environment:
-#   COMPOSE_FILES  compose files to use (default: the production pair)
+#   COMPOSE_FILES  compose flags to use (default: deploy.env + the production pair)
 #   KEEP_DAYS      prune local backups older than this (default: 30)
 #   APP_ENV_NAME   which database file to back up (default: prod)
 #
@@ -21,7 +21,7 @@ set -euo pipefail
 DEST_DIR="${1:-./backups}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
 APP_ENV_NAME="${APP_ENV_NAME:-prod}"
-COMPOSE_FILES="${COMPOSE_FILES:--f compose.yaml -f compose.prod.yaml}"
+COMPOSE_FILES="${COMPOSE_FILES:---env-file deploy.env -f compose.yaml -f compose.prod.yaml}"
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 NAME="mikono-${APP_ENV_NAME}-${STAMP}.db"
