@@ -163,6 +163,65 @@
         {% endif %}
     </div>
 
+    <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-achievements>
+        {# What the volunteer left behind, newest first; added from a stay below. #}
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Achievements</h2>
+        <ul class="divide-y divide-slate-100">
+            {% for row in achievements %}
+                {% set achievement = row.achievement %}
+                <li class="flex flex-wrap items-start justify-between gap-2 py-2">
+                    <div class="text-sm">
+                        <div class="font-medium text-slate-800">{{ achievement.title }}</div>
+                        <div class="text-slate-600">{{ achievement.achievedOn|date('j M Y') }} · {{ achievement.project.name }} · {{ achievement.stay.branch.name }}</div>
+                        {% if achievement.description %}
+                            <p class="mt-1 whitespace-pre-line text-slate-600">{{ achievement.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex gap-3 text-sm">
+                        <twig:RowActions :actions="row.actions" />
+                    </div>
+                </li>
+            {% else %}
+                <li class="text-sm text-slate-400">No achievements yet — add one from a stay below.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-stays>
+        {#
+            A stay is a stint at one branch. Activities can only be logged on a
+            day a stay covers, and "Active" above means a stay covers today.
+        #}
+        <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Stays</h2>
+            <a href="{{ path('volunteer_stay_new', {id: volunteer.id}) }}" class="text-sm text-brand-600 hover:underline">+ Add stay</a>
+        </div>
+        <ul class="divide-y divide-slate-100">
+            {% for row in stays %}
+                {% set stay = row.stay %}
+                <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <div class="text-sm">
+                        <span class="font-medium text-slate-800">{{ stay.branch.name }}</span>
+                        <span class="text-slate-600">· {{ stay.startDate|date('j M Y') }} – {{ stay.endDate|date('j M Y') }}</span>
+                        {% if stay.covers(today) %}
+                            <span class="ml-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-800">Current</span>
+                        {% elseif stay.startDate > today %}
+                            <span class="ml-1 rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">Upcoming</span>
+                        {% else %}
+                            <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Past</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex gap-3 text-sm">
+                        <a href="{{ path('stay_achievement_new', {id: stay.id}) }}" class="text-brand-600 hover:underline">+ Achievement</a>
+                        <twig:RowActions :actions="row.actions" />
+                    </div>
+                </li>
+            {% else %}
+                <li class="text-sm text-slate-400">No stays yet — add one before logging activities.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
     <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-profile>
         <div class="mb-3 flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Profile</h2>
@@ -251,65 +310,6 @@
                 </div>
             {% endfor %}
         </dl>
-    </div>
-
-    <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-stays>
-        {#
-            A stay is a stint at one branch. Activities can only be logged on a
-            day a stay covers, and "Active" above means a stay covers today.
-        #}
-        <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Stays</h2>
-            <a href="{{ path('volunteer_stay_new', {id: volunteer.id}) }}" class="text-sm text-brand-600 hover:underline">+ Add stay</a>
-        </div>
-        <ul class="divide-y divide-slate-100">
-            {% for row in stays %}
-                {% set stay = row.stay %}
-                <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <div class="text-sm">
-                        <span class="font-medium text-slate-800">{{ stay.branch.name }}</span>
-                        <span class="text-slate-600">· {{ stay.startDate|date('j M Y') }} – {{ stay.endDate|date('j M Y') }}</span>
-                        {% if stay.covers(today) %}
-                            <span class="ml-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-800">Current</span>
-                        {% elseif stay.startDate > today %}
-                            <span class="ml-1 rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">Upcoming</span>
-                        {% else %}
-                            <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Past</span>
-                        {% endif %}
-                    </div>
-                    <div class="flex gap-3 text-sm">
-                        <a href="{{ path('stay_achievement_new', {id: stay.id}) }}" class="text-brand-600 hover:underline">+ Achievement</a>
-                        <twig:RowActions :actions="row.actions" />
-                    </div>
-                </li>
-            {% else %}
-                <li class="text-sm text-slate-400">No stays yet — add one before logging activities.</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-achievements>
-        {# What the volunteer left behind, newest first; added from a stay above. #}
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Achievements</h2>
-        <ul class="divide-y divide-slate-100">
-            {% for row in achievements %}
-                {% set achievement = row.achievement %}
-                <li class="flex flex-wrap items-start justify-between gap-2 py-2">
-                    <div class="text-sm">
-                        <div class="font-medium text-slate-800">{{ achievement.title }}</div>
-                        <div class="text-slate-600">{{ achievement.achievedOn|date('j M Y') }} · {{ achievement.project.name }} · {{ achievement.stay.branch.name }}</div>
-                        {% if achievement.description %}
-                            <p class="mt-1 whitespace-pre-line text-slate-600">{{ achievement.description }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="flex gap-3 text-sm">
-                        <twig:RowActions :actions="row.actions" />
-                    </div>
-                </li>
-            {% else %}
-                <li class="text-sm text-slate-400">No achievements yet — add one from a stay above.</li>
-            {% endfor %}
-        </ul>
     </div>
 
     <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4">
