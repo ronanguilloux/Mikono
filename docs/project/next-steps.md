@@ -35,7 +35,7 @@ hostname is the one that isn't ours to solve.
 1. [Open questions for Edna about the fixture data](backlog/roster-archive-open-questions.md) — **B**
 2. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
 3. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
-4. [Arrival and birthday reminders on the dashboard](backlog/dashboard-arrival-and-birthday-reminders.md)
+4. [Arrival reminders on the dashboard](backlog/dashboard-arrival-and-birthday-reminders.md)
 5. [Record achievements on a volunteer's stay](backlog/achievements-on-a-stay.md) — **D**
 6. [Achievement anniversary reminders on the dashboard](backlog/achievement-anniversary-reminders.md) — **G**
 7. [A breach-response runbook with the Act's clocks](backlog/breach-response-runbook.md)

@@ -43,6 +43,10 @@ class Program
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $suggestedRoles = null;
 
+    /** Counts and groups, never names — see ADR 0030. */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $beneficiariesReached = null;
+
     /** @var Collection<int, ActivityType> */
     #[ORM\ManyToMany(targetEntity: ActivityType::class)]
     #[ORM\JoinTable(name: 'program_activity_type')]
@@ -148,6 +152,18 @@ class Program
     public function setSuggestedRoles(?string $suggestedRoles): static
     {
         $this->suggestedRoles = $suggestedRoles;
+
+        return $this;
+    }
+
+    public function getBeneficiariesReached(): ?string
+    {
+        return $this->beneficiariesReached;
+    }
+
+    public function setBeneficiariesReached(?string $beneficiariesReached): static
+    {
+        $this->beneficiariesReached = $beneficiariesReached;
 
         return $this;
     }

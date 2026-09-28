@@ -52,7 +52,11 @@ final class ProgramFormType extends AbstractType
                 'expanded' => true,
                 'by_reference' => false,
             ])
-            ->add('suggestedRoles', TextareaType::class, ['required' => false]);
+            ->add('suggestedRoles', TextareaType::class, ['required' => false])
+            ->add('beneficiariesReached', TextareaType::class, [
+                'required' => false,
+                'help' => 'Who the program reaches, e.g. "120 pupils at Olympic School". Counts and groups, never names.',
+            ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

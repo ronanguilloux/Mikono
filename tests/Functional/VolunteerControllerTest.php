@@ -8,6 +8,8 @@ use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
 use App\Factory\BranchFactory;
+use App\Factory\ProgramFactory;
+use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
@@ -112,12 +114,14 @@ final class VolunteerControllerTest extends WebTestCase
     public function indexListsSeededVolunteers(): void
     {
         $client = static::createClient();
-        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
         $client->loginUser(UserFactory::createOne());
-        $client->request('GET', '/volunteers');
+        $crawler = $client->request('GET', '/volunteers');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('body', 'Aisha Njoroge');
+        $link = $crawler->filter('table tbody a')->reduce(static fn($a) => 'Aisha Njoroge' === trim($a->text()));
+        self::assertCount(1, $link);
+        self::assertSame(sprintf('/volunteers/%d', $volunteer->getId()), $link->attr('href'));
     }
 
     /**
@@ -220,6 +224,48 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextSame('[data-days-on-site]', '10');
         self::assertSelectorTextSame('[data-days-logged]', '2');
+    }
+
+    /**
+     * Per program and per project: this volunteer's past activities and
+     * distinct days, everyone engaged there, and the program's beneficiaries.
+     * A planned activity counts nowhere.
+     */
+    #[Test]
+    public function showSummarizesImpactPerProgramAndProject(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $project = ProjectFactory::createOne(['name' => 'Olympic School']);
+        $reading = ProgramFactory::createOne(['name' => 'Reading', 'project' => $project, 'beneficiariesReached' => '40 pupils in grade 3']);
+        $maths = ProgramFactory::createOne(['name' => 'Maths', 'project' => $project]);
+        $volunteer = VolunteerFactory::createOne();
+        ActivityFactory::createMany(2, ['volunteer' => $volunteer, 'program' => $reading, 'date' => $today->modify('-3 days')]);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'program' => $maths, 'date' => $today->modify('-2 days')]);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'program' => $reading, 'date' => $today->modify('+2 days')]);
+        ActivityFactory::createOne(['program' => $reading, 'date' => $today->modify('-1 day')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+
+        self::assertResponseIsSuccessful();
+        $programs = $crawler->filter('[data-impact-program]');
+        self::assertCount(2, $programs);
+        $first = $programs->first();
+        self::assertStringContainsString('Olympic School — Reading', $first->text());
+        self::assertSame(['2', '1', '2', '40 pupils in grade 3'], [
+            $first->filter('[data-impact-count]')->text(),
+            $first->filter('[data-impact-days]')->text(),
+            $first->filter('[data-impact-engaged]')->text(),
+            $first->filter('[data-impact-beneficiaries]')->text(),
+        ]);
+        $project = $crawler->filter('[data-impact-project]');
+        self::assertCount(1, $project);
+        self::assertSame(['3', '2', '2'], [
+            $project->filter('[data-impact-count]')->text(),
+            $project->filter('[data-impact-days]')->text(),
+            $project->filter('[data-impact-engaged]')->text(),
+        ]);
     }
 
     #[Test]

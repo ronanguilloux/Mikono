@@ -115,6 +115,54 @@
         </dl>
     </div>
 
+    <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-impact>
+        {#
+            Past activities only, like "Days logged": days are distinct dates.
+            "Volunteers engaged" counts everyone in that program or project,
+            this volunteer included.
+        #}
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Impact</h2>
+        {% if impact.programs is empty %}
+            <p class="text-sm text-slate-400">No past activities yet.</p>
+        {% else %}
+            {% for level in [
+                {key: 'programs', heading: 'Program', row: 'data-impact-program'},
+                {key: 'projects', heading: 'Project', row: 'data-impact-project'},
+            ] %}
+                <div class="overflow-x-auto {{ not loop.first ? 'mt-4' }}">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-left text-xs text-slate-500">
+                                <th class="py-1 pr-4 font-medium">{{ level.heading }}</th>
+                                <th class="py-1 pr-4 text-right font-medium">Activities</th>
+                                <th class="py-1 pr-4 text-right font-medium">Days</th>
+                                <th class="py-1 pr-4 text-right font-medium">Volunteers engaged</th>
+                                {% if level.key == 'programs' %}
+                                    <th class="py-1 font-medium">Beneficiaries reached</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for row in impact[level.key] %}
+                                <tr {{ level.row }}>
+                                    <td class="py-1.5 pr-4 font-medium text-slate-800">
+                                        {{ level.key == 'programs' ? row.subject.project.name ~ ' — ' ~ row.subject.name : row.subject.name }}
+                                    </td>
+                                    <td class="py-1.5 pr-4 text-right" data-impact-count>{{ row.count }}</td>
+                                    <td class="py-1.5 pr-4 text-right" data-impact-days>{{ row.days }}</td>
+                                    <td class="py-1.5 pr-4 text-right" data-impact-engaged>{{ row.engaged }}</td>
+                                    {% if level.key == 'programs' %}
+                                        <td class="py-1.5 whitespace-pre-line text-slate-700" data-impact-beneficiaries>{{ row.subject.beneficiariesReached ?? '—' }}</td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
     <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-profile>
         <div class="mb-3 flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Profile</h2>

@@ -35,6 +35,7 @@ final class ProgramControllerTest extends WebTestCase
             'program_form[startDate]' => '2026-10-01',
             'program_form[endDate]' => '2026-12-15',
             'program_form[suggestedRoles]' => 'Tutor',
+            'program_form[beneficiariesReached]' => '30 pupils',
         ]);
         $types = $form['program_form[activityTypes]'];
         self::assertIsArray($types);
@@ -49,6 +50,7 @@ final class ProgramControllerTest extends WebTestCase
         self::assertStringContainsString('Peggy Lucas school', $row);
         self::assertStringContainsString('01/10/2026 – 15/12/2026', $row);
         self::assertStringContainsString('Computer tuition', $row);
+        self::assertSame('30 pupils', static::getContainer()->get(ProgramRepository::class)->findOneBy(['name' => 'Computer Tuition'])?->getBeneficiariesReached());
     }
 
     #[Test]

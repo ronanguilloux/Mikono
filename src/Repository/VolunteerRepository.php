@@ -137,6 +137,24 @@ class VolunteerRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Every volunteer with a date of birth, active or not, for the home
+     * screen's birthday reminders. Month/day matching is left to PHP: SQLite
+     * has no portable way to do it, and a few hundred rows cost nothing.
+     *
+     * @return Volunteer[]
+     */
+    public function findWithDateOfBirth(): array
+    {
+        /** @var Volunteer[] $volunteers */
+        $volunteers = $this->createQueryBuilder('v')
+            ->where('v.dateOfBirth IS NOT NULL')
+            ->getQuery()
+            ->getResult();
+
+        return $volunteers;
+    }
+
     public function countReferencingActivities(Volunteer $volunteer): int
     {
         return (int) $this->getEntityManager()

@@ -133,4 +133,53 @@ class ActivityRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Distinct volunteers with a past activity in each given program, and in
+     * each given project — a project's count is distinct across its programs,
+     * not the sum of theirs. Keys are ids; an id with no match is absent.
+     *
+     * @param list<int> $programIds
+     * @param list<int> $projectIds
+     *
+     * @return array{programs: array<int, int>, projects: array<int, int>}
+     */
+    public function countVolunteersEngaged(array $programIds, array $projectIds, \DateTimeImmutable $today): array
+    {
+        return [
+            'programs' => $this->countDistinctVolunteersBy('a.program', $programIds, $today),
+            'projects' => $this->countDistinctVolunteersBy('prg.project', $projectIds, $today),
+        ];
+    }
+
+    /**
+     * @param list<int> $ids
+     *
+     * @return array<int, int>
+     */
+    private function countDistinctVolunteersBy(string $association, array $ids, \DateTimeImmutable $today): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+
+        /** @var list<array{id: int|string, n: int|string}> $rows */
+        $rows = $this->createQueryBuilder('a')
+            ->select("IDENTITY({$association}) AS id", 'COUNT(DISTINCT a.volunteer) AS n')
+            ->join('a.program', 'prg')
+            ->where("IDENTITY({$association}) IN (:ids)")
+            ->andWhere('a.date <= :today')
+            ->groupBy('id')
+            ->setParameter('ids', $ids)
+            ->setParameter('today', $today, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['id']] = (int) $row['n'];
+        }
+
+        return $counts;
+    }
 }

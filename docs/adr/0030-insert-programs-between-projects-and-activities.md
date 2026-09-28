@@ -40,6 +40,11 @@ The entity:
   date. When both are set, the end is on or after the start.
 - `suggestedRoles` is nullable free text. There is no `Role` entity; the
   only roles in the app are `User`'s authentication roles.
+- `beneficiariesReached` is nullable free text: who the program reaches,
+  as counts and groups ("40 pupils in grade 3"), never names, so it holds
+  no personal data under ADR 0034. There is no `Beneficiary` entity. The
+  volunteer page's Impact panel shows it beside the figures derived from
+  activities.
 - `activityTypes` is a `ManyToMany` to `ActivityType` through the join
   table `program_activity_type`, with at least one type.
 - There is no `isActive` flag: the dates say whether a program runs.

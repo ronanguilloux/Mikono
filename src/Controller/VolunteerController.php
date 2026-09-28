@@ -85,6 +85,7 @@ final class VolunteerController extends AbstractController
 
             $rows[] = [
                 'cells' => $this->cells($volunteer, $staying),
+                'links' => ['name' => $this->generateUrl('volunteer_show', ['id' => $id])],
                 // getPhoto() is an unloaded proxy and its id is known without a
                 // query, so the list never reads photo bytes (ADR 0032).
                 'avatars' => ['name' => null === $volunteer->getPhoto() ? null : $this->generateUrl('volunteer_photo', [
@@ -253,6 +254,9 @@ final class VolunteerController extends AbstractController
         // the archive and UAT were entered weeks after the work happened.
         $firstActivity = null;
         $activityCountsByStay = [];
+        // Impact: past activities only, like "Days logged", bucketed per
+        // program and per project; days are distinct dates there too.
+        $impact = ['programs' => [], 'projects' => []];
         foreach ($activities as $activity) {
             $stayId = $activity->getStay()?->getId();
             if (null !== $stayId) {
@@ -262,6 +266,16 @@ final class VolunteerController extends AbstractController
             $date = $activity->getDate();
             if (null !== $date && $date <= $today) {
                 $loggedDates[$date->format('Y-m-d')] = true;
+                $program = $activity->getProgram();
+                $project = $program?->getProject();
+                if (null !== $program && null !== $project) {
+                    foreach (['programs' => $program, 'projects' => $project] as $level => $subject) {
+                        $id = (int) $subject->getId();
+                        $impact[$level][$id] ??= ['subject' => $subject, 'count' => 0, 'dates' => []];
+                        ++$impact[$level][$id]['count'];
+                        $impact[$level][$id]['dates'][$date->format('Y-m-d')] = true;
+                    }
+                }
             }
             if (null !== $date && (null === $mostRecent || $date > $mostRecent)) {
                 $mostRecent = $date;
@@ -294,8 +308,19 @@ final class VolunteerController extends AbstractController
             ];
         }
 
+        $engaged = $this->activities->countVolunteersEngaged(array_keys($impact['programs']), array_keys($impact['projects']), $today);
+        $impactRows = [];
+        foreach ($impact as $level => $buckets) {
+            $impactRows[$level] = [];
+            foreach ($buckets as $id => $bucket) {
+                $impactRows[$level][] = ['subject' => $bucket['subject'], 'count' => $bucket['count'], 'days' => count($bucket['dates']), 'engaged' => $engaged[$level][$id] ?? 0];
+            }
+            usort($impactRows[$level], static fn(array $a, array $b) => [$b['days'], $b['count']] <=> [$a['days'], $a['count']]);
+        }
+
         return $this->render('volunteer/show.html.twig', [
             'volunteer' => $volunteer,
+            'impact' => $impactRows,
             // Names, not codes; Countries is already here for the form's CountryType.
             'nationalityName' => null === $volunteer->getNationality() ? null : Countries::getName($volunteer->getNationality()),
             'residenceName' => null === $volunteer->getCountryOfResidence() ? null : Countries::getName($volunteer->getCountryOfResidence()),

@@ -45,6 +45,30 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="flex flex-col gap-6 lg:col-span-2">
+            {% if birthdays is not empty %}
+                <section class="rounded-lg border border-slate-200 bg-white shadow-sm" aria-labelledby="birthdays-heading">
+                    <div class="border-b border-slate-200 px-5 py-4">
+                        <h2 id="birthdays-heading" class="font-semibold">Birthdays</h2>
+                    </div>
+                    <ul class="divide-y divide-slate-200">
+                        {% for birthday in birthdays %}
+                            {% set name %}<a href="{{ path('volunteer_show', {id: birthday.volunteerId}) }}" class="font-semibold text-brand-600 hover:underline">{{ birthday.firstName }}</a>{% endset %}
+                            <li class="px-5 py-3 text-sm" data-birthday-days="{{ birthday.daysAway }}">
+                                {% if birthday.daysAway == 0 %}
+                                    🎂 It's {{ name }}'s birthday today! A quick message from the team goes a long way.
+                                {% elseif birthday.daysAway == 1 %}
+                                    🎈 {{ name }}'s birthday is tomorrow — time to prepare a message?
+                                {% elseif birthday.daysAway == 7 %}
+                                    📅 {{ name }}'s birthday is in a week — {{ birthday.date|date('D j M') }}.
+                                {% else %}
+                                    🎁 {{ name }}'s birthday is in {{ birthday.daysAway }} days — {{ birthday.date|date('D j M') }}.
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+
             <section class="rounded-lg border border-slate-200 bg-white shadow-sm" aria-labelledby="today-heading">
                 <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
                     <div>

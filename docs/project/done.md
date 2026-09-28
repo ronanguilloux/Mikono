@@ -6,6 +6,34 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Impact panel on the volunteer page
+
+From the meeting recap's "Impact & Reporting". The volunteer page has a new
+**Impact** card with one table per program and one per project, built from
+past activities only (planned ones don't count, as in "Days logged"). Each
+row has the volunteer's **activities**, their **days** (distinct dates, the
+"Days logged" rule), and the **volunteers engaged** there: everyone with a
+past activity in that program or project, this volunteer included
+(`ActivityRepository::countVolunteersEngaged()`; a project's figure is
+distinct across its programs). Program rows also show the new optional
+`Program::$beneficiariesReached` free text, entered on the program form
+(ADR 0030). Hours aren't shown because they aren't stored. The fixtures
+leave the new field empty: the roster archive has no such data.
+
+## 2026-09-28 — Birthday reminders on the dashboard
+
+Kingsley asked for birthday reminders "to help us recognize our previous
+volunteers". The home screen now has a **Birthdays** panel listing every
+volunteer, active or not, whose birthday is today, tomorrow, in 3 days or
+in a week (`App\Report\BirthdayReminderFinder`, offsets in `DAYS_AHEAD`).
+The panel is hidden when nobody is due. Each line links the first name to
+the volunteer's page and never shows an age. A 29 February birthday falls
+on 28 February in a common year. Month/day matching is done in PHP over
+`VolunteerRepository::findWithDateOfBirth()`, since SQLite can't do it
+portably. Only filled-in `dateOfBirth` fields count. Arrivals, the other
+half of that card, are still open. The volunteer list's names now link
+to the volunteer page too.
+
 ## 2026-09-28 — "Days on site" and "Days logged" on the volunteer page
 
 Nickson asked for "automatically calculated days contributed". The volunteer

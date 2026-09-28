@@ -94,7 +94,7 @@ text, and it exists so the split does not have to re-derive it.
 
 | Recap section | Status |
 | --- | --- |
-| Programs → Activities | Shipped, [ADR 0030](../../adr/0030-insert-programs-between-projects-and-activities.md) |
+| Programs → Activities | Structure shipped, [ADR 0030](../../adr/0030-insert-programs-between-projects-and-activities.md). Type, date, notes and assigned volunteer are captured; location is derived (program → project → branch); roles are only `Program::$suggestedRoles` free text. **Not captured:** a per-activity description, a time of day (duration is half/full/other), volunteers required (see the attendance row), a per-activity role. |
 | Profile: country, DOB, occupation, skills, interests, emergency contact | Shipped, [ADR 0032](../../adr/0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) — optional, not mandatory, and that was deliberate |
 | Branch / location | Shipped, derived from stays, [ADR 0026](../../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) |
 | Volunteer start/end dates, days contributed | Shipped. Dates are per `Stay` (ADR 0026). The volunteer page derives "Days on site" (stay days up to today) and "Days logged" (distinct past activity dates), stores neither, and uses no hours ([`done.md`](../done.md), 2026-09-28) |
@@ -107,7 +107,7 @@ text, and it exists so the split does not have to re-derive it.
 | WhatsApp schedule sharing | [whatsapp-roster-sending](whatsapp-roster-sending.md), deferred behind a trigger |
 | **Volunteer hours** | **Not stored.** `App\Enum\ActivityDuration` is half day / full day / other. Recording hours changes the reporting model, not just a form. |
 | **Attendance, assigned vs. actual** | **Not modelled.** An activity records who was there, not who was expected. |
-| **Beneficiaries reached, impact indicators** | **No entity exists.** |
+| Beneficiaries reached, impact indicators | Shipped on the volunteer page's Impact panel: activities, days and volunteers engaged per program and project are derived from activities; beneficiaries are `Program::$beneficiariesReached` free text, not an entity ([ADR 0030](../../adr/0030-insert-programs-between-projects-and-activities.md), [`done.md`](../done.md), 2026-09-28). Hours stay open (row above). |
 | **Roles beyond Admin / VM; volunteers signing in** | **Not built.** Two roles today, `ROLE_USER` and `ROLE_ADMIN`, and no volunteer has ever had an account. This is the largest single item in the recap: volunteer self-service means authentication for people outside the office, per-record authorization, and an account lifecycle. Related: [task-assignment-handoffs](task-assignment-handoffs.md). |
 
 **Conflicts to resolve during the split, not after:**

@@ -169,4 +169,39 @@ final class DashboardControllerTest extends WebTestCase
 
         self::assertResponseRedirects('/login');
     }
+
+    #[Test]
+    public function remindsOfABirthdayTodayWithALinkToTheVolunteer(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne([
+            'firstName' => 'Nadia',
+            'dateOfBirth' => (new \DateTimeImmutable('today'))->modify('-30 years'),
+        ]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('#birthdays-heading', 'Birthdays');
+        self::assertSelectorTextContains('[data-birthday-days="0"]', "It's Nadia's birthday today!");
+        self::assertSame(
+            sprintf('/volunteers/%d', $volunteer->getId()),
+            $crawler->filter('[data-birthday-days="0"] a')->attr('href'),
+        );
+    }
+
+    #[Test]
+    public function hidesTheBirthdaysPanelWhenNobodyIsDue(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createOne(['dateOfBirth' => (new \DateTimeImmutable('today'))->modify('-30 years +2 days')]);
+        VolunteerFactory::createOne(['dateOfBirth' => null]);
+
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('#birthdays-heading');
+    }
 }

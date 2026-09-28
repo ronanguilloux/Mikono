@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Report\BirthdayReminderFinder;
 use App\Report\QuietProjectFinder;
 use App\Report\RosterBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,7 @@ class DashboardController extends AbstractController
     public function __construct(
         private readonly RosterBuilder $rosters,
         private readonly QuietProjectFinder $quietProjects,
+        private readonly BirthdayReminderFinder $birthdays,
     ) {}
 
     #[Route('/', name: 'app_home', methods: ['GET'])]
@@ -29,6 +31,7 @@ class DashboardController extends AbstractController
             'tomorrowRoster' => $this->rosters->buildFor($today->modify('+1 day')),
             'quietProjects' => $this->quietProjects->find($today),
             'quiet_after_days' => QuietProjectFinder::WARN_AFTER_DAYS,
+            'birthdays' => $this->birthdays->find($today),
         ]);
     }
 
