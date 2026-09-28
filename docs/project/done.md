@@ -6,6 +6,18 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Filter volunteers by status and branch
+
+`/volunteers` gains `?status=active|inactive` and `?branch=<id>` selects
+beside the search and skill filter. They combine with the existing filters
+and reach the export through `listQueryBuilder()`. Both are read from stays
+(ADR 0026), so nothing is stored. With both set to active, the *same* stay
+must cover today at that branch: someone active at Nairobi (HQ) after an
+old Mombasa stay is not an active Mombasa volunteer. Branch alone means any
+stay there, past or future. Malformed values fall back to no filter
+(ADR 0023). This covers the "branch and volunteer status" part of UCESCO's
+recap. Interests, being free text, get no filter.
+
 ## 2026-09-28 — UAT database replaced by the local dev database
 
 Deployed 282d686 to `deploy.mikono.guilloux.org`, then swapped

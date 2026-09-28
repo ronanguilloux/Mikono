@@ -104,6 +104,53 @@ final class VolunteerControllerTest extends WebTestCase
     }
 
     /**
+     * Status and branch read stays (ADR 0026); together they mean the same stay.
+     */
+    #[Test]
+    public function theStatusAndBranchFiltersNarrowTheListAndItsExport(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $nairobi = BranchFactory::find(['name' => 'Nairobi (HQ)']);
+        $aisha = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        StayFactory::createOne(['volunteer' => $aisha, 'branch' => $mombasa, 'startDate' => $today->modify('-1 week'), 'endDate' => $today->modify('+1 week')]);
+        // Active at Nairobi now, at Mombasa once: not an active Mombasa volunteer.
+        $baraka = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Baraka', 'lastName' => 'Otieno']);
+        StayFactory::createOne(['volunteer' => $baraka, 'branch' => $nairobi, 'startDate' => $today->modify('-1 week'), 'endDate' => $today->modify('+1 week')]);
+        StayFactory::createOne(['volunteer' => $baraka, 'branch' => $mombasa, 'startDate' => $today->modify('-3 months'), 'endDate' => $today->modify('-2 months')]);
+        $zawadi = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
+        StayFactory::createOne(['volunteer' => $zawadi, 'branch' => $mombasa, 'startDate' => $today->modify('-3 months'), 'endDate' => $today->modify('-2 months')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $names = static fn(string $url): array => $client->request('GET', $url)
+            ->filter('table tbody tr td:first-child')->each(static fn($cell): string => trim($cell->text()));
+
+        foreach ([
+            'status=active' => ['Aisha Njoroge', 'Baraka Otieno'],
+            'status=inactive' => ['Zawadi Zuma'],
+            "branch={$mombasa->getId()}" => ['Aisha Njoroge', 'Baraka Otieno', 'Zawadi Zuma'],
+            "status=active&branch={$mombasa->getId()}" => ['Aisha Njoroge'],
+            "status=inactive&branch={$nairobi->getId()}" => [],
+        ] as $query => $expected) {
+            if ([] === $expected) {
+                $client->request('GET', "/volunteers?{$query}");
+                self::assertSelectorTextContains('body', 'No volunteers match these filters.');
+            } else {
+                self::assertSame($expected, $names("/volunteers?{$query}&sort=name"), $query);
+            }
+            self::assertSame($expected, array_column(self::exportedRows($client, "/volunteers/export.csv?{$query}&sort=name"), 0), $query);
+        }
+
+        // Malformed or unknown input degrades to no filter (ADR 0023).
+        foreach (['status[]=active', 'status=foo', 'branch[]=1', 'branch=abc', 'branch=999999'] as $query) {
+            $crawler = $client->request('GET', "/volunteers?{$query}");
+            self::assertResponseIsSuccessful();
+            self::assertCount(3, $crawler->filter('table tbody tr'), $query);
+        }
+    }
+
+    /**
      * The search rides along on the sort links, and a new search drops `page`.
      */
     #[Test]

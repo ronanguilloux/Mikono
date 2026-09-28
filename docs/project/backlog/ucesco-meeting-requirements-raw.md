@@ -101,7 +101,7 @@ text, and it exists so the split does not have to re-derive it.
 | Occupation | Shipped as `profession` (ADR 0032) |
 | Document upload | [volunteer-document-attachments](volunteer-document-attachments.md) |
 | Birthday reminders | In-app: [done.md, 2026-09-28](../done.md). By SMS or email: [automated-outbound-reminders](automated-outbound-reminders.md) |
-| Search & filtering | Volunteer search and the activities branch filter are shipped (see [`done.md`](../done.md)). Filtering by skills, interests and status is **not** covered — new cards. |
+| Search & filtering | Shipped on `/volunteers`: name/email search, skill, status and branch filters, combinable, exported (see [`done.md`](../done.md)). The activities list filters by branch too. Interests (free text) have no filter. |
 | Export to Excel/CSV | Shipped for every list view, [ADR 0029](../../adr/0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md). "Export the complete database" is not the same thing and needs its own card. |
 | Data ownership, hosting term, backup and restore | [`hosting-plan.md`](../hosting-plan.md), [`deployment-plan.md`](../deployment-plan.md), [off-site-encrypted-backups](off-site-encrypted-backups.md), [ADR 0010](../../adr/0010-build-in-ci-and-deploy-by-image-pull.md), [ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md). Mostly a question to answer in writing, not code. |
 | WhatsApp schedule sharing | [whatsapp-roster-sending](whatsapp-roster-sending.md), deferred behind a trigger |

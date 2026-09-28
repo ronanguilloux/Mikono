@@ -9,9 +9,11 @@ use App\Entity\VolunteerPhoto;
 use App\Export\ListExport;
 use App\Form\VolunteerFormType;
 use App\Pagination\ListPaginator;
+use App\Entity\Branch;
 use App\Entity\Skill;
 use App\Repository\AchievementRepository;
 use App\Repository\ActivityRepository;
+use App\Repository\BranchRepository;
 use App\Repository\SkillRepository;
 use App\Repository\VolunteerRepository;
 use App\Security\PassportNumberCipher;
@@ -64,6 +66,7 @@ final class VolunteerController extends AbstractController
         private readonly ActivityRepository $activities,
         private readonly AchievementRepository $achievements,
         private readonly SkillRepository $skills,
+        private readonly BranchRepository $branches,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
         private readonly PassportNumberCipher $passportCipher,
@@ -122,6 +125,9 @@ final class VolunteerController extends AbstractController
             'search' => $this->requestedSearch($request),
             'skill' => $this->requestedSkill($request),
             'skillOptions' => $this->skills->findAllOrderedByName(),
+            'status' => $this->requestedStatus($request),
+            'branch' => $this->requestedBranch($request),
+            'branchOptions' => $this->branches->createOrderedByNameQueryBuilder()->getQuery()->getResult(),
         ]);
     }
 
@@ -152,7 +158,12 @@ final class VolunteerController extends AbstractController
      */
     private function listQueryBuilder(Request $request): QueryBuilder
     {
-        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder($this->requestedSearch($request), $this->requestedSkill($request));
+        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder(
+            $this->requestedSearch($request),
+            $this->requestedSkill($request),
+            $this->requestedStatus($request),
+            $this->requestedBranch($request),
+        );
         $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
 
         return $queryBuilder;
@@ -179,6 +190,27 @@ final class VolunteerController extends AbstractController
         $raw = $request->query->all()['skill'] ?? null;
 
         return is_scalar($raw) && (int) $raw >= 1 ? $this->skills->find((int) $raw) : null;
+    }
+
+    /**
+     * The index's `?status=active|inactive` filter, as "has a stay covering
+     * today" (ADR 0026). Anything else means no filter (ADR 0023).
+     */
+    private function requestedStatus(Request $request): ?bool
+    {
+        return match ($request->query->all()['status'] ?? null) {
+            'active' => true,
+            'inactive' => false,
+            default => null,
+        };
+    }
+
+    /** The index's `?branch=<id>` filter, degrading like `?skill=`. */
+    private function requestedBranch(Request $request): ?Branch
+    {
+        $raw = $request->query->all()['branch'] ?? null;
+
+        return is_scalar($raw) && (int) $raw >= 1 ? $this->branches->find((int) $raw) : null;
     }
 
     /**

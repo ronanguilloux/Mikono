@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Branch;
 use App\Entity\Program;
 use App\Entity\Skill;
 use App\Entity\Stay;
@@ -44,8 +45,13 @@ class VolunteerRepository extends ServiceEntityRepository
      * text, ignoring case. Matching the full name rather than each part lets
      * "aisha nj" find Aisha Njoroge; lastName is nullable (ADR 0014), hence
      * the COALESCE, without which CONCAT is null and the name never matches.
+     *
+     * $active narrows to volunteers with (true) or without (false) a stay
+     * covering today; $branch to those with a stay at that branch. Both set to
+     * active means the *same* stay: active at Kibera after a past Mombasa stay
+     * is not an active Mombasa volunteer.
      */
-    public function createOrderedByNameQueryBuilder(?string $search = null, ?Skill $skill = null): QueryBuilder
+    public function createOrderedByNameQueryBuilder(?string $search = null, ?Skill $skill = null, ?bool $active = null, ?Branch $branch = null): QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('v')
             ->addSelect('(SELECT COUNT(cs.id) FROM ' . Stay::class . ' cs WHERE cs.volunteer = v AND cs.startDate <= :today AND cs.endDate >= :today) AS HIDDEN isCurrent')
@@ -65,6 +71,20 @@ class VolunteerRepository extends ServiceEntityRepository
             $queryBuilder
                 ->andWhere(':skill MEMBER OF v.skills')
                 ->setParameter('skill', $skill);
+        }
+
+        $covering = 'fs.startDate <= :today AND fs.endDate >= :today';
+        if (true === $active) {
+            $queryBuilder->andWhere('EXISTS (SELECT fs.id FROM ' . Stay::class . ' fs WHERE fs.volunteer = v AND ' . $covering . (null !== $branch ? ' AND fs.branch = :branch' : '') . ')');
+        } elseif (false === $active) {
+            $queryBuilder->andWhere('NOT EXISTS (SELECT fs.id FROM ' . Stay::class . ' fs WHERE fs.volunteer = v AND ' . $covering . ')');
+        }
+
+        if (null !== $branch) {
+            if (true !== $active) {
+                $queryBuilder->andWhere('EXISTS (SELECT bs.id FROM ' . Stay::class . ' bs WHERE bs.volunteer = v AND bs.branch = :branch)');
+            }
+            $queryBuilder->setParameter('branch', $branch);
         }
 
         return $queryBuilder;

@@ -36,7 +36,7 @@
         data-volunteer-search
     >
         {% for key, value in app.request.query.all %}
-            {% if key not in ['page', 'q', 'skill'] and value is not iterable %}
+            {% if key not in ['page', 'q', 'skill', 'status', 'branch'] and value is not iterable %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endif %}
         {% endfor %}
@@ -63,11 +63,34 @@
                 <option value="{{ option.id }}" {{ skill and skill.id == option.id ? 'selected' : '' }}>{{ option.name }}</option>
             {% endfor %}
         </select>
+        <label for="volunteer-status" class="sr-only">Status</label>
+        <select
+            id="volunteer-status"
+            name="status"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            <option value="">Any status</option>
+            <option value="active" {{ status is same as(true) ? 'selected' : '' }}>Active</option>
+            <option value="inactive" {{ status is same as(false) ? 'selected' : '' }}>Inactive</option>
+        </select>
+        <label for="volunteer-branch" class="sr-only">Branch</label>
+        <select
+            id="volunteer-branch"
+            name="branch"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            <option value="">Any branch</option>
+            {% for option in branchOptions %}
+                <option value="{{ option.id }}" {{ branch and branch.id == option.id ? 'selected' : '' }}>{{ option.name }}</option>
+            {% endfor %}
+        </select>
         <button type="submit" class="sr-only">Search</button>
 
-        {% if search or skill %}
+        {% if search or skill or status is not null or branch %}
             <a
-                href="{{ path('volunteer_index', app.request.query.all|filter((v, k) => k not in ['page', 'q', 'skill'] and v is not iterable)) }}"
+                href="{{ path('volunteer_index', app.request.query.all|filter((v, k) => k not in ['page', 'q', 'skill', 'status', 'branch'] and v is not iterable)) }}"
                 class="text-brand-600 hover:underline"
             >Clear filters</a>
         {% endif %}
@@ -78,6 +101,6 @@
         :rows="rows"
         :pagination="pagination"
         :sortState="sortState"
-        :emptyMessage="search ? 'No volunteers match “' ~ search ~ '”' ~ (skill ? ' with ' ~ skill.name : '') ~ '.' : (skill ? 'No volunteers hold ' ~ skill.name ~ '.' : 'No volunteers yet — add the first one above.')"
+        :emptyMessage="status is not null or branch ? 'No volunteers match these filters.' : (search ? 'No volunteers match “' ~ search ~ '”' ~ (skill ? ' with ' ~ skill.name : '') ~ '.' : (skill ? 'No volunteers hold ' ~ skill.name ~ '.' : 'No volunteers yet — add the first one above.'))"
     />
 {% endblock %}
