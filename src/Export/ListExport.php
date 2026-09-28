@@ -64,7 +64,7 @@ final class ListExport
     /**
      * @param list<string> $values
      */
-    private static function row(array $values, bool $guardFormulas): Row
+    public static function row(array $values, bool $guardFormulas): Row
     {
         return new Row(array_map(
             // Names and notes are typed in by users, and Excel runs a CSV

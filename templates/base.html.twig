@@ -48,6 +48,7 @@
                     {label: 'Users', route: 'user_index'},
                     {label: 'Usage', route: 'usage_index'},
                     {label: 'Data map', route: 'datamap_index'},
+                    {label: 'Export database', route: 'database_export', download: true},
                 ]}]) %}
             {% endif %}
             {% set current_route = app.request.attributes.get('_route') %}
@@ -71,7 +72,7 @@
                                     </button>
                                     <div class="absolute right-0 z-10 mt-2 hidden w-44 rounded-md bg-white py-1 text-slate-900 shadow-lg" data-dropdown-target="menu">
                                         {% for item in group.items %}
-                                            <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="block px-4 py-2 hover:bg-slate-100">{{ item.label }}</a>
+                                            <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}{% if item.download is defined %}data-turbo="false" {% endif %}class="block px-4 py-2 hover:bg-slate-100">{{ item.label }}</a>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -94,7 +95,7 @@
                             {% for group in menu_groups %}
                                 <span class="mt-1 border-t border-brand-800 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ group.label }}</span>
                                 {% for item in group.items %}
-                                    <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="pl-2 hover:text-brand-300 hover:underline">{{ item.label }}</a>
+                                    <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}{% if item.download is defined %}data-turbo="false" {% endif %}class="pl-2 hover:text-brand-300 hover:underline">{{ item.label }}</a>
                                 {% endfor %}
                             {% endfor %}
                             <span class="text-slate-300">{{ app.user.fullName }}</span>

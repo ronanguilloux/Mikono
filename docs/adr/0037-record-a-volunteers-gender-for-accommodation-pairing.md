@@ -26,8 +26,9 @@ so any sensitive field also needs each volunteer's consent under s.49(1).
 ## Decision
 
 **A volunteer has an optional gender, drawn from a fixed four-value enum,
-held only to pair volunteers for shared accommodation and shown only on
-the volunteer's profile page.**
+held only to pair volunteers for shared accommodation, shown only on the
+volunteer's profile page and exported only in the admin whole-database
+zip.**
 
 - **Shape.** `Volunteer::$gender` is a nullable `App\Enum\Gender` (`female`,
   `male`, `other`, `prefer_not_to_say`), stored as a plain string column
@@ -53,9 +54,13 @@ the volunteer's profile page.**
 - **Retention.** The same as the volunteer row (ADR 0034, rule 6): it goes
   when the volunteer is anonymised.
 - **Where it appears.** The volunteer profile page (`[data-profile]`) and
-  the edit form, nowhere else. Deliberately excluded:
+  the edit form. The one bulk copy that carries it is the admin-only
+  whole-database zip
+  ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)),
+  a complete copy of UCESCO's records rather than a staff-facing view.
+  Deliberately excluded:
   - the volunteer list, as a column or a filter;
-  - the CSV and `.xlsx` exports
+  - the per-list CSV and `.xlsx` exports
     ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md));
   - `/reports`;
   - the dev fixtures (`VolunteerFactory` leaves it null);
@@ -71,8 +76,9 @@ the volunteer's profile page.**
   - The VM pairs rooms from a recorded answer instead of a guess.
   - The field is filterable in code if a pairing screen ever needs it,
     which free text would not be.
-  - Keeping it off lists, exports and reports keeps the sensitive value
-    to the one screen that needs it.
+  - Keeping it off lists, per-list exports and reports keeps the
+    sensitive value to the one screen that needs it, plus the admin-only
+    full copy.
 - **Negative / trade-offs:**
   - One more s.49(1) consent for UCESCO staff to gather and keep proof of
     at onboarding, and the privacy notice must mention the field.

@@ -6,6 +6,11 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Whole-database zip export
+
+Admin → Export database. See
+[ADR 0039](../adr/0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md).
+
 ## 2026-09-28 — Filter programs by every column
 
 `/programs` gains one filter per column: a name search (`?q=`), project,

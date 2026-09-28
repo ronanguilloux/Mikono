@@ -117,7 +117,8 @@ implements it.
   export or third-party service states its purpose, sensitivity (s.2 counts
   family details, so emergency contacts, as sensitive), retention and
   transfer basis in its own ADR. `Volunteer::$gender` is sensitive: profile
-  page only, never exported or listed
+  page only, never listed or in a per-list export — only the admin
+  whole-database zip carries it
   ([ADR 0037](docs/adr/0037-record-a-volunteers-gender-for-accommodation-pairing.md)).
 - `src/Enum/` — backed PHP enums (`ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
@@ -152,6 +153,11 @@ implements it.
 
   Never write a second query for the export. Anyone who can view a list can
   export it; revisit that rule if a non-staff role ever logs in.
+  Separately, Admin → Export database zips **every table** as CSV
+  (`App\Export\DatabaseExport`, admin only). New tables join it
+  automatically, so a new secret or file-bytes column must go on its drop
+  lists in the same change
+  ([ADR 0039](docs/adr/0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)).
 - `src/Pagination/` — `ListPaginator`, the single place `page`, `perPage`,
   `sort` and `direction` are read, plus the `SortState` VO. Pagination:
   [ADR 0009](docs/adr/0009-adopt-knppaginatorbundle-for-list-pagination.md);

@@ -38,7 +38,6 @@ hostname is the one that isn't ours to solve.
 4. [Record minor volunteers with a guardian's consent](backlog/minor-volunteers-with-guardian-consent.md) — **D**
 5. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
 6. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
-7. [Export the whole database as one zip of per-table CSVs](backlog/full-database-csv-zip-export.md) — **D**
 
 ## Later
 
