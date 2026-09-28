@@ -31,6 +31,13 @@ print view lists them as notes under the program table instead of adding
 a column.
 Project names on the By project tab now link to the project's edit form,
 the only project page there is.
+The tabs now run By branch, project, program, activity type, volunteer,
+escort (print view too; the default stays By volunteer). By project has a
+Branch column; By program shows the plain program name with a Project
+column instead of the old "Project — Program" label. The new **By activity
+type** tab has the same columns as the others (activities, total days,
+volunteers engaged, most recent); its names aren't links because
+`/activities` has no type filter.
 
 ## 2026-09-28 — Birthday reminders on the dashboard
 

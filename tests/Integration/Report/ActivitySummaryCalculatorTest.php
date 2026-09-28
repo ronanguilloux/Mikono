@@ -145,7 +145,8 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
         self::getContainer()->get('doctrine')->getManager()->clear();
 
         $programs = $calculator->summarizeByProgram();
-        self::assertSame(['Olympic School — Reading', 'Olympic School — Maths'], array_column($programs, 'label'));
+        self::assertSame(['Reading', 'Maths'], array_column($programs, 'label'));
+        self::assertSame(['Olympic School', 'Olympic School'], array_column($programs, 'parent'));
         self::assertSame([2, 1], array_column($programs, 'volunteers'));
         self::assertSame([2], array_column($calculator->summarizeByProject(), 'volunteers'));
     }

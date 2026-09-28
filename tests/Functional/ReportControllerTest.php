@@ -81,9 +81,9 @@ final class ReportControllerTest extends WebTestCase
         $second = $screen->filter('tbody tr')->eq(1);
         self::assertStringContainsString('No escort recorded', $second->text());
         self::assertCount(0, $second->filter('td:first-child a'));
-        self::assertSame('page', $crawler->filter('nav[aria-label="Report breakdown"] a')->eq(3)->attr('aria-current'));
+        self::assertSame('By escort', trim($crawler->filter('nav[aria-label="Report breakdown"] a[aria-current="page"]')->text()));
 
-        self::assertCount(5, $crawler->filter('[data-report-panel="print"] table'));
+        self::assertCount(6, $crawler->filter('[data-report-panel="print"] table'));
     }
 
     #[Test]
@@ -94,7 +94,7 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports?tab[]=escort');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('page', $crawler->filter('nav[aria-label="Report breakdown"] a')->eq(0)->attr('aria-current'));
+        self::assertSame('By volunteer', trim($crawler->filter('nav[aria-label="Report breakdown"] a[aria-current="page"]')->text()));
     }
 
     #[Test]
@@ -319,6 +319,14 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         self::assertResponseIsSuccessful();
+        self::assertSame(
+            ['By branch', 'By project', 'By program', 'By activity type', 'By volunteer', 'By escort'],
+            $crawler->filter('[data-report-panel="screen"] nav a')->each(static fn($a) => trim($a->text())),
+        );
+        self::assertSame(
+            ['By branch', 'By project', 'By program', 'By activity type', 'By volunteer', 'By escort'],
+            $crawler->filter('[data-report-panel="print"] h2')->each(static fn($h) => trim($h->text())),
+        );
         $active = $crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]');
         self::assertCount(1, $active);
         self::assertSame('By volunteer', trim($active->text()));
@@ -339,6 +347,49 @@ final class ReportControllerTest extends WebTestCase
         self::assertSame('By project', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
         self::assertStringContainsString('Bright Achievers', $this->screenPanel($crawler));
         self::assertStringNotContainsString('Ronan Guilloux', $this->screenPanel($crawler));
+    }
+
+    #[Test]
+    public function theProjectTabShowsEachProjectsBranch(): void
+    {
+        $client = static::createClient();
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::new()->withoutStay(), 'project' => ProjectFactory::createOne(['name' => 'Likoni school', 'branch' => $mombasa])]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=project');
+
+        $screen = $crawler->filter('[data-report-panel="screen"]');
+        self::assertSame(['Project', 'Branch'], $screen->filter('thead th')->slice(0, 2)->each(static fn($th) => trim($th->text())));
+        self::assertSame(['Likoni school', 'Mombasa'], $screen->filter('tbody tr td')->slice(0, 2)->each(static fn($td) => trim($td->text())));
+    }
+
+    /**
+     * Distinct people and days per activity type, planned included like the
+     * other tabs. Its names aren't links: /activities has no type filter.
+     */
+    #[Test]
+    public function theActivityTypeTabTotalsEachType(): void
+    {
+        $client = static::createClient();
+        $tuition = ActivityTypeFactory::createOne(['name' => 'Computer tuition']);
+        $volunteer = VolunteerFactory::createOne();
+        ActivityFactory::createMany(2, ['volunteer' => $volunteer, 'activityType' => $tuition, 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['activityType' => $tuition, 'duration' => ActivityDuration::HalfDay, 'date' => new \DateTimeImmutable('tomorrow')]);
+        ActivityFactory::createOne(['activityType' => ActivityTypeFactory::createOne(['name' => 'Medical camp']), 'duration' => ActivityDuration::HalfDay]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=type');
+
+        $screen = $crawler->filter('[data-report-panel="screen"]');
+        self::assertSame('By activity type', trim($screen->filter('nav a[aria-current="page"]')->text()));
+        self::assertSame(
+            ['Activity type', 'Activities', 'Total days', 'Volunteers engaged', 'Most recent'],
+            $screen->filter('thead th')->each(static fn($th) => trim($th->text())),
+        );
+        self::assertSame(['Computer tuition', '3', '2.5', '2'], $screen->filter('tbody tr')->eq(0)->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())));
+        self::assertSame(['Medical camp', '1', '0.5', '1'], $screen->filter('tbody tr')->eq(1)->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())));
+        self::assertCount(0, $screen->filter('tbody td:first-child a'));
     }
 
     /**
@@ -364,12 +415,12 @@ final class ReportControllerTest extends WebTestCase
         // Only programs with activities, most days first.
         self::assertCount(2, $rows);
         self::assertSame(
-            ['Peggy Lucas school — School support', '2', '2.0'],
-            $rows->eq(0)->filter('td')->slice(0, 3)->each(static fn($td) => trim($td->text())),
+            ['School support', 'Peggy Lucas school', '2', '2.0'],
+            $rows->eq(0)->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())),
         );
         self::assertSame(
-            ['Peggy Lucas school — Computer Tuition', '1', '0.5'],
-            $rows->eq(1)->filter('td')->slice(0, 3)->each(static fn($td) => trim($td->text())),
+            ['Computer Tuition', 'Peggy Lucas school', '1', '0.5'],
+            $rows->eq(1)->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())),
         );
         self::assertSame(
             '/activities?program=' . $schoolSupport->getId(),
@@ -556,9 +607,9 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
-        self::assertCount(5, $printPanel->filter('table'));
-        // Volunteer, project and program tables: 26 rows each.
-        foreach ([0, 1, 2] as $index) {
+        self::assertCount(6, $printPanel->filter('table'));
+        // Project, program and volunteer tables (branch leads): 26 rows each.
+        foreach ([1, 2, 4] as $index) {
             self::assertCount(26, $printPanel->filter('table')->eq($index)->filter('tbody tr'));
         }
 
@@ -822,9 +873,9 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
-        self::assertCount(5, $printTables);
+        self::assertCount(6, $printTables);
         // "Most recent" is the last column on every table.
-        foreach (range(0, 4) as $index) {
+        foreach (range(0, 5) as $index) {
             self::assertSame(
                 'Planned',
                 trim($printTables->eq($index)->filter('tbody tr td:last-child span')->text()),
@@ -839,6 +890,7 @@ final class ReportControllerTest extends WebTestCase
         yield 'volunteer' => ['volunteer'];
         yield 'project' => ['project'];
         yield 'program' => ['program'];
+        yield 'activity type' => ['type'];
         yield 'escort' => ['escort'];
         yield 'branch' => ['branch'];
     }
@@ -851,6 +903,7 @@ final class ReportControllerTest extends WebTestCase
         $shared = [
             'volunteer' => VolunteerFactory::createOne(),
             'program' => ProgramFactory::createOne(),
+            'activityType' => ActivityTypeFactory::createOne(),
             'escorts' => [EscortFactory::createOne()],
         ];
         ActivityFactory::createOne($shared + ['date' => new \DateTimeImmutable('2026-08-03')]);

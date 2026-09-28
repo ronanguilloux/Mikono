@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays?: float, volunteers?: int, days?: int, outings?: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}
+ * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays?: float, volunteers?: int, parent?: ?string, days?: int, outings?: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}
  */
 #[Route('/reports', name: 'report_')]
 final class ReportController extends AbstractController
@@ -22,6 +22,7 @@ final class ReportController extends AbstractController
     private const string TAB_VOLUNTEER = 'volunteer';
     private const string TAB_PROJECT = 'project';
     private const string TAB_PROGRAM = 'program';
+    private const string TAB_ACTIVITY_TYPE = 'type';
     private const string TAB_ESCORT = 'escort';
     private const string TAB_BRANCH = 'branch';
 
@@ -39,6 +40,7 @@ final class ReportController extends AbstractController
         'count' => 'count',
         'totalDays' => 'totalDays',
         'volunteers' => 'volunteers',
+        'parent' => 'parent',
         'days' => 'days',
         'outings' => 'outings',
         'mostRecent' => 'mostRecent',
@@ -62,7 +64,7 @@ final class ReportController extends AbstractController
         // which would be the error page this line exists to avoid.
         $requestedTab = $request->query->all()['tab'] ?? null;
         $tab = match ($requestedTab) {
-            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ESCORT, self::TAB_BRANCH => $requestedTab,
+            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ACTIVITY_TYPE, self::TAB_ESCORT, self::TAB_BRANCH => $requestedTab,
             default => self::TAB_VOLUNTEER,
         };
 
@@ -73,6 +75,7 @@ final class ReportController extends AbstractController
         $byVolunteer = $this->calculator->summarizeByVolunteer();
         $byProject = $this->calculator->summarizeByProject();
         $byProgram = $this->calculator->summarizeByProgram();
+        $byActivityType = $this->calculator->summarizeByActivityType();
         $byEscort = $this->calculator->summarizeByEscort();
         $byBranch = $this->calculator->summarizeByBranch();
 
@@ -84,6 +87,7 @@ final class ReportController extends AbstractController
             match ($tab) {
                 self::TAB_PROJECT => $byProject,
                 self::TAB_PROGRAM => $byProgram,
+                self::TAB_ACTIVITY_TYPE => $byActivityType,
                 self::TAB_ESCORT => $byEscort,
                 self::TAB_BRANCH => $byBranch,
                 default => $byVolunteer,
@@ -113,11 +117,13 @@ final class ReportController extends AbstractController
             'volunteerRows' => $this->toRows($byVolunteer, $today, self::TAB_VOLUNTEER),
             'projectRows' => $this->toRows($byProject, $today, self::TAB_PROJECT),
             'programRows' => $this->toRows($byProgram, $today, self::TAB_PROGRAM),
+            'activityTypeRows' => $this->toRows($byActivityType, $today, self::TAB_ACTIVITY_TYPE),
             'escortRows' => $this->toRows($byEscort, $today, self::TAB_ESCORT),
             'branchRows' => $this->toRows($byBranch, $today, self::TAB_BRANCH),
             'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
             'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
             'programColumns' => $this->columnsFor(self::TAB_PROGRAM),
+            'activityTypeColumns' => $this->columnsFor(self::TAB_ACTIVITY_TYPE),
             'escortColumns' => $this->columnsFor(self::TAB_ESCORT),
             'branchColumns' => $this->columnsFor(self::TAB_BRANCH),
             // Free text, so it can't be a sortable column: printed as notes
@@ -149,12 +155,23 @@ final class ReportController extends AbstractController
             ['key' => 'label', 'label' => match ($tab) {
                 self::TAB_PROJECT => 'Project',
                 self::TAB_PROGRAM => 'Program',
+                self::TAB_ACTIVITY_TYPE => 'Activity type',
                 self::TAB_BRANCH => 'Branch',
                 default => 'Volunteer',
             }],
+        ];
+        // What the row belongs to: program names repeat across projects.
+        if (self::TAB_PROJECT === $tab) {
+            $columns[] = ['key' => 'parent', 'label' => 'Branch'];
+        }
+        if (self::TAB_PROGRAM === $tab) {
+            $columns[] = ['key' => 'parent', 'label' => 'Project'];
+        }
+        array_push(
+            $columns,
             ['key' => 'count', 'label' => 'Activities'],
             ['key' => 'totalDays', 'label' => 'Total days'],
-        ];
+        );
         // A volunteer's own row would always say 1.
         if (self::TAB_VOLUNTEER !== $tab) {
             $columns[] = ['key' => 'volunteers', 'label' => 'Volunteers engaged'];
@@ -204,6 +221,9 @@ final class ReportController extends AbstractController
                 // and the "Total days contributed" tile. Before pagination
                 // this table alone printed the raw float.
                 $cells['totalDays'] = number_format($summary['totalDays'], 1);
+            }
+            if (self::TAB_PROJECT === $tab || self::TAB_PROGRAM === $tab) {
+                $cells['parent'] = $summary['parent'] ?? '—';
             }
             if (isset($summary['volunteers'])) {
                 $cells['volunteers'] = (string) $summary['volunteers'];

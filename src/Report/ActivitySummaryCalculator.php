@@ -17,7 +17,7 @@ final class ActivitySummaryCalculator
 {
     public function __construct(private readonly ActivityRepository $activities) {}
 
-    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
     public function summarizeByVolunteer(): array
     {
         return $this->summarize(
@@ -26,31 +26,38 @@ final class ActivitySummaryCalculator
         );
     }
 
-    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
     public function summarizeByProject(): array
     {
         return $this->summarize(
             static fn(Activity $a) => $a->getProject()?->getId(),
             static fn(Activity $a) => $a->getProject()?->getName() ?? 'Unknown',
+            static fn(Activity $a) => $a->getProject()?->getBranch()?->getName(),
+        );
+    }
+
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
+    public function summarizeByActivityType(): array
+    {
+        return $this->summarize(
+            static fn(Activity $a) => $a->getActivityType()?->getId(),
+            static fn(Activity $a) => $a->getActivityType()?->getName() ?? 'Unknown',
         );
     }
 
     /**
-     * Labelled with the project too: program names repeat across projects
-     * ("School support" runs at three schools), so the name alone can't tell
-     * the rows apart.
+     * Program names repeat across projects ("School support" runs at three
+     * schools), so each row carries its project as `parent`, shown in its own
+     * column on /reports.
      *
-     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
     public function summarizeByProgram(): array
     {
         return $this->summarize(
             static fn(Activity $a) => $a->getProgram()?->getId(),
-            static function (Activity $a): string {
-                $program = $a->getProgram();
-
-                return null === $program ? 'Unknown' : ($program->getProject()?->getName() ?? '?') . ' — ' . $program->getName();
-            },
+            static fn(Activity $a) => $a->getProgram()?->getName() ?? 'Unknown',
+            static fn(Activity $a) => $a->getProject()?->getName(),
         );
     }
 
@@ -59,7 +66,7 @@ final class ActivitySummaryCalculator
      * branch — the same rule as the `/activities?branch=` filter. A branch
      * with no activity has no row, like every other breakdown.
      *
-     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
     public function summarizeByBranch(): array
     {
@@ -143,12 +150,16 @@ final class ActivitySummaryCalculator
      * with a null id, which is what makes such a row unlinkable rather than
      * pointing somewhere wrong.
      *
-     * @param callable(Activity): ?int   $idFn
-     * @param callable(Activity): string $labelFn
+     * `parent` is what the row belongs to (a project's branch, a program's
+     * project), null where the breakdown has none.
      *
-     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     * @param callable(Activity): ?int           $idFn
+     * @param callable(Activity): string         $labelFn
+     * @param (callable(Activity): ?string)|null $parentFn
+     *
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
-    private function summarize(callable $idFn, callable $labelFn): array
+    private function summarize(callable $idFn, callable $labelFn, ?callable $parentFn = null): array
     {
         $buckets = [];
         $volunteers = [];
@@ -156,7 +167,7 @@ final class ActivitySummaryCalculator
         foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
             $id = $idFn($activity);
             $key = $id ?? 'unknown';
-            $buckets[$key] ??= ['id' => $id, 'label' => $labelFn($activity), 'count' => 0, 'totalDays' => 0.0, 'volunteers' => 0, 'mostRecent' => null, 'mostRecentActivityId' => null];
+            $buckets[$key] ??= ['id' => $id, 'label' => $labelFn($activity), 'count' => 0, 'totalDays' => 0.0, 'volunteers' => 0, 'parent' => null === $parentFn ? null : $parentFn($activity), 'mostRecent' => null, 'mostRecentActivityId' => null];
             ++$buckets[$key]['count'];
             $volunteers[$key][(int) $activity->getVolunteer()?->getId()] = true;
             $buckets[$key]['totalDays'] += $activity->getDuration()?->toDays() ?? 0.0;
