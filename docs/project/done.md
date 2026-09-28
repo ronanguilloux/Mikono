@@ -6,6 +6,17 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — UAT database replaced by the local dev database
+
+Deployed 282d686 to `deploy.mikono.guilloux.org`, then swapped
+`data_prod.db` for a `VACUUM INTO` snapshot of the local `data_dev.db`,
+following the restore drill in `deployment-plan.md` §7. The online fixture
+data was fake and disposable. Both databases were at the same migration, so
+the entrypoint reported "Already at the latest version". Sessions were
+dropped. No passport numbers were stored, so the dev and prod keys being
+different doesn't matter. The previous UAT database is kept on the server as
+`backups/mikono-prod-20260928T210418Z.db`.
+
 ## 2026-09-28 — Achievement anniversary reminders on the dashboard
 
 The Reminders panel also lists every achievement whose `achievedOn` falls on
