@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-27
+**Last updated:** 2026-09-28
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -59,6 +59,7 @@ Features not yet decided:
 - [A searchable photo library with metadata](backlog/photo-library-with-metadata.md) — **D**
 - [Offline field capture and sync](backlog/offline-field-capture.md) — **D**
 - [An "Ask UCESCO Africa" AI assistant](backlog/ask-ucesco-ai-assistant.md) — **D**
+- [A full API and an MCP server with API Platform, behind OAuth](backlog/api-platform-api-and-mcp-server.md) — **D**
 - [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **D**
 
 Deferred behind a trigger — each card names the event that wakes it:

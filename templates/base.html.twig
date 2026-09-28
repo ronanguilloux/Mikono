@@ -44,6 +44,7 @@
                 {% set settings_items = settings_items|merge([
                     {label: 'Users', route: 'user_index'},
                     {label: 'Usage', route: 'usage_index'},
+                    {label: 'Data map', route: 'datamap_index'},
                 ]) %}
             {% endif %}
             {% set current_route = app.request.attributes.get('_route') %}

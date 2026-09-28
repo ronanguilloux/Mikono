@@ -1,147 +1,117 @@
-<!DOCTYPE html>
-<!-- saved from url=(0133)file:///private/tmp/claude-501/-Users-ronan-Code-Github-Mine-Mikono/1cb3a3b8-7b00-4b1b-8616-e87fdbc5f813/scratchpad/export/index.html -->
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+{% extends 'base.html.twig' %}
 
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<meta name="description" content="Mikono&#39;s data model explained for non-developer admins: what each list holds, the rules that connect them, and the consequences of past and pending choices.">
-<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;text y=%22.9em%22 font-size=%2290%22&gt;%F0%9F%97%BA%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;">
-<title>Mikono Data Map</title>
-<link rel="preconnect" href="https://fonts.googleapis.com/">
-<link rel="stylesheet" href="./Mikono Data Map_files/css2">
+{% block title %}Data map — UCESCO Volunteer Manager{% endblock %}
+
+{% block stylesheets %}
+{% verbatim %}
 <style>
-:root{
+.datamap{
   --ground:#f3f7f8; --paper:#ffffff; --ink:#0f252c; --muted:#4f656d; --line:#c9d7dc;
   --brand:#007f9f; --brand-soft:#dff3f8; --brand-ink:#005a71;
   --green:#1f7d3a; --green-soft:#e2f2e6;
   --warn:#9a5b00; --warn-soft:#fbf0dc;
   --loop:#1f7d3a;
   --shadow:0 1px 2px rgba(15,37,44,.06),0 6px 20px rgba(15,37,44,.06);
-  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
-  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --mono:ui-monospace,Menlo,Consolas,monospace;
+  color:var(--ink);font-size:17px;line-height:1.6;
+  max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:56px;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --ground:#0c1a1f; --paper:#122830; --ink:#e4eff2; --muted:#9db3ba; --line:#2a4650;
-    --brand:#3fc6e8; --brand-soft:#123845; --brand-ink:#8fdcf0;
-    --green:#5cc97a; --green-soft:#153524;
-    --warn:#f0b050; --warn-soft:#3a2c14;
-    --loop:#5cc97a;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
-  }
-}
-:root[data-theme="dark"]{
-  --ground:#0c1a1f; --paper:#122830; --ink:#e4eff2; --muted:#9db3ba; --line:#2a4650;
-  --brand:#3fc6e8; --brand-soft:#123845; --brand-ink:#8fdcf0;
-  --green:#5cc97a; --green-soft:#153524;
-  --warn:#f0b050; --warn-soft:#3a2c14;
-  --loop:#5cc97a;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
-}
-*{box-sizing:border-box}
-body{background:var(--ground);color:var(--ink);font:17px/1.6 var(--body);padding-inline:16px;padding-block:32px 64px}
-.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
-h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
-h1{font-size:clamp(2rem,5vw,3rem);font-weight:700;letter-spacing:-.01em}
-h2{font-size:clamp(1.45rem,3vw,1.9rem);font-weight:700}
-h3{font-size:1.15rem;font-weight:700}
-p{margin:0}
-.prose{max-width:66ch;display:flex;flex-direction:column;gap:14px}
-.eyebrow{font:600 .78rem/1 var(--body);text-transform:uppercase;letter-spacing:.12em;color:var(--brand-ink)}
-.lede{font-size:1.15rem;color:var(--muted)}
-code,.tbl{font-family:var(--mono);font-size:.82em;color:var(--muted)}
-header{display:flex;flex-direction:column;gap:14px}
-section{display:flex;flex-direction:column;gap:22px}
+.datamap *{box-sizing:border-box}
+.datamap h1,.datamap h2,.datamap h3{line-height:1.15;text-wrap:balance;margin:0}
+.datamap h1{font-size:clamp(2rem,5vw,3rem);font-weight:700;letter-spacing:-.01em}
+.datamap h2{font-size:clamp(1.45rem,3vw,1.9rem);font-weight:700}
+.datamap h3{font-size:1.15rem;font-weight:700}
+.datamap p{margin:0}
+.datamap .prose{max-width:66ch;display:flex;flex-direction:column;gap:14px}
+.datamap p.prose{display:block}
+.datamap .eyebrow{font-weight:600;font-size:.78rem;line-height:1;text-transform:uppercase;letter-spacing:.12em;color:var(--brand-ink)}
+.datamap .lede{font-size:1.15rem;color:var(--muted)}
+.datamap code,.datamap .tbl{font-family:var(--mono);font-size:.82em;color:var(--muted)}
+.datamap header{display:flex;flex-direction:column;gap:14px}
+.datamap section{display:flex;flex-direction:column;gap:22px}
 
-/* Diagram */
-.diagram{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
-.diagram-scroll{overflow-x:auto}
-.diagram svg{display:block;width:100%;min-width:760px;height:auto}
-.legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:.88rem;color:var(--muted);padding-top:12px;border-top:1px solid var(--line);margin-top:12px}
-.legend span{display:inline-flex;align-items:center;gap:8px}
-.legend svg{width:38px;height:12px;min-width:0}
-.hint{font-size:.9rem;color:var(--muted)}
+.datamap .diagram{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
+.datamap .diagram-scroll{overflow-x:auto}
+.datamap .diagram svg{display:block;width:100%;min-width:760px;height:auto}
+.datamap .legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:.88rem;color:var(--muted);padding-top:12px;border-top:1px solid var(--line);margin-top:12px}
+.datamap .legend span{display:inline-flex;align-items:center;gap:8px}
+.datamap .legend svg{width:38px;height:12px;min-width:0}
+.datamap .hint{font-size:.9rem;color:var(--muted)}
 
-.ent rect{fill:var(--paper);stroke:var(--line);stroke-width:1.5}
-.ent .t{font:700 17px var(--display);fill:var(--ink)}
-.ent .s{font:13px var(--body);fill:var(--muted)}
-.ent .k{font:11px var(--mono);fill:var(--muted);opacity:.8}
-.ent{cursor:pointer}
-.ent:focus{outline:none}
-.ent:focus-visible rect{stroke:var(--brand);stroke-width:3}
-.ent.core rect{fill:var(--brand-soft);stroke:var(--brand);stroke-width:2}
-.ent.minor rect{stroke-dasharray:5 4}
-.edge path{fill:none;stroke:var(--muted);stroke-width:1.6}
-.edge text{font:12.5px var(--body);fill:var(--muted);paint-order:stroke;stroke:var(--paper);stroke-width:5px;stroke-linejoin:round}
-.edge.many path{stroke-dasharray:2 4;stroke-linecap:round;stroke-width:2.2}
-.edge.opt path{stroke-dasharray:7 5}
-.edge.loop path{stroke:var(--loop);stroke-width:2.6}
-.edge.loop text{fill:var(--loop);font-weight:700}
-.arrow{fill:var(--muted)} .arrow-loop{fill:var(--loop)}
-svg.focusing .ent:not(.on){opacity:.28}
-svg.focusing .edge:not(.on){opacity:.12}
-svg.focusing .ent.sel rect{stroke:var(--brand);stroke-width:3}
-.ent,.edge{transition:opacity .18s}
-@media (prefers-reduced-motion:reduce){.ent,.edge{transition:none}}
+.datamap .ent rect{fill:var(--paper);stroke:var(--line);stroke-width:1.5}
+.datamap .ent .t{font-weight:700;font-size:17px;fill:var(--ink)}
+.datamap .ent .s{font-size:13px;fill:var(--muted)}
+.datamap .ent .k{font-family:var(--mono);font-size:11px;fill:var(--muted);opacity:.8}
+.datamap .ent{cursor:pointer}
+.datamap .ent:focus{outline:none}
+.datamap .ent:focus-visible rect{stroke:var(--brand);stroke-width:3}
+.datamap .ent.core rect{fill:var(--brand-soft);stroke:var(--brand);stroke-width:2}
+.datamap .ent.minor rect{stroke-dasharray:5 4}
+.datamap .edge path{fill:none;stroke:var(--muted);stroke-width:1.6}
+.datamap .edge text{font-size:12.5px;fill:var(--muted);paint-order:stroke;stroke:var(--paper);stroke-width:5px;stroke-linejoin:round}
+.datamap .edge.many path{stroke-dasharray:2 4;stroke-linecap:round;stroke-width:2.2}
+.datamap .edge.opt path{stroke-dasharray:7 5}
+.datamap .edge.loop path{stroke:var(--loop);stroke-width:2.6}
+.datamap .edge.loop text{fill:var(--loop);font-weight:700}
+.datamap .arrow{fill:var(--muted)} .datamap .arrow-loop{fill:var(--loop)}
+.datamap svg.focusing .ent:not(.on){opacity:.28}
+.datamap svg.focusing .edge:not(.on){opacity:.12}
+.datamap svg.focusing .ent.sel rect{stroke:var(--brand);stroke-width:3}
+.datamap .ent,.datamap .edge{transition:opacity .18s}
+@media (prefers-reduced-motion:reduce){.datamap .ent,.datamap .edge{transition:none}}
 
-.detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 32px;padding:22px;background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-top:16px}
-.detail header{grid-column:1/-1;gap:4px}
-.detail dl{margin:0;display:flex;flex-direction:column;gap:12px}
-.detail dt{font:700 .78rem/1.2 var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.detail dd{margin:4px 0 0}
-.detail ul{margin:4px 0 0;padding-left:1.1em}
-@media (max-width:720px){.detail{grid-template-columns:1fr}}
+.datamap .detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 32px;padding:22px;background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-top:16px}
+.datamap .detail header{grid-column:1/-1;gap:4px}
+.datamap .detail dl{margin:0;display:flex;flex-direction:column;gap:12px}
+.datamap .detail dt{font-weight:700;font-size:.78rem;line-height:1.2;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.datamap .detail dd{margin:4px 0 0}
+.datamap .detail ul{margin:4px 0 0;padding-left:1.1em;list-style:disc}
+@media (max-width:720px){.datamap .detail{grid-template-columns:1fr}}
 
-/* Chips */
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{font:600 .85rem/1 var(--body);padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
-.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--paper)}
-.chip:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.datamap .chips{display:flex;flex-wrap:wrap;gap:8px}
+.datamap .chip{font-weight:600;font-size:.85rem;line-height:1;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.datamap .chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--paper)}
+.datamap .chip:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
 
-/* Rules */
-.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
-.rule{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
-.rule .so{font-size:.93rem;color:var(--muted)}
-.rule.key{border-color:var(--loop);background:var(--green-soft)}
-.rule.key .so{color:var(--ink)}
+.datamap .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.datamap .rule{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.datamap .rule .so{font-size:.93rem;color:var(--muted)}
+.datamap .rule.key{border-color:var(--loop);background:var(--green-soft)}
+.datamap .rule.key .so{color:var(--ink)}
 
-/* Decision table */
-.tablewrap{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px}
-table{border-collapse:collapse;width:100%;min-width:760px;font-size:.95rem}
-th,td{text-align:left;vertical-align:top;padding:14px 16px;border-bottom:1px solid var(--line)}
-tr:last-child td{border-bottom:0}
-th{font:700 .78rem/1.2 var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:var(--ground)}
-td:first-child{font-weight:700;width:22%}
-.plus{color:var(--green)} .minus{color:var(--warn)}
-.rev{display:inline-block;font:700 .75rem/1 var(--body);padding:5px 9px;border-radius:999px;white-space:nowrap}
-.rev.easy{background:var(--green-soft);color:var(--green)}
-.rev.mid{background:var(--warn-soft);color:var(--warn)}
-.adr{display:block;font:11px var(--mono);color:var(--muted);font-weight:400;margin-top:4px}
+.datamap .tablewrap{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+.datamap table{border-collapse:collapse;width:100%;min-width:760px;font-size:.95rem}
+.datamap th,.datamap td{text-align:left;vertical-align:top;padding:14px 16px;border-bottom:1px solid var(--line)}
+.datamap tr:last-child td{border-bottom:0}
+.datamap th{font-weight:700;font-size:.78rem;line-height:1.2;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:var(--ground)}
+.datamap td:first-child{font-weight:700;width:22%}
+.datamap .plus{color:var(--green)} .datamap .minus{color:var(--warn)}
+.datamap .rev{display:inline-block;font-weight:700;font-size:.75rem;line-height:1;padding:5px 9px;border-radius:999px;white-space:nowrap}
+.datamap .rev.easy{background:var(--green-soft);color:var(--green)}
+.datamap .rev.mid{background:var(--warn-soft);color:var(--warn)}
+.datamap .adr{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400;margin-top:4px}
 
-/* Questions */
-.questions{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;counter-reset:q}
-.q{border-top:3px solid var(--brand);padding-top:14px;display:flex;flex-direction:column;gap:8px}
-.q .eg{font-size:.9rem;color:var(--muted)}
+.datamap .questions{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.datamap .q{border-top:3px solid var(--brand);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.datamap .q .eg{font-size:.9rem;color:var(--muted)}
 
-.open{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
-.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
-.status{align-self:flex-start;font:700 .75rem/1 var(--body);padding:5px 9px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
-.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.opt{border:1px solid var(--line);border-radius:8px;padding:12px;font-size:.92rem;display:flex;flex-direction:column;gap:6px}
-.opt b{font-family:var(--display)}
-@media (max-width:480px){.opts{grid-template-columns:1fr}}
+.datamap .open{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.datamap .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.datamap .status{align-self:flex-start;font-weight:700;font-size:.75rem;line-height:1;padding:5px 9px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
+.datamap .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.datamap .opt{border:1px solid var(--line);border-radius:8px;padding:12px;font-size:.92rem;display:flex;flex-direction:column;gap:6px}
+@media (max-width:480px){.datamap .opts{grid-template-columns:1fr}}
 
-.backstage{font-size:.95rem;color:var(--muted);border-left:3px solid var(--line);padding-left:16px;max-width:70ch}
-footer{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
-body{margin:0}
-img{max-width:100%}
-[hidden]{display:none!important}
+.datamap .backstage{font-size:.95rem;color:var(--muted);border-left:3px solid var(--line);padding-left:16px;max-width:70ch}
+.datamap footer{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+.datamap [hidden]{display:none!important}
 </style>
-</head>
-<body>
+{% endverbatim %}
+{% endblock %}
 
-<div class="wrap">
+{% block body %}
+{% verbatim %}
+<div class="datamap wrap">
 
 <header>
   <span class="eyebrow">Mikono · Volunteer Manager UCESCO</span>
@@ -242,7 +212,7 @@ img{max-width:100%}
     <div class="rule key"><h3>3. The branch loop must close</h3><p class="so">An activity's project must be in the same branch as the volunteer's stay on that day. A volunteer staying in Mombasa cannot be logged on a Kibera project. This is the green loop in the diagram.</p></div>
     <div class="rule"><h3>4. The program frames the task</h3><p class="so">The activity type must be one of those the program offers, and the date must fall within its dates (if it has any).</p></div>
     <div class="rule"><h3>5. What has been used is never deleted</h3><p class="so">A volunteer, project, type, escort, user or branch already referenced somewhere cannot be deleted: the button is greyed out. You <strong>deactivate</strong> it instead, and the history stays intact.</p></div>
-    <div class="rule"><h3>6. Dates are days in Nairobi</h3><p class="so">No hours, no time zones: an activity takes place on a calendar day, Kenya time, even though the server is in France.</p></div>
+    <div class="rule"><h3>6. Dates are days in Nairobi</h3><p class="so">No hours, no time zones: an activity takes place on a calendar day, Kenya time, wherever the server is.</p></div>
   </div>
 </section>
 
@@ -283,7 +253,7 @@ img{max-width:100%}
 <section aria-labelledby="h-ouvert">
   <div class="prose">
     <h2 id="h-ouvert">Pending decisions</h2>
-    <p>Two items in the backlog directly affect the map.</p>
+    <p>One item in the backlog directly affects the map.</p>
   </div>
   <div class="open">
     <div class="card">
@@ -296,15 +266,6 @@ img{max-width:100%}
       </div>
       <p class="hint">Either way: never accessible without signing in, deleted along with the volunteer.</p>
     </div>
-    <div class="card">
-      <span class="status">To decide</span>
-      <h3>What is “active” for on an escort?</h3>
-      <p>Escorts have an “active” checkbox, but nothing really uses it yet. Two ways forward:</p>
-      <div class="opts">
-        <div class="opt"><b>Keep it</b><span>And hide inactive ones from the pick lists, as we do for projects.</span></div>
-        <div class="opt"><b>Remove it</b><span>One less setting to keep up to date, at the cost of a list that only ever grows.</span></div>
-      </div>
-    </div>
   </div>
 </section>
 
@@ -314,9 +275,9 @@ img{max-width:100%}
 </section>
 
 <footer>State of the model as of 19 September 2026. The “ADR” references point to the decisions written up in <code>docs/adr/</code> in the Mikono repository.</footer>
-</div>
 
 <script>
+{ // a block, so Turbo re-running this script on a revisit doesn't redeclare the consts
 const D = {
   activite:{name:"Activity",tag:"the log",what:"What a volunteer did on a given day: the date, the duration (half day, full day, or other with details), notes, and who entered it.",links:["1 volunteer","1 stay, found automatically from the date: never picked by hand","1 program, and therefore 1 project (derived)","1 activity type","0, 1 or several escorts","1 user (who entered it)"],rules:["Refused if no stay covers the date.","Refused if the project is not in the stay's branch.","Refused if the program does not offer this type or is not open that day.","In a batch: all or nothing."],del:"Allowed. It is the only record that nothing else references."},
   volontaire:{name:"Volunteer",tag:"a person",what:"First name (required). Optional: last name, email, phone, nationality, country of residence, date of birth, profession, skills, interests, emergency contacts. An incomplete profile is flagged, never blocked.",links:["0 or 1 photo","their stays (received, not chosen here)","their activities (received)"],rules:["“Active” is not stored: it means “a stay covers today”.","The branch shown is that of the current stay, otherwise of the latest one."],del:"Refused if they have activities. Otherwise, their stays and photo go with them."},
@@ -325,7 +286,7 @@ const D = {
   projet:{name:"Project",tag:"a site of work in the field",what:"Name, run by UCESCO or by a partner (whose name is recorded), description, active or not.",links:["1 branch (required)","receives programs"],rules:["Changing its branch is refused if its activities are linked to stays at another branch."],del:"Refused if it has programs or activities. It can be deactivated."},
   programme:{name:"Program",tag:"an offer within a project",what:"Name, optional start and end dates (no dates: always open), suggested roles as free text.",links:["1 project","offers at least one activity type (several possible)"],rules:["No “active” checkbox: its dates are enough.","Once used, it can no longer change project.","Its dates cannot exclude activities already entered."],del:"Refused if it has activities."},
   type:{name:"Activity type",tag:"the what",what:"Unique name and description. One single list for the whole organisation; each program picks a subset of it.",links:["offered by one or several programs","receives activities"],rules:["The entry lists only show types offered by at least one program."],del:"Refused if it is referenced by an activity or offered by a program."},
-  escorte:{name:"Escort",tag:"the local escort",what:"Unique name, active or not.",links:["referenced by activities (0, 1 or several per activity)"],rules:["The reports count their days present and site visits, not how long they stayed: that is not entered."],del:"Refused if they appear on an activity."},
+  escorte:{name:"Escort",tag:"the local escort",what:"Unique name, active or not.",links:["referenced by activities (0, 1 or several per activity)"],rules:["Inactive escorts are not offered when entering an activity; editing an old activity still shows its own escorts, marked “(inactive)”.","The reports count their days present and site visits, not how long they stayed: that is not entered."],del:"Refused if they appear on an activity. Deactivate them instead."},
   user:{name:"User",tag:"the staff",what:"Email, full name, password (encrypted, unreadable even to us), administrator or not, active or not.",links:["signs the activities they enter"],rules:["Only admins see the Usage screen and the sign-ins."],del:"Refused if they have entered activities, or if it is one's own account. Deactivate them instead."},
   photo:{name:"Photo",tag:"a portrait",what:"Only one per volunteer, resized to 800 pixels and re-saved as JPEG: the metadata, GPS included, disappear.",links:["belongs to 1 volunteer"],rules:["Never visible without being signed in.","Kept in the database, so in every backup."],del:"Replaced or removed from the volunteer's record; deleted along with them."}
 };
@@ -352,7 +313,7 @@ svg.querySelectorAll('.ent').forEach(g=>{
   g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(g.dataset.id);}});
 });
 pick('activite');
+}
 </script>
-
-
-</body></html>
+{% endverbatim %}
+{% endblock %}
