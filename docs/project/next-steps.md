@@ -37,12 +37,10 @@ hostname is the one that isn't ours to solve.
 3. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
 4. [Record achievements on a volunteer's stay](backlog/achievements-on-a-stay.md) — **D**
 5. [Achievement anniversary reminders on the dashboard](backlog/achievement-anniversary-reminders.md) — **G**
-6. [A breach-response runbook with the Act's clocks](backlog/breach-response-runbook.md)
-7. [Record minor volunteers with a guardian's consent](backlog/minor-volunteers-with-guardian-consent.md) — **D**
-8. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
-9. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
-10. [Tag programs with the beneficiary groups they serve](backlog/program-beneficiary-groups.md)
-11. [Export the whole database as one zip of per-table CSVs](backlog/full-database-csv-zip-export.md) — **D**
+6. [Record minor volunteers with a guardian's consent](backlog/minor-volunteers-with-guardian-consent.md) — **D**
+7. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
+8. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
+9. [Export the whole database as one zip of per-table CSVs](backlog/full-database-csv-zip-export.md) — **D**
 
 ## Later
 

@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Report;
 
 use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
+use App\Factory\BeneficiaryGroupFactory;
 use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
@@ -149,6 +150,32 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
         self::assertSame(['Olympic School', 'Olympic School'], array_column($programs, 'parent'));
         self::assertSame([2, 1], array_column($programs, 'volunteers'));
         self::assertSame([2], array_column($calculator->summarizeByProject(), 'volunteers'));
+    }
+
+    /**
+     * Like escorts, one activity counts in full under every group its program
+     * serves; an untagged program's activities share one id-less bucket.
+     */
+    #[Test]
+    public function everyGroupOfAProgramIsCreditedAndAnUntaggedOneIsNotRecorded(): void
+    {
+        self::bootKernel();
+        $girls = BeneficiaryGroupFactory::createOne(['name' => 'Adolescent girls']);
+        $pupils = BeneficiaryGroupFactory::createOne(['name' => 'Primary school pupils']);
+        $mentoring = ProgramFactory::createOne(['beneficiaryGroups' => [$girls, $pupils]]);
+        ActivityFactory::createMany(2, ['program' => $mentoring, 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['program' => ProgramFactory::createOne(), 'duration' => ActivityDuration::HalfDay]);
+
+        $calculator = self::getContainer()->get(ActivitySummaryCalculator::class);
+        self::assertInstanceOf(ActivitySummaryCalculator::class, $calculator);
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $rows = $calculator->summarizeByBeneficiaryGroup();
+        usort($rows, static fn(array $a, array $b): int => $a['label'] <=> $b['label']);
+        self::assertSame(['Adolescent girls', 'No group recorded', 'Primary school pupils'], array_column($rows, 'label'));
+        self::assertSame([2, 1, 2], array_column($rows, 'count'));
+        self::assertSame([2.0, 0.5, 2.0], array_column($rows, 'totalDays'));
+        self::assertNull($rows[1]['id']);
     }
 
     /**

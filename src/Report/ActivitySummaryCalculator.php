@@ -9,7 +9,7 @@ use App\Repository\ActivityRepository;
 
 /**
  * The one piece of real domain logic in this app — computing aggregate
- * activity-days per volunteer/project/program/branch.Duration-to-days conversion lives
+ * activity-days per volunteer/project/program/branch/beneficiary group. Duration-to-days conversion lives
  * once, in ActivityDuration::toDays(), not duplicated as SQL that would
  * need to be kept in sync per database dialect.
  */
@@ -74,6 +74,28 @@ final class ActivitySummaryCalculator
             static fn(Activity $a) => $a->getStay()?->getBranch()?->getId(),
             static fn(Activity $a) => $a->getStay()?->getBranch()?->getName() ?? 'Unknown',
         );
+    }
+
+    /**
+     * Who the activity served, through its program's beneficiary groups. Like
+     * escorts (ADR 0013), an activity counts in full under every group its
+     * program serves, so the column totals exceed the real activity-days. An
+     * untagged program's activities land in the id-less 'No group recorded'
+     * bucket. See ADR 0030.
+     *
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     */
+    public function summarizeByBeneficiaryGroup(): array
+    {
+        // ponytail: lazy-loads each program's groups once; programs number in the tens. Fetch-join in findAllOrderedByDateDesc if that grows.
+        return $this->summarizeMany(static function (Activity $a): array {
+            $targets = [];
+            foreach ($a->getProgram()?->getBeneficiaryGroups() ?? [] as $group) {
+                $targets[] = ['id' => $group->getId(), 'label' => $group->getName()];
+            }
+
+            return [] === $targets ? [['id' => null, 'label' => 'No group recorded']] : $targets;
+        });
     }
 
     /**
@@ -161,21 +183,40 @@ final class ActivitySummaryCalculator
      */
     private function summarize(callable $idFn, callable $labelFn, ?callable $parentFn = null): array
     {
+        return $this->summarizeMany(
+            static fn(Activity $a): array => [['id' => $idFn($a), 'label' => $labelFn($a)]],
+            $parentFn,
+        );
+    }
+
+    /**
+     * summarize(), for a breakdown where one activity lands in several
+     * buckets: each target gets the activity in full.
+     *
+     * @param callable(Activity): list<array{id: ?int, label: string}> $targetsFn
+     * @param (callable(Activity): ?string)|null                       $parentFn
+     *
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     */
+    private function summarizeMany(callable $targetsFn, ?callable $parentFn = null): array
+    {
         $buckets = [];
         $volunteers = [];
 
         foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
-            $id = $idFn($activity);
-            $key = $id ?? 'unknown';
-            $buckets[$key] ??= ['id' => $id, 'label' => $labelFn($activity), 'count' => 0, 'totalDays' => 0.0, 'volunteers' => 0, 'parent' => null === $parentFn ? null : $parentFn($activity), 'mostRecent' => null, 'mostRecentActivityId' => null];
-            ++$buckets[$key]['count'];
-            $volunteers[$key][(int) $activity->getVolunteer()?->getId()] = true;
-            $buckets[$key]['totalDays'] += $activity->getDuration()?->toDays() ?? 0.0;
+            foreach ($targetsFn($activity) as $target) {
+                $id = $target['id'];
+                $key = $id ?? 'unknown';
+                $buckets[$key] ??= ['id' => $id, 'label' => $target['label'], 'count' => 0, 'totalDays' => 0.0, 'volunteers' => 0, 'parent' => null === $parentFn ? null : $parentFn($activity), 'mostRecent' => null, 'mostRecentActivityId' => null];
+                ++$buckets[$key]['count'];
+                $volunteers[$key][(int) $activity->getVolunteer()?->getId()] = true;
+                $buckets[$key]['totalDays'] += $activity->getDuration()?->toDays() ?? 0.0;
 
-            $date = $activity->getDate();
-            if (null !== $date && (null === $buckets[$key]['mostRecent'] || $date > $buckets[$key]['mostRecent'])) {
-                $buckets[$key]['mostRecent'] = $date;
-                $buckets[$key]['mostRecentActivityId'] = $activity->getId();
+                $date = $activity->getDate();
+                if (null !== $date && (null === $buckets[$key]['mostRecent'] || $date > $buckets[$key]['mostRecent'])) {
+                    $buckets[$key]['mostRecent'] = $date;
+                    $buckets[$key]['mostRecentActivityId'] = $activity->getId();
+                }
             }
         }
 

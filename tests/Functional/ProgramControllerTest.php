@@ -6,6 +6,7 @@ namespace App\Tests\Functional;
 
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\BeneficiaryGroupFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\SkillFactory;
@@ -118,6 +119,33 @@ final class ProgramControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/programs');
         self::assertCount(0, $crawler->filter('table tbody form'));
         self::assertCount(1, $crawler->filter('table tbody [aria-disabled="true"]'));
+    }
+
+    #[Test]
+    public function beneficiaryGroupsAreTickedOnEditAndListed(): void
+    {
+        $client = static::createClient();
+        $program = ProgramFactory::createOne(['name' => 'Mentoring']);
+        $girls = BeneficiaryGroupFactory::createOne(['name' => 'Adolescent girls']);
+        BeneficiaryGroupFactory::createOne(['name' => 'Families']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/programs/{$program->getId()}/edit");
+        $form = $crawler->selectButton('Save')->form();
+        $groups = $form['program_form[beneficiaryGroups]'];
+        self::assertIsArray($groups);
+        foreach ($groups as $group) {
+            self::assertInstanceOf(ChoiceFormField::class, $group);
+            if ($group->availableOptionValues() === [(string) $girls->getId()]) {
+                $group->tick();
+            }
+        }
+        $client->submit($form);
+        self::assertResponseRedirects();
+
+        $crawler = $client->request('GET', '/programs');
+        self::assertStringContainsString('Adolescent girls', $crawler->filter('tr:contains("Mentoring")')->text());
+        self::assertStringNotContainsString('Families', $crawler->filter('tr:contains("Mentoring")')->text());
     }
 
     #[Test]

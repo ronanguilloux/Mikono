@@ -25,6 +25,7 @@ final class ReportController extends AbstractController
     private const string TAB_ACTIVITY_TYPE = 'type';
     private const string TAB_ESCORT = 'escort';
     private const string TAB_BRANCH = 'branch';
+    private const string TAB_BENEFICIARY_GROUP = 'group';
 
     /**
      * Column key => SummaryRow key for the breakdowns' sortable headers. The
@@ -64,7 +65,7 @@ final class ReportController extends AbstractController
         // which would be the error page this line exists to avoid.
         $requestedTab = $request->query->all()['tab'] ?? null;
         $tab = match ($requestedTab) {
-            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ACTIVITY_TYPE, self::TAB_ESCORT, self::TAB_BRANCH => $requestedTab,
+            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ACTIVITY_TYPE, self::TAB_ESCORT, self::TAB_BRANCH, self::TAB_BENEFICIARY_GROUP => $requestedTab,
             default => self::TAB_VOLUNTEER,
         };
 
@@ -78,6 +79,7 @@ final class ReportController extends AbstractController
         $byActivityType = $this->calculator->summarizeByActivityType();
         $byEscort = $this->calculator->summarizeByEscort();
         $byBranch = $this->calculator->summarizeByBranch();
+        $byBeneficiaryGroup = $this->calculator->summarizeByBeneficiaryGroup();
 
         // Sorted before pagination, and across the whole breakdown rather than
         // the page — sorting a page would only shuffle the 25 rows already on
@@ -90,6 +92,7 @@ final class ReportController extends AbstractController
                 self::TAB_ACTIVITY_TYPE => $byActivityType,
                 self::TAB_ESCORT => $byEscort,
                 self::TAB_BRANCH => $byBranch,
+                self::TAB_BENEFICIARY_GROUP => $byBeneficiaryGroup,
                 default => $byVolunteer,
             },
             $request,
@@ -120,12 +123,14 @@ final class ReportController extends AbstractController
             'activityTypeRows' => $this->toRows($byActivityType, $today, self::TAB_ACTIVITY_TYPE),
             'escortRows' => $this->toRows($byEscort, $today, self::TAB_ESCORT),
             'branchRows' => $this->toRows($byBranch, $today, self::TAB_BRANCH),
+            'groupRows' => $this->toRows($byBeneficiaryGroup, $today, self::TAB_BENEFICIARY_GROUP),
             'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
             'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
             'programColumns' => $this->columnsFor(self::TAB_PROGRAM),
             'activityTypeColumns' => $this->columnsFor(self::TAB_ACTIVITY_TYPE),
             'escortColumns' => $this->columnsFor(self::TAB_ESCORT),
             'branchColumns' => $this->columnsFor(self::TAB_BRANCH),
+            'groupColumns' => $this->columnsFor(self::TAB_BENEFICIARY_GROUP),
             // Free text, so it can't be a sortable column: printed as notes
             // under the program table instead (ADR 0030).
             'beneficiaries' => $this->programs->createOrderedQueryBuilder()
@@ -157,6 +162,7 @@ final class ReportController extends AbstractController
                 self::TAB_PROGRAM => 'Program',
                 self::TAB_ACTIVITY_TYPE => 'Activity type',
                 self::TAB_BRANCH => 'Branch',
+                self::TAB_BENEFICIARY_GROUP => 'Beneficiary group',
                 default => 'Volunteer',
             }],
         ];

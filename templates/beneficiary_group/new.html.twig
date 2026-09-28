@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Add beneficiary group — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <h1 class="mb-4 text-xl font-semibold">Add beneficiary group</h1>
+    <twig:FormShell :form="form" cancelUrl="{{ path('beneficiary_group_index') }}" />
+{% endblock %}

@@ -6,6 +6,24 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Programs tagged with beneficiary groups
+
+Recorded in [ADR 0030](../adr/0030-insert-programs-between-projects-and-activities.md).
+
+## 2026-09-28 — Breach-response runbook
+
+`deployment-plan.md` gains §11, "Personal-data breach", the procedure
+ADR 0034 rule 9 points to. It covers what counts as a breach, the
+containment steps (rotate `APP_SECRET`, delete the session files because
+they survive a new secret, reset passwords, read `login_attempt`), the
+s.43 clocks as a who/whom/deadline table (48 h to UCESCO, 72 h to the
+Data Commissioner, volunteers in writing unless the data was encrypted),
+a notification template covering s.43(5)(a)–(e), and the fields of the
+s.43(8) record, which lives in UCESCO's private storage. The passport key
+is **not** rotated during an incident by replacing it: no rotation
+command exists (ADR 0033), so a leaked key makes writing one the incident
+task. §9's checklist now asks for UCESCO's data-protection contact.
+
 ## 2026-09-28 — Arrival reminders on the dashboard
 
 The home screen's Birthdays panel is now **Reminders**. Beside the

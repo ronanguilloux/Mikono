@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\ActivityType;
+use App\Entity\BeneficiaryGroup;
 use App\Entity\Program;
 use App\Entity\Project;
 use App\Entity\Skill;
@@ -48,6 +49,7 @@ final class ProgramController extends AbstractController
         ['key' => 'dates', 'label' => 'Dates'],
         ['key' => 'activityTypes', 'label' => 'Activity types'],
         ['key' => 'skills', 'label' => 'Recommended Skills'],
+        ['key' => 'beneficiaryGroups', 'label' => 'Beneficiary groups'],
     ];
 
     /** @var list<array{key: string, label: string}> */
@@ -142,6 +144,9 @@ final class ProgramController extends AbstractController
                 $program->getActivityTypes()->toArray(),
             )),
             'skills' => $program->getSkills()->isEmpty() ? '—' : self::skillNames($program->getSkills()->toArray()),
+            'beneficiaryGroups' => $program->getBeneficiaryGroups()->isEmpty() ? '—' : implode(', ', $program->getBeneficiaryGroups()->map(
+                static fn(BeneficiaryGroup $group): string => $group->getName(),
+            )->toArray()),
         ];
     }
 

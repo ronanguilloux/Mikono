@@ -331,8 +331,9 @@ person and there is a real risk of harm (s.43(1)):
 - **UCESCO records** the facts, the effects and the remedial action
   (s.43(8)).
 
-The procedure lives in the deployment runbook, where whoever finds a
-breach will look.
+The procedure lives in the deployment runbook
+([`deployment-plan.md`](../project/deployment-plan.md) §11), where
+whoever finds a breach will look.
 
 ### 10. Mikono does not record children as volunteers
 

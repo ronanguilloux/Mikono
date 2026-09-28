@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\ActivityType;
+use App\Entity\BeneficiaryGroup;
 use App\Entity\Program;
 use App\Entity\Skill;
 use App\Entity\Project;
 use App\Repository\ActivityTypeRepository;
+use App\Repository\BeneficiaryGroupRepository;
 use App\Repository\SkillRepository;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -66,9 +68,19 @@ final class ProgramFormType extends AbstractType
                 'help' => 'What the program needs. Its Matches page lists the volunteers who hold any of these.',
             ])
             ->add('suggestedRoles', TextareaType::class, ['required' => false])
+            ->add('beneficiaryGroups', EntityType::class, [
+                'class' => BeneficiaryGroup::class,
+                'choice_label' => 'name',
+                'query_builder' => static fn(BeneficiaryGroupRepository $groups): QueryBuilder => $groups->createOrderedByNameQueryBuilder(),
+                'multiple' => true,
+                'expanded' => true,
+                'required' => false,
+                'by_reference' => false,
+                'help' => 'Who the program serves. Manage the list under Settings → Beneficiary groups.',
+            ])
             ->add('beneficiariesReached', TextareaType::class, [
                 'required' => false,
-                'help' => 'Who the program reaches, e.g. "120 pupils at Olympic School". Counts and groups, never names.',
+                'help' => 'How many it reaches, e.g. "120 pupils at Olympic School". Counts, never names.',
             ]);
     }
 

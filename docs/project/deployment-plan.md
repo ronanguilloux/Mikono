@@ -639,6 +639,8 @@ anyone.
 - [ ] Backup cron installed, off-site copy configured, **restore drill
       performed at least once**.
 - [ ] External uptime monitor configured.
+- [ ] UCESCO's data-protection contact is known, for the §11 breach
+      clocks.
 - [ ] The §10 local dry run was run first, and this file was corrected
       wherever it turned out to be wrong.
 
@@ -775,3 +777,136 @@ replaying migration 1 onto live tables. Four things it corrected are
 written into §7 and this section above: the zsh word-splitting failure,
 the arm64 platform flag, the impossibility of a `curl` login and the
 sibling-container workaround, and the stale-journal step in §7.
+
+## 11. Personal-data breach
+
+What to do when volunteer data may have reached someone it shouldn't.
+The rules are
+[ADR 0034](../adr/0034-comply-with-kenyas-data-protection-act-2019.md)
+rule 9; this section is the procedure. Not legal advice.
+
+**Every clock starts when someone becomes aware of the breach**, not when
+it is confirmed or understood. Write that date and time down first.
+
+### What counts
+
+A breach under s.43(1) is personal data accessed or acquired by an
+unauthorised person, with a real risk of harm. For Mikono, that means:
+
+- a lost or stolen laptop or phone holding a CSV/`.xlsx` export
+  (ADR 0029), or a copy of the database;
+- a leaked backup: a `backups/*.db` file from the server, or the
+  off-site copy together with its `rclone` crypt key (§7);
+- unexpected sign-ins on `/usage` → Sign-ins (ADR 0028): an admin
+  account used from an unknown IP, at an odd hour, or after a run of
+  failures;
+- a compromised server, or a leaked `deploy` SSH key.
+
+If you're unsure, treat it as a breach: the notices can be phased
+(s.43(7)), and a late notice needs a stated reason (s.43(2)).
+
+### Contain
+
+As `deploy`, in `/opt/mikono`, with `$COMPOSE` set as in §5:
+
+1. **Rotate `APP_SECRET`.** Put a fresh `openssl rand -hex 16` into
+   `deploy.env`, then save it in the password manager.
+2. **Sign everyone out.** Sessions are files on the database volume
+   (ADR 0020), so they survive a new secret. Delete them:
+
+   ```bash
+   $COMPOSE exec php sh -c 'rm -f /app/var/data/sessions/sess_*'
+   ./scripts/deploy.sh    # restarts the container with the new APP_SECRET
+   ```
+
+3. **Reset passwords** of every account, admins first, with
+   `app:user:create` (it upserts; see "In a nutshell").
+4. **Read `login_attempt`** to see who got in, and from where. `/usage` →
+   Sign-ins shows 90 days. For raw rows:
+
+   ```bash
+   $COMPOSE exec php bin/console dbal:run-sql \
+     "SELECT occurred_at, identifier, succeeded, ip FROM login_attempt ORDER BY occurred_at DESC LIMIT 200"
+   ```
+
+5. **`PASSPORT_ENCRYPTION_KEY`: don't just replace it.** No rotation
+   command exists (ADR 0033), and a new key makes every stored passport
+   number unreadable (§4).
+   - The database leaked but the key didn't: the numbers are ciphertext.
+     Keep the key.
+   - The key leaked: write the command that decrypts under `v1:` and
+     re-encrypts under `v2:`. That is an incident task. Until it has run,
+     treat passport numbers as exposed.
+6. **Compromised server:** snapshot the disk for later analysis before
+   touching anything else. Then rebuild from §3 onto a fresh VM, with new
+   SSH keys and new secrets, and restore the last backup taken before the
+   intrusion (§7 restore drill).
+7. **Lost device or leaked file:** revoke what it could open (passwords,
+   SSH keys, the off-site storage credentials), and note exactly which
+   export or backup it held and from what date. That tells you whose data
+   is affected.
+
+### Notify
+
+UCESCO is the data controller and gives the legal notices. The
+maintainer (and Google, as host) are processors and tell UCESCO.
+
+| Who | Tells | By | Section |
+| --- | --- | --- | --- |
+| Maintainer, or Google | UCESCO's data-protection contact | Without delay; **48 h** after becoming aware, where practicable | s.43(3) |
+| UCESCO | The Data Commissioner (ODPC, odpc.go.ke) | Without delay; **72 h** after becoming aware. Later means giving the reasons for the delay | s.43(1)(a), s.43(2) |
+| UCESCO | Each affected volunteer, **in writing** | Within a reasonably practicable period | s.43(1)(b) |
+
+- **Volunteers may not need the notice** if the affected data was
+  protected by safeguards such as encryption (s.43(6)). The off-site
+  backup copy is encrypted (§7), and so are passport numbers (ADR 0033),
+  as long as their keys did not leak too. Everything else in the database
+  is plaintext.
+- **Notices may be phased** (s.43(7)): send what you know inside the
+  clock, and send the rest as it becomes known.
+- **The contact point** is UCESCO's data-protection contact, named in
+  [`backlog/dpa-governance-for-ucesco.md`](backlog/dpa-governance-for-ucesco.md)
+  once UCESCO appoints one. Their details stay out of this public repo.
+
+**Notification template.** It covers s.43(5)(a)–(e). Use the same text
+for the Commissioner and, reworded plainly, for volunteers.
+
+```text
+Subject: Personal data breach notification - UCESCO (Mikono volunteer records)
+
+Date/time UCESCO became aware: <YYYY-MM-DD HH:MM EAT>
+Date/time of the breach, if known: <…>
+[If sent after 72 hours: reason for the delay (s.43(2)): <…>]
+
+(a) Nature of the breach: <what happened, e.g. a laptop holding a
+    volunteers export was stolen>. Categories of data: <names, contact
+    details, dates of birth, passport numbers (encrypted), emergency
+    contacts, …>. Approximate number of people affected: <n>.
+(b) Measures taken or intended: <containment steps and dates, e.g.
+    passwords reset, secrets rotated, server rebuilt>.
+(c) What you can do to limit possible harm: <e.g. be wary of messages
+    claiming to come from UCESCO; report suspicious contact to …>.
+(d) Identity of the unauthorised person, where known: <name or "unknown">.
+(e) Contact for more information: <UCESCO data-protection contact,
+    email, phone>.
+
+This notification may be updated as more information becomes available
+(s.43(7)).
+```
+
+### Record
+
+UCESCO keeps a record of every breach, notified or not: the facts, the
+effects and the remedial action taken (s.43(8)). It lives in **UCESCO's
+own private storage**. It never goes in this public repo, and never in a
+`*.local.md` file, which exists only on the maintainer's laptop.
+
+One entry per breach:
+
+- when it happened, when someone became aware, and who found it;
+- what data, whose, and how many people;
+- how it happened and what the unauthorised person could do with it;
+- each containment step, with its date;
+- each notice sent (to whom, when, and a copy), and the reason for any
+  lateness, or for skipping the volunteer notice under s.43(6);
+- what changed afterwards to stop it recurring.

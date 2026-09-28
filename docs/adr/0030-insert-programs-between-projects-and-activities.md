@@ -1,6 +1,6 @@
 # 0030. Insert programs between projects and activities
 
-Date: 2026-09-17
+Date: 2026-09-28
 
 ## Status
 
@@ -27,6 +27,13 @@ it twice
 ADR 0027 requires an activity's project to share its stay's branch
 ([ADR 0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
 
+UCESCO also needs to say whom a program serves, and to total its work per
+group served. Free text can't be totalled: the same group gets worded
+differently from one program to the next. A per-person record of those
+served would be personal data of children, which ADR 0034 admits only with
+a stated purpose
+([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md)).
+
 ## Decision
 
 **Every activity belongs to a program, every program belongs to a project,
@@ -40,16 +47,43 @@ The entity:
   date. When both are set, the end is on or after the start.
 - `suggestedRoles` is nullable free text. There is no `Role` entity; the
   only roles in the app are `User`'s authentication roles.
-- `beneficiariesReached` is nullable free text: who the program reaches,
-  as counts and groups ("40 pupils in grade 3"), never names, so it holds
-  no personal data under ADR 0034. There is no `Beneficiary` entity. The
-  volunteer page's Impact panel shows it beside the figures derived from
-  activities.
+- `beneficiaryGroups` is an optional `ManyToMany` to `BeneficiaryGroup`
+  through the join table `program_beneficiary_group`; zero groups is
+  allowed. The program form shows it as checkboxes, and the programs list
+  and its export carry it as a column.
+- `beneficiariesReached` stays as nullable free text for counts ("40
+  pupils in grade 3"), never names. The volunteer page's Impact panel shows
+  it beside the figures derived from activities, and `/reports` prints it
+  under the program table.
 - `activityTypes` is a `ManyToMany` to `ActivityType` through the join
   table `program_activity_type`, with at least one type.
 - There is no `isActive` flag: the dates say whether a program runs.
 - `Program::covers(date)` treats a null bound as open, and
   `Program::offers(type)` tells whether the program offers a type.
+
+Beneficiary groups:
+
+- `BeneficiaryGroup` is a global list like `ActivityType`: a unique `name`
+  (`uniq_beneficiary_group_name`) and an optional `description`. It is
+  managed at `/beneficiary-groups` (Settings menu).
+- It is named `BeneficiaryGroup`, not `Beneficiary`: an entry describes a
+  group, never a person, so no personal data comes in under ADR 0034.
+  Don't add per-person fields to it.
+- The list is **not seeded and has no fixture**, unlike `Branch`
+  ([ADR 0025](0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md))
+  and `Skill`
+  ([ADR 0036](0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md)).
+  The Volunteer Manager enters it in production; its migration creates the
+  schema only. Don't add seed rows.
+- Suggested starting labels for the VM, as guidance only (age bands follow
+  common Kenyan NGO usage): Young children (under 6); Primary school
+  pupils; Secondary school students; Adolescent girls (10–19); Adolescents
+  (10–19); Young women (18–35); Youth (18–35); Orphans and vulnerable
+  children; Patients; People with disabilities; Older people; Parents and
+  caregivers; Families; Teachers and school staff.
+- Avoid condition-specific groups ("people living with HIV"). With small
+  counts at one site they come close to identifying health data, which
+  s.2 of the Data Protection Act counts as sensitive.
 
 Activity types:
 
@@ -86,6 +120,7 @@ Delete guards:
 - A project cannot be deleted while it has programs.
 - An activity type cannot be deleted while activities or programs
   reference it.
+- A beneficiary group cannot be deleted while a program references it.
 
 Pickers:
 
@@ -136,6 +171,18 @@ Data:
   "Project — Program" because program names repeat across projects, and
   linking to `/activities?program=<id>`, which filters the list and its
   export.
+- **Positive:** whom a program serves can be counted. `/reports` has a "By
+  beneficiary group" tab (`?tab=group`), built by
+  `ActivitySummaryCalculator::summarizeByBeneficiaryGroup()`.
+- **Negative / trade-offs:** that tab counts like escorts do
+  ([ADR 0013](0013-record-every-escort-on-an-activity.md)): an activity
+  counts in full under every group its program serves, so its totals are
+  not additive across groups and exceed the real activity-days. The tab
+  says so. Activities of an untagged program land in an id-less "No group
+  recorded" row. Group rows link nowhere; there is no
+  `/activities?group=` filter.
+- **Negative / trade-offs:** the list starts empty, so the tab shows only
+  "No group recorded" until the VM enters groups and tags programs.
 - **Reversibility:** expensive. Undoing it needs a migration that restores
   `activity.project_id` from the program, the removal of the program
   entity, its screens, guards, picker and Stimulus controller, and a
@@ -176,3 +223,22 @@ resolved after submit, so the type picker can react as soon as it changes.
 
 **Rejected.** It needs a custom non-entity form field on both activity
 forms, single and batch, which is more work than filtering one picker.
+
+### 7. A `Beneficiary` entity, one row per person served
+
+**Rejected.** It would hold personal data of children, which ADR 0034
+admits only with a stated purpose, and reporting needs groups, not people.
+
+### 8. Free text only for whom a program serves
+
+**Rejected.** Wording drifts from one program to the next, so it can't be
+counted per group on `/reports`.
+
+### 9. Seed the beneficiary group list by migration
+
+**Rejected** by the product owner: UCESCO enters its own list.
+
+### 10. Split an activity's days across its program's groups
+
+**Rejected.** Fractional days mean nothing to the reader, and escorts
+already set the count-in-full precedent (ADR 0013).

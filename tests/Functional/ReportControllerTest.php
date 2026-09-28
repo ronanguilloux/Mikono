@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
+use App\Factory\BeneficiaryGroupFactory;
 use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
@@ -83,7 +84,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertCount(0, $second->filter('td:first-child a'));
         self::assertSame('By escort', trim($crawler->filter('nav[aria-label="Report breakdown"] a[aria-current="page"]')->text()));
 
-        self::assertCount(6, $crawler->filter('[data-report-panel="print"] table'));
+        self::assertCount(7, $crawler->filter('[data-report-panel="print"] table'));
     }
 
     #[Test]
@@ -320,11 +321,11 @@ final class ReportControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(
-            ['By branch', 'By project', 'By program', 'By activity type', 'By volunteer', 'By escort'],
+            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By escort'],
             $crawler->filter('[data-report-panel="screen"] nav a')->each(static fn($a) => trim($a->text())),
         );
         self::assertSame(
-            ['By branch', 'By project', 'By program', 'By activity type', 'By volunteer', 'By escort'],
+            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By escort'],
             $crawler->filter('[data-report-panel="print"] h2')->each(static fn($h) => trim($h->text())),
         );
         $active = $crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]');
@@ -390,6 +391,21 @@ final class ReportControllerTest extends WebTestCase
         self::assertSame(['Computer tuition', '3', '2.5', '2'], $screen->filter('tbody tr')->eq(0)->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())));
         self::assertSame(['Medical camp', '1', '0.5', '1'], $screen->filter('tbody tr')->eq(1)->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())));
         self::assertCount(0, $screen->filter('tbody td:first-child a'));
+    }
+
+    #[Test]
+    public function theBeneficiaryGroupTabTotalsEachGroupTheProgramServes(): void
+    {
+        $client = static::createClient();
+        $program = ProgramFactory::createOne(['beneficiaryGroups' => [BeneficiaryGroupFactory::createOne(['name' => 'Adolescent girls'])]]);
+        ActivityFactory::createMany(2, ['program' => $program, 'duration' => ActivityDuration::FullDay]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=group');
+
+        $screen = $crawler->filter('[data-report-panel="screen"]');
+        self::assertSame('By beneficiary group', trim($screen->filter('nav a[aria-current="page"]')->text()));
+        self::assertSame(['Adolescent girls', '2', '2.0'], $screen->filter('tbody tr')->eq(0)->filter('td')->slice(0, 3)->each(static fn($td) => trim($td->text())));
     }
 
     /**
@@ -607,9 +623,9 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
-        self::assertCount(6, $printPanel->filter('table'));
-        // Project, program and volunteer tables (branch leads): 26 rows each.
-        foreach ([1, 2, 4] as $index) {
+        self::assertCount(7, $printPanel->filter('table'));
+        // Project, program and volunteer tables (branch leads, group sits before volunteer): 26 rows each.
+        foreach ([1, 2, 5] as $index) {
             self::assertCount(26, $printPanel->filter('table')->eq($index)->filter('tbody tr'));
         }
 
@@ -873,9 +889,9 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
-        self::assertCount(6, $printTables);
+        self::assertCount(7, $printTables);
         // "Most recent" is the last column on every table.
-        foreach (range(0, 5) as $index) {
+        foreach (range(0, 6) as $index) {
             self::assertSame(
                 'Planned',
                 trim($printTables->eq($index)->filter('tbody tr td:last-child span')->text()),
@@ -893,6 +909,7 @@ final class ReportControllerTest extends WebTestCase
         yield 'activity type' => ['type'];
         yield 'escort' => ['escort'];
         yield 'branch' => ['branch'];
+        yield 'beneficiary group' => ['group'];
     }
 
     #[Test]

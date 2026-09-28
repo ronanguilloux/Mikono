@@ -65,6 +65,17 @@ class Program
     #[ORM\OrderBy(['name' => 'ASC'])]
     private Collection $skills;
 
+    /**
+     * Who the program serves, picked from the list; beneficiariesReached
+     * stays free text for counts. Optional — see ADR 0030.
+     *
+     * @var Collection<int, BeneficiaryGroup>
+     */
+    #[ORM\ManyToMany(targetEntity: BeneficiaryGroup::class)]
+    #[ORM\JoinTable(name: 'program_beneficiary_group')]
+    #[ORM\OrderBy(['name' => 'ASC'])]
+    private Collection $beneficiaryGroups;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -75,6 +86,7 @@ class Program
     {
         $this->activityTypes = new ArrayCollection();
         $this->skills = new ArrayCollection();
+        $this->beneficiaryGroups = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -220,6 +232,28 @@ class Program
     public function removeSkill(Skill $skill): static
     {
         $this->skills->removeElement($skill);
+
+        return $this;
+    }
+
+    /** @return Collection<int, BeneficiaryGroup> */
+    public function getBeneficiaryGroups(): Collection
+    {
+        return $this->beneficiaryGroups;
+    }
+
+    public function addBeneficiaryGroup(BeneficiaryGroup $group): static
+    {
+        if (!$this->beneficiaryGroups->contains($group)) {
+            $this->beneficiaryGroups->add($group);
+        }
+
+        return $this;
+    }
+
+    public function removeBeneficiaryGroup(BeneficiaryGroup $group): static
+    {
+        $this->beneficiaryGroups->removeElement($group);
 
         return $this;
     }
