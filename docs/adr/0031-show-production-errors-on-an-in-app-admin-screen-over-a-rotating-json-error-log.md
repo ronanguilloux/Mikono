@@ -38,7 +38,7 @@ sign-off before the code is built.
 
 **Production errors at level `critical` are written by a dedicated Monolog
 handler to daily rotating JSON files on the `log_data` volume, and an
-admin-only Settings → Errors screen reads them and groups them by root
+admin-only Admin → Errors screen reads them and groups them by root
 cause.**
 
 **1. One extra handler, prod only.** The handler is a Monolog
@@ -82,7 +82,7 @@ is the `log_data` volume. It must follow these rules:
   and the root exception, because the outer one is what the request saw
   and the root one is what failed.
 
-**3. An admin-only screen at Settings → Errors.** It shows one expandable
+**3. An admin-only screen at Admin → Errors.** It shows one expandable
 entry per group. Each entry has the count, first seen, last seen, route,
 path, stack trace, and a button that copies the trace. On `/usage`, the
 server-side error figure links to this screen with the label "application

@@ -6,6 +6,16 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Admin menu split out of Settings
+
+The top bar's Settings dropdown had grown to hold two kinds of things: the
+reference lists that activities and volunteers point at (Branches, Projects,
+Programs, Activity Types, Skills, Beneficiary Groups, Escorts) and the
+admin-only tools (Users, Usage, Data map). The admin tools now have their own
+**Admin** dropdown after Settings, shown only to `ROLE_ADMIN`. The mobile menu
+gets a matching section. Each dropdown is a `dropdown` Stimulus controller;
+opening one closes the other. ADR 0031's future Errors screen goes under Admin.
+
 ## 2026-09-28 — Filter volunteers by status and branch
 
 `/volunteers` gains `?status=active|inactive` and `?branch=<id>` selects

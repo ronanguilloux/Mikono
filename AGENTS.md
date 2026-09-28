@@ -458,7 +458,7 @@ in [`deployment-plan.md`](docs/project/deployment-plan.md)):
   needs `docker compose build php`.
 - Backups: `scripts/backup-db.sh` (host-side, hot `VACUUM INTO`, no
   downtime, no `sqlite3` binary needed).
-- **Which screens get used:** open `/usage` (Settings → Usage, admin only).
+- **Which screens get used:** open `/usage` (Admin → Usage, admin only).
   No `gtag`, Plausible or Matomo goes into this app
   ([ADR 0021](docs/adr/0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md)).
   For a question the screen doesn't answer, the log is NDJSON and `jq`

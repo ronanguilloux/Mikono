@@ -34,7 +34,7 @@
                 {label: 'Achievements', route: 'achievement_index'},
                 {label: 'Reports', route: 'report_index'},
             ] %}
-            {% set settings_items = [
+            {% set menu_groups = [{label: 'Settings', items: [
                 {label: 'Branches', route: 'branch_index'},
                 {label: 'Projects', route: 'project_index'},
                 {label: 'Programs', route: 'program_index'},
@@ -42,16 +42,16 @@
                 {label: 'Skills', route: 'skill_index'},
                 {label: 'Beneficiary Groups', route: 'beneficiary_group_index'},
                 {label: 'Escorts', route: 'escort_index'},
-            ] %}
+            ]}] %}
             {% if is_granted('ROLE_ADMIN') %}
-                {% set settings_items = settings_items|merge([
+                {% set menu_groups = menu_groups|merge([{label: 'Admin', items: [
                     {label: 'Users', route: 'user_index'},
                     {label: 'Usage', route: 'usage_index'},
                     {label: 'Data map', route: 'datamap_index'},
-                ]) %}
+                ]}]) %}
             {% endif %}
             {% set current_route = app.request.attributes.get('_route') %}
-            <header class="bg-brand-900 text-white print:hidden" data-controller="nav" data-action="click@window->nav#closeSettings keydown.esc@window->nav#closeSettings">
+            <header class="bg-brand-900 text-white print:hidden" data-controller="nav">
                 <div class="mx-auto max-w-5xl px-4">
                     <div class="flex h-14 items-center justify-between">
                         <a href="{{ path('app_home') }}" class="flex items-center gap-2 font-semibold">
@@ -63,17 +63,19 @@
                             {% for item in nav_items %}
                                 <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
-                            <div class="relative">
-                                <button type="button" class="flex items-center gap-1 hover:text-brand-300 hover:underline" aria-expanded="false" data-nav-target="settingsButton" data-action="nav#toggleSettings">
-                                    Settings
-                                    <span aria-hidden="true">▾</span>
-                                </button>
-                                <div class="absolute right-0 z-10 mt-2 hidden w-44 rounded-md bg-white py-1 text-slate-900 shadow-lg" data-nav-target="settingsMenu">
-                                    {% for item in settings_items %}
-                                        <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="block px-4 py-2 hover:bg-slate-100">{{ item.label }}</a>
-                                    {% endfor %}
+                            {% for group in menu_groups %}
+                                <div class="relative" data-controller="dropdown" data-action="click@window->dropdown#close keydown.esc@window->dropdown#close">
+                                    <button type="button" class="flex items-center gap-1 hover:text-brand-300 hover:underline" aria-expanded="false" data-dropdown-target="button" data-action="dropdown#toggle">
+                                        {{ group.label }}
+                                        <span aria-hidden="true">▾</span>
+                                    </button>
+                                    <div class="absolute right-0 z-10 mt-2 hidden w-44 rounded-md bg-white py-1 text-slate-900 shadow-lg" data-dropdown-target="menu">
+                                        {% for item in group.items %}
+                                            <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="block px-4 py-2 hover:bg-slate-100">{{ item.label }}</a>
+                                        {% endfor %}
+                                    </div>
                                 </div>
-                            </div>
+                            {% endfor %}
                             <span class="text-slate-400">|</span>
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
                             <a href="{{ path('app_logout') }}" class="hover:text-brand-300 hover:underline">Sign out</a>
@@ -89,9 +91,11 @@
                             {% for item in nav_items %}
                                 <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="hover:text-brand-300 hover:underline">{{ item.label }}</a>
                             {% endfor %}
-                            <span class="mt-1 border-t border-brand-800 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Settings</span>
-                            {% for item in settings_items %}
-                                <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="pl-2 hover:text-brand-300 hover:underline">{{ item.label }}</a>
+                            {% for group in menu_groups %}
+                                <span class="mt-1 border-t border-brand-800 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ group.label }}</span>
+                                {% for item in group.items %}
+                                    <a href="{{ path(item.route) }}" {% if item.route == current_route %}aria-current="page" {% endif %}class="pl-2 hover:text-brand-300 hover:underline">{{ item.label }}</a>
+                                {% endfor %}
                             {% endfor %}
                             <span class="text-slate-300">{{ app.user.fullName }}</span>
                             <a href="{{ path('app_logout') }}" class="hover:text-brand-300 hover:underline">Sign out</a>

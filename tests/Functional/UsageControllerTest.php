@@ -118,16 +118,18 @@ final class UsageControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function theUsageScreenIsReachableFromTheSettingsMenuForAnAdminOnly(): void
+    public function theUsageScreenIsReachableFromTheAdminMenuForAnAdminOnly(): void
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne(['roles' => ['ROLE_USER']]));
 
         $crawler = $client->request('GET', '/');
         self::assertCount(0, $crawler->filter('a[href="/usage"]'));
+        self::assertCount(0, $crawler->filter('button:contains("Admin")'));
 
         $client->loginUser(UserFactory::new()->admin()->create());
         $crawler = $client->request('GET', '/');
         self::assertGreaterThan(0, $crawler->filter('a[href="/usage"]')->count());
+        self::assertCount(1, $crawler->filter('button:contains("Admin")'));
     }
 }
