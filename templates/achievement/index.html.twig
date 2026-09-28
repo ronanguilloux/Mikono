@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Achievements — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mb-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold">Achievements</h1>
+        <twig:ExportMenu route="achievement_export" />
+    </div>
+
+    <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No achievements yet — add one from a stay on a volunteer's page." />
+{% endblock %}

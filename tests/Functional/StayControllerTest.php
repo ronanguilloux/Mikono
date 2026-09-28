@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
 use App\Factory\BranchFactory;
 use App\Factory\StayFactory;
@@ -185,5 +186,40 @@ final class StayControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', "1 activity logged in this stay is at another branch's projects.");
+    }
+
+    #[Test]
+    public function aStayCannotBeShrunkAwayFromItsAchievements(): void
+    {
+        $client = static::createClient();
+        $stay = StayFactory::createOne([
+            'startDate' => new \DateTimeImmutable('2026-09-01'),
+            'endDate' => new \DateTimeImmutable('2026-09-30'),
+        ]);
+        AchievementFactory::createOne(['stay' => $stay, 'achievedOn' => new \DateTimeImmutable('2026-09-25')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/stays/{$stay->getId()}/edit");
+        $client->submit($crawler->selectButton('Save')->form(['stay_form[endDate]' => '2026-09-20']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', '1 achievement in this stay would fall outside these dates.');
+    }
+
+    #[Test]
+    public function aStayCannotBeMovedAwayFromItsAchievementsProjects(): void
+    {
+        $client = static::createClient();
+        // StayFactory and ProjectFactory both default to Nairobi (HQ).
+        $achievement = AchievementFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/stays/{$achievement->getStay()?->getId()}/edit");
+        $client->submit($crawler->selectButton('Save')->form([
+            'stay_form[branch]' => (string) BranchFactory::find(['name' => 'Samburu'])->getId(),
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', "1 achievement in this stay is at another branch's projects.");
     }
 }

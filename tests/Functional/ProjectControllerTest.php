@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Enum\ProjectOwnership;
+use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
 use App\Factory\BranchFactory;
 use App\Factory\ProgramFactory;
@@ -283,5 +284,36 @@ final class ProjectControllerTest extends WebTestCase
             'Cannot delete Peggy Lucas school — it has 1 program.',
             (string) $crawler->filter('table tbody [aria-disabled="true"]')->attr('title'),
         );
+    }
+
+    #[Test]
+    public function aProjectCannotBeMovedAwayFromItsAchievementsStays(): void
+    {
+        $client = static::createClient();
+        $project = ProjectFactory::createOne(['name' => 'Kibera Library']);
+        AchievementFactory::createOne(['project' => $project]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/projects/{$project->getId()}/edit");
+        $client->submit($crawler->selectButton('Save')->form([
+            'project_form[branch]' => (string) BranchFactory::find(['name' => 'Mombasa'])->getId(),
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', '1 achievement recorded here belongs to stays at another branch.');
+    }
+
+    #[Test]
+    public function deleteIsRefusedForAProjectWithAnAchievement(): void
+    {
+        $client = static::createClient();
+        $project = ProjectFactory::createOne(['name' => 'Kibera Library']);
+        AchievementFactory::createOne(['project' => $project]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/projects');
+
+        self::assertSelectorTextContains('[aria-disabled="true"]', 'Cannot delete Kibera Library — 1 achievement is recorded at it.');
+        ProjectFactory::assert()->count(1);
     }
 }

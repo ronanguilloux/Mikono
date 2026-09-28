@@ -35,12 +35,11 @@ hostname is the one that isn't ours to solve.
 1. [Open questions for Edna about the fixture data](backlog/roster-archive-open-questions.md) — **B**
 2. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
 3. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
-4. [Record achievements on a volunteer's stay](backlog/achievements-on-a-stay.md) — **D**
-5. [Achievement anniversary reminders on the dashboard](backlog/achievement-anniversary-reminders.md) — **G**
-6. [Record minor volunteers with a guardian's consent](backlog/minor-volunteers-with-guardian-consent.md) — **D**
-7. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
-8. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
-9. [Export the whole database as one zip of per-table CSVs](backlog/full-database-csv-zip-export.md) — **D**
+4. [Achievement anniversary reminders on the dashboard](backlog/achievement-anniversary-reminders.md) — **G**
+5. [Record minor volunteers with a guardian's consent](backlog/minor-volunteers-with-guardian-consent.md) — **D**
+6. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
+7. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
+8. [Export the whole database as one zip of per-table CSVs](backlog/full-database-csv-zip-export.md) — **D**
 
 ## Later
 

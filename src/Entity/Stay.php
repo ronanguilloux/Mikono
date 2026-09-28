@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\StayRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -41,6 +43,15 @@ class Stay
     #[Assert\GreaterThanOrEqual(propertyPath: 'startDate', message: 'A stay cannot end before it starts.')]
     private ?\DateTimeImmutable $endDate = null;
 
+    /**
+     * Removed with the stay by the ORM: SQLite leaves foreign keys unenforced
+     * here, so the column's ON DELETE CASCADE alone would orphan them.
+     *
+     * @var Collection<int, Achievement>
+     */
+    #[ORM\OneToMany(targetEntity: Achievement::class, mappedBy: 'stay', cascade: ['remove'])]
+    private Collection $achievements;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -49,6 +60,7 @@ class Stay
 
     public function __construct()
     {
+        $this->achievements = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -120,6 +132,12 @@ class Stay
         return null !== $this->startDate && null !== $this->endDate
             && null !== $other->startDate && null !== $other->endDate
             && $this->startDate <= $other->endDate && $other->startDate <= $this->endDate;
+    }
+
+    /** @return Collection<int, Achievement> */
+    public function getAchievements(): Collection
+    {
+        return $this->achievements;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

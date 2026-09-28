@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Stay;
 use App\Entity\Volunteer;
 use App\Form\StayFormType;
+use App\Repository\AchievementRepository;
 use App\Repository\StayRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,7 @@ final class StayController extends AbstractController
 {
     public function __construct(
         private readonly StayRepository $stays,
+        private readonly AchievementRepository $achievements,
         private readonly EntityManagerInterface $entityManager,
     ) {}
 
@@ -118,8 +120,8 @@ final class StayController extends AbstractController
     /**
      * The rules a single stay's own constraints can't see: no overlap with the
      * volunteer's other stays (so a day has one branch at most), and, on edit,
-     * no activity already logged in the stay left outside its new dates or at
-     * another branch's projects (ADR 0027).
+     * no activity or achievement already in the stay left outside its new
+     * dates or at another branch's projects (ADR 0027, ADR 0038).
      *
      * @param FormInterface<Stay> $form
      */
@@ -155,6 +157,29 @@ final class StayController extends AbstractController
                 '%d activit%s logged in this stay %s at another branch\'s projects.',
                 $elsewhere,
                 1 === $elsewhere ? 'y' : 'ies',
+                1 === $elsewhere ? 'is' : 'are',
+            )));
+
+            return false;
+        }
+
+        $outside = $this->achievements->countOutside($stay);
+        if ($outside > 0) {
+            $form->get('startDate')->addError(new FormError(sprintf(
+                '%d achievement%s in this stay would fall outside these dates.',
+                $outside,
+                1 === $outside ? '' : 's',
+            )));
+
+            return false;
+        }
+
+        $elsewhere = $this->achievements->countInStayAtOtherBranch($stay);
+        if ($elsewhere > 0) {
+            $form->get('branch')->addError(new FormError(sprintf(
+                '%d achievement%s in this stay %s at another branch\'s projects.',
+                $elsewhere,
+                1 === $elsewhere ? '' : 's',
                 1 === $elsewhere ? 'is' : 'are',
             )));
 

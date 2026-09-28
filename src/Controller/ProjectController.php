@@ -8,6 +8,7 @@ use App\Entity\Project;
 use App\Export\ListExport;
 use App\Form\ProjectFormType;
 use App\Pagination\ListPaginator;
+use App\Repository\AchievementRepository;
 use App\Repository\ProgramRepository;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -51,6 +52,7 @@ final class ProjectController extends AbstractController
     public function __construct(
         private readonly ProjectRepository $projects,
         private readonly ProgramRepository $programs,
+        private readonly AchievementRepository $achievements,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
     ) {}
@@ -68,11 +70,12 @@ final class ProjectController extends AbstractController
         // discover it from a flash after confirming.
         $activityCounts = $this->projects->countReferencingActivitiesFor($projectsOnPage);
         $programCounts = $this->programs->countForProjects($projectsOnPage);
+        $achievementCounts = $this->achievements->countForProjects($projectsOnPage);
 
         $rows = [];
         foreach ($projectsOnPage as $project) {
             $id = $project->getId();
-            $guardReason = null === $id ? null : $this->guardReason($project, $activityCounts[$id] ?? 0, $programCounts[$id] ?? 0);
+            $guardReason = null === $id ? null : $this->guardReason($project, $activityCounts[$id] ?? 0, $programCounts[$id] ?? 0, $achievementCounts[$id] ?? 0);
 
             $rows[] = [
                 'cells' => $this->cells($project),
@@ -206,10 +209,10 @@ final class ProjectController extends AbstractController
      * Why this project can't be deleted, in one sentence, or null if it can.
      * Shared by the index's greyed-out Delete, the note on the edit screen,
      * and the flash raised if a delete is attempted anyway, so the warning
-     * and the refusal can't drift apart. Programs count too: deleting the
-     * project would orphan them (ADR 0030).
+     * and the refusal can't drift apart. Programs and achievements count too:
+     * deleting the project would orphan them (ADR 0030, ADR 0038).
      */
-    private function guardReason(Project $project, int $activityCount, int $programCount): ?string
+    private function guardReason(Project $project, int $activityCount, int $programCount, int $achievementCount): ?string
     {
         if ($activityCount > 0) {
             return sprintf(
@@ -231,6 +234,16 @@ final class ProjectController extends AbstractController
             );
         }
 
+        if ($achievementCount > 0) {
+            return sprintf(
+                'Cannot delete %s — %d achievement%s %s recorded at it. Mark it inactive instead.',
+                $project->getName(),
+                $achievementCount,
+                1 === $achievementCount ? '' : 's',
+                1 === $achievementCount ? 'is' : 'are',
+            );
+        }
+
         return null;
     }
 
@@ -240,6 +253,7 @@ final class ProjectController extends AbstractController
             $project,
             $this->projects->countReferencingActivities($project),
             $this->programs->countForProject($project),
+            $this->achievements->countForProject($project),
         );
     }
 
@@ -254,18 +268,31 @@ final class ProjectController extends AbstractController
     private function keepsItsActivitiesAtItsBranch(FormInterface $form, Project $project): bool
     {
         $elsewhere = $this->projects->countActivitiesAtOtherBranch($project);
-        if (0 === $elsewhere) {
-            return true;
+        if ($elsewhere > 0) {
+            $form->get('branch')->addError(new FormError(sprintf(
+                '%d activit%s logged here belong%s to stays at another branch.',
+                $elsewhere,
+                1 === $elsewhere ? 'y' : 'ies',
+                1 === $elsewhere ? 's' : '',
+            )));
+
+            return false;
         }
 
-        $form->get('branch')->addError(new FormError(sprintf(
-            '%d activit%s logged here belong%s to stays at another branch.',
-            $elsewhere,
-            1 === $elsewhere ? 'y' : 'ies',
-            1 === $elsewhere ? 's' : '',
-        )));
+        // Achievements are held to the same rule (ADR 0038).
+        $elsewhere = $this->achievements->countAtProjectInOtherBranch($project);
+        if ($elsewhere > 0) {
+            $form->get('branch')->addError(new FormError(sprintf(
+                '%d achievement%s recorded here belong%s to stays at another branch.',
+                $elsewhere,
+                1 === $elsewhere ? '' : 's',
+                1 === $elsewhere ? 's' : '',
+            )));
 
-        return false;
+            return false;
+        }
+
+        return true;
     }
 
     private function csrfTokenId(Project $project): string

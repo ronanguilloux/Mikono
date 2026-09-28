@@ -10,6 +10,7 @@ use App\Export\ListExport;
 use App\Form\VolunteerFormType;
 use App\Pagination\ListPaginator;
 use App\Entity\Skill;
+use App\Repository\AchievementRepository;
 use App\Repository\ActivityRepository;
 use App\Repository\SkillRepository;
 use App\Repository\VolunteerRepository;
@@ -61,6 +62,7 @@ final class VolunteerController extends AbstractController
     public function __construct(
         private readonly VolunteerRepository $volunteers,
         private readonly ActivityRepository $activities,
+        private readonly AchievementRepository $achievements,
         private readonly SkillRepository $skills,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
@@ -324,6 +326,23 @@ final class VolunteerController extends AbstractController
             ];
         }
 
+        $achievements = [];
+        foreach ($this->achievements->findForVolunteer($volunteer) as $achievement) {
+            $achievements[] = [
+                'achievement' => $achievement,
+                'actions' => [
+                    ['label' => 'Edit', 'url' => $this->generateUrl('achievement_edit', ['id' => $achievement->getId()])],
+                    [
+                        'label' => 'Delete',
+                        'url' => $this->generateUrl('achievement_delete', ['id' => $achievement->getId()]),
+                        'method' => 'post',
+                        'confirm' => sprintf('Delete "%s"?', $achievement->getTitle()),
+                        'csrfTokenId' => AchievementController::csrfTokenId($achievement),
+                    ],
+                ],
+            ];
+        }
+
         $engaged = $this->activities->countVolunteersEngaged(array_keys($impact['programs']), array_keys($impact['projects']), $today);
         $impactRows = [];
         foreach ($impact as $level => $buckets) {
@@ -342,6 +361,7 @@ final class VolunteerController extends AbstractController
             'residenceName' => null === $volunteer->getCountryOfResidence() ? null : Countries::getName($volunteer->getCountryOfResidence()),
             'passportNumber' => $this->passportNumber($volunteer),
             'stays' => $stays,
+            'achievements' => $achievements,
             'activities' => $activities,
             'activityCount' => count($activities),
             'daysOnSite' => $volunteer->getDaysOnSite($today),

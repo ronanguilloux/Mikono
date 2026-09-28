@@ -57,8 +57,9 @@ the other.
 - Arrivals need `Stay::$startDate`, which
   [ADR 0026](../../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)
   shipped.
-- **Anniversaries of an achievement have no data behind them** yet —
-  [achievements-on-a-stay](achievements-on-a-stay.md) adds it.
+- Anniversaries need `Achievement::$achievedOn`, which
+  [ADR 0038](../../adr/0038-record-achievements-on-a-volunteers-stay.md)
+  shipped.
 
 Both fields were missing when this card was first written; that is why it
 said an outbound channel was the only blocker.

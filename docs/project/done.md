@@ -6,6 +6,10 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Achievements on a volunteer's stay
+
+Recorded in [ADR 0038](../adr/0038-record-achievements-on-a-volunteers-stay.md).
+
 ## 2026-09-28 — Test suite given its own memory limit
 
 `docker compose exec php php bin/phpunit` died in

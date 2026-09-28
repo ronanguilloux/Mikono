@@ -74,6 +74,7 @@ drafts and maintains these.
 | [0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md) | Host production on a Compute Engine e2-small in Johannesburg | Accepted |
 | [0036](0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md) | Manage skills as a seeded list shared by volunteers and programs | Accepted |
 | [0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md) | Record a volunteer's gender for accommodation pairing | Accepted |
+| [0038](0038-record-achievements-on-a-volunteers-stay.md) | Record achievements on a volunteer's stay | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

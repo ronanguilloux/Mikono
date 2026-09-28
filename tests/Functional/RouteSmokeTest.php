@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\BeneficiaryGroupFactory;
@@ -32,7 +33,7 @@ final class RouteSmokeTest extends WebTestCase
      * Route-name prefix => the seeded entity whose id fills that route's
      * `{id}`. Longest first: `activity_type_` must win over `activity_`.
      */
-    private const ID_PREFIXES = ['activity_type_', 'activity_', 'beneficiary_group_', 'branch_', 'escort_', 'program_', 'project_', 'skill_', 'stay_', 'user_', 'volunteer_'];
+    private const ID_PREFIXES = ['achievement_', 'activity_type_', 'activity_', 'beneficiary_group_', 'branch_', 'escort_', 'program_', 'project_', 'skill_', 'stay_', 'user_', 'volunteer_'];
 
     #[Test]
     public function everyGetRouteRendersWithoutAServerError(): void
@@ -97,6 +98,7 @@ final class RouteSmokeTest extends WebTestCase
         ]);
 
         return [
+            'achievement_' => (int) AchievementFactory::createOne(['stay' => $activity->getStay(), 'project' => $project])->getId(),
             'activity_type_' => (int) $activityType->getId(),
             'activity_' => (int) $activity->getId(),
             'branch_' => (int) BranchFactory::createOne()->getId(),

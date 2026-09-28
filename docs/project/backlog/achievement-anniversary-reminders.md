@@ -13,8 +13,8 @@ epic: dashboard-reminders
 
 Kingsley's third kind of reminder: the anniversary of something a volunteer
 achieved, as a reason to get back in touch with someone who has moved on.
-It depends on [achievements-on-a-stay](achievements-on-a-stay.md) — no
-achievement data, no anniversary.
+The data is `Achievement::$achievedOn`
+([ADR 0038](../../adr/0038-record-achievements-on-a-volunteers-stay.md)).
 
 ## Done when
 
