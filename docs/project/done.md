@@ -6,6 +6,18 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Fixtures drop the roster's people
+
+`AppStory` no longer seeds the roster archive's volunteers, stays or
+activities. In their place it seeds one fake volunteer (Ronan, entered by
+hand in the dev app and copied over), with dates relative to the load day:
+a stay covering the current month, one Computer Tuition activity today, and
+a birth date 20 years ago today.
+It has no passport number (ADR 0033) and no photo. Escorts, activity types, projects and
+programs still come from `docs/fixtures/rosters.yaml`, which is unchanged
+and still guarded by `RosterArchiveTest`. The home screen's roster panels
+start empty.
+
 ## 2026-09-28 — Skills as a managed list
 
 See [ADR 0036](../adr/0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md).

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Story;
 
+use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\SkillFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
@@ -21,13 +23,17 @@ use Zenstruck\Foundry\Story;
 /**
  * The dev and demo dataset — every row of it real.
  *
- * Nothing here is generated. Everything comes from `docs/fixtures/rosters.yaml`:
- * the volunteers, escorts, sites, dates and roster notes from a month of the
- * VM's own WhatsApp roster messages, and the programs from UCESCO's public
- * Volunteer World listing. See ADR 0012 for why, and
+ * Nothing here is generated. The reference data comes from
+ * `docs/fixtures/rosters.yaml`: escorts, sites and activity types from a month
+ * of the VM's own WhatsApp roster messages, and the programs from UCESCO's
+ * public Volunteer World listing. See ADR 0012 for why, and
  * `docs/fixtures/README.md` for what each source can and cannot supply.
  *
- * To grow the dataset, add to the archive — not to this file.
+ * The archive's volunteers and rosters stay in the YAML. The only people data
+ * seeded is one fake volunteer with one stay and one activity, at the end of
+ * `build()`.
+ *
+ * To grow the reference data, add to the archive — not to this file.
  */
 #[AsFixture(name: 'main')]
 final class AppStory extends Story
@@ -41,31 +47,14 @@ final class AppStory extends Story
     {
         $archive = RosterArchive::fromFile($this->projectDir . '/' . RosterArchive::DEFAULT_PATH);
 
-        // The one account the app has, and the one the archive's activities
-        // are all logged by — there is no second user to attribute them to.
+        // The one account the app has.
         $admin = UserFactory::new()->admin()->create([
             'email' => 'ronan.guilloux@gmail.com',
             'fullName' => 'Ronan Guilloux',
         ]);
 
-        $volunteers = [];
-        foreach ($archive->volunteers as $volunteer) {
-            // First name only, no contact details: that is all the rosters
-            // carry, and the fixtures don't fill the gaps in.
-            $volunteers[$volunteer->name] = VolunteerFactory::createOne([
-                'firstName' => $volunteer->name,
-                'lastName' => null,
-                'email' => null,
-                'phone' => null,
-                'notes' => $volunteer->notes,
-                // Built below from the rosters, not the factory's default.
-                'stays' => [],
-            ]);
-        }
-
-        $escorts = [];
         foreach ($archive->escorts as $name) {
-            $escorts[$name] = EscortFactory::createOne(['name' => $name]);
+            EscortFactory::createOne(['name' => $name]);
         }
 
         $typeNames = array_merge(
@@ -88,11 +77,9 @@ final class AppStory extends Story
             ]);
         }
 
-        // Listed dates are real calendar dates, so they don't take the
-        // archive's shift below. None are dated yet.
-        $listedPrograms = [];
-        foreach ($archive->programs as $index => $program) {
-            $listedPrograms[$index] = ProgramFactory::createOne([
+        // Listed dates are real calendar dates. None are dated yet.
+        foreach ($archive->programs as $program) {
+            ProgramFactory::createOne([
                 'name' => $program->name,
                 'project' => $projects[$program->projectKey],
                 'activityTypes' => array_map(static fn(string $name) => $activityTypes[$name], $program->activityTypes),
@@ -102,100 +89,64 @@ final class AppStory extends Story
             ]);
         }
 
-        // A roster site's work belongs to the listed program at its project
-        // that offers its type. Where none does, the project gets one
-        // always-on program named after that type (ADR 0030), not an invented
-        // one (ADR 0012).
-        $programs = [];
-        $rosterTypes = [];
+        // A roster site's type with no listed program offering it at that
+        // project gets one always-on program named after the type (ADR 0030),
+        // not an invented one (ADR 0012) — so the site can still be logged.
         foreach ($archive->projects as $key => $project) {
-            if (null === $project->activityType) {
+            if (null === $project->activityType || null !== $archive->listedProgramFor($key, $project->activityType)) {
                 continue;
             }
 
-            $rosterTypes[$key] = $activityTypes[$project->activityType];
-            $listed = $archive->listedProgramFor($key, $project->activityType);
-            $programs[$key] = null !== $listed
-                ? $listedPrograms[array_search($listed, $archive->programs, true)]
-                : ProgramFactory::createOne([
-                    'name' => $project->activityType,
-                    'project' => $projects[$key],
-                    'activityTypes' => [$rosterTypes[$key]],
-                ]);
-        }
-
-        // The whole archive slides onto the day the fixtures load: the calendar
-        // moves, the people don't, and the days keep their real spacing.
-        $shift = $archive->anchorDay()->diff(new \DateTimeImmutable('today'));
-
-        // One stay per volunteer, read off the archive rather than invented
-        // (ADR 0012, ADR 0026): first to last roster appearance, at the branch
-        // of the sites they worked. `active: true` means still on the rosters
-        // as the archive ends (docs/fixtures/README.md rule 11), so that stay
-        // runs to the archive's last day.
-        $spans = [];
-        $archiveEnd = null;
-        foreach ($archive->rosters as $roster) {
-            $date = $roster->date->add($shift);
-            $archiveEnd = max($archiveEnd ?? $date, $date);
-
-            foreach ($roster->sites as $site) {
-                $branch = $projects[$site->projectKey]->getBranch();
-
-                foreach ($site->volunteers as $slot) {
-                    $span = $spans[$slot->name] ?? ['start' => $date, 'end' => $date, 'branch' => $branch];
-                    if ($span['branch'] !== $branch) {
-                        throw new \RuntimeException(sprintf('"%s" works sites at two branches; the fixtures give each volunteer a single stay.', $slot->name));
-                    }
-
-                    $spans[$slot->name] = ['start' => min($span['start'], $date), 'end' => max($span['end'], $date), 'branch' => $branch];
-                }
-            }
-        }
-
-        $stays = [];
-        foreach ($archive->volunteers as $volunteer) {
-            $span = $spans[$volunteer->name] ?? null;
-            if (null === $span || null === $archiveEnd) {
-                continue;
-            }
-
-            $stays[$volunteer->name] = StayFactory::createOne([
-                'volunteer' => $volunteers[$volunteer->name],
-                'branch' => $span['branch'],
-                'startDate' => $span['start'],
-                'endDate' => $volunteer->active ? max($span['end'], $archiveEnd) : $span['end'],
+            ProgramFactory::createOne([
+                'name' => $project->activityType,
+                'project' => $projects[$key],
+                'activityTypes' => [$activityTypes[$project->activityType]],
             ]);
         }
 
-        foreach ($archive->rosters as $roster) {
-            $date = $roster->date->add($shift);
+        // One fake volunteer, entered by hand in the dev app on 2026-09-28 and
+        // copied here, its dates made relative to the load day — every value
+        // is made up. No passport number
+        // (ADR 0033) and no photo.
+        $ronan = VolunteerFactory::createOne([
+            'firstName' => 'Ronan',
+            'lastName' => 'Guilloux',
+            'email' => 'ronan.guilloux@yahoo.com',
+            'phone' => '+33612345678',
+            'notes' => 'Some.',
+            'nationality' => 'FR',
+            'countryOfResidence' => 'FR',
+            // Twenty today, so the birthday lands on the load day.
+            'dateOfBirth' => new \DateTimeImmutable('today -20 years'),
+            'profession' => 'Ice Cream Flavor Guru',
+            'skills' => [SkillFactory::find(['name' => 'Computer & digital skills'])],
+            'interests' => 'Some.',
+            'emergencyContacts' => 'Some.',
+            'accommodationPreference' => 'None.',
+            'pickupAirport' => '3 Sept 1pm, Nairobi',
+            'socialMediaUrl' => 'https://github.com/ronanguilloux',
+            'supervisor' => 'Edna',
+            'passportExpiresOn' => new \DateTimeImmutable('2030-01-01'),
+            'stays' => [],
+        ]);
 
-            foreach ($roster->sites as $site) {
-                $siteEscorts = array_map(
-                    fn(string $name) => $escorts[$name] ?? throw new \RuntimeException(sprintf('Roster names an escort the archive does not list: "%s".', $name)),
-                    $site->escorts,
-                );
+        $stay = StayFactory::createOne([
+            'volunteer' => $ronan,
+            'branch' => BranchFactory::find(['name' => 'Nairobi (HQ)']),
+            // The load day's month, so he is active whenever fixtures load.
+            'startDate' => new \DateTimeImmutable('first day of this month midnight'),
+            'endDate' => new \DateTimeImmutable('last day of this month midnight'),
+        ]);
 
-                $program = $programs[$site->projectKey];
-                if (!$program->covers($date)) {
-                    throw new \RuntimeException(sprintf('Program "%s" does not cover the roster day %s at "%s".', $program->getName(), $date->format('Y-m-d'), $site->projectKey));
-                }
-
-                foreach ($site->volunteers as $slot) {
-                    ActivityFactory::createOne([
-                        'date' => $date,
-                        'volunteer' => $volunteers[$slot->name] ?? throw new \RuntimeException(sprintf('Roster names a volunteer the archive does not list: "%s".', $slot->name)),
-                        'stay' => $stays[$slot->name],
-                        'program' => $program,
-                        'activityType' => $rosterTypes[$site->projectKey],
-                        'duration' => $site->duration,
-                        'notes' => $slot->note,
-                        'escorts' => $siteEscorts,
-                        'loggedBy' => $admin,
-                    ]);
-                }
-            }
-        }
+        ActivityFactory::createOne([
+            'date' => new \DateTimeImmutable('today'),
+            'volunteer' => $ronan,
+            'stay' => $stay,
+            'program' => ProgramFactory::find(['name' => 'Computer Tuition']),
+            'activityType' => $activityTypes['Computer tuition'],
+            'duration' => ActivityDuration::HalfDay,
+            'escorts' => [EscortFactory::find(['name' => 'Edna'])],
+            'loggedBy' => $admin,
+        ]);
     }
 }

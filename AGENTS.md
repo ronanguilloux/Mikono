@@ -241,9 +241,10 @@ password with the command above without asking, and needn't preserve the
 previous one. It is a local, dev-only SQLite account with nothing shared
 with production.
 
-Seed the dev data — the real August 2026 roster archive, with the last two
-days anchored onto today and tomorrow so the home screen's roster panels
-have something to show:
+Seed the dev data — reference data (escorts, projects, programs, activity
+types) from the real August 2026 roster archive, plus one fake volunteer
+whose stay covers the current month and whose one activity, and 20th
+birthday, fall on the load day:
 
 ```bash
 docker compose exec php bin/console foundry:load-fixtures --no-interaction
