@@ -6,8 +6,11 @@ namespace App\Repository;
 
 use App\Entity\Activity;
 use App\Entity\ActivityType;
+use App\Entity\BeneficiaryGroup;
+use App\Entity\Branch;
 use App\Entity\Program;
 use App\Entity\Project;
+use App\Entity\Skill;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -26,15 +29,58 @@ class ProgramRepository extends ServiceEntityRepository
     /**
      * Project and branch are fetch-joined: the index shows and sorts by both.
      */
-    public function createOrderedQueryBuilder(): QueryBuilder
-    {
-        return $this->createQueryBuilder('prg')
+    public function createOrderedQueryBuilder(
+        ?string $search = null,
+        ?Project $project = null,
+        ?Branch $branch = null,
+        ?string $period = null,
+        ?ActivityType $activityType = null,
+        ?Skill $skill = null,
+        ?BeneficiaryGroup $group = null,
+    ): QueryBuilder {
+        $queryBuilder = $this->createQueryBuilder('prg')
             ->join('prg.project', 'p')
             ->join('p.branch', 'b')
             ->addSelect('p', 'b')
             ->orderBy('b.name', 'ASC')
             ->addOrderBy('p.name', 'ASC')
             ->addOrderBy('prg.name', 'ASC');
+
+        if (null !== $search) {
+            // `!` escapes LIKE's own wildcards, as in VolunteerRepository.
+            $queryBuilder
+                ->andWhere("LOWER(prg.name) LIKE :search ESCAPE '!'")
+                ->setParameter('search', '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($search)) . '%');
+        }
+
+        if (null !== $project) {
+            $queryBuilder->andWhere('prg.project = :project')->setParameter('project', $project);
+        }
+
+        if (null !== $branch) {
+            $queryBuilder->andWhere('p.branch = :branch')->setParameter('branch', $branch);
+        }
+
+        // An undated bound is open, as in Program::covers(), so "Always on" is current.
+        $condition = match ($period) {
+            'current' => '(prg.startDate IS NULL OR prg.startDate <= :today) AND (prg.endDate IS NULL OR prg.endDate >= :today)',
+            'upcoming' => 'prg.startDate > :today',
+            'ended' => 'prg.endDate < :today',
+            default => null,
+        };
+        if (null !== $condition) {
+            $queryBuilder->andWhere($condition)->setParameter('today', new \DateTimeImmutable('today'), Types::DATE_IMMUTABLE);
+        }
+
+        // MEMBER OF rather than a join, so a collection can't multiply rows
+        // under the paginator.
+        foreach (['activityTypes' => $activityType, 'skills' => $skill, 'beneficiaryGroups' => $group] as $field => $member) {
+            if (null !== $member) {
+                $queryBuilder->andWhere(":{$field} MEMBER OF prg.{$field}")->setParameter($field, $member);
+            }
+        }
+
+        return $queryBuilder;
     }
 
     /**

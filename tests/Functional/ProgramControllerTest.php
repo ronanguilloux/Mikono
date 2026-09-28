@@ -7,6 +7,7 @@ namespace App\Tests\Functional;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\BeneficiaryGroupFactory;
+use App\Factory\BranchFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\SkillFactory;
@@ -86,6 +87,58 @@ final class ProgramControllerTest extends WebTestCase
         $rows = self::exportedRows($client, '/programs/export.csv?sort=name');
 
         self::assertSame(['Always on', 'From 01/09/2026'], array_column($rows, 3));
+    }
+
+    /**
+     * One filter per column, reaching the export too (ADR 0029).
+     */
+    #[Test]
+    public function eachColumnFiltersTheListAndItsExport(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $coast = ProjectFactory::createOne(['name' => 'Coast', 'branch' => $mombasa]);
+        $tuition = ActivityTypeFactory::createOne(['name' => 'Tuition']);
+        $maths = SkillFactory::createOne(['name' => 'Maths']);
+        $girls = BeneficiaryGroupFactory::createOne(['name' => 'Girls']);
+        ProgramFactory::createOne(['name' => 'A Always on']);
+        ProgramFactory::createOne(['name' => 'B Upcoming', 'startDate' => $today->modify('+1 week'), 'skills' => [$maths]]);
+        ProgramFactory::createOne(['name' => 'C Ended', 'project' => $coast, 'endDate' => $today->modify('-1 week'), 'activityTypes' => [$tuition]]);
+        ProgramFactory::createOne(['name' => 'D Running', 'project' => $coast, 'startDate' => $today->modify('-1 week'), 'endDate' => $today, 'beneficiaryGroups' => [$girls]]);
+        $client->loginUser(UserFactory::createOne());
+
+        $names = static fn(string $url): array => $client->request('GET', $url)
+            ->filter('table tbody tr td:first-child')->each(static fn($cell): string => trim($cell->text()));
+
+        foreach ([
+            'q=runn' => ['D Running'],
+            "project={$coast->getId()}" => ['C Ended', 'D Running'],
+            "branch={$mombasa->getId()}" => ['C Ended', 'D Running'],
+            'period=current' => ['A Always on', 'D Running'],
+            'period=upcoming' => ['B Upcoming'],
+            'period=ended' => ['C Ended'],
+            "activityType={$tuition->getId()}" => ['C Ended'],
+            "skill={$maths->getId()}" => ['B Upcoming'],
+            "group={$girls->getId()}" => ['D Running'],
+            "branch={$mombasa->getId()}&period=current" => ['D Running'],
+            "q=a&skill={$maths->getId()}&period=ended" => [],
+        ] as $query => $expected) {
+            if ([] === $expected) {
+                $client->request('GET', "/programs?{$query}");
+                self::assertSelectorTextContains('body', 'No programs match these filters.');
+            } else {
+                self::assertSame($expected, $names("/programs?{$query}&sort=name"), $query);
+            }
+            self::assertSame($expected, array_column(self::exportedRows($client, "/programs/export.csv?{$query}&sort=name"), 0), $query);
+        }
+
+        // Malformed or unknown input degrades to no filter (ADR 0023).
+        foreach (['q[]=x', 'period=foo', 'skill[]=1', 'project=abc', 'group=999999'] as $query) {
+            $crawler = $client->request('GET', "/programs?{$query}");
+            self::assertResponseIsSuccessful();
+            self::assertCount(4, $crawler->filter('table tbody tr'), $query);
+        }
     }
 
     #[Test]

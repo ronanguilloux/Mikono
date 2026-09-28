@@ -6,6 +6,16 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Filter programs by every column
+
+`/programs` gains one filter per column: a name search (`?q=`), project,
+branch, dates (`?period=current|upcoming|ended`, where an undated bound is
+open, so "Always on" is current), activity type, recommended skill and
+beneficiary group. They combine, reach the export through
+`listQueryBuilder()`, and use `MEMBER OF` for the collections so no row is
+duplicated under the paginator. Malformed values fall back to no filter
+(ADR 0023). Same form shape as `/volunteers`.
+
 ## 2026-09-28 — Admin menu split out of Settings
 
 The top bar's Settings dropdown had grown to hold two kinds of things: the

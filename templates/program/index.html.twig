@@ -16,5 +16,81 @@
         </div>
     </div>
 
-    <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No programs yet — add the first one above." />
+    {# One filter per column, same shape as the form on
+       volunteer/index.html.twig; activity/index.html.twig explains the
+       carried-through params and why `page` is dropped. #}
+    {% set filter_keys = ['page', 'q', 'project', 'branch', 'period', 'activityType', 'skill', 'group'] %}
+    {% set select_class = 'rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none' %}
+    <form
+        method="get"
+        role="search"
+        class="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600 print:hidden"
+        data-controller="auto-submit"
+        data-program-filters
+    >
+        {% for key, value in app.request.query.all %}
+            {% if key not in filter_keys and value is not iterable %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
+
+        <label for="program-search" class="sr-only">Search programs</label>
+        <input
+            type="search"
+            id="program-search"
+            name="q"
+            value="{{ filters.search }}"
+            placeholder="Search by name"
+            class="w-full max-w-xs rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+
+        {% for key, any in {project: 'Any project', branch: 'Any branch'} %}
+            <label for="program-{{ key }}" class="sr-only">{{ key|capitalize }}</label>
+            <select id="program-{{ key }}" name="{{ key }}" class="{{ select_class }}" data-action="change->auto-submit#submit">
+                <option value="">{{ any }}</option>
+                {% for option in options[key] %}
+                    <option value="{{ option.id }}" {{ filters[key] and filters[key].id == option.id ? 'selected' : '' }}>
+                        {{ option.name }}{% if not option.isActive %} (inactive){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        {% endfor %}
+
+        <label for="program-period" class="sr-only">Dates</label>
+        <select id="program-period" name="period" class="{{ select_class }}" data-action="change->auto-submit#submit">
+            <option value="">Any dates</option>
+            {% for value, label in {current: 'Running today', upcoming: 'Upcoming', ended: 'Ended'} %}
+                <option value="{{ value }}" {{ filters.period == value ? 'selected' : '' }}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        {% for key, labels in {activityType: ['Activity type', 'Any activity type'], skill: ['Recommended skill', 'Any skill'], group: ['Beneficiary group', 'Any beneficiary group']} %}
+            <label for="program-{{ key }}" class="sr-only">{{ labels[0] }}</label>
+            <select id="program-{{ key }}" name="{{ key }}" class="{{ select_class }}" data-action="change->auto-submit#submit">
+                <option value="">{{ labels[1] }}</option>
+                {% for option in options[key] %}
+                    <option value="{{ option.id }}" {{ filters[key] and filters[key].id == option.id ? 'selected' : '' }}>{{ option.name }}</option>
+                {% endfor %}
+            </select>
+        {% endfor %}
+
+        <button type="submit" class="sr-only">Search</button>
+
+        {% set filtered = filters|filter(v => v is not null)|length > 0 %}
+        {% if filtered %}
+            <a
+                href="{{ path('program_index', app.request.query.all|filter((v, k) => k not in filter_keys and v is not iterable)) }}"
+                class="text-brand-600 hover:underline"
+            >Clear filters</a>
+        {% endif %}
+    </form>
+
+    <twig:DataTable
+        :columns="columns"
+        :rows="rows"
+        :pagination="pagination"
+        :sortState="sortState"
+        :emptyMessage="filtered ? 'No programs match these filters.' : 'No programs yet — add the first one above.'"
+    />
 {% endblock %}

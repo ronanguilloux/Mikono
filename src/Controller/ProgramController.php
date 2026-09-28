@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\ActivityType;
 use App\Entity\BeneficiaryGroup;
+use App\Entity\Branch;
 use App\Entity\Program;
 use App\Entity\Project;
 use App\Entity\Skill;
@@ -104,6 +105,15 @@ final class ProgramController extends AbstractController
             'rows' => $rows,
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
+            'filters' => $this->requestedFilters($request),
+            // Everything, inactive and unused included: this reads history.
+            'options' => [
+                'project' => $this->entityManager->getRepository(Project::class)->findBy([], ['name' => 'ASC']),
+                'branch' => $this->entityManager->getRepository(Branch::class)->findBy([], ['name' => 'ASC']),
+                'activityType' => $this->entityManager->getRepository(ActivityType::class)->findBy([], ['name' => 'ASC']),
+                'skill' => $this->entityManager->getRepository(Skill::class)->findBy([], ['name' => 'ASC']),
+                'group' => $this->entityManager->getRepository(BeneficiaryGroup::class)->findBy([], ['name' => 'ASC']),
+            ],
         ]);
     }
 
@@ -123,10 +133,49 @@ final class ProgramController extends AbstractController
      */
     private function listQueryBuilder(Request $request): QueryBuilder
     {
-        $queryBuilder = $this->programs->createOrderedQueryBuilder();
+        $queryBuilder = $this->programs->createOrderedQueryBuilder(...$this->requestedFilters($request));
         $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
 
         return $queryBuilder;
+    }
+
+    /**
+     * One filter per column, keyed by createOrderedQueryBuilder()'s argument
+     * names and read the ADR 0023 way: anything malformed, blank or unknown is
+     * null, meaning no filter. The query-string keys are the same, bar `q`.
+     *
+     * @return array{search: ?string, project: ?Project, branch: ?Branch, period: ?string, activityType: ?ActivityType, skill: ?Skill, group: ?BeneficiaryGroup}
+     */
+    private function requestedFilters(Request $request): array
+    {
+        $query = $request->query->all();
+        $search = is_scalar($query['q'] ?? null) ? trim((string) $query['q']) : '';
+        $period = $query['period'] ?? null;
+
+        return [
+            'search' => '' === $search ? null : $search,
+            'project' => $this->requestedEntity($query, 'project', Project::class),
+            'branch' => $this->requestedEntity($query, 'branch', Branch::class),
+            'period' => in_array($period, ['current', 'upcoming', 'ended'], true) ? $period : null,
+            'activityType' => $this->requestedEntity($query, 'activityType', ActivityType::class),
+            'skill' => $this->requestedEntity($query, 'skill', Skill::class),
+            'group' => $this->requestedEntity($query, 'group', BeneficiaryGroup::class),
+        ];
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param array<string, mixed> $query
+     * @param class-string<T>      $class
+     *
+     * @return T|null
+     */
+    private function requestedEntity(array $query, string $key, string $class): ?object
+    {
+        $raw = $query[$key] ?? null;
+
+        return is_scalar($raw) && (int) $raw >= 1 ? $this->entityManager->find($class, (int) $raw) : null;
     }
 
     /**
