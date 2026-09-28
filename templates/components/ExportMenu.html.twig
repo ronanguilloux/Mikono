@@ -6,8 +6,9 @@
 
     A <details> disclosure so it needs no JavaScript. data-turbo="false" on the
     links: Turbo Drive would otherwise fetch the download as a page visit.
+    `routeParams` carries a route's own placeholders, such as a program's id.
 #}
-{% props route %}
+{% props route, routeParams = {} %}
 
 {% set current = app.request.query.all|filter((v, k) => k not in ['page', 'perPage'] and v is not iterable) %}
 {% set formats = {csv: 'CSV', xlsx: 'Excel'} %}
@@ -22,7 +23,7 @@
                 <span class="block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ scope }}</span>
                 {% for format, label in formats %}
                     <a
-                        href="{{ path(route, params|merge({format: format})) }}"
+                        href="{{ path(route, routeParams|merge(params)|merge({format: format})) }}"
                         class="text-brand-600 hover:underline"
                         data-turbo="false"
                         download

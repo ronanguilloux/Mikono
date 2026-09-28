@@ -6,6 +6,10 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Skills as a managed list
+
+See [ADR 0036](../adr/0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md).
+
 ## 2026-09-28 — Impact on the volunteer page and in /reports
 
 From the meeting recap's "Impact & Reporting". The volunteer page has a new

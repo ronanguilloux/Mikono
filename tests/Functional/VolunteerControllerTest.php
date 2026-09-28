@@ -12,7 +12,9 @@ use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
+use App\Factory\SkillFactory;
 use App\Factory\VolunteerFactory;
+use App\Repository\SkillRepository;
 use PHPUnit\Framework\Attributes\Test;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -74,6 +76,30 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'No volunteers match');
 
         self::assertSame(['Zawadi Zuma'], array_column(self::exportedRows($client, '/volunteers/export.csv?q=zuma'), 0));
+    }
+
+    #[Test]
+    public function theSkillFilterNarrowsTheListAndItsExport(): void
+    {
+        $client = static::createClient();
+        $plumbing = SkillFactory::createOne(['name' => 'Plumbing']);
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge', 'skills' => [$plumbing]]);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers?skill={$plumbing->getId()}");
+        self::assertSame(['Aisha Njoroge'], $crawler->filter('table tbody tr')->each(static fn($row): string => trim($row->filter('td')->first()->text())));
+        self::assertSame(['Aisha Njoroge'], array_column(self::exportedRows($client, "/volunteers/export.csv?skill={$plumbing->getId()}"), 0));
+
+        $crawler = $client->request('GET', "/volunteers?skill={$plumbing->getId()}&q=zuma");
+        self::assertSelectorTextContains('body', 'No volunteers match “zuma” with Plumbing.');
+
+        // Malformed or unknown input degrades to no filter (ADR 0023).
+        foreach (['/volunteers?skill[]=1', '/volunteers?skill=abc', '/volunteers?skill=999999'] as $url) {
+            $crawler = $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertCount(2, $crawler->filter('table tbody tr'), $url);
+        }
     }
 
     /**
@@ -634,15 +660,25 @@ final class VolunteerControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
 
-        $client->submit($crawler->selectButton('Save')->form([
+        $form = $crawler->selectButton('Save')->form([
             'volunteer_form[nationality]' => 'DE',
             'volunteer_form[countryOfResidence]' => 'KE',
             'volunteer_form[dateOfBirth]' => '1998-04-02',
             'volunteer_form[profession]' => 'Nurse',
-            'volunteer_form[skills]' => 'First aid',
             'volunteer_form[interests]' => '',
             'volunteer_form[emergencyContacts]' => 'Anna (sister) +49 170 0000000',
-        ]));
+        ]);
+        $firstAid = $client->getContainer()->get(SkillRepository::class)->findOneBy(['name' => 'First aid']);
+        self::assertNotNull($firstAid);
+        $boxes = $form['volunteer_form[skills]'];
+        self::assertIsArray($boxes);
+        // Expanded choices are named by position, not by id: tick the box by its value.
+        foreach ($boxes as $box) {
+            if ($box instanceof ChoiceFormField && [(string) $firstAid->getId()] === $box->availableOptionValues()) {
+                $box->tick();
+            }
+        }
+        $client->submit($form);
 
         self::assertResponseRedirects('/volunteers');
         $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
@@ -657,6 +693,7 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-profile]', 'Germany');
         self::assertSelectorTextContains('[data-profile]', 'Kenya');
         self::assertSelectorTextContains('[data-profile]', 'Anna (sister)');
+        self::assertSelectorTextContains('[data-profile]', 'First aid');
         self::assertCount(1, $crawler->filter('[data-profile-incomplete]'));
     }
 

@@ -1,6 +1,6 @@
 # 0034. Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor
 
-Date: 2026-09-27
+Date: 2026-09-28
 
 ## Status
 
@@ -131,7 +131,7 @@ Sensitive personal data is processed only where the s.25 principles apply
   (rule 4). Because the field is processed in South Africa, it also needs each
   volunteer's consent under s.49(1) (rule 3).
 - **Free-text fields never hold health, belief, ethnicity or any other
-  s.2 category.** `notes`, `skills`, `interests`, `supervisor`,
+  s.2 category.** `notes`, `interests`, `supervisor`,
   `accommodationPreference` and activity notes say so in their form help
   text. A dietary need that reveals a religion, or an allergy, is
   sensitive personal data.

@@ -56,8 +56,16 @@ class Volunteer
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $profession = null;
 
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $skills = null;
+    /**
+     * Picked from the global list so they can be filtered and matched against
+     * a program's; the free-text field they replaced is gone. See ADR 0036.
+     *
+     * @var Collection<int, Skill>
+     */
+    #[ORM\ManyToMany(targetEntity: Skill::class)]
+    #[ORM\JoinTable(name: 'volunteer_skill')]
+    #[ORM\OrderBy(['name' => 'ASC'])]
+    private Collection $skills;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $interests = null;
@@ -113,6 +121,7 @@ class Volunteer
     public function __construct()
     {
         $this->stays = new ArrayCollection();
+        $this->skills = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -236,14 +245,24 @@ class Volunteer
         return $this;
     }
 
-    public function getSkills(): ?string
+    /** @return Collection<int, Skill> */
+    public function getSkills(): Collection
     {
         return $this->skills;
     }
 
-    public function setSkills(?string $skills): static
+    public function addSkill(Skill $skill): static
     {
-        $this->skills = self::nullIfBlank($skills);
+        if (!$this->skills->contains($skill)) {
+            $this->skills->add($skill);
+        }
+
+        return $this;
+    }
+
+    public function removeSkill(Skill $skill): static
+    {
+        $this->skills->removeElement($skill);
 
         return $this;
     }
@@ -371,10 +390,9 @@ class Volunteer
             $this->countryOfResidence,
             $this->dateOfBirth,
             $this->profession,
-            $this->skills,
             $this->interests,
             $this->emergencyContacts,
-        ], true);
+        ], true) || $this->skills->isEmpty();
     }
 
     public function getPhoto(): ?VolunteerPhoto

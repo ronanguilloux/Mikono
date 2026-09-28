@@ -237,7 +237,7 @@
                 </dd>
             </div>
             {% for field in [
-                {label: 'Skills', value: volunteer.skills},
+                {label: 'Skills', value: volunteer.skills is empty ? null : volunteer.skills|map(s => s.name)|join(', ')},
                 {label: 'Interests', value: volunteer.interests},
                 {label: 'Emergency contacts', value: volunteer.emergencyContacts},
             ] %}

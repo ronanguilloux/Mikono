@@ -7,10 +7,13 @@ namespace App\Controller;
 use App\Entity\ActivityType;
 use App\Entity\Program;
 use App\Entity\Project;
+use App\Entity\Skill;
+use App\Entity\Volunteer;
 use App\Export\ListExport;
 use App\Form\ProgramFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ProgramRepository;
+use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -44,10 +47,20 @@ final class ProgramController extends AbstractController
         ['key' => 'branch', 'label' => 'Branch'],
         ['key' => 'dates', 'label' => 'Dates'],
         ['key' => 'activityTypes', 'label' => 'Activity types'],
+        ['key' => 'skills', 'label' => 'Recommended Skills'],
+    ];
+
+    /** @var list<array{key: string, label: string}> */
+    private const array MATCH_COLUMNS = [
+        ['key' => 'name', 'label' => 'Name'],
+        ['key' => 'status', 'label' => 'Status'],
+        ['key' => 'matchedSkills', 'label' => 'Matching skills'],
+        ['key' => 'matched', 'label' => 'Matched'],
     ];
 
     public function __construct(
         private readonly ProgramRepository $programs,
+        private readonly VolunteerRepository $volunteers,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
     ) {}
@@ -69,6 +82,7 @@ final class ProgramController extends AbstractController
             $rows[] = [
                 'cells' => $this->cells($program),
                 'actions' => [
+                    ['label' => 'Matches', 'url' => $this->generateUrl('program_matches', ['id' => $id])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('program_edit', ['id' => $id])],
                     $activityCount > 0
                         ? ['label' => 'Delete', 'disabledReason' => $this->guardReason($program, $activityCount)]
@@ -127,7 +141,80 @@ final class ProgramController extends AbstractController
                 static fn(ActivityType $type) => $type->getName(),
                 $program->getActivityTypes()->toArray(),
             )),
+            'skills' => $program->getSkills()->isEmpty() ? '—' : self::skillNames($program->getSkills()->toArray()),
         ];
+    }
+
+    /**
+     * Volunteers who hold any skill the program needs, most matches first.
+     * Unpaginated: the order is the answer, and the volunteer list is a few
+     * hundred rows at most. See ADR 0036.
+     */
+    #[Route('/{id}/matches', name: 'matches', methods: ['GET'])]
+    public function matches(Program $program): Response
+    {
+        $rows = [];
+        foreach ($this->matchingRows($program) as $volunteerId => $cells) {
+            $rows[] = [
+                'cells' => $cells,
+                'links' => ['name' => $this->generateUrl('volunteer_show', ['id' => $volunteerId])],
+            ];
+        }
+
+        return $this->render('program/matches.html.twig', [
+            'program' => $program,
+            'columns' => self::MATCH_COLUMNS,
+            'rows' => $rows,
+        ]);
+    }
+
+    #[Route('/{id}/matches/export.{format}', name: 'matches_export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    public function matchesExport(Program $program, string $format): StreamedResponse
+    {
+        return ListExport::response(
+            'program-matches',
+            $format,
+            self::MATCH_COLUMNS,
+            array_values($this->matchingRows($program)),
+        );
+    }
+
+    /**
+     * The one query behind the matches page and its export.
+     *
+     * @return array<int, array<string, string>> volunteer id => cells
+     */
+    private function matchingRows(Program $program): array
+    {
+        /** @var list<Volunteer> $volunteers */
+        $volunteers = $this->volunteers->createMatchingProgramQueryBuilder($program)->getQuery()->getResult();
+        $staying = $this->volunteers->findIdsStayingOn($volunteers, new \DateTimeImmutable('today'));
+        $needed = $program->getSkills();
+
+        $rows = [];
+        foreach ($volunteers as $volunteer) {
+            $id = (int) $volunteer->getId();
+            $matched = $volunteer->getSkills()->filter(static fn(Skill $skill): bool => $needed->contains($skill))->toArray();
+            $rows[$id] = [
+                'name' => $volunteer->getFullName(),
+                'status' => isset($staying[$id]) ? 'Active' : 'Inactive',
+                'matchedSkills' => self::skillNames($matched),
+                'matched' => sprintf('%d of %d', count($matched), $needed->count()),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param array<Skill> $skills
+     */
+    private static function skillNames(array $skills): string
+    {
+        $names = array_map(static fn(Skill $skill): string => $skill->getName(), $skills);
+        sort($names);
+
+        return implode(', ', $names);
     }
 
     private static function dates(Program $program): string

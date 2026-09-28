@@ -36,7 +36,7 @@
         data-volunteer-search
     >
         {% for key, value in app.request.query.all %}
-            {% if key not in ['page', 'q'] and value is not iterable %}
+            {% if key not in ['page', 'q', 'skill'] and value is not iterable %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endif %}
         {% endfor %}
@@ -51,13 +51,25 @@
             class="w-full max-w-xs rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
             data-action="change->auto-submit#submit"
         >
+        <label for="volunteer-skill" class="sr-only">Skill</label>
+        <select
+            id="volunteer-skill"
+            name="skill"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            <option value="">Any skill</option>
+            {% for option in skillOptions %}
+                <option value="{{ option.id }}" {{ skill and skill.id == option.id ? 'selected' : '' }}>{{ option.name }}</option>
+            {% endfor %}
+        </select>
         <button type="submit" class="sr-only">Search</button>
 
-        {% if search %}
+        {% if search or skill %}
             <a
-                href="{{ path('volunteer_index', app.request.query.all|filter((v, k) => k not in ['page', 'q'] and v is not iterable)) }}"
+                href="{{ path('volunteer_index', app.request.query.all|filter((v, k) => k not in ['page', 'q', 'skill'] and v is not iterable)) }}"
                 class="text-brand-600 hover:underline"
-            >Clear search</a>
+            >Clear filters</a>
         {% endif %}
     </form>
 
@@ -66,6 +78,6 @@
         :rows="rows"
         :pagination="pagination"
         :sortState="sortState"
-        :emptyMessage="search ? 'No volunteers match “' ~ search ~ '”.' : 'No volunteers yet — add the first one above.'"
+        :emptyMessage="search ? 'No volunteers match “' ~ search ~ '”' ~ (skill ? ' with ' ~ skill.name : '') ~ '.' : (skill ? 'No volunteers hold ' ~ skill.name ~ '.' : 'No volunteers yet — add the first one above.')"
     />
 {% endblock %}

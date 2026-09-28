@@ -10,6 +10,7 @@ use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\SkillFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,7 +31,7 @@ final class RouteSmokeTest extends WebTestCase
      * Route-name prefix => the seeded entity whose id fills that route's
      * `{id}`. Longest first: `activity_type_` must win over `activity_`.
      */
-    private const ID_PREFIXES = ['activity_type_', 'activity_', 'branch_', 'escort_', 'program_', 'project_', 'stay_', 'user_', 'volunteer_'];
+    private const ID_PREFIXES = ['activity_type_', 'activity_', 'branch_', 'escort_', 'program_', 'project_', 'skill_', 'stay_', 'user_', 'volunteer_'];
 
     #[Test]
     public function everyGetRouteRendersWithoutAServerError(): void
@@ -101,6 +102,7 @@ final class RouteSmokeTest extends WebTestCase
             'escort_' => (int) $escort->getId(),
             'program_' => (int) ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]])->getId(),
             'project_' => (int) $project->getId(),
+            'skill_' => (int) SkillFactory::createOne()->getId(),
             'stay_' => (int) $activity->getStay()?->getId(),
             'user_' => (int) UserFactory::createOne()->getId(),
             'volunteer_' => (int) $volunteer->getId(),

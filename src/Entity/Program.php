@@ -54,6 +54,17 @@ class Program
     #[Assert\Count(min: 1, minMessage: 'Choose at least one activity type.')]
     private Collection $activityTypes;
 
+    /**
+     * What the program needs; /programs/{id}/matches lists the volunteers who
+     * hold any of them. Optional — see ADR 0036.
+     *
+     * @var Collection<int, Skill>
+     */
+    #[ORM\ManyToMany(targetEntity: Skill::class)]
+    #[ORM\JoinTable(name: 'program_skill')]
+    #[ORM\OrderBy(['name' => 'ASC'])]
+    private Collection $skills;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -63,6 +74,7 @@ class Program
     public function __construct()
     {
         $this->activityTypes = new ArrayCollection();
+        $this->skills = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -186,6 +198,28 @@ class Program
     public function removeActivityType(ActivityType $activityType): static
     {
         $this->activityTypes->removeElement($activityType);
+
+        return $this;
+    }
+
+    /** @return Collection<int, Skill> */
+    public function getSkills(): Collection
+    {
+        return $this->skills;
+    }
+
+    public function addSkill(Skill $skill): static
+    {
+        if (!$this->skills->contains($skill)) {
+            $this->skills->add($skill);
+        }
+
+        return $this;
+    }
+
+    public function removeSkill(Skill $skill): static
+    {
+        $this->skills->removeElement($skill);
 
         return $this;
     }

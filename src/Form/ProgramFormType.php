@@ -6,8 +6,10 @@ namespace App\Form;
 
 use App\Entity\ActivityType;
 use App\Entity\Program;
+use App\Entity\Skill;
 use App\Entity\Project;
 use App\Repository\ActivityTypeRepository;
+use App\Repository\SkillRepository;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -51,6 +53,17 @@ final class ProgramFormType extends AbstractType
                 'multiple' => true,
                 'expanded' => true,
                 'by_reference' => false,
+            ])
+            ->add('skills', EntityType::class, [
+                'class' => Skill::class,
+                'choice_label' => 'name',
+                'query_builder' => static fn(SkillRepository $skills): QueryBuilder => $skills->createOrderedByNameQueryBuilder(),
+                'multiple' => true,
+                'expanded' => true,
+                'required' => false,
+                'by_reference' => false,
+                'label' => 'Recommended Skills',
+                'help' => 'What the program needs. Its Matches page lists the volunteers who hold any of these.',
             ])
             ->add('suggestedRoles', TextareaType::class, ['required' => false])
             ->add('beneficiariesReached', TextareaType::class, [

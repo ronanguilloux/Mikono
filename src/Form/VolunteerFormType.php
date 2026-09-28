@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Form;
 
+use App\Entity\Skill;
 use App\Entity\Volunteer;
+use App\Repository\SkillRepository;
+use Doctrine\ORM\QueryBuilder;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\CountryType;
@@ -42,7 +46,15 @@ final class VolunteerFormType extends AbstractType
                 'input' => 'datetime_immutable',
             ])
             ->add('profession', TextType::class, ['required' => false])
-            ->add('skills', TextareaType::class, ['required' => false])
+            ->add('skills', EntityType::class, [
+                'class' => Skill::class,
+                'choice_label' => 'name',
+                'query_builder' => static fn(SkillRepository $skills): QueryBuilder => $skills->createOrderedByNameQueryBuilder(),
+                'multiple' => true,
+                'expanded' => true,
+                'required' => false,
+                'by_reference' => false,
+            ])
             ->add('interests', TextareaType::class, ['required' => false])
             ->add('emergencyContacts', TextareaType::class, [
                 'required' => false,

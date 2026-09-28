@@ -71,7 +71,7 @@ implements it.
 - `.claude/agents/` — Claude Code-specific subagents (`adr-scribe`,
   `context-capturer`).
 - `src/Entity/`, `src/Repository/` — Doctrine entities (`User`,
-  `Volunteer`, `Project`, `Program`, `ActivityType`, `Activity`, `Escort`, `Branch`, `Stay`)
+  `Volunteer`, `Project`, `Program`, `ActivityType`, `Skill`, `Activity`, `Escort`, `Branch`, `Stay`)
   and their repositories, each with a `countReferencingActivities()`
   delete-guard where applicable. `Branch`'s guard counts stays and projects, and its five real rows come from its migration, not the
   fixtures — tests start with them
@@ -97,7 +97,10 @@ implements it.
   offers a subset
   ([ADR 0030](docs/adr/0030-insert-programs-between-projects-and-activities.md)).
   `ActivityFactory` still takes a `project` attribute and builds a program
-  there.
+  there. `Skill` is a second global list, seeded by its migration like
+  `Branch`, held by volunteers and needed by programs; `/programs/{id}/matches`
+  pairs the two
+  ([ADR 0036](docs/adr/0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md)).
 - **Personal data is admitted only under
   [ADR 0034](docs/adr/0034-comply-with-kenyas-data-protection-act-2019.md)**
   (Kenya's Data Protection Act 2019). A new personal-data field, store,

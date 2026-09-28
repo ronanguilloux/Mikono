@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Program;
+use App\Entity\Skill;
 use App\Entity\Stay;
 use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -43,7 +45,7 @@ class VolunteerRepository extends ServiceEntityRepository
      * "aisha nj" find Aisha Njoroge; lastName is nullable (ADR 0014), hence
      * the COALESCE, without which CONCAT is null and the name never matches.
      */
-    public function createOrderedByNameQueryBuilder(?string $search = null): QueryBuilder
+    public function createOrderedByNameQueryBuilder(?string $search = null, ?Skill $skill = null): QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('v')
             ->addSelect('(SELECT COUNT(cs.id) FROM ' . Stay::class . ' cs WHERE cs.volunteer = v AND cs.startDate <= :today AND cs.endDate >= :today) AS HIDDEN isCurrent')
@@ -59,7 +61,33 @@ class VolunteerRepository extends ServiceEntityRepository
                 ->setParameter('search', '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($search)) . '%');
         }
 
+        if (null !== $skill) {
+            $queryBuilder
+                ->andWhere(':skill MEMBER OF v.skills')
+                ->setParameter('skill', $skill);
+        }
+
         return $queryBuilder;
+    }
+
+    /**
+     * Volunteers holding at least one of the program's skills, most matched
+     * skills first, then active, then by name — the order is the answer, so
+     * /programs/{id}/matches has no sort links. A program with no skills
+     * matches nobody. See ADR 0036.
+     */
+    public function createMatchingProgramQueryBuilder(Program $program): QueryBuilder
+    {
+        return $this->createOrderedByNameQueryBuilder()
+            ->innerJoin('v.skills', 'ms')
+            ->andWhere('ms.id IN (SELECT ps.id FROM ' . Program::class . ' mp JOIN mp.skills ps WHERE mp = :program)')
+            ->setParameter('program', $program)
+            ->addSelect('COUNT(ms.id) AS HIDDEN matched')
+            ->groupBy('v.id')
+            ->orderBy('matched', 'DESC')
+            ->addOrderBy('isCurrent', 'DESC')
+            ->addOrderBy('v.lastName', 'ASC')
+            ->addOrderBy('v.firstName', 'ASC');
     }
 
     /**

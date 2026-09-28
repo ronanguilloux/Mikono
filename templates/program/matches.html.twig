@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Matches for {{ program.name }} — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mb-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold">Matches for {{ program.name }}</h1>
+        <twig:ExportMenu route="program_matches_export" :routeParams="{id: program.id}" />
+    </div>
+
+    {% if program.skills is empty %}
+        <p class="text-sm text-slate-600" data-no-skills>
+            This program has no recommended skills yet.
+            <a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">Tick them on its edit page</a>.
+        </p>
+    {% else %}
+        <p class="mb-3 text-sm text-slate-600">
+            Volunteers holding any of: {{ program.skills|map(s => s.name)|join(', ') }}. Most matches first.
+        </p>
+        <twig:DataTable :columns="columns" :rows="rows" :withActions="false" emptyMessage="No volunteer holds any of these skills yet." />
+    {% endif %}
+{% endblock %}

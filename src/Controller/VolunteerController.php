@@ -9,7 +9,9 @@ use App\Entity\VolunteerPhoto;
 use App\Export\ListExport;
 use App\Form\VolunteerFormType;
 use App\Pagination\ListPaginator;
+use App\Entity\Skill;
 use App\Repository\ActivityRepository;
+use App\Repository\SkillRepository;
 use App\Repository\VolunteerRepository;
 use App\Security\PassportNumberCipher;
 use Doctrine\ORM\EntityManagerInterface;
@@ -59,6 +61,7 @@ final class VolunteerController extends AbstractController
     public function __construct(
         private readonly VolunteerRepository $volunteers,
         private readonly ActivityRepository $activities,
+        private readonly SkillRepository $skills,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
         private readonly PassportNumberCipher $passportCipher,
@@ -115,6 +118,8 @@ final class VolunteerController extends AbstractController
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
             'search' => $this->requestedSearch($request),
+            'skill' => $this->requestedSkill($request),
+            'skillOptions' => $this->skills->findAllOrderedByName(),
         ]);
     }
 
@@ -145,7 +150,7 @@ final class VolunteerController extends AbstractController
      */
     private function listQueryBuilder(Request $request): QueryBuilder
     {
-        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder($this->requestedSearch($request));
+        $queryBuilder = $this->volunteers->createOrderedByNameQueryBuilder($this->requestedSearch($request), $this->requestedSkill($request));
         $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
 
         return $queryBuilder;
@@ -161,6 +166,17 @@ final class VolunteerController extends AbstractController
         $search = is_scalar($raw) ? trim((string) $raw) : '';
 
         return '' === $search ? null : $search;
+    }
+
+    /**
+     * The index's `?skill=<id>` filter. Anything but a positive integer, or
+     * an unknown id, means no filter (ADR 0023).
+     */
+    private function requestedSkill(Request $request): ?Skill
+    {
+        $raw = $request->query->all()['skill'] ?? null;
+
+        return is_scalar($raw) && (int) $raw >= 1 ? $this->skills->find((int) $raw) : null;
     }
 
     /**
