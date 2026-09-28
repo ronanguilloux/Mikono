@@ -195,6 +195,33 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Full day');
     }
 
+    /**
+     * Days on site count the stay up to today; days logged count distinct
+     * past activity dates — a doubled day once, "Other" too, planned never.
+     */
+    #[Test]
+    public function showDerivesDaysOnSiteAndDaysLogged(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $volunteer = VolunteerFactory::new()->withoutStay()->create();
+        StayFactory::createOne([
+            'volunteer' => $volunteer,
+            'startDate' => $today->modify('-9 days'),
+            'endDate' => $today->modify('+5 days'),
+        ]);
+        ActivityFactory::createMany(2, ['volunteer' => $volunteer, 'date' => $today->modify('-3 days'), 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => $today->modify('-2 days'), 'duration' => ActivityDuration::Other, 'durationOther' => '2 hours']);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => $today->modify('+3 days')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', "/volunteers/{$volunteer->getId()}");
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextSame('[data-days-on-site]', '10');
+        self::assertSelectorTextSame('[data-days-logged]', '2');
+    }
+
     #[Test]
     public function showTagsAFutureActivityAsPlanned(): void
     {

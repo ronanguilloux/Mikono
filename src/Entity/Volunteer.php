@@ -431,6 +431,26 @@ class Volunteer
     }
 
     /**
+     * Calendar days covered by this volunteer's stays, up to $today inclusive.
+     * Stays never overlap (StayController refuses it), so the sum is exact.
+     * No column: derived from stays, like isActive(). See ADR 0026.
+     */
+    public function getDaysOnSite(\DateTimeImmutable $today): int
+    {
+        $days = 0;
+        foreach ($this->stays as $stay) {
+            $start = $stay->getStartDate();
+            $end = $stay->getEndDate();
+            if (null === $start || null === $end || $start > $today) {
+                continue;
+            }
+            $days += min($end, $today)->diff($start)->days + 1;
+        }
+
+        return $days;
+    }
+
+    /**
      * The branch of the stay covering today, else of the latest stay (stays
      * are ordered newest first). No column: see ADR 0026.
      */

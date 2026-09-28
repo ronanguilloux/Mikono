@@ -244,21 +244,25 @@ final class VolunteerController extends AbstractController
     {
         $activities = $this->activities->findByVolunteerOrderedByDateDesc($volunteer);
 
-        $totalDays = 0.0;
+        $today = new \DateTimeImmutable('today');
+        // "Days logged": distinct past dates, not summed durations, so two
+        // activities on one day count once and "Other" still counts.
+        $loggedDates = [];
         $mostRecent = null;
         // When they started volunteering, which the record's createdAt is not:
         // the archive and UAT were entered weeks after the work happened.
         $firstActivity = null;
         $activityCountsByStay = [];
         foreach ($activities as $activity) {
-            $totalDays += $activity->getDuration()?->toDays() ?? 0.0;
-
             $stayId = $activity->getStay()?->getId();
             if (null !== $stayId) {
                 $activityCountsByStay[$stayId] = ($activityCountsByStay[$stayId] ?? 0) + 1;
             }
 
             $date = $activity->getDate();
+            if (null !== $date && $date <= $today) {
+                $loggedDates[$date->format('Y-m-d')] = true;
+            }
             if (null !== $date && (null === $mostRecent || $date > $mostRecent)) {
                 $mostRecent = $date;
             }
@@ -266,8 +270,6 @@ final class VolunteerController extends AbstractController
                 $firstActivity = $date;
             }
         }
-
-        $today = new \DateTimeImmutable('today');
 
         // The Stays panel's Edit/Delete, with Delete inert on a stay that
         // activities are logged in — the same guard StayController::delete()
@@ -301,7 +303,8 @@ final class VolunteerController extends AbstractController
             'stays' => $stays,
             'activities' => $activities,
             'activityCount' => count($activities),
-            'totalDays' => $totalDays,
+            'daysOnSite' => $volunteer->getDaysOnSite($today),
+            'daysLogged' => count($loggedDates),
             'mostRecent' => $mostRecent,
             'firstActivity' => $firstActivity,
             'mostRecentIsPlanned' => null !== $mostRecent && $mostRecent > $today,

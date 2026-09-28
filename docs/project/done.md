@@ -6,6 +6,17 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — "Days on site" and "Days logged" on the volunteer page
+
+Nickson asked for "automatically calculated days contributed". The volunteer
+page's single "Total days" summed activity durations: "Other" counted 0 and
+two activities on one day counted it twice. It now shows two derived
+figures, neither stored. **Days on site** is the calendar days covered by
+the volunteer's stays up to today (`Volunteer::getDaysOnSite()`).
+**Days logged** is the distinct past dates carrying an activity. Planned
+activities don't count. Hours aren't recorded, so neither figure uses them.
+`/reports` still sums durations.
+
 ## 2026-09-27 — "Who attended?" picker empty on /activities/new
 
 The picker offered only volunteers whose stay ends today or later. Once

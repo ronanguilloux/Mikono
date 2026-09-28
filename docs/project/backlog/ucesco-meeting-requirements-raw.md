@@ -97,8 +97,10 @@ text, and it exists so the split does not have to re-derive it.
 | Programs → Activities | Shipped, [ADR 0030](../../adr/0030-insert-programs-between-projects-and-activities.md) |
 | Profile: country, DOB, occupation, skills, interests, emergency contact | Shipped, [ADR 0032](../../adr/0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) — optional, not mandatory, and that was deliberate |
 | Branch / location | Shipped, derived from stays, [ADR 0026](../../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) |
-| Volunteer start/end dates, days contributed | Shipped: `Stay` (ADR 0026), days via `src/Report/ActivitySummaryCalculator` |
-| Document upload, birthday reminders | [volunteer-document-attachments](volunteer-document-attachments.md), [automated-outbound-reminders](automated-outbound-reminders.md) |
+| Volunteer start/end dates, days contributed | Shipped. Dates are per `Stay` (ADR 0026). The volunteer page derives "Days on site" (stay days up to today) and "Days logged" (distinct past activity dates), stores neither, and uses no hours ([`done.md`](../done.md), 2026-09-28) |
+| Occupation | Shipped as `profession` (ADR 0032) |
+| Document upload | [volunteer-document-attachments](volunteer-document-attachments.md) |
+| Birthday reminders | In-app: [dashboard-arrival-and-birthday-reminders](dashboard-arrival-and-birthday-reminders.md). By SMS or email: [automated-outbound-reminders](automated-outbound-reminders.md) |
 | Search & filtering | Volunteer search and the activities branch filter are shipped (see [`done.md`](../done.md)). Filtering by skills, interests and status is **not** covered — new cards. |
 | Export to Excel/CSV | Shipped for every list view, [ADR 0029](../../adr/0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md). "Export the complete database" is not the same thing and needs its own card. |
 | Data ownership, hosting term, backup and restore | [`hosting-plan.md`](../hosting-plan.md), [`deployment-plan.md`](../deployment-plan.md), [off-site-encrypted-backups](off-site-encrypted-backups.md), [ADR 0010](../../adr/0010-build-in-ci-and-deploy-by-image-pull.md), [ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md). Mostly a question to answer in writing, not code. |
