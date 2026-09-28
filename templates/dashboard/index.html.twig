@@ -45,7 +45,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="flex flex-col gap-6 lg:col-span-2">
-            {% if birthdays is not empty or arrivals is not empty %}
+            {% if birthdays is not empty or arrivals is not empty or anniversaries is not empty %}
                 <section class="rounded-lg border border-slate-200 bg-white shadow-sm" aria-labelledby="reminders-heading">
                     <div class="border-b border-slate-200 px-5 py-4">
                         <h2 id="reminders-heading" class="font-semibold">Reminders</h2>
@@ -63,6 +63,26 @@
                                     📅 {{ name }}'s birthday is in a week — {{ birthday.date|date('D j M') }}.
                                 {% else %}
                                     🎁 {{ name }}'s birthday is in {{ birthday.daysAway }} days — {{ birthday.date|date('D j M') }}.
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% if anniversaries is not empty %}
+                    <ul class="divide-y divide-slate-200 {{ birthdays is not empty ? 'border-t border-slate-200' }}">
+                        {% for anniversary in anniversaries %}
+                            {% set name %}<a href="{{ path('volunteer_show', {id: anniversary.volunteerId}) }}" class="font-semibold text-brand-600 hover:underline">{{ anniversary.firstName }}</a>{% endset %}
+                            {% set what %}{{ name }} achieved “{{ anniversary.title }}” as part of the <a href="{{ path('project_edit', {id: anniversary.projectId}) }}" class="font-semibold text-brand-600 hover:underline">{{ anniversary.projectName }}</a> project in {{ anniversary.branchName }}{% endset %}
+                            {% set span = anniversary.years == 1 ? 'One year' : anniversary.years ~ ' years' %}
+                            <li class="px-5 py-3 text-sm" data-anniversary-days="{{ anniversary.daysAway }}" data-anniversary-years="{{ anniversary.years }}">
+                                {% if anniversary.daysAway == 1 %}
+                                    📅 <strong>Tomorrow marks {{ span|lower }}</strong> since {{ what }}.
+                                {% elseif anniversary.years == 1 %}
+                                    🎉 <strong>One year ago today</strong>, {{ what }}. A lasting difference — worth a thank-you message?
+                                {% elseif anniversary.years < 5 %}
+                                    🌱 <strong>{{ span }} ago today</strong>, {{ what }}. Still growing. Why not tell {{ anniversary.firstName }} how it's going?
+                                {% else %}
+                                    🏆 <strong>{{ span }} ago today</strong>, {{ what }}. A legacy at UCESCO — a milestone to celebrate together.
                                 {% endif %}
                             </li>
                         {% endfor %}

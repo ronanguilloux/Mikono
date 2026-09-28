@@ -6,6 +6,17 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Achievement anniversary reminders on the dashboard
+
+The Reminders panel also lists every achievement whose `achievedOn` falls on
+today's or tomorrow's month and day, one or more whole years ago (29
+February → 28 February in a non-leap year), as one sentence naming the
+volunteer (linked), the achievement, the project (linked to its edit page,
+there being no project page) and the stay's branch
+(`AnniversaryReminderFinder`). The lead-in and cheer depend on the count —
+one year, 2–4 years, 5+ — never chosen at random, so the panel is stable on
+reload. No phone or email shortcut: the volunteer's page has them.
+
 ## 2026-09-28 — Achievements on a volunteer's stay
 
 Recorded in [ADR 0038](../adr/0038-record-achievements-on-a-volunteers-stay.md).

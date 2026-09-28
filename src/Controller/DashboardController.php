@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Report\AnniversaryReminderFinder;
 use App\Report\ArrivalReminderFinder;
 use App\Report\BirthdayReminderFinder;
 use App\Report\QuietProjectFinder;
@@ -19,6 +20,7 @@ class DashboardController extends AbstractController
         private readonly QuietProjectFinder $quietProjects,
         private readonly BirthdayReminderFinder $birthdays,
         private readonly ArrivalReminderFinder $arrivals,
+        private readonly AnniversaryReminderFinder $anniversaries,
     ) {}
 
     #[Route('/', name: 'app_home', methods: ['GET'])]
@@ -35,6 +37,7 @@ class DashboardController extends AbstractController
             'quiet_after_days' => QuietProjectFinder::WARN_AFTER_DAYS,
             'birthdays' => $this->birthdays->find($today),
             'arrivals' => $this->arrivals->find($today),
+            'anniversaries' => $this->anniversaries->find($today),
         ]);
     }
 

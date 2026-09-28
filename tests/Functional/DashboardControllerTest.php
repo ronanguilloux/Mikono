@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\EscortFactory;
@@ -224,6 +225,30 @@ final class DashboardControllerTest extends WebTestCase
         self::assertSame(
             sprintf('/volunteers/%d', $volunteer->getId()),
             $crawler->filter('[data-arrival-days="1"] a')->attr('href'),
+        );
+    }
+
+    #[Test]
+    public function remindsOfAnAchievementAnniversaryWithLinksToTheVolunteerAndProject(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Nadia']);
+        $project = ProjectFactory::createOne(['name' => 'Project X']);
+        AchievementFactory::createOne([
+            'stay' => StayFactory::new(['volunteer' => $volunteer]),
+            'project' => $project,
+            'title' => 'Building a Library',
+            'achievedOn' => (new \DateTimeImmutable('today'))->modify('-1 year'),
+        ]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-anniversary-days="0"]', 'One year ago today, Nadia achieved “Building a Library” as part of the Project X project in Nairobi (HQ). A lasting difference');
+        self::assertSame(
+            [sprintf('/volunteers/%d', $volunteer->getId()), sprintf('/projects/%d/edit', $project->getId())],
+            $crawler->filter('[data-anniversary-days="0"] a')->each(static fn($a) => $a->attr('href')),
         );
     }
 }
