@@ -43,6 +43,7 @@ hostname is the one that isn't ours to solve.
 9. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
 10. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
 11. [Tag programs with the beneficiary groups they serve](backlog/program-beneficiary-groups.md)
+12. [Export the whole database as one zip of per-table CSVs](backlog/full-database-csv-zip-export.md) — **D**
 
 ## Later
 
