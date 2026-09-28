@@ -73,6 +73,7 @@ drafts and maintains these.
 | [0034](0034-comply-with-kenyas-data-protection-act-2019.md) | Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor | Accepted |
 | [0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md) | Host production on a Compute Engine e2-small in Johannesburg | Accepted |
 | [0036](0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md) | Manage skills as a seeded list shared by volunteers and programs | Accepted |
+| [0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md) | Record a volunteer's gender for accommodation pairing | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

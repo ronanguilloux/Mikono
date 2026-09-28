@@ -6,6 +6,24 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Test suite given its own memory limit
+
+`docker compose exec php php bin/phpunit` died in
+`VolunteerControllerTest::anUploadedPhotoIsTurnedUprightShrunkAndStrippedOfMetadata`
+with `Allowed memory size of 134217728 bytes exhausted`. It happened in
+`FileinfoMimeTypeGuesser` when finfo tried to allocate 7 MB for its magic
+database. It fails every time from a cold `var/cache/test` under Xdebug
+`develop`, and never from a warm one. The run peaks at 125 MB cold and
+105 MB warm, or 97 MB with Xdebug off. The whole suite shares one process,
+so memory used compiling the container on the first test stays for the
+rest of the run.
+
+`phpunit.dist.xml` now sets `memory_limit` to 512M for the tests only;
+the 128M limit for dev and prod is unchanged. An intermittent exit 137
+(SIGKILL) seen once while investigating did not come from the container's
+out-of-memory killer (`memory.events` showed `oom_kill 0`), and it did not
+recur.
+
 ## 2026-09-28 — Programs tagged with beneficiary groups
 
 Recorded in [ADR 0030](../adr/0030-insert-programs-between-projects-and-activities.md).

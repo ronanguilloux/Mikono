@@ -110,7 +110,9 @@ implements it.
   (Kenya's Data Protection Act 2019). A new personal-data field, store,
   export or third-party service states its purpose, sensitivity (s.2 counts
   family details, so emergency contacts, as sensitive), retention and
-  transfer basis in its own ADR.
+  transfer basis in its own ADR. `Volunteer::$gender` is sensitive: profile
+  page only, never exported or listed
+  ([ADR 0037](docs/adr/0037-record-a-volunteers-gender-for-accommodation-pairing.md)).
 - `src/Enum/` — backed PHP enums (`ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
 - `src/Controller/`, `src/Form/`, `templates/<area>/` — one set per CRUD

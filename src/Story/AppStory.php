@@ -110,8 +110,8 @@ final class AppStory extends Story
         // (ADR 0033) and no photo.
         $ronan = VolunteerFactory::createOne([
             'firstName' => 'Ronan',
-            'lastName' => 'Guilloux',
-            'email' => 'ronan.guilloux@yahoo.com',
+            'lastName' => 'Smith',
+            'email' => 'ronan.smith@yahoo.com',
             'phone' => '+33612345678',
             'notes' => 'Some.',
             'nationality' => 'FR',

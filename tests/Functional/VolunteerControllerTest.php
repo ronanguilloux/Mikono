@@ -6,6 +6,7 @@ namespace App\Tests\Functional;
 
 use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
+use App\Enum\Gender;
 use App\Factory\ActivityFactory;
 use App\Factory\BranchFactory;
 use App\Factory\ProgramFactory;
@@ -664,6 +665,7 @@ final class VolunteerControllerTest extends WebTestCase
             'volunteer_form[nationality]' => 'DE',
             'volunteer_form[countryOfResidence]' => 'KE',
             'volunteer_form[dateOfBirth]' => '1998-04-02',
+            'volunteer_form[gender]' => 'female',
             'volunteer_form[profession]' => 'Nurse',
             'volunteer_form[interests]' => '',
             'volunteer_form[emergencyContacts]' => 'Anna (sister) +49 170 0000000',
@@ -686,6 +688,7 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSame('KE', $volunteer->getCountryOfResidence());
         self::assertSame('1998-04-02', $volunteer->getDateOfBirth()?->format('Y-m-d'));
         self::assertSame('Nurse', $volunteer->getProfession());
+        self::assertSame(Gender::Female, $volunteer->getGender());
         self::assertNull($volunteer->getInterests());
         self::assertTrue($volunteer->isProfileIncomplete());
 
@@ -693,6 +696,7 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-profile]', 'Germany');
         self::assertSelectorTextContains('[data-profile]', 'Kenya');
         self::assertSelectorTextContains('[data-profile]', 'Anna (sister)');
+        self::assertSelectorTextContains('[data-profile]', 'Female');
         self::assertSelectorTextContains('[data-profile]', 'First aid');
         self::assertCount(1, $crawler->filter('[data-profile-incomplete]'));
     }

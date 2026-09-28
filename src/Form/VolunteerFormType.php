@@ -6,6 +6,7 @@ namespace App\Form;
 
 use App\Entity\Skill;
 use App\Entity\Volunteer;
+use App\Enum\Gender;
 use App\Repository\SkillRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -14,6 +15,7 @@ use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\CountryType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -44,6 +46,13 @@ final class VolunteerFormType extends AbstractType
                 'required' => false,
                 'widget' => 'single_text',
                 'input' => 'datetime_immutable',
+            ])
+            ->add('gender', EnumType::class, [
+                'class' => Gender::class,
+                'required' => false,
+                'placeholder' => '—',
+                'choice_label' => static fn(Gender $gender): string => $gender->label(),
+                'help' => 'Used only to pair volunteers for shared accommodation.',
             ])
             ->add('profession', TextType::class, ['required' => false])
             ->add('skills', EntityType::class, [

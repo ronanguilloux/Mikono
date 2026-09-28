@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Gender;
 use App\Repository\VolunteerRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -52,6 +53,11 @@ class Volunteer
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     #[Assert\LessThan('today', message: 'A date of birth must be in the past.')]
     private ?\DateTimeImmutable $dateOfBirth = null;
+
+    // Sensitive (DPA s.2), for accommodation pairing only; null means not
+    // recorded, unlike PreferNotToSay. See ADR 0037.
+    #[ORM\Column(length: 20, nullable: true, enumType: Gender::class)]
+    private ?Gender $gender = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $profession = null;
@@ -229,6 +235,18 @@ class Volunteer
     public function setDateOfBirth(?\DateTimeImmutable $dateOfBirth): static
     {
         $this->dateOfBirth = $dateOfBirth;
+
+        return $this;
+    }
+
+    public function getGender(): ?Gender
+    {
+        return $this->gender;
+    }
+
+    public function setGender(?Gender $gender): static
+    {
+        $this->gender = $gender;
 
         return $this;
     }

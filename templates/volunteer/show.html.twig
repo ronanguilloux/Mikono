@@ -193,6 +193,10 @@
                 </dd>
             </div>
             <div>
+                <dt class="text-xs text-slate-500">Gender</dt>
+                <dd class="mt-0.5 text-sm">{{ volunteer.gender ? volunteer.gender.label() : notOnFile }}</dd>
+            </div>
+            <div>
                 <dt class="text-xs text-slate-500">Profession</dt>
                 <dd class="mt-0.5 text-sm">{{ volunteer.profession ?? notOnFile }}</dd>
             </div>

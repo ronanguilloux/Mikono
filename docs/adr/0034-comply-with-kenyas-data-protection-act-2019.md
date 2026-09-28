@@ -91,7 +91,7 @@ The existing personal-data stores, and the ADR that bounds each one:
 
 | Store | Personal data | Bounded by |
 | --- | --- | --- |
-| `volunteer` | Identity, contact, profile, notes, emergency contacts | [0014](0014-make-a-volunteers-last-name-optional.md), [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md), this ADR |
+| `volunteer` | Identity, contact, profile, notes, emergency contacts, gender | [0014](0014-make-a-volunteers-last-name-optional.md), [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md), [0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md), this ADR |
 | Passport number | Encrypted at rest | [0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md) |
 | `volunteer_photo` | Re-encoded JPEG, no metadata | [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) |
 | `stay` | Where a volunteer is attached, and when | [0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) |
@@ -145,6 +145,9 @@ Sensitive personal data is processed only where the s.25 principles apply
 - **A dedicated field for a sensitive category** (sex, marital status,
   religion, health, and the like) needs its own ADR, naming its s.45
   ground and the consent UCESCO records for it.
+- **`gender` is sensitive** ("sex"), held only for accommodation pairing
+  and bounded by
+  [ADR 0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md).
 
 ### 3. Transfer outside Kenya is proven and, for sensitive data, consented
 
