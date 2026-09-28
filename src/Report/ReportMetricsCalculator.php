@@ -38,9 +38,11 @@ final class ReportMetricsCalculator
         $plannedCount = 0;
         $totalDays = 0.0;
         $uncounted = 0;
+        $engaged = [];
 
         foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
             ++$activityCount;
+            $engaged[(int) $activity->getVolunteer()?->getId()] = true;
 
             $date = $activity->getDate();
             // Same rule as the Activities index cards: dated after today means
@@ -60,6 +62,7 @@ final class ReportMetricsCalculator
         return new ReportMetrics(
             \count($volunteers),
             $this->volunteers->countStayingOn($today),
+            \count($engaged),
             \count($projects),
             \count(array_filter($projects, static fn($project) => $project->isActive())),
             $activityCount,

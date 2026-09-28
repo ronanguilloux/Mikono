@@ -28,7 +28,7 @@
        is asserted in tests, and a bare .grid selector would break the moment a
        shared component grew a grid class. #}
     <div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4" data-kpi-tiles>
-        {{ report.kpi_tile('Volunteers', metrics.volunteerCount, metrics.activeVolunteerCount ~ ' active') }}
+        {{ report.kpi_tile('Volunteers', metrics.volunteerCount, metrics.activeVolunteerCount ~ ' active · ' ~ metrics.engagedVolunteerCount ~ ' engaged') }}
         {{ report.kpi_tile('Projects', metrics.projectCount, metrics.activeProjectCount ~ ' active') }}
         {{ report.kpi_tile(
             'Activities logged',
@@ -133,6 +133,7 @@
             :withActions="false"
             emptyMessage="No activities logged yet."
         />
+        <p class="mt-2 text-xs text-slate-500" data-report-note>Every column includes planned activities. "Volunteers engaged" counts each person once per row.</p>
     </div>
 
     {#
@@ -142,6 +143,7 @@
         prints. Costs no extra query; every summary is already in hand.
     #}
     <div data-report-panel="print" class="hidden print:block">
+        <p class="mb-4 text-xs text-slate-500">Every column includes planned activities. "Volunteers engaged" counts each person once per row.</p>
         <div class="mb-8">
             <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By volunteer</h2>
             <twig:DataTable
@@ -170,6 +172,17 @@
                 :withActions="false"
                 emptyMessage="No activities logged yet."
             />
+            {% if beneficiaries is not empty %}
+                <h3 class="mb-1 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Beneficiaries reached</h3>
+                <dl class="space-y-1 text-sm" data-report-beneficiaries>
+                    {% for program in beneficiaries %}
+                        <div>
+                            <dt class="inline font-medium">{{ program.project.name }} — {{ program.name }}:</dt>
+                            <dd class="inline whitespace-pre-line text-slate-700">{{ program.beneficiariesReached }}</dd>
+                        </div>
+                    {% endfor %}
+                </dl>
+            {% endif %}
         </div>
 
         <div class="mt-8">

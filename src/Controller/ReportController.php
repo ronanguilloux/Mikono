@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Pagination\ListPaginator;
+use App\Repository\ProgramRepository;
 use App\Report\ActivitySummaryCalculator;
 use App\Report\ReportMetricsCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays?: float, days?: int, outings?: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}
+ * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays?: float, volunteers?: int, days?: int, outings?: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}
  */
 #[Route('/reports', name: 'report_')]
 final class ReportController extends AbstractController
@@ -37,6 +38,7 @@ final class ReportController extends AbstractController
         'label' => 'label',
         'count' => 'count',
         'totalDays' => 'totalDays',
+        'volunteers' => 'volunteers',
         'days' => 'days',
         'outings' => 'outings',
         'mostRecent' => 'mostRecent',
@@ -46,6 +48,7 @@ final class ReportController extends AbstractController
         private readonly ActivitySummaryCalculator $calculator,
         private readonly ReportMetricsCalculator $metrics,
         private readonly ListPaginator $paginator,
+        private readonly ProgramRepository $programs,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -117,6 +120,12 @@ final class ReportController extends AbstractController
             'programColumns' => $this->columnsFor(self::TAB_PROGRAM),
             'escortColumns' => $this->columnsFor(self::TAB_ESCORT),
             'branchColumns' => $this->columnsFor(self::TAB_BRANCH),
+            // Free text, so it can't be a sortable column: printed as notes
+            // under the program table instead (ADR 0030).
+            'beneficiaries' => $this->programs->createOrderedQueryBuilder()
+                ->andWhere('prg.beneficiariesReached IS NOT NULL')
+                ->getQuery()
+                ->getResult(),
         ]);
     }
 
@@ -136,7 +145,7 @@ final class ReportController extends AbstractController
             ];
         }
 
-        return [
+        $columns = [
             ['key' => 'label', 'label' => match ($tab) {
                 self::TAB_PROJECT => 'Project',
                 self::TAB_PROGRAM => 'Program',
@@ -145,8 +154,14 @@ final class ReportController extends AbstractController
             }],
             ['key' => 'count', 'label' => 'Activities'],
             ['key' => 'totalDays', 'label' => 'Total days'],
-            ['key' => 'mostRecent', 'label' => 'Most recent'],
         ];
+        // A volunteer's own row would always say 1.
+        if (self::TAB_VOLUNTEER !== $tab) {
+            $columns[] = ['key' => 'volunteers', 'label' => 'Volunteers engaged'];
+        }
+        $columns[] = ['key' => 'mostRecent', 'label' => 'Most recent'];
+
+        return $columns;
     }
 
     /**
@@ -156,9 +171,8 @@ final class ReportController extends AbstractController
      * $tab is what the caller knows and this method doesn't: which breakdown
      * these rows are. A volunteer's name links to their page and a program's
      * or a branch's to its activities (`/activities?program=<id>`,
-     * `?branch=<id>`). A project's doesn't — it
-     * has no show page, only an edit form, which is not where a report name
-     * should land. The Unknown bucket carries no id, so it stays plain text. The Most recent date links on every tab, to
+     * `?branch=<id>`). A project's goes to its edit form, the only project
+     * page there is. The Unknown bucket carries no id, so it stays plain text. The Most recent date links on every tab, to
      * the edit form of the activity it came from: an activity has no other
      * page. On a date with several activities, that is one of them.
      *
@@ -191,6 +205,9 @@ final class ReportController extends AbstractController
                 // this table alone printed the raw float.
                 $cells['totalDays'] = number_format($summary['totalDays'], 1);
             }
+            if (isset($summary['volunteers'])) {
+                $cells['volunteers'] = (string) $summary['volunteers'];
+            }
             if (isset($summary['days'])) {
                 $cells['days'] = (string) $summary['days'];
             }
@@ -201,6 +218,9 @@ final class ReportController extends AbstractController
             $links = [];
             if (self::TAB_VOLUNTEER === $tab && null !== $id) {
                 $links['label'] = $this->generateUrl('volunteer_show', ['id' => $id]);
+            }
+            if (self::TAB_PROJECT === $tab && null !== $id) {
+                $links['label'] = $this->generateUrl('project_edit', ['id' => $id]);
             }
             if (self::TAB_PROGRAM === $tab && null !== $id) {
                 $links['label'] = $this->generateUrl('activity_index', ['program' => $id]);

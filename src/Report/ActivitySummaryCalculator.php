@@ -17,7 +17,7 @@ final class ActivitySummaryCalculator
 {
     public function __construct(private readonly ActivityRepository $activities) {}
 
-    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
     public function summarizeByVolunteer(): array
     {
         return $this->summarize(
@@ -26,7 +26,7 @@ final class ActivitySummaryCalculator
         );
     }
 
-    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
+    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
     public function summarizeByProject(): array
     {
         return $this->summarize(
@@ -40,7 +40,7 @@ final class ActivitySummaryCalculator
      * ("School support" runs at three schools), so the name alone can't tell
      * the rows apart.
      *
-     * @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
     public function summarizeByProgram(): array
     {
@@ -59,7 +59,7 @@ final class ActivitySummaryCalculator
      * branch — the same rule as the `/activities?branch=` filter. A branch
      * with no activity has no row, like every other breakdown.
      *
-     * @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
     public function summarizeByBranch(): array
     {
@@ -134,6 +134,11 @@ final class ActivitySummaryCalculator
      * a caller can link a row back to the thing it summarizes — `/reports`
      * links volunteer rows to `/activities?volunteer=<id>`.
      *
+     * `volunteers` is the distinct people in a bucket, planned activities
+     * included like every other column here — a project's count is distinct
+     * across its programs, never the sum of theirs. Always 1 on the volunteer
+     * breakdown, which is why /reports doesn't show it there.
+     *
      * Activities with no volunteer (or no project) share one 'unknown' bucket
      * with a null id, which is what makes such a row unlinkable rather than
      * pointing somewhere wrong.
@@ -141,17 +146,19 @@ final class ActivitySummaryCalculator
      * @param callable(Activity): ?int   $idFn
      * @param callable(Activity): string $labelFn
      *
-     * @return list<array{id: ?int, label: string, count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
     private function summarize(callable $idFn, callable $labelFn): array
     {
         $buckets = [];
+        $volunteers = [];
 
         foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
             $id = $idFn($activity);
             $key = $id ?? 'unknown';
-            $buckets[$key] ??= ['id' => $id, 'label' => $labelFn($activity), 'count' => 0, 'totalDays' => 0.0, 'mostRecent' => null, 'mostRecentActivityId' => null];
+            $buckets[$key] ??= ['id' => $id, 'label' => $labelFn($activity), 'count' => 0, 'totalDays' => 0.0, 'volunteers' => 0, 'mostRecent' => null, 'mostRecentActivityId' => null];
             ++$buckets[$key]['count'];
+            $volunteers[$key][(int) $activity->getVolunteer()?->getId()] = true;
             $buckets[$key]['totalDays'] += $activity->getDuration()?->toDays() ?? 0.0;
 
             $date = $activity->getDate();
@@ -159,6 +166,10 @@ final class ActivitySummaryCalculator
                 $buckets[$key]['mostRecent'] = $date;
                 $buckets[$key]['mostRecentActivityId'] = $activity->getId();
             }
+        }
+
+        foreach ($buckets as $key => $bucket) {
+            $buckets[$key]['volunteers'] = count($volunteers[$key]);
         }
 
         $result = array_values($buckets);

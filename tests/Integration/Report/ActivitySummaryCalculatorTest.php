@@ -8,6 +8,7 @@ use App\Enum\ActivityDuration;
 use App\Factory\ActivityFactory;
 use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
+use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\VolunteerFactory;
 use App\Report\ActivitySummaryCalculator;
@@ -119,6 +120,34 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
         self::assertSame([1.5, 0.0], array_column($rows, 'totalDays'));
         self::assertEquals(new \DateTimeImmutable('2026-08-05'), $rows[0]['mostRecent']);
         self::assertSame($latest->getId(), $rows[0]['mostRecentActivityId']);
+    }
+
+    /**
+     * Each person once per row, planned activities included like the other
+     * columns: a project counts distinct people across its programs, not the
+     * sum of its programs' counts.
+     */
+    #[Test]
+    public function volunteersEngagedCountsEachPersonOncePerRow(): void
+    {
+        self::bootKernel();
+        $project = ProjectFactory::createOne(['name' => 'Olympic School']);
+        $reading = ProgramFactory::createOne(['name' => 'Reading', 'project' => $project]);
+        $maths = ProgramFactory::createOne(['name' => 'Maths', 'project' => $project]);
+        $ada = VolunteerFactory::createOne();
+        $bea = VolunteerFactory::createOne();
+        ActivityFactory::createMany(2, ['volunteer' => $ada, 'program' => $reading, 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['volunteer' => $bea, 'program' => $reading, 'duration' => ActivityDuration::FullDay, 'date' => new \DateTimeImmutable('tomorrow')]);
+        ActivityFactory::createOne(['volunteer' => $ada, 'program' => $maths, 'duration' => ActivityDuration::HalfDay]);
+
+        $calculator = self::getContainer()->get(ActivitySummaryCalculator::class);
+        self::assertInstanceOf(ActivitySummaryCalculator::class, $calculator);
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $programs = $calculator->summarizeByProgram();
+        self::assertSame(['Olympic School — Reading', 'Olympic School — Maths'], array_column($programs, 'label'));
+        self::assertSame([2, 1], array_column($programs, 'volunteers'));
+        self::assertSame([2], array_column($calculator->summarizeByProject(), 'volunteers'));
     }
 
     /**

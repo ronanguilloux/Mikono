@@ -6,7 +6,7 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
-## 2026-09-28 — Impact panel on the volunteer page
+## 2026-09-28 — Impact on the volunteer page and in /reports
 
 From the meeting recap's "Impact & Reporting". The volunteer page has a new
 **Impact** card with one table per program and one per project, built from
@@ -19,6 +19,18 @@ distinct across its programs). Program rows also show the new optional
 `Program::$beneficiariesReached` free text, entered on the program form
 (ADR 0030). Hours aren't shown because they aren't stored. The fixtures
 leave the new field empty: the roster archive has no such data.
+
+`/reports` got the same figure. The project, program and branch tables have
+a sortable **Volunteers engaged** column (distinct people per row, counted
+in `ActivitySummaryCalculator::summarize()`), and the Volunteers tile adds
+"N engaged" (people with at least one activity). Unlike the Impact card,
+these counts include planned activities, like every other `/reports`
+column; a note under the table says so. The volunteer table has no such
+column, since it would always say 1. Beneficiaries are free text, so the
+print view lists them as notes under the program table instead of adding
+a column.
+Project names on the By project tab now link to the project's edit form,
+the only project page there is.
 
 ## 2026-09-28 — Birthday reminders on the dashboard
 

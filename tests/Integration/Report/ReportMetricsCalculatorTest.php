@@ -50,6 +50,21 @@ final class ReportMetricsCalculatorTest extends KernelTestCase
     }
 
     #[Test]
+    public function countsEachVolunteerWithAnActivityOnceAsEngaged(): void
+    {
+        self::bootKernel();
+        $volunteer = VolunteerFactory::createOne();
+        ActivityFactory::createMany(2, ['volunteer' => $volunteer]);
+        ActivityFactory::createOne(['date' => new \DateTimeImmutable('tomorrow')]);
+        VolunteerFactory::createOne();
+
+        $metrics = $this->calculator()->calculate(new \DateTimeImmutable('today'));
+
+        self::assertSame(3, $metrics->volunteerCount);
+        self::assertSame(2, $metrics->engagedVolunteerCount);
+    }
+
+    #[Test]
     public function sumsHalfAndFullDaysIntoTotalDays(): void
     {
         self::bootKernel();

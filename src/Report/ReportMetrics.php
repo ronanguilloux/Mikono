@@ -13,6 +13,8 @@ final readonly class ReportMetrics
     public function __construct(
         public int $volunteerCount,
         public int $activeVolunteerCount,
+        /** Volunteers with at least one activity, planned included. */
+        public int $engagedVolunteerCount,
         public int $projectCount,
         public int $activeProjectCount,
         public int $activityCount,

@@ -138,7 +138,7 @@ final class ReportControllerTest extends WebTestCase
         $tiles = $crawler->filter('[data-kpi-tiles] > div');
         self::assertCount(4, $tiles);
         self::assertStringContainsString('2', $tiles->eq(0)->text());
-        self::assertStringContainsString('1 active', $tiles->eq(0)->text());
+        self::assertStringContainsString('1 active · 1 engaged', $tiles->eq(0)->text());
         self::assertStringContainsString('incl. 1 planned', $tiles->eq(2)->text());
         self::assertStringContainsString('1.5', $tiles->eq(3)->text());
     }
@@ -248,7 +248,7 @@ final class ReportControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function theProjectBreakdownLeavesItsNamesUnlinked(): void
+    public function theProjectBreakdownLinksEachNameToItsEditForm(): void
     {
         $client = static::createClient();
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
@@ -256,10 +256,13 @@ final class ReportControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/reports?tab=project');
 
-        self::assertStringContainsString('Bright Achievers', $this->screenPanel($crawler));
-        // A project has no page a report name should land on, so its names
-        // stay plain text (the Most recent date still links to its activity).
-        self::assertCount(0, $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a'));
+        // A project has no show page; its edit form is the only one.
+        $link = $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a');
+        self::assertCount(1, $link);
+        self::assertSame('Bright Achievers', trim($link->text()));
+        $client->click($link->link());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('input[name="project_form[name]"][value="Bright Achievers"]');
     }
 
     #[Test]
@@ -375,6 +378,34 @@ final class ReportControllerTest extends WebTestCase
     }
 
     /**
+     * Distinct people per program, planned included; the volunteer tab has no
+     * such column. Beneficiaries are free text, so they print as notes under
+     * the program table rather than as a column.
+     */
+    #[Test]
+    public function theProgramTabCountsVolunteersEngagedAndPrintsBeneficiaries(): void
+    {
+        $client = static::createClient();
+        $reading = ProgramFactory::createOne(['name' => 'Reading', 'project' => ProjectFactory::createOne(['name' => 'Olympic School']), 'beneficiariesReached' => '40 pupils in grade 3']);
+        $volunteer = VolunteerFactory::createOne();
+        ActivityFactory::createMany(2, ['volunteer' => $volunteer, 'program' => $reading]);
+        ActivityFactory::createOne(['program' => $reading, 'date' => new \DateTimeImmutable('tomorrow')]);
+        ProgramFactory::createOne(['name' => 'Maths']);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=program');
+
+        $headers = $crawler->filter('[data-report-panel="screen"] table thead th')->each(static fn($th) => trim($th->text()));
+        self::assertContains('Volunteers engaged', $headers);
+        $row = $crawler->filter('[data-report-panel="screen"] table tbody tr')->first()->filter('td')->each(static fn($td) => trim($td->text()));
+        self::assertSame('2', $row[(int) array_search('Volunteers engaged', $headers, true)]);
+        self::assertSame('Olympic School — Reading: 40 pupils in grade 3', trim((string) preg_replace('/\s+/', ' ', $crawler->filter('[data-report-beneficiaries]')->text())));
+
+        $crawler = $client->request('GET', '/reports?tab=volunteer');
+        self::assertStringNotContainsString('Volunteers engaged', $crawler->filter('[data-report-panel="screen"] table thead')->text());
+    }
+
+    /**
      * Mombasa versus Nairobi without adding up project rows by hand, and the
      * name leads to that branch's activities.
      */
@@ -392,7 +423,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertSame('By branch', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame(
-            ['Branch', 'Activities', 'Total days', 'Most recent'],
+            ['Branch', 'Activities', 'Total days', 'Volunteers engaged', 'Most recent'],
             $screen->filter('thead th')->each(static fn($th) => trim($th->text())),
         );
         $rows = $screen->filter('table tbody tr');
@@ -792,12 +823,11 @@ final class ReportControllerTest extends WebTestCase
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
         self::assertCount(5, $printTables);
-        // "Most recent" is the 4th column on the volunteer, project, program
-        // and branch tables, the 5th on the escort one.
-        foreach ([0 => 4, 1 => 4, 2 => 4, 3 => 5, 4 => 4] as $index => $column) {
+        // "Most recent" is the last column on every table.
+        foreach (range(0, 4) as $index) {
             self::assertSame(
                 'Planned',
-                trim($printTables->eq($index)->filter("tbody tr td:nth-child($column) span")->text()),
+                trim($printTables->eq($index)->filter('tbody tr td:last-child span')->text()),
                 sprintf('print table %d', $index),
             );
         }
@@ -829,7 +859,7 @@ final class ReportControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/reports?tab=' . $tab);
 
-        $link = $crawler->filter('[data-report-panel="screen"] table tbody a[href$="/edit"]');
+        $link = $crawler->filter('[data-report-panel="screen"] table tbody a[href^="/activities/"][href$="/edit"]');
         self::assertCount(1, $link);
         self::assertSame('/activities/' . $latest->getId() . '/edit', $link->attr('href'));
         self::assertSame('10 Aug 2026', trim($link->text()));
@@ -838,7 +868,8 @@ final class ReportControllerTest extends WebTestCase
     /** The "Most recent" cells of the on-screen breakdown — the badge's home. */
     private function mostRecentCells(\Symfony\Component\DomCrawler\Crawler $crawler): \Symfony\Component\DomCrawler\Crawler
     {
-        return $crawler->filter('[data-report-panel="screen"] table tbody tr td:nth-child(4)');
+        // Last on every tab; its position varies with the tab's columns.
+        return $crawler->filter('[data-report-panel="screen"] table tbody tr td:last-child');
     }
 
     private function activityFor(string $fullName, string $projectName, \DateTimeImmutable $date): void
