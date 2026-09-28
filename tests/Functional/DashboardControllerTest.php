@@ -9,6 +9,7 @@ use App\Factory\ActivityTypeFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use PHPUnit\Framework\Attributes\Test;
@@ -183,7 +184,7 @@ final class DashboardControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('#birthdays-heading', 'Birthdays');
+        self::assertSelectorTextContains('#reminders-heading', 'Reminders');
         self::assertSelectorTextContains('[data-birthday-days="0"]', "It's Nadia's birthday today!");
         self::assertSame(
             sprintf('/volunteers/%d', $volunteer->getId()),
@@ -192,7 +193,7 @@ final class DashboardControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function hidesTheBirthdaysPanelWhenNobodyIsDue(): void
+    public function hidesTheRemindersPanelWhenNothingIsDue(): void
     {
         $client = static::createClient();
         VolunteerFactory::createOne(['dateOfBirth' => (new \DateTimeImmutable('today'))->modify('-30 years +2 days')]);
@@ -202,6 +203,27 @@ final class DashboardControllerTest extends WebTestCase
         $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('#birthdays-heading');
+        self::assertSelectorNotExists('#reminders-heading');
+    }
+
+    #[Test]
+    public function remindsOfAnArrivalTomorrowWithTheVolunteerAndBranch(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Amani', 'lastName' => 'Otieno']);
+        $tomorrow = (new \DateTimeImmutable('today'))->modify('+1 day');
+        StayFactory::createOne(['volunteer' => $volunteer, 'startDate' => $tomorrow, 'endDate' => $tomorrow->modify('+2 weeks')]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('#reminders-heading', 'Reminders');
+        self::assertSelectorTextContains('[data-arrival-days="1"]', 'Amani Otieno');
+        self::assertSelectorTextContains('[data-arrival-days="1"]', 'Nairobi (HQ)');
+        self::assertSame(
+            sprintf('/volunteers/%d', $volunteer->getId()),
+            $crawler->filter('[data-arrival-days="1"] a')->attr('href'),
+        );
     }
 }

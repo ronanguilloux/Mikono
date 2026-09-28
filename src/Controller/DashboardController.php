@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Report\ArrivalReminderFinder;
 use App\Report\BirthdayReminderFinder;
 use App\Report\QuietProjectFinder;
 use App\Report\RosterBuilder;
@@ -17,6 +18,7 @@ class DashboardController extends AbstractController
         private readonly RosterBuilder $rosters,
         private readonly QuietProjectFinder $quietProjects,
         private readonly BirthdayReminderFinder $birthdays,
+        private readonly ArrivalReminderFinder $arrivals,
     ) {}
 
     #[Route('/', name: 'app_home', methods: ['GET'])]
@@ -32,6 +34,7 @@ class DashboardController extends AbstractController
             'quietProjects' => $this->quietProjects->find($today),
             'quiet_after_days' => QuietProjectFinder::WARN_AFTER_DAYS,
             'birthdays' => $this->birthdays->find($today),
+            'arrivals' => $this->arrivals->find($today),
         ]);
     }
 

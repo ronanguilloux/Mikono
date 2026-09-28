@@ -19,7 +19,7 @@ achievement data, no anniversary.
 ## Done when
 
 - The dashboard Reminders panel (from
-  [dashboard-arrival-and-birthday-reminders](dashboard-arrival-and-birthday-reminders.md))
+  [done.md, 2026-09-28](../done.md))
   lists every achievement whose `achievedOn` falls on **today's month and
   day, one or more whole years ago** (29 February → 28 February in a
   non-leap year).

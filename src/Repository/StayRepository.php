@@ -69,4 +69,21 @@ class StayRepository extends ServiceEntityRepository
             ->setParameter('branch', $stay->getBranch())
             ->getSingleScalarResult();
     }
+
+    /** @return list<Stay> */
+    public function findStartingBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /** @var list<Stay> $stays */
+        $stays = $this->createQueryBuilder('s')
+            ->addSelect('v', 'b')
+            ->join('s.volunteer', 'v')
+            ->join('s.branch', 'b')
+            ->where('s.startDate BETWEEN :from AND :to')
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)
+            ->setParameter('to', $to, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getResult();
+
+        return $stays;
+    }
 }

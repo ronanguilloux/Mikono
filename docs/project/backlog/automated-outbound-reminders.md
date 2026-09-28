@@ -65,7 +65,7 @@ said an outbound channel was the only blocker.
 
 **The in-app half is split out.** All three kinds are shown on the
 dashboard first, with no outbound channel:
-[dashboard-arrival-and-birthday-reminders](dashboard-arrival-and-birthday-reminders.md)
+[done.md, 2026-09-28](../done.md)
 and [achievement-anniversary-reminders](achievement-anniversary-reminders.md).
 This card is now only about *sending* them (SMS or email), and its ADR can
 weigh that against the in-app panel once it has been used.

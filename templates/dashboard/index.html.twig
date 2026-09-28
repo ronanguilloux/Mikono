@@ -45,11 +45,12 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="flex flex-col gap-6 lg:col-span-2">
-            {% if birthdays is not empty %}
-                <section class="rounded-lg border border-slate-200 bg-white shadow-sm" aria-labelledby="birthdays-heading">
+            {% if birthdays is not empty or arrivals is not empty %}
+                <section class="rounded-lg border border-slate-200 bg-white shadow-sm" aria-labelledby="reminders-heading">
                     <div class="border-b border-slate-200 px-5 py-4">
-                        <h2 id="birthdays-heading" class="font-semibold">Birthdays</h2>
+                        <h2 id="reminders-heading" class="font-semibold">Reminders</h2>
                     </div>
+                    {% if birthdays is not empty %}
                     <ul class="divide-y divide-slate-200">
                         {% for birthday in birthdays %}
                             {% set name %}<a href="{{ path('volunteer_show', {id: birthday.volunteerId}) }}" class="font-semibold text-brand-600 hover:underline">{{ birthday.firstName }}</a>{% endset %}
@@ -66,6 +67,21 @@
                             </li>
                         {% endfor %}
                     </ul>
+                    {% endif %}
+                    {% for daysAway, label in {1: 'Arriving tomorrow', 3: 'Arriving in 3 days', 7: 'Arriving in a week'} %}
+                        {% set group = arrivals|filter(a => a.daysAway == daysAway) %}
+                        {% if group is not empty %}
+                            <h3 class="border-t border-slate-200 bg-slate-50 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ label }}</h3>
+                            <ul class="divide-y divide-slate-200 border-t border-slate-200">
+                                {% for arrival in group %}
+                                    <li class="px-5 py-3 text-sm" data-arrival-days="{{ arrival.daysAway }}">
+                                        🧳 <a href="{{ path('volunteer_show', {id: arrival.volunteerId}) }}" class="font-semibold text-brand-600 hover:underline">{{ arrival.fullName }}</a>
+                                        at {{ arrival.branchName }} — {{ arrival.startDate|date('D j M') }} to {{ arrival.endDate|date('D j M Y') }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% endfor %}
                 </section>
             {% endif %}
 

@@ -6,6 +6,17 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-09-28 — Arrival reminders on the dashboard
+
+The home screen's Birthdays panel is now **Reminders**. Beside the
+birthdays it lists every stay starting tomorrow, in 3 days or in a week, one
+heading per offset, each row naming the volunteer (linked), the branch and
+the stay's dates (`ArrivalReminderFinder`, `StayRepository::findStartingBetween()`).
+A stay starting the day after the same volunteer's previous stay ends is a
+continuation and is left out. The panel still disappears when it has
+nothing to say. Sending these by SMS or email stays with
+[automated-outbound-reminders](backlog/automated-outbound-reminders.md).
+
 ## 2026-09-28 — Fixtures drop the roster's people
 
 `AppStory` no longer seeds the roster archive's volunteers, stays or
