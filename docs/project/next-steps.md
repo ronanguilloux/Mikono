@@ -39,7 +39,7 @@ hostname is the one that isn't ours to solve.
 5. [Record achievements on a volunteer's stay](backlog/achievements-on-a-stay.md) — **D**
 6. [Achievement anniversary reminders on the dashboard](backlog/achievement-anniversary-reminders.md) — **G**
 7. [A breach-response runbook with the Act's clocks](backlog/breach-response-runbook.md)
-8. [Refuse a volunteer date of birth under 18](backlog/refuse-minors-as-volunteers.md)
+8. [Record minor volunteers with a guardian's consent](backlog/minor-volunteers-with-guardian-consent.md) — **D**
 9. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
 10. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
 11. [Tag programs with the beneficiary groups they serve](backlog/program-beneficiary-groups.md)
