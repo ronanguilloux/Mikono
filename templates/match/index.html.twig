@@ -116,7 +116,7 @@
                     <p class="px-5 py-6 text-sm text-slate-500">No available volunteer has these skills or this experience.</p>
                 {% else %}
                     <div class="p-3">
-                        <twig:DataTable :columns="columns" :rows="group.rows" :withActions="false" />
+                        <twig:DataTable :columns="columns" :rows="group.rows" />
                     </div>
                 {% endif %}
             </section>

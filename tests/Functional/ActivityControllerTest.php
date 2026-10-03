@@ -916,7 +916,7 @@ final class ActivityControllerTest extends WebTestCase
 
         $client->loginUser(UserFactory::createOne());
 
-        foreach (['?project=abc', '?project[]=1', '?project=0', '?project=999999', '?date[]=x', '?date=nonsense', '?volunteer=abc', '?volunteer[]=1', '?volunteer=999999'] as $query) {
+        foreach (['?project=abc', '?project[]=1', '?project=0', '?project=999999', '?date[]=x', '?date=nonsense', '?volunteer=abc', '?volunteer[]=1', '?volunteer=999999', '?program=abc', '?program[]=1', '?program=999999'] as $query) {
             $client->request('GET', '/activities/new' . $query);
             self::assertResponseIsSuccessful(sprintf('%s should render the form, not fail', $query));
         }
@@ -943,6 +943,27 @@ final class ActivityControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/activities/new?volunteer=' . $gone->getId());
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter($checked));
+    }
+
+    /**
+     * /matches links here with a program, a volunteer and a date: all three
+     * arrive filled in, and the program beats a `?project=` beside it.
+     */
+    #[Test]
+    public function theBatchFormPrefillsAProgramFromTheQueryString(): void
+    {
+        $client = static::createClient();
+        $program = ProgramFactory::createOne();
+        ProgramFactory::createOne(['project' => $program->getProject()]);
+        $volunteer = VolunteerFactory::createOne();
+        $date = new \DateTimeImmutable('today')->modify('+1 day')->format('Y-m-d');
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', sprintf('/activities/new?program=%d&project=%d&volunteer=%d&date=%s', $program->getId(), $program->getProject()?->getId(), $volunteer->getId(), $date));
+
+        self::assertSame([(string) $program->getId()], $crawler->filter('select[name="batch_activity_form[program]"] option[selected]')->extract(['value']));
+        self::assertSame([(string) $volunteer->getId()], $crawler->filter('[data-batch-activity-form-target="checkboxes"] input[type="checkbox"][checked]')->extract(['value']));
+        self::assertSame($date, $crawler->filter('input[name="batch_activity_form[date]"]')->attr('value'));
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Factory\BranchFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\SkillFactory;
+use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use PHPUnit\Framework\Attributes\Test;
@@ -80,6 +81,33 @@ final class MatchControllerTest extends WebTestCase
         self::assertCount(1, $section->filter(sprintf('a[href="/volunteers/%d/edit"]', $volunteer->getId())));
         self::assertStringContainsString('Nobody available for: Plumbing', $section->filter('[data-uncovered]')->text());
         self::assertSame('By experience', self::rowsOf($crawler, (int) $past->getProgram()?->getId())[0][3], 'No skills to count: the badge alone, no dash.');
+    }
+
+    /**
+     * Assign opens the batch form on a day that saves: today for someone here
+     * now, the first day of the stay for someone arriving later.
+     */
+    #[Test]
+    public function eachRowLinksToTheBatchFormPrefilledOnTheFirstDayTheVolunteerCanBeThere(): void
+    {
+        $client = static::createClient();
+        $skill = SkillFactory::findOrCreate(['name' => 'Plumbing']);
+        $program = ProgramFactory::createOne(['skills' => [$skill]]);
+        $today = new \DateTimeImmutable('today');
+        $here = VolunteerFactory::createOne(['skills' => [$skill]]);
+        $arriving = VolunteerFactory::createOne(['skills' => [$skill], 'stays' => StayFactory::new([
+            'startDate' => $today->modify('+10 days'),
+            'endDate' => $today->modify('+40 days'),
+        ])->many(1)]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/matches');
+
+        $assign = static fn(int $volunteerId, \DateTimeImmutable $date): string => sprintf('/activities/new?program=%d&volunteer=%d&date=%s', $program->getId(), $volunteerId, $date->format('Y-m-d'));
+        self::assertSame(
+            [$assign((int) $here->getId(), $today), $assign((int) $arriving->getId(), $today->modify('+10 days'))],
+            $crawler->filter(sprintf('[data-program-matches="%d"] a', $program->getId()))->reduce(static fn(Crawler $link): bool => 'Assign' === trim($link->text()))->extract(['href']),
+        );
     }
 
     #[Test]

@@ -205,7 +205,7 @@ final class ActivityController extends AbstractController
         return null === $id ? null : $this->volunteers->find($id);
     }
 
-    /** The index's `?program=<id>` filter, linked from /reports/volunteers' program tab. */
+    /** The index's `?program=<id>` filter, linked from /reports/volunteers' program tab, and the batch form's prefill from /matches. */
     private function requestedProgram(Request $request): ?Program
     {
         $id = $this->requestedId($request, 'program');
@@ -229,9 +229,11 @@ final class ActivityController extends AbstractController
         // The home screen links here pre-filled: its rosters pass the day they
         // cover, and "Assign volunteers" on a quiet project passes that
         // project, so the VM lands on a form that only needs the people. A
-        // volunteer's page passes that volunteer, ticked already.
+        // volunteer's page passes that volunteer, ticked already. /matches
+        // passes a program, a volunteer and a day both their stay and the
+        // program cover.
         $data->date = $this->requestedDate($request) ?? $today;
-        $data->program = $this->soleProgramOf($this->requestedProject($request));
+        $data->program = $this->requestedProgram($request) ?? $this->soleProgramOf($this->requestedProject($request));
         $data->volunteers = $this->offerableVolunteer($this->requestedVolunteer($request));
         $form = $this->createForm(BatchActivityFormType::class, $data);
         $form->handleRequest($request);

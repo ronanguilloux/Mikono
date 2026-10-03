@@ -153,6 +153,11 @@ final class MatchController extends AbstractController
                 'cells' => $this->cells($matches, $match, $today),
                 'links' => ['name' => $this->generateUrl('volunteer_show', ['id' => $id])],
                 'pills' => ['status' => ($match->present ? VolunteerStatus::Present : VolunteerStatus::Upcoming)->tone()],
+                'actions' => [['label' => 'Assign', 'url' => $this->generateUrl('activity_new', [
+                    'program' => $matches->program->getId(),
+                    'volunteer' => $id,
+                    'date' => self::firstDay($matches, $match, $today)->format('Y-m-d'),
+                ])]],
             ];
             if ($match->isByExperienceOnly()) {
                 $row['badges'] = ['matched' => 'By experience'];
@@ -207,6 +212,17 @@ final class MatchController extends AbstractController
             1 => '1 day left',
             default => $left . ' days left',
         };
+    }
+
+    /**
+     * The Assign link's date: the first day from today that both the stay and
+     * the program cover. The finder keeps only not-ended stays overlapping an
+     * open program, so this day exists; today would refuse an upcoming
+     * volunteer or a program not started yet.
+     */
+    private static function firstDay(ProgramMatches $matches, VolunteerMatch $match, \DateTimeImmutable $today): \DateTimeImmutable
+    {
+        return max(array_filter([$today, $match->stay->getStartDate(), $matches->program->getStartDate()]));
     }
 
     private static function experience(VolunteerMatch $match): string

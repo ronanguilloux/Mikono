@@ -106,6 +106,12 @@ lexicographic order with no composite score.**
   - *Candidate row:* status pill; stay dates and days left; matched
     skills as "n of m"; matching skills; missing skills; experience by
     activity type, with its count in this program and its last date.
+  - *Assign action:* each row links to `/activities/new` with the
+    program, the volunteer and a date already filled in. The date is the
+    first day from today that both the stay and the program cover, so an
+    upcoming volunteer or a program not started yet still gets a date
+    that saves. More volunteers are added through the form's search.
+    Saving a planned activity makes the program count as covered here.
 - **Experience-only rows** carry a "By experience" badge on Matched, and
   a "Not on profile" badge on missing skills that links to the
   volunteer's edit page. Nothing changes on the profile automatically; the
