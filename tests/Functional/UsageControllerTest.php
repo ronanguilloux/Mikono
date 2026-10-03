@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Entity\LoginAttempt;
+use App\Entity\UsageEvent;
+use App\Enum\UsageEventName;
 use App\Factory\UserFactory;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\Test;
@@ -102,6 +104,29 @@ final class UsageControllerTest extends WebTestCase
         self::assertStringContainsString('Zara Manager', $crawler->filter('[data-sign-ins] tbody tr')->eq(0)->text());
     }
 
+    #[Test]
+    public function theInPageActionsTableSortsAndPagesOnItsOwnParams(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new UsageEvent(UsageEventName::RosterCopied));
+        $entityManager->persist(new UsageEvent(UsageEventName::RosterCopied));
+        $entityManager->persist(new UsageEvent(UsageEventName::RosterRevealed));
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', '/usage');
+
+        self::assertResponseIsSuccessful();
+        // Most used first by default.
+        self::assertStringContainsString('Roster copied to clipboard', $crawler->filter('[data-in-page-actions] tbody tr')->eq(0)->text());
+        // Its own page-size param, so the access-log table's `perPage` is untouched.
+        self::assertCount(1, $crawler->filter('[data-in-page-actions] select[name="eventsPerPage"]'));
+
+        $crawler = $client->request('GET', '/usage?eventsSort=count&eventsDirection=asc');
+        self::assertStringContainsString('Roster opened', $crawler->filter('[data-in-page-actions] tbody tr')->eq(0)->text());
+    }
+
     /**
      * The default range has to be visible on the control. A screen that opens
      * filtered without saying so reads as "nobody ever used this" when the
@@ -120,9 +145,9 @@ final class UsageControllerTest extends WebTestCase
     }
 
     /**
-     * Sign-ins is the last table on a long page: sorting it, or changing the
-     * range from wherever the controls end up, must not send the reader back
-     * to the top. See ADR 0040.
+     * In-page actions and Sign-ins sit below a long table: sorting or paging
+     * them, or changing the range from wherever the controls end up, must not
+     * send the reader back to the top. See ADR 0040.
      */
     #[Test]
     public function theUsageControlsKeepTheReadersPlace(): void
@@ -132,7 +157,7 @@ final class UsageControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/usage');
 
-        $controls = $crawler->filter('[data-sign-ins] [data-sort-link], [data-range-presets] a, [data-range-form]');
+        $controls = $crawler->filter('[data-in-page-actions] [data-sort-link], [data-in-page-actions] [data-pagination-bar] form, [data-sign-ins] [data-sort-link], [data-range-presets] a, [data-range-form]');
         self::assertGreaterThan(3, $controls->count());
         self::assertSame(
             array_fill(0, $controls->count(), 'replace'),

@@ -6,6 +6,13 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-03 — /usage's In-page actions table sorts and pages
+
+Same treatment as Sign-ins: its own `events`-prefixed sort and page params
+(`eventsSort`, `eventsPage`, …) through `ListPaginator`'s `$prefix`, so it
+never disturbs the other two tables, and a new date range resets it to
+page 1. Sorting by "In-page action" follows the label on screen.
+
 ## 2026-10-03 — Sorting, paging and filtering keep the reader's place
 
 See

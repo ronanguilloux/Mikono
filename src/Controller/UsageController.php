@@ -29,6 +29,7 @@ use Symfony\Contracts\Cache\ItemInterface;
  * @phpstan-import-type UsageReport from AccessLogReader
  *
  * @phpstan-type SignInRow array{account: string, accountSort: string, ip: ?string, succeeded: int, failed: int, lastAttempt: \DateTimeImmutable, userId: ?int}
+ * @phpstan-type EventRow array{label: string, count: int, lastSeen: \DateTimeImmutable}
  */
 #[Route('/usage', name: 'usage_')]
 #[IsGranted('ROLE_ADMIN')]
@@ -66,6 +67,20 @@ final class UsageController extends AbstractController
     ];
 
     private const string LOGIN_PARAM_PREFIX = 'signIns';
+
+    /**
+     * The In-page actions table's, keyed into the rows eventRows() builds and
+     * prefixed `events` for the same reason Sign-ins is prefixed `signIns`.
+     *
+     * @var array<string, string>
+     */
+    private const array EVENT_SORT_MAP = [
+        'label' => 'label',
+        'count' => 'count',
+        'lastSeen' => 'lastSeen',
+    ];
+
+    private const string EVENT_PARAM_PREFIX = 'events';
 
     public function __construct(
         private readonly AccessLogReader $reader,
@@ -125,6 +140,20 @@ final class UsageController extends AbstractController
         /** @var list<SignInRow> $pageOfLogins */
         $pageOfLogins = iterator_to_array($loginPagination, false);
 
+        $eventPagination = $this->paginator->paginateArray(
+            $this->paginator->sortArray(
+                $this->eventRows($range),
+                $request,
+                self::EVENT_SORT_MAP,
+                self::EVENT_PARAM_PREFIX,
+            ),
+            $request,
+            self::EVENT_PARAM_PREFIX,
+        );
+
+        /** @var list<EventRow> $pageOfEvents */
+        $pageOfEvents = iterator_to_array($eventPagination, false);
+
         return $this->render('usage/index.html.twig', [
             'report' => $report,
             'range' => $range,
@@ -141,8 +170,7 @@ final class UsageController extends AbstractController
             'pagination' => $pagination,
             'sortState' => $this->paginator->sortState($request, self::SORT_MAP),
             // The in-page half: gestures that never reach the server, so no
-            // access log could ever show them. Small, unpaginated and
-            // unsorted — there are four possible rows.
+            // access log could ever show them.
             'eventColumns' => [
                 ['key' => 'label', 'label' => 'In-page action'],
                 ['key' => 'count', 'label' => 'Times'],
@@ -151,15 +179,17 @@ final class UsageController extends AbstractController
             'eventRows' => array_map(
                 static fn(array $event): array => [
                     'cells' => [
-                        'label' => $event['name']->label(),
+                        'label' => $event['label'],
                         'count' => (string) $event['count'],
                         'lastSeen' => $event['lastSeen']->format('j M, H:i'),
                     ],
                     'badges' => [],
                     'links' => [],
                 ],
-                $this->events->summarize($range),
+                $pageOfEvents,
             ),
+            'eventPagination' => $eventPagination,
+            'eventSortState' => $this->paginator->sortState($request, self::EVENT_SORT_MAP, self::EVENT_PARAM_PREFIX),
             // The personal half (ADR 0028): who tried to sign in, from where.
             'loginColumns' => [
                 ['key' => 'account', 'label' => 'Account'],
@@ -221,6 +251,24 @@ final class UsageController extends AbstractController
                 ];
             },
             $this->loginAttempts->summarize($range),
+        );
+    }
+
+    /**
+     * In-page action summaries keyed for EVENT_SORT_MAP. `label` is the text
+     * the reader sees, so sorting follows what's on screen, not the enum value.
+     *
+     * @return list<EventRow>
+     */
+    private function eventRows(UsageDateRange $range): array
+    {
+        return array_map(
+            static fn(array $event): array => [
+                'label' => $event['name']->label(),
+                'count' => $event['count'],
+                'lastSeen' => $event['lastSeen'],
+            ],
+            $this->events->summarize($range),
         );
     }
 

@@ -34,8 +34,8 @@
     {% set preset_base = 'rounded-md px-3 py-1.5 text-sm font-medium' %}
     {% set preset_on = preset_base ~ ' bg-brand-600 text-white' %}
     {% set preset_off = preset_base ~ ' border border-slate-300 text-slate-700 hover:border-brand-500 hover:text-brand-700' %}
-    {# `page` and `signInsPage` are dropped on purpose: a new range means a new page 1 in both tables. #}
-    {% set carried = app.request.query.all|filter((v, k) => k not in ['range', 'from', 'to', 'page', 'signInsPage'] and v is not iterable) %}
+    {# Every table's page is dropped on purpose: a new range means a new page 1 in each. #}
+    {% set carried = app.request.query.all|filter((v, k) => k not in ['range', 'from', 'to', 'page', 'eventsPage', 'signInsPage'] and v is not iterable) %}
 
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4 print:hidden">
         <nav class="flex flex-wrap gap-2" aria-label="Date range" data-range-presets>
@@ -150,7 +150,7 @@
         />
     {% endif %}
 
-    <section class="mt-10" aria-labelledby="in-page-heading">
+    <section class="mt-10" aria-labelledby="in-page-heading" data-in-page-actions>
         <h2 id="in-page-heading" class="font-semibold">In-page actions</h2>
         <p class="mb-3 mt-0.5 text-xs text-slate-500">
             Things that happen entirely in the browser and send no request, so the table above cannot see them —
@@ -160,11 +160,11 @@
             Same window as the table above: {{ range.label }}.
         </p>
 
-        {# No pagination and no sortState: there are four possible rows, and
-           sortable headers on a four-row table are decoration. #}
         <twig:DataTable
             :columns="eventColumns"
             :rows="eventRows"
+            :pagination="eventPagination"
+            :sortState="eventSortState"
             :withActions="false"
             emptyMessage="No in-page actions recorded in this date range."
         />

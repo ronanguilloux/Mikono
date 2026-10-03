@@ -61,7 +61,7 @@ back to the top.**
   intended.
 - **Every such control opts in with `data-turbo-action="replace"`:**
   - sort header links in the `DataTable` component, so every list,
-    `/reports` and both sorted tables on `/usage`;
+    `/reports` and all three tables on `/usage`;
   - page links and the page-size form;
   - the Activities mobile sort select;
   - the search and filter forms, and their "Clear filters" links;
