@@ -1,6 +1,6 @@
 # 0036. Manage skills as a seeded list shared by volunteers and programs
 
-Date: 2026-09-28
+Date: 2026-10-03
 
 ## Status
 
@@ -21,8 +21,9 @@ teach maths" are three different strings.
 ## Decision
 
 **Skills are a global `Skill` list, seeded by its migration, that
-volunteers hold and programs need through many-to-many links; volunteers
-are matched to a program by how many of its skills they hold.**
+volunteers hold and programs need through many-to-many links;
+volunteers are matched to a program by the skills they hold, or by the
+activity types they have logged, under ADR 0042.**
 
 - `Skill` has a unique `name` and an optional `description`. `/skills` has
   the same index/new/edit/delete and export shape as Activity Types, the
@@ -53,11 +54,10 @@ are matched to a program by how many of its skills they hold.**
   `listQueryBuilder()` so the export honours it too. Malformed input
   degrades to no filter
   ([ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)).
-- `/programs/{id}/matches`, with its export, lists the volunteers holding
-  **any** of the program's skills, ordered by number of matched skills
-  descending, then active first, then name. It is unpaginated and has no
-  sort links: the order is the answer. A program with no skills matches
-  nobody, and the page tells staff to tick its skills.
+- **Matching volunteers to programs is governed by
+  [ADR 0042](0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md)**
+  (`/matches`). Skills remain the first match basis there, ranked by how
+  many of the program's skills a volunteer holds.
 - A volunteer with no skills counts as an incomplete profile, as the empty
   free-text field did.
 - **Personal data**
@@ -100,4 +100,5 @@ in. Seeding by migration is how branches already reach production.
 **Rejected.** UCESCO's pool of volunteers at a branch at any time is
 small; requiring every skill would return nobody for most programs.
 Any-match ranked by overlap puts the best fits first without hiding the
-partial ones.
+partial ones. The rule in force, any-match plus past activity type, is
+set by [ADR 0042](0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md).

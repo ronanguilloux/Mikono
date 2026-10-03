@@ -182,6 +182,42 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * What these volunteers have done so far, by activity type and program:
+     * the experience /matches counts (ADR 0042). Planned activities, dated
+     * after today, aren't experience yet.
+     *
+     * @param list<int> $volunteerIds
+     *
+     * @return list<array{volunteerId: int, typeId: int, programId: int, total: int, last: \DateTimeImmutable}>
+     */
+    public function findExperienceOf(array $volunteerIds, \DateTimeImmutable $today): array
+    {
+        if ([] === $volunteerIds) {
+            return [];
+        }
+
+        /** @var list<array{volunteerId: int|string, typeId: int|string, programId: int|string, total: int|string, last: string}> $rows */
+        $rows = $this->createQueryBuilder('a')
+            ->select('IDENTITY(a.volunteer) AS volunteerId', 'IDENTITY(a.activityType) AS typeId', 'IDENTITY(a.program) AS programId', 'COUNT(a.id) AS total', 'MAX(a.date) AS last')
+            ->where('a.volunteer IN (:volunteers)')
+            ->andWhere('a.date <= :today')
+            ->setParameter('volunteers', $volunteerIds)
+            ->setParameter('today', $today, Types::DATE_IMMUTABLE)
+            ->groupBy('a.volunteer', 'a.activityType', 'a.program')
+            ->getQuery()
+            ->getResult();
+
+        // MAX() bypasses Doctrine's type conversion: the date comes back raw.
+        return array_map(static fn(array $row): array => [
+            'volunteerId' => (int) $row['volunteerId'],
+            'typeId' => (int) $row['typeId'],
+            'programId' => (int) $row['programId'],
+            'total' => (int) $row['total'],
+            'last' => new \DateTimeImmutable($row['last']),
+        ], $rows);
+    }
+
+    /**
      * Distinct volunteers with a past activity in each given program, and in
      * each given project — a project's count is distinct across its programs,
      * not the sum of theirs. Keys are ids; an id with no match is absent.

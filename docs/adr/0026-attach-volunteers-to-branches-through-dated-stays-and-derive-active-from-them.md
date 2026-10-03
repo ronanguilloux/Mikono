@@ -92,7 +92,6 @@ Status:
   Present → Upcoming → Past → No stay (`SORT_MAP` `'status' =>
   ['statusRank']`, per
   [ADR 0011](0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md)).
-  `/programs/{id}/matches` orders by matched skills, then `statusRank`.
   **`getStatus()` and `statusRank` must change together.**
 - `/volunteers?status=present|upcoming|past|none` filters with the same
   rank expression in `WHERE`. Any other value, the retired
@@ -105,15 +104,17 @@ Status:
   upcoming at Mombasa means the upcoming stay is at Mombasa; past at a
   branch means any stay there, since every stay of a past volunteer has
   ended. No stay with a branch matches nobody.
-- Status cells (the volunteer index, its export,
-  `/programs/{id}/matches`) come from `VolunteerRepository::findStatusesOn()`.
-  It runs one fetch-join query that fills the listed volunteers' managed,
-  uninitialized `stays` collections, then asks `getStatus()`, so there is
-  no lazy-load per row.
-- The volunteer page's header badge shows the status. On `/reports/volunteers`, the
-  Volunteers tile reads "N present · N upcoming · N engaged"; it counts
-  `getStatus()` in PHP over `findAllOrderedByName()`, which fetch-joins
-  stays.
+- Status cells (the volunteer index and its export) come from
+  `VolunteerRepository::findStatusesOn()`. It runs one fetch-join query
+  that fills the listed volunteers' managed, uninitialized `stays`
+  collections, then asks `getStatus()`, so there is no lazy-load per row.
+  `/matches` shows the status of the stay that matches a program instead,
+  not the volunteer's overall status
+  ([ADR 0042](0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md)).
+- The volunteer page's header badge shows the status. On
+  `/reports/volunteers`, the Volunteers tile reads "N present · N upcoming
+  · N engaged"; it counts `getStatus()` in PHP over
+  `findAllOrderedByName()`, which fetch-joins stays.
 - Never reintroduce a stored flag for any of these.
 
 Branch of attachment and days on site:

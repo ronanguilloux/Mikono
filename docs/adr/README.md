@@ -78,6 +78,7 @@ drafts and maintains these.
 | [0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md) | Export the whole database as an admin-only zip of per-table CSVs | Accepted |
 | [0040](0040-keep-the-readers-scroll-position-when-a-control-re-renders-the-same-page.md) | Keep the reader's scroll position when a control re-renders the same page | Accepted |
 | [0041](0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md) | Record where each volunteer came from as a seeded list of recruitment sources | Accepted |
+| [0042](0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md) | Match available volunteers to programs by skills or past activity type at their branch | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

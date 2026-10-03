@@ -101,8 +101,7 @@ implements it.
   ([ADR 0030](docs/adr/0030-insert-programs-between-projects-and-activities.md)).
   `ActivityFactory` still takes a `project` attribute and builds a program
   there. `Skill` is a second global list, seeded by its migration like
-  `Branch`, held by volunteers and needed by programs; `/programs/{id}/matches`
-  pairs the two
+  `Branch`, held by volunteers and needed by programs
   ([ADR 0036](docs/adr/0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md)).
   `Source` (recruitment channels) is seeded the same way and held by
   volunteers only; it is not part of a complete profile
@@ -192,6 +191,11 @@ implements it.
   home screen. `QuietProjectFinder` covers projects only, never volunteers —
   deliberate and evidence-based; read its class docblock before
   "completing" it.
+  `ProgramMatchFinder` is behind `/matches`: it pairs open programs with
+  volunteers whose not-ended stay is at the program's branch, by skills held
+  or by past activity types
+  ([ADR 0042](docs/adr/0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md)).
+  The page explains that rule in words: change one, change both.
 - `src/Usage/` — `AccessLogReader` streams Caddy's JSON access log
   (`var/log/access.log`, the `log_data` volume) for the admin-only `/usage`
   screen, plus the `usage_event` table for gestures that send no request.
@@ -293,6 +297,17 @@ live schema and restart-loops the container. If you meet the loop, the
 non-destructive fix is `doctrine:migrations:version --add --all` after
 `doctrine:schema:validate` confirms the schema is in sync (`done.md`,
 2026-09-06).
+
+**Seen in dev, 2026-10-03: after a reseed, every web request can fail**
+with "database disk image is malformed", `/login` included, while
+`bin/console` reads the same file fine and `PRAGMA integrity_check` says
+`ok`. The likely cause is FrankenPHP's long-lived workers still holding
+connections to the file the reseed replaced. `docker compose restart php`
+cleared it; the data lives in the volume, so nothing is lost. **This is a dev
+observation, not a production rule.** Production never reseeds, so a
+"malformed" error there is not this case. Don't restart it on the
+same reasoning: back up first (`scripts/backup-db.sh`), run the integrity
+check, and treat it as possible real corruption until shown otherwise.
 
 **After changing an entity:**
 

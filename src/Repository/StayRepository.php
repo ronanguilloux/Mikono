@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Branch;
 use App\Entity\Stay;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
@@ -68,6 +69,34 @@ class StayRepository extends ServiceEntityRepository
             ->setParameter('stay', $stay)
             ->setParameter('branch', $stay->getBranch())
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Stays that haven't ended, earliest first, with their volunteer and the
+     * volunteer's skills: the pool /matches pairs with programs (ADR 0042).
+     * Read from the stay side so no volunteer's stays collection is
+     * hydrated half-full by a filtered fetch join.
+     *
+     * @return list<Stay>
+     */
+    public function findNotEndedWithVolunteerSkills(\DateTimeImmutable $today, ?Branch $branch = null): array
+    {
+        $queryBuilder = $this->createQueryBuilder('s')
+            ->addSelect('v', 'sk')
+            ->join('s.volunteer', 'v')
+            ->leftJoin('v.skills', 'sk')
+            ->where('s.endDate >= :today')
+            ->setParameter('today', $today, Types::DATE_IMMUTABLE)
+            ->orderBy('s.startDate', 'ASC');
+
+        if (null !== $branch) {
+            $queryBuilder->andWhere('s.branch = :branch')->setParameter('branch', $branch);
+        }
+
+        /** @var list<Stay> $stays */
+        $stays = $queryBuilder->getQuery()->getResult();
+
+        return $stays;
     }
 
     /** @return list<Stay> */

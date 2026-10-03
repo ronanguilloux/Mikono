@@ -10,12 +10,10 @@ use App\Entity\Branch;
 use App\Entity\Program;
 use App\Entity\Project;
 use App\Entity\Skill;
-use App\Entity\Volunteer;
 use App\Export\ListExport;
 use App\Form\ProgramFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\ProgramRepository;
-use App\Repository\VolunteerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -53,17 +51,8 @@ final class ProgramController extends AbstractController
         ['key' => 'beneficiaryGroups', 'label' => 'Beneficiary groups'],
     ];
 
-    /** @var list<array{key: string, label: string}> */
-    private const array MATCH_COLUMNS = [
-        ['key' => 'name', 'label' => 'Name'],
-        ['key' => 'status', 'label' => 'Status'],
-        ['key' => 'matchedSkills', 'label' => 'Matching skills'],
-        ['key' => 'matched', 'label' => 'Matched'],
-    ];
-
     public function __construct(
         private readonly ProgramRepository $programs,
-        private readonly VolunteerRepository $volunteers,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
     ) {}
@@ -85,7 +74,7 @@ final class ProgramController extends AbstractController
             $rows[] = [
                 'cells' => $this->cells($program),
                 'actions' => [
-                    ['label' => 'Matches', 'url' => $this->generateUrl('program_matches', ['id' => $id])],
+                    ['label' => 'Matches', 'url' => $this->generateUrl('match_index', ['program' => $id])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('program_edit', ['id' => $id])],
                     $activityCount > 0
                         ? ['label' => 'Delete', 'disabledReason' => $this->guardReason($program, $activityCount)]
@@ -197,67 +186,6 @@ final class ProgramController extends AbstractController
                 static fn(BeneficiaryGroup $group): string => $group->getName(),
             )->toArray()),
         ];
-    }
-
-    /**
-     * Volunteers who hold any skill the program needs, most matches first.
-     * Unpaginated: the order is the answer, and the volunteer list is a few
-     * hundred rows at most. See ADR 0036.
-     */
-    #[Route('/{id}/matches', name: 'matches', methods: ['GET'])]
-    public function matches(Program $program): Response
-    {
-        $rows = [];
-        foreach ($this->matchingRows($program) as $volunteerId => $row) {
-            $rows[] = $row + ['links' => ['name' => $this->generateUrl('volunteer_show', ['id' => $volunteerId])]];
-        }
-
-        return $this->render('program/matches.html.twig', [
-            'program' => $program,
-            'columns' => self::MATCH_COLUMNS,
-            'rows' => $rows,
-        ]);
-    }
-
-    #[Route('/{id}/matches/export.{format}', name: 'matches_export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
-    public function matchesExport(Program $program, string $format): StreamedResponse
-    {
-        return ListExport::response(
-            'program-matches',
-            $format,
-            self::MATCH_COLUMNS,
-            array_column($this->matchingRows($program), 'cells'),
-        );
-    }
-
-    /**
-     * The one query behind the matches page and its export.
-     *
-     * @return array<int, array{cells: array<string, string>, pills: array<string, string>}> volunteer id => row
-     */
-    private function matchingRows(Program $program): array
-    {
-        /** @var list<Volunteer> $volunteers */
-        $volunteers = $this->volunteers->createMatchingProgramQueryBuilder($program)->getQuery()->getResult();
-        $statuses = $this->volunteers->findStatusesOn($volunteers, new \DateTimeImmutable('today'));
-        $needed = $program->getSkills();
-
-        $rows = [];
-        foreach ($volunteers as $volunteer) {
-            $id = (int) $volunteer->getId();
-            $matched = $volunteer->getSkills()->filter(static fn(Skill $skill): bool => $needed->contains($skill))->toArray();
-            $rows[$id] = [
-                'cells' => [
-                    'name' => $volunteer->getFullName(),
-                    'status' => $statuses[$id]->label(),
-                    'matchedSkills' => self::skillNames($matched),
-                    'matched' => sprintf('%d of %d', count($matched), $needed->count()),
-                ],
-                'pills' => ['status' => $statuses[$id]->tone()],
-            ];
-        }
-
-        return $rows;
     }
 
     /**

@@ -55,8 +55,8 @@ class Program
     private Collection $activityTypes;
 
     /**
-     * What the program needs; /programs/{id}/matches lists the volunteers who
-     * hold any of them. Optional — see ADR 0036.
+     * What the program needs; /matches suggests the volunteers who hold any
+     * of them. Optional — see ADR 0036 and ADR 0042.
      *
      * @var Collection<int, Skill>
      */

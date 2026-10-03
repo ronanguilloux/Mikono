@@ -6,7 +6,6 @@ namespace App\Repository;
 
 use App\Entity\Activity;
 use App\Entity\Branch;
-use App\Entity\Program;
 use App\Entity\Skill;
 use App\Entity\Source;
 use App\Entity\Stay;
@@ -127,26 +126,6 @@ class VolunteerRepository extends ServiceEntityRepository
     private static function stayExists(string $alias, string $where = ''): string
     {
         return sprintf('EXISTS (SELECT %1$s.id FROM ' . Stay::class . ' %1$s WHERE %1$s.volunteer = v' . $where . ')', $alias);
-    }
-
-    /**
-     * Volunteers holding at least one of the program's skills, most matched
-     * skills first, then by status, then by name — the order is the answer, so
-     * /programs/{id}/matches has no sort links. A program with no skills
-     * matches nobody. See ADR 0036.
-     */
-    public function createMatchingProgramQueryBuilder(Program $program): QueryBuilder
-    {
-        return $this->createOrderedByNameQueryBuilder()
-            ->innerJoin('v.skills', 'ms')
-            ->andWhere('ms.id IN (SELECT ps.id FROM ' . Program::class . ' mp JOIN mp.skills ps WHERE mp = :program)')
-            ->setParameter('program', $program)
-            ->addSelect('COUNT(ms.id) AS HIDDEN matched')
-            ->groupBy('v.id')
-            ->orderBy('matched', 'DESC')
-            ->addOrderBy('statusRank', 'ASC')
-            ->addOrderBy('v.lastName', 'ASC')
-            ->addOrderBy('v.firstName', 'ASC');
     }
 
     /**

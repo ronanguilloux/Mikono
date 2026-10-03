@@ -1,0 +1,139 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Matches — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mb-2 flex items-center justify-between">
+        <h1 class="text-xl font-semibold">Matches</h1>
+        <twig:ExportMenu route="match_export" />
+    </div>
+
+    {#
+        The rule in words, for the Volunteer Manager. It is ProgramMatchFinder's
+        rule (ADR 0042): change one, change both.
+    #}
+    <p class="text-sm text-slate-600">
+        Volunteers who can be at a program and have a reason to fit it, best fits first. The choice is yours.
+    </p>
+    <details class="mb-4 mt-1 text-sm text-slate-600" data-match-explainer>
+        <summary class="cursor-pointer text-brand-600 hover:underline">How matches are found</summary>
+        <div class="mt-2 max-w-3xl space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3">
+            <p>A volunteer is suggested for a program when both are true:</p>
+            <ol class="list-decimal space-y-1 pl-5">
+                <li><strong>They can be there:</strong> they have a stay at the program's branch that hasn't ended and overlaps the program's dates.</li>
+                <li>
+                    <strong>They have a reason to fit:</strong>
+                    <ul class="list-disc pl-5">
+                        <li><strong>Skills</strong> — they hold at least one of the program's recommended skills, or</li>
+                        <li><strong>Experience</strong> — they have already done one of the program's activity types, in any program. These rows are marked <em>By experience</em>, and <em>Not on profile</em> shows the skills you could tick on their profile.</li>
+                    </ul>
+                </li>
+            </ol>
+            <p><strong>Order:</strong> most matching skills first, then the most past activities of the program's types, then volunteers present now before upcoming ones. Programs that have gone longest without an activity come first; programs that haven't started yet come last.</p>
+            <p>The app only knows that an activity was logged, not whether it went well — treat the order as a suggestion.</p>
+        </div>
+    </details>
+
+    <form
+        method="get"
+        data-turbo-action="replace"
+        class="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-600 print:hidden"
+        data-controller="auto-submit"
+        data-match-filters
+    >
+        <label for="match-branch" class="sr-only">Branch</label>
+        <select id="match-branch" name="branch" class="max-w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none" data-action="change->auto-submit#submit">
+            <option value="">All branches</option>
+            {% for option in branchOptions %}
+                <option value="{{ option.id }}" {{ filters.branch and filters.branch.id == option.id ? 'selected' : '' }}>{{ option.name }}</option>
+            {% endfor %}
+        </select>
+        <label for="match-program" class="sr-only">Program</label>
+        <select id="match-program" name="program" class="max-w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none" data-action="change->auto-submit#submit">
+            <option value="">All programs</option>
+            {% for option in programOptions %}
+                <option value="{{ option.id }}" {{ filters.program and filters.program.id == option.id ? 'selected' : '' }}>{{ option.project.branch.name }} › {{ option.name }}</option>
+            {% endfor %}
+        </select>
+        <label for="match-who" class="sr-only">Who</label>
+        <select id="match-who" name="who" class="max-w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none" data-action="change->auto-submit#submit">
+            <option value="">Present and upcoming</option>
+            {% for option in whoOptions %}
+                <option value="{{ option.value }}" {{ filters.who is same as(option) ? 'selected' : '' }}>{{ option.label }} only</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="sr-only">Filter</button>
+
+        {% if filters.branch or filters.program or filters.who is not null %}
+            <a href="{{ path('match_index') }}" class="text-brand-600 hover:underline" data-turbo-action="replace">Clear filters</a>
+        {% endif %}
+    </form>
+
+    {% if groups is empty and unmatched is empty %}
+        <p class="text-sm text-slate-500">No open program matches these filters.</p>
+    {% endif %}
+
+    <div class="space-y-4">
+        {% for group in groups %}
+            {% set matches = group.matches %}
+            {% set program = matches.program %}
+            <section class="rounded-lg border border-slate-200 bg-white shadow-sm" aria-labelledby="program-{{ program.id }}-heading" data-program-matches="{{ program.id }}">
+                <div class="border-b border-slate-200 px-5 py-4">
+                    <p class="text-xs text-slate-500">{{ program.project.branch.name }} › {{ program.project.name }}</p>
+                    <h2 id="program-{{ program.id }}-heading" class="font-semibold">{{ program.name }}</h2>
+                    <p class="mt-1 text-sm text-slate-600">
+                        {% if program.skills is empty %}
+                            No recommended skills yet — <a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">tick them</a>.
+                        {% else %}
+                            Needs: {{ program.skills|map(s => s.name)|sort|join(', ') }}
+                        {% endif %}
+                    </p>
+                    <p class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500" data-need>
+                        <span>
+                            {%- if matches.notStarted -%}
+                                Starts {{ program.startDate|date('j M Y') }}
+                            {%- elseif matches.daysSinceLastActivity is null -%}
+                                No activity yet
+                            {%- elseif matches.daysSinceLastActivity < 0 -%}
+                                Activity planned {{ matches.lastActivity|date('j M Y') }}
+                            {%- elseif matches.daysSinceLastActivity == 0 -%}
+                                Last activity today
+                            {%- else -%}
+                                Last activity {{ matches.daysSinceLastActivity }} day{{ matches.daysSinceLastActivity == 1 ? '' : 's' }} ago
+                            {%- endif -%}
+                        </span>
+                        {% if program.endDate %}<span>Ends {{ program.endDate|date('j M Y') }}</span>{% endif %}
+                        {% if matches.candidates is not empty %}<span>{{ matches.candidates|length }} candidate{{ matches.candidates|length == 1 ? '' : 's' }}</span>{% endif %}
+                    </p>
+                    {% if matches.uncoveredSkills is not empty %}
+                        <p class="mt-2 inline-block rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800" data-uncovered>
+                            Nobody available for: {{ matches.uncoveredSkills|map(s => s.name)|join(', ') }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                {% if matches.candidates is empty %}
+                    <p class="px-5 py-6 text-sm text-slate-500">No available volunteer has these skills or this experience.</p>
+                {% else %}
+                    <div class="p-3">
+                        <twig:DataTable :columns="columns" :rows="group.rows" :withActions="false" />
+                    </div>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+
+    {% if unmatched is not empty %}
+        {# Collapsed: before staff tick skills, that is most programs. #}
+        <details class="mt-4 text-sm text-slate-600" data-no-skills>
+            <summary class="cursor-pointer">
+                {{ unmatched|length }} program{{ unmatched|length == 1 ? ' has' : 's have' }} no recommended skills and nobody available who has done their activities — tick their skills to find matches
+            </summary>
+            <ul class="mt-2 columns-1 gap-6 sm:columns-2 lg:columns-3">
+                {% for program in unmatched %}
+                    <li><a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">{{ program.name }}</a> <span class="text-slate-400">· {{ program.project.branch.name }}</span></li>
+                {% endfor %}
+            </ul>
+        </details>
+    {% endif %}
+{% endblock %}

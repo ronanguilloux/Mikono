@@ -12,7 +12,6 @@ use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\SkillFactory;
 use App\Factory\UserFactory;
-use App\Factory\VolunteerFactory;
 use App\Repository\ProgramRepository;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -236,43 +235,14 @@ final class ProgramControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function matchesListsVolunteersHoldingAnyNeededSkillMostMatchesFirst(): void
-    {
-        $client = static::createClient();
-        [$plumbing, $painting, $cooking] = [
-            SkillFactory::createOne(['name' => 'Plumbing']),
-            SkillFactory::createOne(['name' => 'Painting']),
-            SkillFactory::createOne(['name' => 'Cooking']),
-        ];
-        $program = ProgramFactory::createOne(['skills' => [$plumbing, $painting]]);
-        VolunteerFactory::createOne(['firstName' => 'One', 'lastName' => 'Match', 'skills' => [$painting, $cooking]]);
-        VolunteerFactory::createOne(['firstName' => 'Two', 'lastName' => 'Matches', 'skills' => [$plumbing, $painting]]);
-        VolunteerFactory::createOne(['firstName' => 'No', 'lastName' => 'Match', 'skills' => [$cooking]]);
-        $client->loginUser(UserFactory::createOne());
-
-        $crawler = $client->request('GET', "/programs/{$program->getId()}/matches");
-        self::assertResponseIsSuccessful();
-        $rows = $crawler->filter('table tbody tr')->each(static fn($row): array => $row->filter('td')->each(static fn($cell): string => trim($cell->text())));
-        self::assertSame([
-            ['Two Matches', 'Present', 'Painting, Plumbing', '2 of 2'],
-            ['One Match', 'Present', 'Painting', '1 of 2'],
-        ], $rows);
-
-        self::assertSame($rows, self::exportedRows($client, "/programs/{$program->getId()}/matches/export.csv"));
-    }
-
-    #[Test]
-    public function matchesAsksForSkillsWhenTheProgramNeedsNone(): void
+    public function theMatchesActionOpensTheMatchesScreenOnThatProgram(): void
     {
         $client = static::createClient();
         $program = ProgramFactory::createOne();
-        VolunteerFactory::createOne(['skills' => [SkillFactory::createOne()]]);
         $client->loginUser(UserFactory::createOne());
 
-        $crawler = $client->request('GET', "/programs/{$program->getId()}/matches");
+        $crawler = $client->request('GET', '/programs');
 
-        self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('[data-no-skills]'));
-        self::assertSame([], self::exportedRows($client, "/programs/{$program->getId()}/matches/export.csv"));
+        self::assertSame("/matches?program={$program->getId()}", $crawler->filter('table')->selectLink('Matches')->attr('href'));
     }
 }

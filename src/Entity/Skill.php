@@ -11,8 +11,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * One global list, like ActivityType: volunteers hold skills, programs need
- * them, and /programs/{id}/matches pairs the two. Seeded by its migration.
- * See ADR 0036.
+ * them, and /matches pairs the two. Seeded by its migration. See ADR 0036
+ * and ADR 0042.
  */
 #[ORM\Entity(repositoryClass: SkillRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_skill_name', fields: ['name'])]

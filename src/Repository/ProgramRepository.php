@@ -84,6 +84,60 @@ class ProgramRepository extends ServiceEntityRepository
     }
 
     /**
+     * Programs /matches pairs with volunteers (ADR 0042): not ended, at an
+     * active project, skills and activity types fetched with them.
+     *
+     * @return list<Program>
+     */
+    public function findOpenForMatching(\DateTimeImmutable $today, ?Branch $branch = null, ?Program $program = null): array
+    {
+        $queryBuilder = $this->createOrderedQueryBuilder(branch: $branch)
+            ->leftJoin('prg.skills', 'sk')
+            ->leftJoin('prg.activityTypes', 't')
+            ->addSelect('sk', 't')
+            ->andWhere('prg.endDate IS NULL OR prg.endDate >= :today')
+            ->andWhere('p.isActive = true')
+            ->setParameter('today', $today, Types::DATE_IMMUTABLE);
+
+        if (null !== $program) {
+            $queryBuilder->andWhere('prg = :program')->setParameter('program', $program);
+        }
+
+        /** @var list<Program> $programs */
+        $programs = $queryBuilder->getQuery()->getResult();
+
+        return $programs;
+    }
+
+    /**
+     * The latest activity of each program, planned ones included, by anyone.
+     *
+     * @param list<Program> $programs
+     *
+     * @return array<int, \DateTimeImmutable> program id => date; absent means none
+     */
+    public function findLastActivityDates(array $programs): array
+    {
+        if ([] === $programs) {
+            return [];
+        }
+
+        /** @var list<array{programId: int|string, last: string}> $rows */
+        $rows = $this->getEntityManager()
+            ->createQuery('SELECT IDENTITY(a.program) AS programId, MAX(a.date) AS last FROM ' . Activity::class . ' a WHERE a.program IN (:programs) GROUP BY a.program')
+            ->setParameter('programs', $programs)
+            ->getResult();
+
+        $dates = [];
+        foreach ($rows as $row) {
+            // MAX() bypasses Doctrine's type conversion: the date comes back raw.
+            $dates[(int) $row['programId']] = new \DateTimeImmutable($row['last']);
+        }
+
+        return $dates;
+    }
+
+    /**
      * Part of the project delete-guard: a project's programs would otherwise
      * be orphaned (ADR 0030).
      */

@@ -46,3 +46,4 @@ agent that drafts these.
 | [10](10-programs-between-projects-and-activities.md) | Programs between projects and activities | [0030](../adr/0030-insert-programs-between-projects-and-activities.md) |
 | [11](11-in-app-error-report.md) | In-app error report | [0031](../adr/0031-show-production-errors-on-an-in-app-admin-screen-over-a-rotating-json-error-log.md) |
 | [12](12-volunteer-profile-and-photo.md) | Volunteer profile and photo | [0032](../adr/0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) |
+| [13](13-matches-planning-screen.md) | Matches planning screen | [0042](../adr/0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md) |
