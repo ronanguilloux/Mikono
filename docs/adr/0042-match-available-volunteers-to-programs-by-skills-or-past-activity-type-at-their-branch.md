@@ -110,6 +110,11 @@ lexicographic order with no composite score.**
   a "Not on profile" badge on missing skills that links to the
   volunteer's edit page. Nothing changes on the profile automatically; the
   VM decides. Both are DataTable `badges`, never text inside `cells`.
+- **No placeholder where a basis is absent.** On a program with no skills
+  the Matched cell is empty, not "—", so only "By experience" shows. A
+  skill match with no experience has an empty Experience cell with a
+  "New to it" badge. The export keeps those cells empty, and its Basis
+  column says why each row is there.
 - **Programs without candidates.** A program with skills but no
   candidate keeps its block, since an empty block is the recruiting
   signal. A program with no skills can still have experience candidates.

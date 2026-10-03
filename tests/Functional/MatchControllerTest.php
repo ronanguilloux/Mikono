@@ -51,9 +51,10 @@ final class MatchControllerTest extends WebTestCase
             array_map(static fn(array $row): array => [$row[0], $row[1], $row[3], $row[4], $row[5], $row[6]], $rows),
         );
 
-        // The export is flat: the program's columns, the row, then the basis.
+        // "New to it" is a badge on an empty cell: the export has the empty
+        // cell, and the basis column says why the row is there.
         self::assertSame(
-            array_map(static fn(array $row): array => [...$row, 'Skills'], $rows),
+            array_map(static fn(array $row): array => [...array_slice($row, 0, 6), '', 'Skills'], $rows),
             array_map(static fn(array $row): array => [$row[3], $row[4], $row[5], $row[6], $row[8], $row[9], $row[10], $row[7]], self::exportedRows($client, '/matches/export.csv')),
         );
     }
@@ -65,7 +66,8 @@ final class MatchControllerTest extends WebTestCase
         $football = ActivityTypeFactory::createOne(['name' => 'Football session']);
         $program = ProgramFactory::createOne(['skills' => [SkillFactory::findOrCreate(['name' => 'Plumbing'])], 'activityTypes' => [$football]]);
         $volunteer = VolunteerFactory::createOne(['firstName' => 'Kept', 'lastName' => 'Coming']);
-        ActivityFactory::createOne(['volunteer' => $volunteer, 'activityType' => $football, 'date' => new \DateTimeImmutable('today')->modify('-3 months')]);
+        // In a program of its own, with no skills: a match there is experience alone.
+        $past = ActivityFactory::createOne(['volunteer' => $volunteer, 'activityType' => $football, 'date' => new \DateTimeImmutable('today')->modify('-3 months')]);
         $client->loginUser(UserFactory::createOne());
 
         $crawler = $client->request('GET', '/matches');
@@ -77,6 +79,7 @@ final class MatchControllerTest extends WebTestCase
         self::assertStringStartsWith('Football session ×1 · last ', $row[6]);
         self::assertCount(1, $section->filter(sprintf('a[href="/volunteers/%d/edit"]', $volunteer->getId())));
         self::assertStringContainsString('Nobody available for: Plumbing', $section->filter('[data-uncovered]')->text());
+        self::assertSame('By experience', self::rowsOf($crawler, (int) $past->getProgram()?->getId())[0][3], 'No skills to count: the badge alone, no dash.');
     }
 
     #[Test]

@@ -92,7 +92,7 @@
                                 {{- row.cells[column.key]|default('') -}}
                             {%- endif -%}
                             {%- if row.badges[column.key] is defined %}
-                                <span class="ml-1.5 whitespace-nowrap rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 print:border print:border-slate-400 print:text-slate-700">{{ row.badges[column.key] }}</span>
+                                <span class="{{ row.cells[column.key]|default('') is same as('') ? '' : 'ml-1.5 ' }}whitespace-nowrap rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 print:border print:border-slate-400 print:text-slate-700">{{ row.badges[column.key] }}</span>
                             {%- endif -%}
                         </td>
                     {% endfor %}

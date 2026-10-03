@@ -161,6 +161,8 @@ final class MatchController extends AbstractController
                     $row['badges']['missingSkills'] = 'Not on profile';
                     $row['links']['missingSkills'] = $this->generateUrl('volunteer_edit', ['id' => $id]);
                 }
+            } elseif ([] === $match->experience) {
+                $row['badges'] = ['experience' => 'New to it'];
             }
             $rows[] = $row;
         }
@@ -179,7 +181,8 @@ final class MatchController extends AbstractController
             'name' => $match->volunteer->getFullName(),
             'status' => ($match->present ? VolunteerStatus::Present : VolunteerStatus::Upcoming)->label(),
             'stay' => self::stay($match, $today),
-            'matched' => 0 === $needed ? '—' : sprintf('%d of %d', count($match->matchedSkills), $needed),
+            // Empty, not a dash, when there's nothing to count: the badge says why the row is there.
+            'matched' => 0 === $needed ? '' : sprintf('%d of %d', count($match->matchedSkills), $needed),
             'matchedSkills' => self::skillNames($match->matchedSkills),
             'missingSkills' => self::skillNames($match->missingSkills),
             'experience' => self::experience($match),
@@ -209,7 +212,7 @@ final class MatchController extends AbstractController
     private static function experience(VolunteerMatch $match): string
     {
         if (null === $match->lastExperience) {
-            return 'New to it';
+            return '';
         }
 
         $done = [];
