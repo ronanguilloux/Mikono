@@ -82,8 +82,18 @@ recorded once per volunteer.**
   - The admin whole-database zip picks up `source` and `volunteer_source`
     automatically. Neither holds a secret, so neither goes on a drop list
     ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)).
-- Counts per source on `/reports` are not part of this decision; a
-  `?tab=source` breakdown would be its own change.
+- **`/reports?tab=source` counts one Nairobi calendar year at a time**
+  ([ADR 0024](0024-treat-dates-as-calendar-days-in-nairobi-time.md)),
+  picked with `?year=` and defaulting to this one; a year outside the
+  span of recorded stays falls back to this year. "Volunteers present" is
+  the volunteers holding the source with a stay overlapping the year, the
+  Present rule of ADR 0026 stretched over a period. The activity columns
+  are that year's activities, each credited in full to every source of its
+  volunteer, as `?tab=group` credits every group of a program, so the
+  totals exceed the real ones and the tab says so. Every source has a row,
+  zeros included, since a channel that brought nobody is the finding;
+  volunteers with no source share a "Not recorded" row, shown only when
+  someone is in it.
 
 ## Consequences
 

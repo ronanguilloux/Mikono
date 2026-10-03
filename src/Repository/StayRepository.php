@@ -86,4 +86,23 @@ class StayRepository extends ServiceEntityRepository
 
         return $stays;
     }
+
+    /**
+     * The years from the earliest stay's start to the latest stay's end, as
+     * a pair, or null with no stays. Bounds /reports' year picker.
+     *
+     * @return array{int, int}|null
+     */
+    public function findYearSpan(): ?array
+    {
+        /** @var array{first: ?string, last: ?string} $row */
+        $row = $this->createQueryBuilder('s')
+            ->select('MIN(s.startDate) AS first', 'MAX(s.endDate) AS last')
+            ->getQuery()
+            ->getSingleResult();
+
+        return null === $row['first'] || null === $row['last']
+            ? null
+            : [(int) substr($row['first'], 0, 4), (int) substr($row['last'], 0, 4)];
+    }
 }

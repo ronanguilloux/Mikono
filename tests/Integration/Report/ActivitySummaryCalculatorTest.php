@@ -11,6 +11,8 @@ use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\SourceFactory;
+use App\Factory\StayFactory;
 use App\Factory\VolunteerFactory;
 use App\Report\ActivitySummaryCalculator;
 use PHPUnit\Framework\Attributes\Test;
@@ -176,6 +178,50 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
         self::assertSame([2, 1, 2], array_column($rows, 'count'));
         self::assertSame([2.0, 0.5, 2.0], array_column($rows, 'totalDays'));
         self::assertNull($rows[1]['id']);
+    }
+
+    /**
+     * One year at a time (ADR 0041): present is a stay overlapping the year,
+     * the activity columns that year's activities, credited in full to every
+     * source of the volunteer. Every source has a row; no source is 'Not
+     * recorded', and only when someone is.
+     */
+    #[Test]
+    public function sourcesCountTheYearsVolunteersAndCreditTheirWorkToEachSource(): void
+    {
+        self::bootKernel();
+        $tikTok = SourceFactory::find(['name' => 'TikTok']);
+        $volunteerWorld = SourceFactory::find(['name' => 'Volunteer World']);
+
+        $aisha = VolunteerFactory::new()->withoutStay()->create(['sources' => [$tikTok]]);
+        ActivityFactory::createOne(['volunteer' => $aisha, 'date' => new \DateTimeImmutable('2025-03-10'), 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['volunteer' => $aisha, 'date' => new \DateTimeImmutable('2025-03-11'), 'duration' => ActivityDuration::FullDay]);
+        $baraka = VolunteerFactory::new()->withoutStay()->create(['sources' => [$tikTok, $volunteerWorld]]);
+        ActivityFactory::createOne(['volunteer' => $baraka, 'date' => new \DateTimeImmutable('2025-06-02'), 'duration' => ActivityDuration::HalfDay]);
+        // No source, here over New Year with no activity: present in both years.
+        $chausiku = VolunteerFactory::new()->withoutStay()->create();
+        StayFactory::createOne(['volunteer' => $chausiku, 'startDate' => new \DateTimeImmutable('2024-12-20'), 'endDate' => new \DateTimeImmutable('2025-01-05')]);
+        $dalia = VolunteerFactory::new()->withoutStay()->create(['sources' => [$tikTok]]);
+        ActivityFactory::createOne(['volunteer' => $dalia, 'date' => new \DateTimeImmutable('2024-12-31'), 'duration' => ActivityDuration::FullDay]);
+
+        $calculator = self::getContainer()->get(ActivitySummaryCalculator::class);
+        self::assertInstanceOf(ActivitySummaryCalculator::class, $calculator);
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $rows = $calculator->summarizeBySource(2025);
+        self::assertCount(8, $rows);
+        self::assertSame('TikTok', $rows[0]['label']);
+        $byLabel = array_column($rows, null, 'label');
+        self::assertSame([2, 3, 2.5, 2], [$byLabel['TikTok']['present'], $byLabel['TikTok']['count'], $byLabel['TikTok']['totalDays'], $byLabel['TikTok']['volunteers']]);
+        self::assertSame([1, 1, 0.5], [$byLabel['Volunteer World']['present'], $byLabel['Volunteer World']['count'], $byLabel['Volunteer World']['totalDays']]);
+        self::assertSame([1, 0, null], [$byLabel['Not recorded']['present'], $byLabel['Not recorded']['count'], $byLabel['Not recorded']['id']]);
+        self::assertSame([0, 0], [$byLabel['YouTube']['present'], $byLabel['YouTube']['count']]);
+
+        $byLabel = array_column($calculator->summarizeBySource(2024), null, 'label');
+        self::assertSame([1, 1, 1.0], [$byLabel['TikTok']['present'], $byLabel['TikTok']['count'], $byLabel['TikTok']['totalDays']]);
+        self::assertSame(1, $byLabel['Not recorded']['present']);
+
+        self::assertNotContains('Not recorded', array_column($calculator->summarizeBySource(2023), 'label'));
     }
 
     /**

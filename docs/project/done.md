@@ -6,6 +6,11 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-03 — Count volunteers and their work per recruitment source, by year
+
+`/reports?tab=source`. See
+[ADR 0041](../adr/0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md).
+
 ## 2026-10-03 — Record where each volunteer came from
 
 See

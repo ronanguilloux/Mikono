@@ -78,6 +78,28 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * Activities dated between two days inclusive, each volunteer's sources
+     * fetched in the same query, for the per-source report (ADR 0041). The
+     * sources join is to-many, which is fine here: no LIMIT.
+     *
+     * @return Activity[]
+     */
+    public function findDatedBetweenWithSources(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /** @var Activity[] $activities */
+        $activities = $this->createOrderedByDateDescQueryBuilder()
+            ->leftJoin('v.sources', 'src')
+            ->addSelect('src')
+            ->andWhere('a.date BETWEEN :from AND :to')
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)
+            ->setParameter('to', $to, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getResult();
+
+        return $activities;
+    }
+
+    /**
      * Every activity with its escorts fetched in the same query, for the
      * per-escort report. The escorts join is to-many (ADR 0013), which is
      * fine here: no LIMIT, the whole table is read anyway.

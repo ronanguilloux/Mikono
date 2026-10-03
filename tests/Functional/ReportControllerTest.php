@@ -12,6 +12,7 @@ use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
+use App\Factory\SourceFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use PHPUnit\Framework\Attributes\Test;
@@ -84,7 +85,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertCount(0, $second->filter('td:first-child a'));
         self::assertSame('By escort', trim($crawler->filter('nav[aria-label="Report breakdown"] a[aria-current="page"]')->text()));
 
-        self::assertCount(7, $crawler->filter('[data-report-panel="print"] table'));
+        self::assertCount(8, $crawler->filter('[data-report-panel="print"] table'));
     }
 
     #[Test]
@@ -321,16 +322,16 @@ final class ReportControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(
-            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By escort'],
+            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By source', 'By escort'],
             $crawler->filter('[data-report-panel="screen"] nav a')->each(static fn($a) => trim($a->text())),
         );
         self::assertSame(
-            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By escort'],
+            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By source', 'By escort'],
             $crawler->filter('[data-report-panel="print"] h2')->each(static fn($h) => trim($h->text())),
         );
         // Switching breakdowns keeps the reader's scroll position (ADR 0040).
         self::assertSame(
-            array_fill(0, 7, 'replace'),
+            array_fill(0, 8, 'replace'),
             $crawler->filter('[data-report-panel="screen"] nav a')->each(static fn($a) => $a->attr('data-turbo-action')),
         );
         $active = $crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]');
@@ -396,6 +397,45 @@ final class ReportControllerTest extends WebTestCase
         self::assertSame(['Computer tuition', '3', '2.5', '2'], $screen->filter('tbody tr')->eq(0)->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())));
         self::assertSame(['Medical camp', '1', '0.5', '1'], $screen->filter('tbody tr')->eq(1)->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())));
         self::assertCount(0, $screen->filter('tbody td:first-child a'));
+    }
+
+    /**
+     * One year at a time (ADR 0041); each name leads to the volunteers who
+     * came through it.
+     */
+    #[Test]
+    public function theSourceTabCountsTheChosenYear(): void
+    {
+        $client = static::createClient();
+        $tikTok = SourceFactory::find(['name' => 'TikTok']);
+        $volunteer = VolunteerFactory::new()->withoutStay()->create(['sources' => [$tikTok]]);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => new \DateTimeImmutable('2025-03-10'), 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => new \DateTimeImmutable('2025-03-11'), 'duration' => ActivityDuration::FullDay]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=source&year=2025');
+
+        $screen = $crawler->filter('[data-report-panel="screen"]');
+        self::assertSame('By source', trim($screen->filter('nav a[aria-current="page"]')->text()));
+        self::assertSame('2025', trim($screen->filter('#report-year option[selected]')->text()));
+        self::assertSame('replace', $screen->filter('form:has(#report-year)')->attr('data-turbo-action'));
+        $first = $screen->filter('tbody tr')->eq(0);
+        self::assertSame(['TikTok', '1', '2', '2.0', '1'], $first->filter('td')->slice(0, 5)->each(static fn($td) => trim($td->text())));
+        self::assertSame("/volunteers?source={$tikTok->getId()}", $first->filter('a')->first()->attr('href'));
+        self::assertStringContainsString('TikTok', $crawler->filter('[data-report-panel="print"]')->text());
+    }
+
+    #[Test]
+    public function aMalformedOrUnknownYearFallsBackToThisYear(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (['/reports?tab=source&year[]=2025', '/reports?tab=source&year=abc', '/reports?tab=source&year=1990'] as $url) {
+            $crawler = $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertSame((new \DateTimeImmutable('today'))->format('Y'), trim($crawler->filter('#report-year option[selected]')->text()), $url);
+        }
     }
 
     #[Test]
@@ -628,7 +668,7 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
-        self::assertCount(7, $printPanel->filter('table'));
+        self::assertCount(8, $printPanel->filter('table'));
         // Project, program and volunteer tables (branch leads, group sits before volunteer): 26 rows each.
         foreach ([1, 2, 5] as $index) {
             self::assertCount(26, $printPanel->filter('table')->eq($index)->filter('tbody tr'));
@@ -894,9 +934,11 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
-        self::assertCount(7, $printTables);
-        // "Most recent" is the last column on every table.
-        foreach (range(0, 6) as $index) {
+        self::assertCount(8, $printTables);
+        // "Most recent" is the last column on every table. The source table
+        // (index 6) is left out: it covers this year only, and a week ahead
+        // falls in the next one in late December.
+        foreach ([0, 1, 2, 3, 4, 5, 7] as $index) {
             self::assertSame(
                 'Planned',
                 trim($printTables->eq($index)->filter('tbody tr td:last-child span')->text()),

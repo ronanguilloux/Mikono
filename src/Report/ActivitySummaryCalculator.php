@@ -6,16 +6,22 @@ namespace App\Report;
 
 use App\Entity\Activity;
 use App\Repository\ActivityRepository;
+use App\Repository\SourceRepository;
+use App\Repository\VolunteerRepository;
 
 /**
  * The one piece of real domain logic in this app — computing aggregate
- * activity-days per volunteer/project/program/branch/beneficiary group. Duration-to-days conversion lives
+ * activity-days per volunteer/project/program/branch/beneficiary group/source. Duration-to-days conversion lives
  * once, in ActivityDuration::toDays(), not duplicated as SQL that would
  * need to be kept in sync per database dialect.
  */
 final class ActivitySummaryCalculator
 {
-    public function __construct(private readonly ActivityRepository $activities) {}
+    public function __construct(
+        private readonly ActivityRepository $activities,
+        private readonly SourceRepository $sources,
+        private readonly VolunteerRepository $volunteers,
+    ) {}
 
     /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
     public function summarizeByVolunteer(): array
@@ -96,6 +102,53 @@ final class ActivitySummaryCalculator
 
             return [] === $targets ? [['id' => null, 'label' => 'No group recorded']] : $targets;
         });
+    }
+
+    /**
+     * Recruitment channels over one Nairobi calendar year (ADR 0041).
+     * `present` is the volunteers holding the source with a stay overlapping
+     * the year; the other columns are the year's activities, each credited in
+     * full to every source of its volunteer, so like beneficiary groups the
+     * totals exceed the real ones. Every source has a row, zeros included —
+     * a channel that brought nobody is the finding. Volunteers with no source
+     * share the id-less 'Not recorded' bucket, shown only when it has any.
+     *
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int, present: int}>
+     */
+    public function summarizeBySource(int $year): array
+    {
+        $from = new \DateTimeImmutable($year . '-01-01');
+        $to = new \DateTimeImmutable($year . '-12-31');
+        $present = $this->volunteers->countPresentBetweenBySource($from, $to);
+        $empty = ['count' => 0, 'totalDays' => 0.0, 'volunteers' => 0, 'parent' => null, 'mostRecent' => null, 'mostRecentActivityId' => null];
+
+        $buckets = [];
+        foreach ($this->sources->findAllOrderedByName() as $source) {
+            $buckets[(int) $source->getId()] = ['id' => $source->getId(), 'label' => $source->getName()] + $empty;
+        }
+        if (isset($present['unknown'])) {
+            $buckets['unknown'] = ['id' => null, 'label' => 'Not recorded'] + $empty;
+        }
+
+        $worked = $this->summarizeMany(static function (Activity $a): array {
+            $targets = [];
+            foreach ($a->getVolunteer()?->getSources() ?? [] as $source) {
+                $targets[] = ['id' => $source->getId(), 'label' => $source->getName()];
+            }
+
+            return [] === $targets ? [['id' => null, 'label' => 'Not recorded']] : $targets;
+        }, activities: $this->activities->findDatedBetweenWithSources($from, $to));
+        foreach ($worked as $row) {
+            $buckets[$row['id'] ?? 'unknown'] = $row;
+        }
+
+        $rows = [];
+        foreach ($buckets as $key => $bucket) {
+            $rows[] = $bucket + ['present' => $present[$key] ?? 0];
+        }
+        usort($rows, static fn(array $a, array $b): int => [$b['present'], $b['totalDays']] <=> [$a['present'], $a['totalDays']]);
+
+        return $rows;
     }
 
     /**
@@ -193,17 +246,20 @@ final class ActivitySummaryCalculator
      * summarize(), for a breakdown where one activity lands in several
      * buckets: each target gets the activity in full.
      *
+     * $activities defaults to every activity; a caller passes its own subset.
+     *
      * @param callable(Activity): list<array{id: ?int, label: string}> $targetsFn
      * @param (callable(Activity): ?string)|null                       $parentFn
+     * @param Activity[]|null                                          $activities
      *
      * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
-    private function summarizeMany(callable $targetsFn, ?callable $parentFn = null): array
+    private function summarizeMany(callable $targetsFn, ?callable $parentFn = null, ?array $activities = null): array
     {
         $buckets = [];
         $volunteers = [];
 
-        foreach ($this->activities->findAllOrderedByDateDesc() as $activity) {
+        foreach ($activities ?? $this->activities->findAllOrderedByDateDesc() as $activity) {
             foreach ($targetsFn($activity) as $target) {
                 $id = $target['id'];
                 $key = $id ?? 'unknown';

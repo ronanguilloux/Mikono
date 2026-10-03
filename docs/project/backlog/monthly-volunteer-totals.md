@@ -79,6 +79,11 @@ badge, as a future "Most recent" already does on `/reports`.
 - Stays never overlap, so "distinct volunteers present in a month" is a count
   of volunteers who have *any* stay overlapping it. No de-duplication is needed
   across stays at different branches in the same month, beyond `DISTINCT`.
+- `/reports?tab=source` already counts "present over a period" (a stay
+  overlapping it) per year:
+  `VolunteerRepository::countPresentBetweenBySource()`. Reuse that rule for
+  the Present column so the two screens agree
+  ([ADR 0041](../../adr/0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md)).
 - The [/reports performance card](reports-triple-walk-performance.md) already
   flags that the page walks every activity several times. Count stays per month
   in SQL, or in one pass over stays, not by another walk over activities.

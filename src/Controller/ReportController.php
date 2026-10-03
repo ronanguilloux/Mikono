@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Pagination\ListPaginator;
 use App\Repository\ProgramRepository;
+use App\Repository\StayRepository;
 use App\Report\ActivitySummaryCalculator;
 use App\Report\ReportMetricsCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -14,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays?: float, volunteers?: int, parent?: ?string, days?: int, outings?: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}
+ * @phpstan-type SummaryRow array{id: ?int, label: string, count: int, totalDays?: float, volunteers?: int, parent?: ?string, days?: int, outings?: int, present?: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}
  */
 #[Route('/reports', name: 'report_')]
 final class ReportController extends AbstractController
@@ -26,6 +27,7 @@ final class ReportController extends AbstractController
     private const string TAB_ESCORT = 'escort';
     private const string TAB_BRANCH = 'branch';
     private const string TAB_BENEFICIARY_GROUP = 'group';
+    private const string TAB_SOURCE = 'source';
 
     /**
      * Column key => SummaryRow key for the breakdowns' sortable headers. The
@@ -44,6 +46,7 @@ final class ReportController extends AbstractController
         'parent' => 'parent',
         'days' => 'days',
         'outings' => 'outings',
+        'present' => 'present',
         'mostRecent' => 'mostRecent',
     ];
 
@@ -52,6 +55,7 @@ final class ReportController extends AbstractController
         private readonly ReportMetricsCalculator $metrics,
         private readonly ListPaginator $paginator,
         private readonly ProgramRepository $programs,
+        private readonly StayRepository $stays,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -65,7 +69,7 @@ final class ReportController extends AbstractController
         // which would be the error page this line exists to avoid.
         $requestedTab = $request->query->all()['tab'] ?? null;
         $tab = match ($requestedTab) {
-            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ACTIVITY_TYPE, self::TAB_ESCORT, self::TAB_BRANCH, self::TAB_BENEFICIARY_GROUP => $requestedTab,
+            self::TAB_PROJECT, self::TAB_PROGRAM, self::TAB_ACTIVITY_TYPE, self::TAB_ESCORT, self::TAB_BRANCH, self::TAB_BENEFICIARY_GROUP, self::TAB_SOURCE => $requestedTab,
             default => self::TAB_VOLUNTEER,
         };
 
@@ -80,6 +84,9 @@ final class ReportController extends AbstractController
         $byEscort = $this->calculator->summarizeByEscort();
         $byBranch = $this->calculator->summarizeByBranch();
         $byBeneficiaryGroup = $this->calculator->summarizeByBeneficiaryGroup();
+        $yearOptions = $this->yearOptions($today);
+        $year = $this->requestedYear($request, $yearOptions, $today);
+        $bySource = $this->calculator->summarizeBySource($year);
 
         // Sorted before pagination, and across the whole breakdown rather than
         // the page — sorting a page would only shuffle the 25 rows already on
@@ -93,6 +100,7 @@ final class ReportController extends AbstractController
                 self::TAB_ESCORT => $byEscort,
                 self::TAB_BRANCH => $byBranch,
                 self::TAB_BENEFICIARY_GROUP => $byBeneficiaryGroup,
+                self::TAB_SOURCE => $bySource,
                 default => $byVolunteer,
             },
             $request,
@@ -110,6 +118,8 @@ final class ReportController extends AbstractController
             // "Top volunteers" card is the head of this same list — no second pass.
             'byVolunteer' => $byVolunteer,
             'tab' => $tab,
+            'year' => $year,
+            'yearOptions' => $yearOptions,
             'columns' => $this->columnsFor($tab),
             'rows' => $this->toRows($pageOfRows, $today, $tab),
             'pagination' => $pagination,
@@ -124,6 +134,7 @@ final class ReportController extends AbstractController
             'escortRows' => $this->toRows($byEscort, $today, self::TAB_ESCORT),
             'branchRows' => $this->toRows($byBranch, $today, self::TAB_BRANCH),
             'groupRows' => $this->toRows($byBeneficiaryGroup, $today, self::TAB_BENEFICIARY_GROUP),
+            'sourceRows' => $this->toRows($bySource, $today, self::TAB_SOURCE),
             'volunteerColumns' => $this->columnsFor(self::TAB_VOLUNTEER),
             'projectColumns' => $this->columnsFor(self::TAB_PROJECT),
             'programColumns' => $this->columnsFor(self::TAB_PROGRAM),
@@ -131,6 +142,7 @@ final class ReportController extends AbstractController
             'escortColumns' => $this->columnsFor(self::TAB_ESCORT),
             'branchColumns' => $this->columnsFor(self::TAB_BRANCH),
             'groupColumns' => $this->columnsFor(self::TAB_BENEFICIARY_GROUP),
+            'sourceColumns' => $this->columnsFor(self::TAB_SOURCE),
             // Free text, so it can't be a sortable column: printed as notes
             // under the program table instead (ADR 0030).
             'beneficiaries' => $this->programs->createOrderedQueryBuilder()
@@ -138,6 +150,33 @@ final class ReportController extends AbstractController
                 ->getQuery()
                 ->getResult(),
         ]);
+    }
+
+    /**
+     * Every year a stay touches, plus this one, newest first.
+     *
+     * @return non-empty-list<int>
+     */
+    private function yearOptions(\DateTimeImmutable $today): array
+    {
+        $thisYear = (int) $today->format('Y');
+        [$first, $last] = $this->stays->findYearSpan() ?? [$thisYear, $thisYear];
+
+        return range(max($last, $thisYear), min($first, $thisYear));
+    }
+
+    /**
+     * The source tab's `?year=`. Anything not among the options, malformed
+     * input included, means this year (ADR 0023).
+     *
+     * @param list<int> $options
+     */
+    private function requestedYear(Request $request, array $options, \DateTimeImmutable $today): int
+    {
+        $raw = $request->query->all()['year'] ?? null;
+        $year = is_scalar($raw) ? (int) $raw : 0;
+
+        return in_array($year, $options, true) ? $year : (int) $today->format('Y');
     }
 
     /** @return list<array{key: string, label: string}> */
@@ -163,9 +202,13 @@ final class ReportController extends AbstractController
                 self::TAB_ACTIVITY_TYPE => 'Activity type',
                 self::TAB_BRANCH => 'Branch',
                 self::TAB_BENEFICIARY_GROUP => 'Beneficiary group',
+                self::TAB_SOURCE => 'Source',
                 default => 'Volunteer',
             }],
         ];
+        if (self::TAB_SOURCE === $tab) {
+            $columns[] = ['key' => 'present', 'label' => 'Volunteers present'];
+        }
         // What the row belongs to: program names repeat across projects.
         if (self::TAB_PROJECT === $tab) {
             $columns[] = ['key' => 'parent', 'label' => 'Branch'];
@@ -194,7 +237,8 @@ final class ReportController extends AbstractController
      * $tab is what the caller knows and this method doesn't: which breakdown
      * these rows are. A volunteer's name links to their page and a program's
      * or a branch's to its activities (`/activities?program=<id>`,
-     * `?branch=<id>`). A project's goes to its edit form, the only project
+     * `?branch=<id>`), a source's to the volunteers holding it
+     * (`/volunteers?source=<id>`). A project's goes to its edit form, the only project
      * page there is. The Unknown bucket carries no id, so it stays plain text. The Most recent date links on every tab, to
      * the edit form of the activity it came from: an activity has no other
      * page. On a date with several activities, that is one of them.
@@ -240,6 +284,9 @@ final class ReportController extends AbstractController
             if (isset($summary['outings'])) {
                 $cells['outings'] = (string) $summary['outings'];
             }
+            if (isset($summary['present'])) {
+                $cells['present'] = (string) $summary['present'];
+            }
 
             $links = [];
             if (self::TAB_VOLUNTEER === $tab && null !== $id) {
@@ -253,6 +300,9 @@ final class ReportController extends AbstractController
             }
             if (self::TAB_BRANCH === $tab && null !== $id) {
                 $links['label'] = $this->generateUrl('activity_index', ['branch' => $id]);
+            }
+            if (self::TAB_SOURCE === $tab && null !== $id) {
+                $links['label'] = $this->generateUrl('volunteer_index', ['source' => $id]);
             }
             if (null !== $summary['mostRecentActivityId']) {
                 $links['mostRecent'] = $this->generateUrl('activity_edit', ['id' => $summary['mostRecentActivityId']]);
