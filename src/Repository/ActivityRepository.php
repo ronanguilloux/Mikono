@@ -78,6 +78,31 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * Each activity's date (as stored, `Y-m-d`) and volunteer, nothing
+     * hydrated, for the monthly totals. A branch filters on the stay's
+     * branch, where ADR 0026 anchors an activity's branch.
+     *
+     * @return list<array{date: string, volunteerId: int|string}>
+     */
+    public function findVolunteerDates(?Branch $branch = null): array
+    {
+        $queryBuilder = $this->createQueryBuilder('a')
+            ->select('a.date AS date', 'IDENTITY(a.volunteer) AS volunteerId');
+
+        if (null !== $branch) {
+            $queryBuilder
+                ->join('a.stay', 's')
+                ->andWhere('s.branch = :branch')
+                ->setParameter('branch', $branch);
+        }
+
+        /** @var list<array{date: string, volunteerId: int|string}> $rows */
+        $rows = $queryBuilder->getQuery()->getScalarResult();
+
+        return $rows;
+    }
+
+    /**
      * Activities dated between two days inclusive, each volunteer's sources
      * fetched in the same query, for the per-source report (ADR 0041). The
      * sources join is to-many, which is fine here: no LIMIT.

@@ -147,6 +147,12 @@
                 {{ tab == 'escort' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By escort</a>
+            <a
+                href="{{ path('report_index', carried|merge({tab: 'month'})) }}"
+                class="{{ tab == 'month' ? tab_on : tab_off }}"
+                {{ tab == 'month' ? 'aria-current="page"' : '' }}
+                data-turbo-action="replace"
+            >By period</a>
         </nav>
 
         {% if tab == 'group' %}
@@ -173,7 +179,43 @@
                 </select>
                 <button type="submit" class="sr-only">Show</button>
             </form>
-            <p class="mb-2 text-xs text-slate-500" data-source-note>"Volunteers present" had a stay at some point in {{ year }}; the other columns count {{ year }}'s activities. A volunteer with several sources counts in full under each, so the totals add up to more than the real figures.</p>
+            <p class="mb-2 text-xs text-slate-500" data-source-note>Counts {{ year }}'s activities. A volunteer with several sources counts in full under each, so the totals add up to more than the real figures.</p>
+        {% endif %}
+
+        {% if tab == 'month' %}
+            {# Same shape as the source tab's year form. #}
+            <form method="get" data-turbo-action="replace" data-controller="auto-submit" class="mb-2 flex items-center gap-2 text-sm text-slate-600">
+                {% for key, value in app.request.query.all %}
+                    {% if key not in ['page', 'branch', 'step'] and value is not iterable %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
+                <label for="report-branch" class="sr-only">Branch</label>
+                <select
+                    id="report-branch"
+                    name="branch"
+                    class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+                    data-action="change->auto-submit#submit"
+                >
+                    <option value="">Every branch</option>
+                    {% for option in branchOptions %}
+                        <option value="{{ option.id }}" {{ branch and branch.id == option.id ? 'selected' : '' }}>{{ option.name }}</option>
+                    {% endfor %}
+                </select>
+                <label for="report-step" class="sr-only">Period</label>
+                <select
+                    id="report-step"
+                    name="step"
+                    class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+                    data-action="change->auto-submit#submit"
+                >
+                    {% for option in stepOptions %}
+                        <option value="{{ option.value }}" {{ step is same as(option) ? 'selected' : '' }}>By {{ option.value }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="sr-only">Show</button>
+            </form>
+            <p class="mb-2 text-xs text-slate-500" data-period-note>Each total counts a volunteer once per {{ step.value }}. Present: a stay overlaps the {{ step.value }}. New arrivals: a stay starts in it. Engaged: an activity is dated in it. "±" compares with the {{ step.value }} before{{ step.value == 'month' ? ' and the same month last year' }}.</p>
         {% endif %}
 
         <twig:DataTable
@@ -269,7 +311,7 @@
 
         <div class="mt-8">
             <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By source</h2>
-            <p class="mb-2 text-xs text-slate-500">{{ year }} only. "Volunteers present" had a stay at some point in the year. A volunteer with several sources counts in full under each.</p>
+            <p class="mb-2 text-xs text-slate-500">{{ year }}'s activities only. A volunteer with several sources counts in full under each.</p>
             <twig:DataTable
                 :columns="sourceColumns"
                 :rows="sourceRows"
@@ -285,6 +327,17 @@
                 :rows="escortRows"
                 :withActions="false"
                 emptyMessage="No activities logged yet."
+            />
+        </div>
+
+        <div class="mt-8">
+            <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By period</h2>
+            <p class="mb-2 text-xs text-slate-500">{{ branch ? branch.name : 'Every branch' }}, by {{ step.value }}. Each total counts a volunteer once per {{ step.value }}: present, a stay overlaps it; new arrivals, a stay starts in it; engaged, an activity is dated in it.</p>
+            <twig:DataTable
+                :columns="periodColumns"
+                :rows="periodRows"
+                :withActions="false"
+                emptyMessage="No stays recorded yet."
             />
         </div>
     </div>

@@ -85,15 +85,16 @@ recorded once per volunteer.**
 - **`/reports?tab=source` counts one Nairobi calendar year at a time**
   ([ADR 0024](0024-treat-dates-as-calendar-days-in-nairobi-time.md)),
   picked with `?year=` and defaulting to this one; a year outside the
-  span of recorded stays falls back to this year. "Volunteers present" is
-  the volunteers holding the source with a stay overlapping the year, the
-  Present rule of ADR 0026 stretched over a period. The activity columns
-  are that year's activities, each credited in full to every source of its
+  span of recorded stays falls back to this year. It counts that year's
+  activities only, each credited in full to every source of its
   volunteer, as `?tab=group` credits every group of a program, so the
-  totals exceed the real ones and the tab says so. Every source has a row,
-  zeros included, since a channel that brought nobody is the finding;
-  volunteers with no source share a "Not recorded" row, shown only when
-  someone is in it.
+  totals exceed the real ones and the tab says so. Its people figure is
+  "Volunteers engaged", as on every other tab: the tab tracks the
+  recruitment pipeline by the work it brings, and headcounts per month
+  live on `?tab=month`, which shares no code with it. Every source has a
+  row, zeros included, since a channel that brought nobody is the
+  finding; volunteers with no source share a "Not recorded" row, shown
+  only when an activity lands in it.
 
 ## Consequences
 

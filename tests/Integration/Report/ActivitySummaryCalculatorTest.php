@@ -181,13 +181,12 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
     }
 
     /**
-     * One year at a time (ADR 0041): present is a stay overlapping the year,
-     * the activity columns that year's activities, credited in full to every
-     * source of the volunteer. Every source has a row; no source is 'Not
-     * recorded', and only when someone is.
+     * One year at a time (ADR 0041): that year's activities, credited in full
+     * to every source of the volunteer. Every source has a row; no source is
+     * 'Not recorded', and only when an activity lands there.
      */
     #[Test]
-    public function sourcesCountTheYearsVolunteersAndCreditTheirWorkToEachSource(): void
+    public function sourcesCreditTheYearsWorkToEachSourceOfTheVolunteer(): void
     {
         self::bootKernel();
         $tikTok = SourceFactory::find(['name' => 'TikTok']);
@@ -198,9 +197,11 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
         ActivityFactory::createOne(['volunteer' => $aisha, 'date' => new \DateTimeImmutable('2025-03-11'), 'duration' => ActivityDuration::FullDay]);
         $baraka = VolunteerFactory::new()->withoutStay()->create(['sources' => [$tikTok, $volunteerWorld]]);
         ActivityFactory::createOne(['volunteer' => $baraka, 'date' => new \DateTimeImmutable('2025-06-02'), 'duration' => ActivityDuration::HalfDay]);
-        // No source, here over New Year with no activity: present in both years.
+        // No source and no activity: here, but nowhere in the counts.
         $chausiku = VolunteerFactory::new()->withoutStay()->create();
         StayFactory::createOne(['volunteer' => $chausiku, 'startDate' => new \DateTimeImmutable('2024-12-20'), 'endDate' => new \DateTimeImmutable('2025-01-05')]);
+        $emeka = VolunteerFactory::new()->withoutStay()->create();
+        ActivityFactory::createOne(['volunteer' => $emeka, 'date' => new \DateTimeImmutable('2024-07-01'), 'duration' => ActivityDuration::HalfDay]);
         $dalia = VolunteerFactory::new()->withoutStay()->create(['sources' => [$tikTok]]);
         ActivityFactory::createOne(['volunteer' => $dalia, 'date' => new \DateTimeImmutable('2024-12-31'), 'duration' => ActivityDuration::FullDay]);
 
@@ -209,19 +210,16 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
         self::getContainer()->get('doctrine')->getManager()->clear();
 
         $rows = $calculator->summarizeBySource(2025);
-        self::assertCount(8, $rows);
-        self::assertSame('TikTok', $rows[0]['label']);
+        self::assertCount(7, $rows);
+        self::assertSame(['TikTok', 'Volunteer World'], array_column(array_slice($rows, 0, 2), 'label'));
         $byLabel = array_column($rows, null, 'label');
-        self::assertSame([2, 3, 2.5, 2], [$byLabel['TikTok']['present'], $byLabel['TikTok']['count'], $byLabel['TikTok']['totalDays'], $byLabel['TikTok']['volunteers']]);
-        self::assertSame([1, 1, 0.5], [$byLabel['Volunteer World']['present'], $byLabel['Volunteer World']['count'], $byLabel['Volunteer World']['totalDays']]);
-        self::assertSame([1, 0, null], [$byLabel['Not recorded']['present'], $byLabel['Not recorded']['count'], $byLabel['Not recorded']['id']]);
-        self::assertSame([0, 0], [$byLabel['YouTube']['present'], $byLabel['YouTube']['count']]);
+        self::assertSame([3, 2.5, 2], [$byLabel['TikTok']['count'], $byLabel['TikTok']['totalDays'], $byLabel['TikTok']['volunteers']]);
+        self::assertSame([1, 0.5, 1], [$byLabel['Volunteer World']['count'], $byLabel['Volunteer World']['totalDays'], $byLabel['Volunteer World']['volunteers']]);
+        self::assertSame([0, 0.0, 0], [$byLabel['YouTube']['count'], $byLabel['YouTube']['totalDays'], $byLabel['YouTube']['volunteers']]);
 
         $byLabel = array_column($calculator->summarizeBySource(2024), null, 'label');
-        self::assertSame([1, 1, 1.0], [$byLabel['TikTok']['present'], $byLabel['TikTok']['count'], $byLabel['TikTok']['totalDays']]);
-        self::assertSame(1, $byLabel['Not recorded']['present']);
-
-        self::assertNotContains('Not recorded', array_column($calculator->summarizeBySource(2023), 'label'));
+        self::assertSame([1, 1.0], [$byLabel['TikTok']['count'], $byLabel['TikTok']['totalDays']]);
+        self::assertSame([1, 0.5, null], [$byLabel['Not recorded']['count'], $byLabel['Not recorded']['totalDays'], $byLabel['Not recorded']['id']]);
     }
 
     /**

@@ -6,6 +6,37 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-03 — Volunteer totals by month or by year
+
+The "By period" tab, `/reports?tab=month`, asked for by Edna to follow the
+trend and compare months. `?step=month|year` (default `month`) picks one row
+per Nairobi calendar month or year, newest first, from the first stay's
+period to the last stay's, always including the current one. Three totals,
+each counting a volunteer once per period:
+
+- **Volunteers present**: a stay overlaps the period. It starts in it, ends
+  in it, spans it, or both starts and ends in it.
+- **New arrivals**: a stay starts in the period.
+- **Volunteers engaged**: an activity is dated in the period, planned ones
+  included as on every tab.
+
+Each total has a change column against the period before. By month, a second
+one compares with the same month a year before; by year, that would repeat
+the first, so it's left out. A change is `—` when that period falls before
+the first listed one, so the first rows don't show a jump from nothing. A
+period after the current one is tagged `Planned`.
+
+`?branch=<id>` narrows all three totals to stays at that branch, an activity
+going by its stay (ADR 0026), so moving branch counts as an arrival at the new
+one. Malformed `step` or `branch` input falls back to the default (ADR 0023).
+
+`App\Report\PeriodTotalsCalculator` shares no code with
+`ActivitySummaryCalculator`. It reads stays and a scalar list of activity
+dates, never the hydrated activities the other tabs walk. In the same change,
+the By source tab dropped its "Volunteers present" column. It keeps
+"Volunteers engaged", the label every other tab uses, since it tracks the
+recruitment pipeline rather than headcounts (ADR 0041).
+
 ## 2026-10-03 — Count volunteers and their work per recruitment source, by year
 
 `/reports?tab=source`. See

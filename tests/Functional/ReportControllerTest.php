@@ -13,10 +13,12 @@ use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\SourceFactory;
+use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
 
 #[ResetDatabase]
@@ -85,7 +87,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertCount(0, $second->filter('td:first-child a'));
         self::assertSame('By escort', trim($crawler->filter('nav[aria-label="Report breakdown"] a[aria-current="page"]')->text()));
 
-        self::assertCount(8, $crawler->filter('[data-report-panel="print"] table'));
+        self::assertCount(9, $crawler->filter('[data-report-panel="print"] table'));
     }
 
     #[Test]
@@ -294,7 +296,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertStringContainsString('1.0', $rows->eq(1)->text());
         // …and each row links to its own volunteer, not to a shared one.
         $hrefs = $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a')
-            ->each(static fn(\Symfony\Component\DomCrawler\Crawler $a) => $a->attr('href'));
+            ->each(static fn(Crawler $a) => $a->attr('href'));
         self::assertCount(2, array_unique($hrefs));
     }
 
@@ -322,16 +324,16 @@ final class ReportControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(
-            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By source', 'By escort'],
+            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By source', 'By escort', 'By period'],
             $crawler->filter('[data-report-panel="screen"] nav a')->each(static fn($a) => trim($a->text())),
         );
         self::assertSame(
-            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By source', 'By escort'],
+            ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By source', 'By escort', 'By period'],
             $crawler->filter('[data-report-panel="print"] h2')->each(static fn($h) => trim($h->text())),
         );
         // Switching breakdowns keeps the reader's scroll position (ADR 0040).
         self::assertSame(
-            array_fill(0, 8, 'replace'),
+            array_fill(0, 9, 'replace'),
             $crawler->filter('[data-report-panel="screen"] nav a')->each(static fn($a) => $a->attr('data-turbo-action')),
         );
         $active = $crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]');
@@ -418,11 +420,91 @@ final class ReportControllerTest extends WebTestCase
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame('By source', trim($screen->filter('nav a[aria-current="page"]')->text()));
         self::assertSame('2025', trim($screen->filter('#report-year option[selected]')->text()));
+        self::assertStringContainsString("Counts 2025's activities.", $screen->filter('[data-source-note]')->text());
         self::assertSame('replace', $screen->filter('form:has(#report-year)')->attr('data-turbo-action'));
         $first = $screen->filter('tbody tr')->eq(0);
-        self::assertSame(['TikTok', '1', '2', '2.0', '1'], $first->filter('td')->slice(0, 5)->each(static fn($td) => trim($td->text())));
+        self::assertSame(['TikTok', '2', '2.0', '1'], $first->filter('td')->slice(0, 4)->each(static fn($td) => trim($td->text())));
         self::assertSame("/volunteers?source={$tikTok->getId()}", $first->filter('a')->first()->attr('href'));
         self::assertStringContainsString('TikTok', $crawler->filter('[data-report-panel="print"]')->text());
+    }
+
+    /**
+     * Newest first, so a month to come leads, tagged Planned. A change with
+     * no earlier month to compare against is a dash, not a jump from zero.
+     */
+    #[Test]
+    public function theMonthTabCountsEachMonthAndTagsMonthsToCome(): void
+    {
+        $client = static::createClient();
+        $thisMonth = new \DateTimeImmutable('first day of this month midnight');
+        $nextMonth = $thisMonth->modify('+1 month');
+        StayFactory::createOne(['startDate' => $thisMonth, 'endDate' => $nextMonth->modify('+4 days')]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/reports?tab=month');
+
+        $screen = $crawler->filter('[data-report-panel="screen"]');
+        self::assertSame('By period', trim($screen->filter('nav a[aria-current="page"]')->text()));
+        $cells = static fn(int $row): array => $screen->filter('tbody tr')->eq($row)->filter('td')->slice(1)->each(static fn($td) => trim($td->text()));
+        self::assertStringStartsWith($nextMonth->format('M Y'), trim($screen->filter('tbody tr')->eq(0)->filter('td')->first()->text()));
+        self::assertSame('Planned', trim($screen->filter('tbody tr')->eq(0)->filter('td')->first()->filter('span')->text()));
+        self::assertSame(['1', '0', '—', '0', '-1', '—', '0', '0', '—'], $cells(0));
+        self::assertSame($thisMonth->format('M Y'), trim($screen->filter('tbody tr')->eq(1)->filter('td')->first()->text()));
+        self::assertSame(['1', '—', '—', '1', '—', '—', '0', '—', '—'], $cells(1));
+        self::assertCount(2, $crawler->filter('[data-report-panel="print"] table')->last()->filter('tbody tr'));
+    }
+
+    #[Test]
+    public function theMonthTabBranchFilterNarrowsAndDegradesToEveryBranch(): void
+    {
+        $client = static::createClient();
+        $mombasa = BranchFactory::createOne(['name' => 'Test Mombasa']);
+        $today = new \DateTimeImmutable('today');
+        StayFactory::createOne(['startDate' => $today, 'endDate' => $today]);
+        StayFactory::createOne(['startDate' => $today, 'endDate' => $today, 'branch' => $mombasa]);
+        $client->loginUser(UserFactory::createOne());
+        $presentThisMonth = static fn(Crawler $crawler): string => trim($crawler->filter('[data-report-panel="screen"] tbody tr')->first()->filter('td')->eq(1)->text());
+
+        $crawler = $client->request('GET', "/reports?tab=month&branch={$mombasa->getId()}");
+        self::assertSame('1', $presentThisMonth($crawler));
+        self::assertSame('Test Mombasa', trim($crawler->filter('#report-branch option[selected]')->text()));
+        self::assertSame('replace', $crawler->filter('form:has(#report-branch)')->attr('data-turbo-action'));
+
+        // Malformed or unknown input degrades to every branch (ADR 0023).
+        foreach (['/reports?tab=month&branch[]=1', '/reports?tab=month&branch=abc', '/reports?tab=month&branch=999999'] as $url) {
+            $crawler = $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertSame('2', $presentThisMonth($crawler), $url);
+            self::assertCount(0, $crawler->filter('#report-branch option[selected]'), $url);
+        }
+    }
+
+    /**
+     * By year, one change column per total: the year before is also the
+     * same period last year. Anything but `step=year` is by month.
+     */
+    #[Test]
+    public function thePeriodTabCountsByYearWhenAsked(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        StayFactory::createOne(['startDate' => $today, 'endDate' => $today]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/reports?tab=month&step=year');
+        $screen = $crawler->filter('[data-report-panel="screen"]');
+        self::assertSame('By year', trim($screen->filter('#report-step option[selected]')->text()));
+        self::assertSame(
+            ['Year', 'Volunteers present', '± prev. year', 'New arrivals', '± prev. year', 'Volunteers engaged', '± prev. year'],
+            $screen->filter('thead th')->each(static fn($th) => trim($th->text())),
+        );
+        self::assertSame([$today->format('Y'), '1', '—', '1', '—', '0', '—'], $screen->filter('tbody tr')->first()->filter('td')->each(static fn($td) => trim($td->text())));
+
+        foreach (['/reports?tab=month&step[]=year', '/reports?tab=month&step=week'] as $url) {
+            $crawler = $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertSame('Month', trim($crawler->filter('[data-report-panel="screen"] thead th')->first()->text()), $url);
+        }
     }
 
     #[Test]
@@ -668,7 +750,7 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
-        self::assertCount(8, $printPanel->filter('table'));
+        self::assertCount(9, $printPanel->filter('table'));
         // Project, program and volunteer tables (branch leads, group sits before volunteer): 26 rows each.
         foreach ([1, 2, 5] as $index) {
             self::assertCount(26, $printPanel->filter('table')->eq($index)->filter('tbody tr'));
@@ -934,10 +1016,11 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
-        self::assertCount(8, $printTables);
-        // "Most recent" is the last column on every table. The source table
-        // (index 6) is left out: it covers this year only, and a week ahead
-        // falls in the next one in late December.
+        self::assertCount(9, $printTables);
+        // "Most recent" is the last column on every activity table. Left out:
+        // the source table (index 6), which covers this year only, and a week
+        // ahead falls in the next one in late December; and the month table
+        // (index 8), which tags the month itself, in its first column.
         foreach ([0, 1, 2, 3, 4, 5, 7] as $index) {
             self::assertSame(
                 'Planned',
@@ -983,7 +1066,7 @@ final class ReportControllerTest extends WebTestCase
     }
 
     /** The "Most recent" cells of the on-screen breakdown — the badge's home. */
-    private function mostRecentCells(\Symfony\Component\DomCrawler\Crawler $crawler): \Symfony\Component\DomCrawler\Crawler
+    private function mostRecentCells(Crawler $crawler): Crawler
     {
         // Last on every tab; its position varies with the tab's columns.
         return $crawler->filter('[data-report-panel="screen"] table tbody tr td:last-child');
@@ -1001,12 +1084,12 @@ final class ReportControllerTest extends WebTestCase
         ]);
     }
 
-    private function firstScreenRow(\Symfony\Component\DomCrawler\Crawler $crawler): string
+    private function firstScreenRow(Crawler $crawler): string
     {
         return $crawler->filter('[data-report-panel="screen"] table tbody tr')->first()->text();
     }
 
-    private function firstPrintRow(\Symfony\Component\DomCrawler\Crawler $crawler): string
+    private function firstPrintRow(Crawler $crawler): string
     {
         return $crawler->filter('[data-report-panel="print"] table tbody tr')->first()->text();
     }
@@ -1043,7 +1126,7 @@ final class ReportControllerTest extends WebTestCase
         }
     }
 
-    private function screenPanel(\Symfony\Component\DomCrawler\Crawler $crawler): string
+    private function screenPanel(Crawler $crawler): string
     {
         return $crawler->filter('[data-report-panel="screen"]')->text();
     }

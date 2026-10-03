@@ -109,35 +109,6 @@ class VolunteerRepository extends ServiceEntityRepository
     }
 
     /**
-     * Volunteers with a stay overlapping the two days, counted per source
-     * they hold: Present over a period rather than on a day (ADR 0026). A
-     * volunteer with several sources counts under each; one with none under
-     * `'unknown'`, ActivitySummaryCalculator's key for an id-less bucket.
-     *
-     * @return array<int|'unknown', int> source id => volunteers
-     */
-    public function countPresentBetweenBySource(\DateTimeImmutable $from, \DateTimeImmutable $to): array
-    {
-        /** @var list<array{sourceId: int|string|null, total: int|string}> $rows */
-        $rows = $this->createQueryBuilder('v')
-            ->select('s.id AS sourceId', 'COUNT(DISTINCT v.id) AS total')
-            ->leftJoin('v.sources', 's')
-            ->andWhere(self::stayExists('ps', ' AND %1$s.startDate <= :to AND %1$s.endDate >= :from'))
-            ->setParameter('from', $from, Types::DATE_IMMUTABLE)
-            ->setParameter('to', $to, Types::DATE_IMMUTABLE)
-            ->groupBy('s.id')
-            ->getQuery()
-            ->getResult();
-
-        $counts = [];
-        foreach ($rows as $row) {
-            $counts[null === $row['sourceId'] ? 'unknown' : (int) $row['sourceId']] = (int) $row['total'];
-        }
-
-        return $counts;
-    }
-
-    /**
      * Volunteer::getStatus() in DQL, as the status's position in
      * VolunteerStatus::cases(). $prefix keeps the subquery aliases unique,
      * which DQL requires across the whole query.

@@ -184,7 +184,9 @@ implements it.
   through its `flashes` variable, never a second `app.flashes`
   ([ADR 0040](docs/adr/0040-keep-the-readers-scroll-position-when-a-control-re-renders-the-same-page.md)).
 - `src/Report/` — the app's real domain logic: `ActivitySummaryCalculator`
-  (duration-to-days aggregation for `/reports`), plus
+  (duration-to-days aggregation for `/reports`), `PeriodTotalsCalculator`
+  (`?tab=month`, "By period", from stays and activity dates; keep it apart from the
+  per-activity breakdowns), plus
   `RosterBuilder`/`QuietProjectFinder` and their readonly VOs behind the
   home screen. `QuietProjectFinder` covers projects only, never volunteers —
   deliberate and evidence-based; read its class docblock before
