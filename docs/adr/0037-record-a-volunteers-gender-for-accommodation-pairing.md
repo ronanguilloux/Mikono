@@ -62,7 +62,7 @@ zip.**
   - the volunteer list, as a column or a filter;
   - the per-list CSV and `.xlsx` exports
     ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md));
-  - `/reports`;
+  - `/reports/volunteers`;
   - the dev fixtures (`VolunteerFactory` leaves it null);
   - `Volunteer::isProfileIncomplete()`, so a missing gender never nudges
     staff to ask for it.

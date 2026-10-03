@@ -47,7 +47,7 @@ a 5xx.**
     1; a page past the end serves the last page (Knp's
     `page_out_of_range: fix`); an unknown `sort` or `direction` leaves the
     view's own order.
-  - `/reports`: an unknown `?tab=` lands on the default tab.
+  - `/reports/volunteers`: an unknown `?tab=` lands on the default tab.
   - `/activities`: a `?volunteer=` filter that doesn't resolve shows the
     unfiltered list.
   - `/activities/new`: a `?project=` or `?date=` prefill that doesn't

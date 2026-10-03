@@ -205,7 +205,7 @@ final class ActivityController extends AbstractController
         return null === $id ? null : $this->volunteers->find($id);
     }
 
-    /** The index's `?program=<id>` filter, linked from /reports' program tab. */
+    /** The index's `?program=<id>` filter, linked from /reports/volunteers' program tab. */
     private function requestedProgram(Request $request): ?Program
     {
         $id = $this->requestedId($request, 'program');

@@ -8,7 +8,7 @@ Accepted
 
 ## Context
 
-Every list view — the CRUD indexes and both breakdown tables on `/reports` —
+Every list view — the CRUD indexes and both breakdown tables on `/reports/volunteers` —
 rendered all rows. The Activities list grows without bound. The UI was
 already validated in the Reports mockup review: a 25 / 50 / 100 / All
 page-size selector and windowed page numbers with ellipsis

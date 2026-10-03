@@ -196,13 +196,13 @@ final class AchievementControllerTest extends WebTestCase
         ]);
         $client->loginUser(UserFactory::createOne());
 
-        $client->request('GET', '/achievements');
+        $client->request('GET', '/reports/achievements');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('table tbody', 'Building a library');
 
         self::assertSame(
             [[$today->format('j M Y'), 'Building a library', 'Nadia Otieno', 'Kibera Library', 'Nairobi (HQ)']],
-            self::exportedRows($client, '/achievements/export.csv'),
+            self::exportedRows($client, '/reports/achievements/export.csv'),
         );
     }
 }

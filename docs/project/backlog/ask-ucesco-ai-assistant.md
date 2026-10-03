@@ -47,18 +47,18 @@ is the finding, not a footnote:**
 
 | Question | What is missing |
 | --- | --- |
-| Volunteer **hours** on a project | Not stored. `App\Enum\ActivityDuration` records half day / full day / other; `Other` contributes `0.0` days and `/reports` undercounts it today. |
+| Volunteer **hours** on a project | Not stored. `App\Enum\ActivityDuration` records half day / full day / other; `Other` contributes `0.0` days and `/reports/volunteers` undercounts it today. |
 | Children supported in 2026 | No beneficiary entity exists. |
 | Volunteers not contacted for 90 days | No contact log exists. |
 | Reporting deadlines next month | No deadline field exists. |
 
 The three that *are* answerable — total volunteers, one volunteer's work on
 one project, a per-volunteer summary — are already computed by
-`src/Report/ActivitySummaryCalculator` and shown on `/reports`. They need a
+`src/Report/ActivitySummaryCalculator` and shown on `/reports/volunteers`. They need a
 filter and a saved view, not a language model.
 
 **The cheap first rung, for the ADR to argue past if it can:** filters and
-per-volunteer views on `/reports`. They answer those three questions
+per-volunteer views on `/reports/volunteers`. They answer those three questions
 exactly, cost nothing in privacy surface, and would tell us whether anyone
 uses them before we spend anything on the rest.
 

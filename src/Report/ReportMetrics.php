@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Report;
 
 /**
- * The four headline figures at the top of /reports, plus the smaller
+ * The four headline figures at the top of /reports/volunteers, plus the smaller
  * qualifiers printed under each one.
  */
 final readonly class ReportMetrics

@@ -2,9 +2,9 @@
 
 {% block title %}Usage — UCESCO Volunteer Manager{% endblock %}
 
-{# The tile markup is /reports'. Twig resolves macros independently of
+{# The tile markup is /reports/volunteers'. Twig resolves macros independently of
    {% extends %}, so importing it beats a second copy of the same eight lines. #}
-{% import 'report/index.html.twig' as report_macros %}
+{% import 'report/volunteers.html.twig' as report_macros %}
 
 {% block body %}
     <div class="mb-1 flex flex-wrap items-center justify-between gap-3">
@@ -19,7 +19,7 @@
         The date range. Presets are links and the custom pair is a form, rather
         than one form holding both: a preset <select> submitted alongside two
         filled date inputs has no well-defined winner. Link markup and classes
-        are the /reports tab nav's, which is the reviewed pattern for
+        are the /reports/volunteers tab nav's, which is the reviewed pattern for
         "server-side state carried in the query string".
 
         The active preset is read off range.preset — the resolved value, NOT

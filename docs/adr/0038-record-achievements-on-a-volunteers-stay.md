@@ -62,8 +62,8 @@ its stay.**
   project index shows its Delete action as unavailable. Nothing refers to
   an achievement, so achievements have no delete guard of their own.
 - UI:
-  - `/achievements` lists every achievement, newest first, with
-    `DataTable`. It is in the main nav and exports to CSV and XLSX
+  - `/reports/achievements` lists every achievement, newest first, with
+    `DataTable`. It is in the Reports menu and exports to CSV and XLSX
     ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md)).
     It has no "New" button.
   - Achievements are added from a stay row on the volunteer's page (route

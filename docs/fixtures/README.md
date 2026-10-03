@@ -148,7 +148,7 @@ the file — this archive runs Monday to Friday, so a Friday followed by the
 next Monday is not a valid pair.
 
 Any roster sitting after the anchored pair seeds a future-dated day, which
-is what `/reports` badges as "Planned". The pair's own `tomorrow` is
+is what `/reports/volunteers` badges as "Planned". The pair's own `tomorrow` is
 future-dated too, so that badge is exercised either way.
 
 Note the day the fixtures load is Nairobi's, not the host's: the app runs

@@ -56,6 +56,13 @@ final class RouteSmokeTest extends WebTestCase
 
             $client->request('GET', $url);
 
+            // No screen of its own: config/routes.yaml sends it home.
+            if ('reports_redirect' === $name) {
+                self::assertResponseRedirects('/', 301);
+
+                continue;
+            }
+
             // 2xx, not merely "below 500": a missing fixture would 404 here,
             // and a `< 500` assertion would pass vacuously while hiding the
             // very server errors this walk exists to find.

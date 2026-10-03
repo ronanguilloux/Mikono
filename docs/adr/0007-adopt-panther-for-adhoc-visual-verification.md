@@ -13,7 +13,7 @@ in-process client:
 
 - **`tests/E2E/VolunteerManagerSmokeTest.php`** — one smoke test of the
   critical path (login → create Volunteer → create Activity → see it in the
-  list and `/reports` → mobile nav), catching what a no-JS client cannot:
+  list and `/reports/volunteers` → mobile nav), catching what a no-JS client cannot:
   Turbo navigation, Tailwind actually rendering, the mobile menu.
 - **`scripts/panther-screenshot.php`** — ad-hoc "does this render" checks an
   agent runs mid-task against the already-running dev app, with no PHPUnit,

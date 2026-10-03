@@ -22,7 +22,7 @@ if (isset($options['help'])) {
 
         Usage: docker compose exec php php scripts/panther-screenshot.php [options]
 
-          --path=/reports            Path to navigate to (default: /)
+          --path=/reports/volunteers Path to navigate to (default: /)
           --base-url=https://localhost
           --login                    Perform the /login form flow first
           --email=...                Required with --login unless PANTHER_LOGIN_EMAIL is set

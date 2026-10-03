@@ -1,5 +1,5 @@
 ---
-title: /reports walks every activity four times
+title: /reports/volunteers walks every activity four times
 created: 2026-09-09
 source: ponytail-audit
 status: needs-design

@@ -48,7 +48,7 @@ final class ReportControllerTest extends WebTestCase
         ]);
 
         $client->loginUser(UserFactory::createOne());
-        $client->request('GET', '/reports');
+        $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
@@ -71,7 +71,7 @@ final class ReportControllerTest extends WebTestCase
         ActivityFactory::createOne(['date' => $date, 'escorts' => []]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=escort');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=escort');
 
         self::assertResponseIsSuccessful();
         $screen = $crawler->filter('[data-report-panel="screen"]');
@@ -95,7 +95,7 @@ final class ReportControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab[]=escort');
+        $crawler = $client->request('GET', '/reports/volunteers?tab[]=escort');
 
         self::assertResponseIsSuccessful();
         self::assertSame('By volunteer', trim($crawler->filter('nav[aria-label="Report breakdown"] a[aria-current="page"]')->text()));
@@ -106,7 +106,7 @@ final class ReportControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
-        $client->request('GET', '/reports');
+        $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'No activities logged yet.');
@@ -136,7 +136,7 @@ final class ReportControllerTest extends WebTestCase
         ]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         $tiles = $crawler->filter('[data-kpi-tiles] > div');
@@ -159,7 +159,7 @@ final class ReportControllerTest extends WebTestCase
         ]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertStringContainsString('1 not counted', $crawler->filter('[data-kpi-tiles] > div')->eq(3)->text());
     }
@@ -183,7 +183,7 @@ final class ReportControllerTest extends WebTestCase
         }
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         $ranked = $crawler->filter('[aria-labelledby="top-volunteers-heading"] li');
         self::assertCount(5, $ranked);
@@ -206,7 +206,7 @@ final class ReportControllerTest extends WebTestCase
         ]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         $link = $crawler->filter('[aria-labelledby="top-volunteers-heading"] li a');
         self::assertCount(1, $link);
@@ -233,7 +233,7 @@ final class ReportControllerTest extends WebTestCase
         ]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         $link = $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a');
         self::assertCount(1, $link);
@@ -258,7 +258,7 @@ final class ReportControllerTest extends WebTestCase
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=project');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=project');
 
         // A project has no show page; its edit form is the only one.
         $link = $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a');
@@ -288,7 +288,7 @@ final class ReportControllerTest extends WebTestCase
         }
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         $rows = $crawler->filter('[data-report-panel="screen"] table tbody tr');
         self::assertCount(2, $rows);
@@ -305,7 +305,7 @@ final class ReportControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         $button = $crawler->filter('button[onclick="window.print()"]');
         self::assertCount(1, $button);
@@ -320,7 +320,7 @@ final class ReportControllerTest extends WebTestCase
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         self::assertSame(
@@ -350,7 +350,7 @@ final class ReportControllerTest extends WebTestCase
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=project');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=project');
 
         self::assertResponseIsSuccessful();
         self::assertSame('By project', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
@@ -366,7 +366,7 @@ final class ReportControllerTest extends WebTestCase
         ActivityFactory::createOne(['volunteer' => VolunteerFactory::new()->withoutStay(), 'project' => ProjectFactory::createOne(['name' => 'Likoni school', 'branch' => $mombasa])]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=project');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=project');
 
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame(['Project', 'Branch'], $screen->filter('thead th')->slice(0, 2)->each(static fn($th) => trim($th->text())));
@@ -388,7 +388,7 @@ final class ReportControllerTest extends WebTestCase
         ActivityFactory::createOne(['activityType' => ActivityTypeFactory::createOne(['name' => 'Medical camp']), 'duration' => ActivityDuration::HalfDay]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=type');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=type');
 
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame('By activity type', trim($screen->filter('nav a[aria-current="page"]')->text()));
@@ -415,7 +415,7 @@ final class ReportControllerTest extends WebTestCase
         ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => new \DateTimeImmutable('2025-03-11'), 'duration' => ActivityDuration::FullDay]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=source&year=2025');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=source&year=2025');
 
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame('By source', trim($screen->filter('nav a[aria-current="page"]')->text()));
@@ -441,7 +441,7 @@ final class ReportControllerTest extends WebTestCase
         StayFactory::createOne(['startDate' => $thisMonth, 'endDate' => $nextMonth->modify('+4 days')]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=month');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=month');
 
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame('By period', trim($screen->filter('nav a[aria-current="page"]')->text()));
@@ -465,13 +465,13 @@ final class ReportControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
         $presentThisMonth = static fn(Crawler $crawler): string => trim($crawler->filter('[data-report-panel="screen"] tbody tr')->first()->filter('td')->eq(1)->text());
 
-        $crawler = $client->request('GET', "/reports?tab=month&branch={$mombasa->getId()}");
+        $crawler = $client->request('GET', "/reports/volunteers?tab=month&branch={$mombasa->getId()}");
         self::assertSame('1', $presentThisMonth($crawler));
         self::assertSame('Test Mombasa', trim($crawler->filter('#report-branch option[selected]')->text()));
         self::assertSame('replace', $crawler->filter('form:has(#report-branch)')->attr('data-turbo-action'));
 
         // Malformed or unknown input degrades to every branch (ADR 0023).
-        foreach (['/reports?tab=month&branch[]=1', '/reports?tab=month&branch=abc', '/reports?tab=month&branch=999999'] as $url) {
+        foreach (['/reports/volunteers?tab=month&branch[]=1', '/reports/volunteers?tab=month&branch=abc', '/reports/volunteers?tab=month&branch=999999'] as $url) {
             $crawler = $client->request('GET', $url);
             self::assertResponseIsSuccessful();
             self::assertSame('2', $presentThisMonth($crawler), $url);
@@ -491,7 +491,7 @@ final class ReportControllerTest extends WebTestCase
         StayFactory::createOne(['startDate' => $today, 'endDate' => $today]);
         $client->loginUser(UserFactory::createOne());
 
-        $crawler = $client->request('GET', '/reports?tab=month&step=year');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=month&step=year');
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame('By year', trim($screen->filter('#report-step option[selected]')->text()));
         self::assertSame(
@@ -500,7 +500,7 @@ final class ReportControllerTest extends WebTestCase
         );
         self::assertSame([$today->format('Y'), '1', '—', '1', '—', '0', '—'], $screen->filter('tbody tr')->first()->filter('td')->each(static fn($td) => trim($td->text())));
 
-        foreach (['/reports?tab=month&step[]=year', '/reports?tab=month&step=week'] as $url) {
+        foreach (['/reports/volunteers?tab=month&step[]=year', '/reports/volunteers?tab=month&step=week'] as $url) {
             $crawler = $client->request('GET', $url);
             self::assertResponseIsSuccessful();
             self::assertSame('Month', trim($crawler->filter('[data-report-panel="screen"] thead th')->first()->text()), $url);
@@ -513,7 +513,7 @@ final class ReportControllerTest extends WebTestCase
         $client = static::createClient();
         $client->loginUser(UserFactory::createOne());
 
-        foreach (['/reports?tab=source&year[]=2025', '/reports?tab=source&year=abc', '/reports?tab=source&year=1990'] as $url) {
+        foreach (['/reports/volunteers?tab=source&year[]=2025', '/reports/volunteers?tab=source&year=abc', '/reports/volunteers?tab=source&year=1990'] as $url) {
             $crawler = $client->request('GET', $url);
             self::assertResponseIsSuccessful();
             self::assertSame((new \DateTimeImmutable('today'))->format('Y'), trim($crawler->filter('#report-year option[selected]')->text()), $url);
@@ -528,7 +528,7 @@ final class ReportControllerTest extends WebTestCase
         ActivityFactory::createMany(2, ['program' => $program, 'duration' => ActivityDuration::FullDay]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=group');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=group');
 
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame('By beneficiary group', trim($screen->filter('nav a[aria-current="page"]')->text()));
@@ -551,7 +551,7 @@ final class ReportControllerTest extends WebTestCase
         ActivityFactory::createOne(['program' => $tuition, 'duration' => ActivityDuration::HalfDay]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=program');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=program');
 
         self::assertSame('By program', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
         $rows = $crawler->filter('[data-report-panel="screen"] table tbody tr');
@@ -587,7 +587,7 @@ final class ReportControllerTest extends WebTestCase
         ProgramFactory::createOne(['name' => 'Maths']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=program');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=program');
 
         $headers = $crawler->filter('[data-report-panel="screen"] table thead th')->each(static fn($th) => trim($th->text()));
         self::assertContains('Volunteers engaged', $headers);
@@ -595,7 +595,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertSame('2', $row[(int) array_search('Volunteers engaged', $headers, true)]);
         self::assertSame('Olympic School — Reading: 40 pupils in grade 3', trim((string) preg_replace('/\s+/', ' ', $crawler->filter('[data-report-beneficiaries]')->text())));
 
-        $crawler = $client->request('GET', '/reports?tab=volunteer');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=volunteer');
         self::assertStringNotContainsString('Volunteers engaged', $crawler->filter('[data-report-panel="screen"] table thead')->text());
     }
 
@@ -612,7 +612,7 @@ final class ReportControllerTest extends WebTestCase
         ActivityFactory::createOne(['volunteer' => VolunteerFactory::new()->withoutStay(), 'project' => ProjectFactory::createOne(['branch' => BranchFactory::find(['name' => 'Nairobi (HQ)'])]), 'duration' => ActivityDuration::HalfDay]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=branch');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=branch');
 
         self::assertSame('By branch', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
         $screen = $crawler->filter('[data-report-panel="screen"]');
@@ -642,12 +642,12 @@ final class ReportControllerTest extends WebTestCase
         // `tab[]=project` is the shape that throws if the controller reads the
         // param through InputBag::get() rather than query->all().
         foreach (['bogus', ''] as $value) {
-            $crawler = $client->request('GET', '/reports?tab=' . $value);
+            $crawler = $client->request('GET', '/reports/volunteers?tab=' . $value);
             self::assertResponseIsSuccessful(sprintf('?tab=%s should fall back, not fail', $value));
             self::assertSame('By volunteer', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
         }
 
-        $crawler = $client->request('GET', '/reports?tab[]=project');
+        $crawler = $client->request('GET', '/reports/volunteers?tab[]=project');
         self::assertResponseIsSuccessful();
         self::assertSame('By volunteer', trim($crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]')->text()));
     }
@@ -659,7 +659,7 @@ final class ReportControllerTest extends WebTestCase
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?page=2&perPage=50');
+        $crawler = $client->request('GET', '/reports/volunteers?page=2&perPage=50');
 
         // Carrying `page` across a tab switch would drop the user on a page the
         // other breakdown may not even have.
@@ -676,7 +676,7 @@ final class ReportControllerTest extends WebTestCase
         $this->twentySixVolunteers();
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertCount(25, $crawler->filter('[data-report-panel="screen"] table tbody tr'));
         self::assertCount(1, $crawler->filter('[data-report-panel="screen"] [data-pagination]'));
@@ -690,7 +690,7 @@ final class ReportControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
 
         foreach (['perPage=50', 'perPage=all'] as $query) {
-            $crawler = $client->request('GET', '/reports?' . $query);
+            $crawler = $client->request('GET', '/reports/volunteers?' . $query);
 
             self::assertResponseIsSuccessful();
             self::assertCount(26, $crawler->filter('[data-report-panel="screen"] table tbody tr'), $query);
@@ -706,7 +706,7 @@ final class ReportControllerTest extends WebTestCase
         $this->twentySixVolunteers();
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?perPage=7');
+        $crawler = $client->request('GET', '/reports/volunteers?perPage=7');
 
         self::assertResponseIsSuccessful();
         self::assertCount(25, $crawler->filter('[data-report-panel="screen"] table tbody tr'));
@@ -719,7 +719,7 @@ final class ReportControllerTest extends WebTestCase
         $this->twentySixVolunteers();
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?page=99');
+        $crawler = $client->request('GET', '/reports/volunteers?page=99');
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-report-panel="screen"] table tbody tr'));
@@ -732,7 +732,7 @@ final class ReportControllerTest extends WebTestCase
         $this->twentySixVolunteers();
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?page=-3');
+        $crawler = $client->request('GET', '/reports/volunteers?page=-3');
 
         self::assertResponseIsSuccessful();
         self::assertCount(25, $crawler->filter('[data-report-panel="screen"] table tbody tr'));
@@ -747,7 +747,7 @@ final class ReportControllerTest extends WebTestCase
         $this->twentySixVolunteers();
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
         self::assertCount(9, $printPanel->filter('table'));
@@ -769,7 +769,7 @@ final class ReportControllerTest extends WebTestCase
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertCount(4, $crawler->filter('[data-report-panel="screen"] table thead th'));
         self::assertCount(4, $crawler->filter('[data-report-panel="screen"] table tbody tr')->eq(0)->filter('td'));
@@ -783,7 +783,7 @@ final class ReportControllerTest extends WebTestCase
         $client = static::createClient();
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-pagination]'));
@@ -803,7 +803,7 @@ final class ReportControllerTest extends WebTestCase
         $this->twentySixVolunteers();
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?sort=label&direction=desc');
+        $crawler = $client->request('GET', '/reports/volunteers?sort=label&direction=desc');
 
         $firstRow = $crawler->filter('[data-report-panel="screen"] table tbody tr')->first()->text();
 
@@ -817,7 +817,7 @@ final class ReportControllerTest extends WebTestCase
         $this->twentySixVolunteers();
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?sort=label&direction=asc');
+        $crawler = $client->request('GET', '/reports/volunteers?sort=label&direction=asc');
 
         self::assertStringContainsString(
             'Volunteer Number01',
@@ -837,7 +837,7 @@ final class ReportControllerTest extends WebTestCase
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?sort=totalDays&direction=desc&page=2');
+        $crawler = $client->request('GET', '/reports/volunteers?sort=totalDays&direction=desc&page=2');
 
         $href = (string) $crawler->filter('[data-report-panel="screen"] nav a')->eq(1)->attr('href');
 
@@ -858,8 +858,8 @@ final class ReportControllerTest extends WebTestCase
         // the default order is the calculator's totalDays ranking, and these
         // rows all total one day, so what breaks the tie is the order the
         // buckets were filled — by activity date, which the factory randomises.
-        $default = $this->firstScreenRow($client->request('GET', '/reports'));
-        $withJunk = $this->firstScreenRow($client->request('GET', '/reports?sort=nonsense&direction=sideways'));
+        $default = $this->firstScreenRow($client->request('GET', '/reports/volunteers'));
+        $withJunk = $this->firstScreenRow($client->request('GET', '/reports/volunteers?sort=nonsense&direction=sideways'));
 
         self::assertResponseIsSuccessful();
         self::assertSame($default, $withJunk);
@@ -878,8 +878,8 @@ final class ReportControllerTest extends WebTestCase
 
         $client->loginUser(UserFactory::createOne());
 
-        $unsorted = $this->firstPrintRow($client->request('GET', '/reports'));
-        $crawler = $client->request('GET', '/reports?sort=label&direction=desc');
+        $unsorted = $this->firstPrintRow($client->request('GET', '/reports/volunteers'));
+        $crawler = $client->request('GET', '/reports/volunteers?sort=label&direction=desc');
 
         self::assertCount(0, $crawler->filter('[data-report-panel="print"] [data-sort-link]'));
         self::assertCount(1, $crawler->filter('[data-report-panel="screen"] [data-sort-link="label"]'));
@@ -900,7 +900,7 @@ final class ReportControllerTest extends WebTestCase
         $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', $nextWeek);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         $cell = $this->mostRecentCells($crawler);
@@ -917,7 +917,7 @@ final class ReportControllerTest extends WebTestCase
         $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('-1 week'));
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $this->mostRecentCells($crawler)->filter('span'));
@@ -935,7 +935,7 @@ final class ReportControllerTest extends WebTestCase
         $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('today'));
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $this->mostRecentCells($crawler)->filter('span'));
@@ -965,7 +965,7 @@ final class ReportControllerTest extends WebTestCase
         }
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertResponseIsSuccessful();
         $cell = $this->mostRecentCells($crawler);
@@ -981,7 +981,7 @@ final class ReportControllerTest extends WebTestCase
         $this->activityFor('Susan Njoki', 'Beyond Zero clinic', new \DateTimeImmutable('-1 week'));
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         self::assertCount(2, $crawler->filter('[data-report-panel="screen"] table tbody tr'));
         self::assertCount(1, $this->mostRecentCells($crawler)->filter('span'));
@@ -994,7 +994,7 @@ final class ReportControllerTest extends WebTestCase
         $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('+1 week'));
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=project');
+        $crawler = $client->request('GET', '/reports/volunteers?tab=project');
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Peggy Lucas school', $this->screenPanel($crawler));
@@ -1013,7 +1013,7 @@ final class ReportControllerTest extends WebTestCase
         $this->activityFor('Grace Wanjiru', 'Peggy Lucas school', new \DateTimeImmutable('+1 week'));
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports');
+        $crawler = $client->request('GET', '/reports/volunteers');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
         self::assertCount(9, $printTables);
@@ -1057,7 +1057,7 @@ final class ReportControllerTest extends WebTestCase
         $latest = ActivityFactory::createOne($shared + ['date' => new \DateTimeImmutable('2026-08-10')]);
 
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/reports?tab=' . $tab);
+        $crawler = $client->request('GET', '/reports/volunteers?tab=' . $tab);
 
         $link = $crawler->filter('[data-report-panel="screen"] table tbody a[href^="/activities/"][href$="/edit"]');
         self::assertCount(1, $link);

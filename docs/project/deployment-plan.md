@@ -315,7 +315,7 @@ Then verify by hand:
 - The login page is **styled** — unstyled CSS means the Tailwind build
   step did not run (see §8).
 - Log in, create an activity, check it appears in the list and in
-  `/reports`.
+  `/reports/volunteers`.
 - `curl -sI --http3 https://vm.example.org` returns a response (HTTP/3
   reachable, i.e. 443/udp is genuinely open).
 
@@ -721,7 +721,7 @@ real one):
   emits the tag:
   `curl -sk https://localhost/login | grep -o '/assets/styles/[^"]*'`,
   then fetch that path and expect a couple of dozen KB, not a 404.
-- Log in, create an activity, see it in the list and in `/reports`.
+- Log in, create an activity, see it in the list and in `/reports/volunteers`.
 
 **Logging in cannot be scripted with `curl`.** This app uses stateless
 CSRF ([`config/packages/csrf.yaml`](../../config/packages/csrf.yaml):
@@ -740,7 +740,7 @@ docker run --rm --network mikono-dryrun_default \
     -v "$PWD":/app -w /app --entrypoint php app-php-dev \
     scripts/panther-screenshot.php --base-url=http://php \
     --login --email=dryrun@example.org --password=<the-one-you-set> \
-    --path=/reports --wait-selector='header' --out=dryrun-reports.png
+    --path=/reports/volunteers --wait-selector='header' --out=dryrun-reports.png
 ```
 
 The bind mount puts the screenshot straight on the host under

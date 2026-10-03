@@ -13,7 +13,7 @@ parameters: the sort headers and the Activities mobile sort select
 ([ADR 0011](0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md)),
 page links and the page-size form
 ([ADR 0009](0009-adopt-knppaginatorbundle-for-list-pagination.md)), the
-search and filter forms, the `/reports` tabs and the `/usage` date range.
+search and filter forms, the `/reports/volunteers` tabs and the `/usage` date range.
 State lives in the URL and is read under
 [ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)'s defaults,
 so links stay shareable and every control works without JavaScript.
@@ -61,11 +61,11 @@ back to the top.**
   intended.
 - **Every such control opts in with `data-turbo-action="replace"`:**
   - sort header links in the `DataTable` component, so every list,
-    `/reports` and all three tables on `/usage`;
+    `/reports/volunteers` and all three tables on `/usage`;
   - page links and the page-size form;
   - the Activities mobile sort select;
   - the search and filter forms, and their "Clear filters" links;
-  - the `/reports` tab links;
+  - the `/reports/volunteers` tab links;
   - the `/usage` range presets and custom range form.
 - **The rule is uniform.** Filters, tabs and the range control carry the
   attribute even though they sit at the top of their pages today: layouts
@@ -77,7 +77,7 @@ back to the top.**
 ## Consequences
 
 - **Positive:** sorting, paging, filtering or switching tab keeps the
-  table the reader was working on in view, on every list, `/reports` and
+  table the reader was working on in view, on every list, `/reports/volunteers` and
   `/usage`. No new JavaScript and no new dependency: one meta tag and one
   attribute per control. With JavaScript off nothing changes — a full page
   load, at the top. State stays in GET parameters, so URLs stay shareable

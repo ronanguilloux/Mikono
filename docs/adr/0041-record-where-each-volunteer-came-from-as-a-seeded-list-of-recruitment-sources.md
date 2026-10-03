@@ -82,7 +82,7 @@ recorded once per volunteer.**
   - The admin whole-database zip picks up `source` and `volunteer_source`
     automatically. Neither holds a secret, so neither goes on a drop list
     ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)).
-- **`/reports?tab=source` counts one Nairobi calendar year at a time**
+- **`/reports/volunteers?tab=source` counts one Nairobi calendar year at a time**
   ([ADR 0024](0024-treat-dates-as-calendar-days-in-nairobi-time.md)),
   picked with `?year=` and defaulting to this one; a year outside the
   span of recorded stays falls back to this year. It counts that year's

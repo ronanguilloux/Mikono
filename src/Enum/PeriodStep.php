@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Enum;
 
 /**
- * The step /reports?tab=month counts volunteers by: one row per calendar
+ * The step /reports/volunteers?tab=month counts volunteers by: one row per calendar
  * month or per calendar year, in Nairobi time (ADR 0024). Read from `?step=`.
  */
 enum PeriodStep: string

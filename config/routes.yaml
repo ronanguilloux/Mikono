@@ -9,3 +9,13 @@
 
 controllers:
     resource: routing.controllers
+
+# The bare /reports has no page: each report is an item of the nav's Reports
+# menu. A stale link or a hand-typed URL lands on the home screen.
+reports_redirect:
+    path: /reports
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    methods: [GET]
+    defaults:
+        route: app_home
+        permanent: true

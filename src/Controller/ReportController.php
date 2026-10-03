@@ -70,7 +70,7 @@ final class ReportController extends AbstractController
         private readonly BranchRepository $branches,
     ) {}
 
-    #[Route('', name: 'index', methods: ['GET'])]
+    #[Route('/volunteers', name: 'volunteers', methods: ['GET'])]
     public function index(Request $request): Response
     {
         $today = new \DateTimeImmutable('today');
@@ -134,7 +134,7 @@ final class ReportController extends AbstractController
             $rows = $this->toRows($pageOfRows, $today, $tab);
         }
 
-        return $this->render('report/index.html.twig', [
+        return $this->render('report/volunteers.html.twig', [
             'metrics' => $this->metrics->calculate($today),
             // summarizeByVolunteer() already sorts by total days descending, so the
             // "Top volunteers" card is the head of this same list — no second pass.

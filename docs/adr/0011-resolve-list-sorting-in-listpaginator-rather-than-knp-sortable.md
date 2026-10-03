@@ -9,7 +9,7 @@ Accepted
 ## Context
 
 Every column header on the list views — the CRUD indexes and both breakdown
-tables on `/reports` — should sort ascending on first click and descending on
+tables on `/reports/volunteers` — should sort ascending on first click and descending on
 the second. Pagination stays on KnpPaginatorBundle
 ([ADR 0009](0009-adopt-knppaginatorbundle-for-list-pagination.md)), but its
 sortable support does not fit, for three reasons found in its source:
@@ -20,7 +20,7 @@ sortable support does not fit, for three reasons found in its source:
   anything outside `sortFieldAllowList` throws `InvalidValueException` — a
   500 for a typo, where `ListPaginator` guarantees bad input never errors. It
   would also put DQL aliases in bookmarked URLs and make `?sort=totalDays`
-  mean different things on `/reports` (array paths) and on a CRUD index.
+  mean different things on `/reports/volunteers` (array paths) and on a CRUD index.
 - **Knp's sorting has to be switched off, not merely unused.** Its default
   parameter name is `sort`; left on, `?sort=activityType` would reach its
   walker as an association path and 500.
@@ -33,7 +33,7 @@ sorting disabled.**
 
 - `ListPaginator` is the one place `page`, `perPage`, `sort` and
   `direction` are read. It exposes `sortState()`, `applySort()` (for a
-  `QueryBuilder`) and `sortArray()` (for `/reports`).
+  `QueryBuilder`) and `sortArray()` (for `/reports/volunteers`).
 - Knp's sorting is disabled by passing
   `PaginatorInterface::SORT_FIELD_PARAMETER_NAME => null` to `paginate()`.
   Both Sortable subscribers short-circuit on a null name, and Knp merges
@@ -41,9 +41,9 @@ sorting disabled.**
   parameter would stay forgeable from the URL bar.
 - **URL contract:** `?sort=<column key>&direction=asc|desc`. Column keys,
   never DQL paths. A sort link resets `page` to 1 and keeps `perPage` and
-  `/reports`' `tab`.
+  `/reports/volunteers`' `tab`.
 - **Each controller's `SORT_MAP` const is the whitelist**: column key → DQL
-  field(s), or array key on `/reports`. No user string reaches DQL. An
+  field(s), or array key on `/reports/volunteers`. No user string reaches DQL. An
   unknown or missing `sort` falls back to the view's default order. A column
   opts out by not being in the map — there is no second sortability flag on
   the column definition.
@@ -51,12 +51,12 @@ sorting disabled.**
   own `ORDER BY` after the requested sort; without it, a low-cardinality
   sort (Status) lets SQLite repeat rows across pages. On arrays, `usort` is
   stable since PHP 8.0, so the calculator's order is the tie-break.
-- `/reports` sorts the whole list before paginating, not the page. Nulls
+- `/reports/volunteers` sorts the whole list before paginating, not the page. Nulls
   sort last in both directions: an empty "Most recent" is missing data, not
   a small value.
 - `App\Pagination\SortState` (readonly) carries sortable keys, active key
   and direction to `DataTable`, which renders plain headers when it is null
-  (the `/reports` print panel).
+  (the `/reports/volunteers` print panel).
 - Mobile: where `DataTable` is hidden below `md` (Activities),
   `templates/components/SortSelect.html.twig` emits the same two parameters
   from selects via the `auto-submit` Stimulus controller.
@@ -84,7 +84,7 @@ sorting disabled.**
 ### 1. `knp_pagination_sortable()` with `sortFieldAllowList`
 
 **Rejected.** Needs a translator, exposes DQL paths, turns typos into 500s,
-and splits the meaning of `?sort=` between CRUD and `/reports`.
+and splits the meaning of `?sort=` between CRUD and `/reports/volunteers`.
 
 ### 2. Add `symfony/translation` to unlock Knp's helpers
 

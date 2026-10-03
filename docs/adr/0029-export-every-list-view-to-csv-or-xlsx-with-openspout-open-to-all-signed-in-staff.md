@@ -102,7 +102,7 @@ can view. `/users/export` is admin-only because `UserController` carries
 `#[IsGranted('ROLE_ADMIN')]` at class level. There is no separate export
 gate.
 
-`/reports` and `/usage` have no export: they show aggregates, not lists.
+`/reports/volunteers` and `/usage` have no export: they show aggregates, not lists.
 The admin-only copy of every table is a separate decision
 ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)).
 

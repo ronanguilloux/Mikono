@@ -10,7 +10,7 @@ Accepted
 
 Every user of the app is in Kenya (EAT, UTC+3, no daylight saving). Much of
 the app is relative to *today*: the home screen's "Today's roster" and
-"Tomorrow's roster", the `Planned` badge on `/reports`, the volunteer page
+"Tomorrow's roster", the `Planned` badge on `/reports/volunteers`, the volunteer page
 and the Activities list, the batch form's date prefill, and the `/usage`
 presets. All of them resolve `new \DateTimeImmutable('today')`.
 

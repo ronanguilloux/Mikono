@@ -22,7 +22,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * What volunteers achieved during their stays. Listed across volunteers at
- * /achievements, but added from a stay on the volunteer's page, so the new
+ * /reports/achievements, but added from a stay on the volunteer's page, so the new
  * route is `stay_achievement_new` with the stay's `{id}`. See ADR 0038.
  */
 final class AchievementController extends AbstractController
@@ -60,7 +60,7 @@ final class AchievementController extends AbstractController
         private readonly ListPaginator $paginator,
     ) {}
 
-    #[Route('/achievements', name: 'achievement_index', methods: ['GET'])]
+    #[Route('/reports/achievements', name: 'achievement_index', methods: ['GET'])]
     public function index(Request $request): Response
     {
         $pagination = $this->paginator->paginateQuery($this->listQueryBuilder($request), Achievement::class, $request);
@@ -90,7 +90,7 @@ final class AchievementController extends AbstractController
         ]);
     }
 
-    #[Route('/achievements/export.{format}', name: 'achievement_export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
+    #[Route('/reports/achievements/export.{format}', name: 'achievement_export', requirements: ['format' => 'csv|xlsx'], defaults: ['format' => 'csv'], methods: ['GET'])]
     public function export(Request $request, string $format): StreamedResponse
     {
         return ListExport::response('achievements', $format, self::COLUMNS, (function () use ($request): \Generator {

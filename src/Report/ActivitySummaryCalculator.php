@@ -52,7 +52,7 @@ final class ActivitySummaryCalculator
     /**
      * Program names repeat across projects ("School support" runs at three
      * schools), so each row carries its project as `parent`, shown in its own
-     * column on /reports.
+     * column on /reports/volunteers.
      *
      * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
@@ -202,13 +202,13 @@ final class ActivitySummaryCalculator
     /**
      * Buckets by id, not by label: two volunteers sharing a full name are two
      * rows, not one merged row with double the days. The id is carried out so
-     * a caller can link a row back to the thing it summarizes — `/reports`
+     * a caller can link a row back to the thing it summarizes — `/reports/volunteers`
      * links volunteer rows to `/activities?volunteer=<id>`.
      *
      * `volunteers` is the distinct people in a bucket, planned activities
      * included like every other column here — a project's count is distinct
      * across its programs, never the sum of theirs. Always 1 on the volunteer
-     * breakdown, which is why /reports doesn't show it there.
+     * breakdown, which is why /reports/volunteers doesn't show it there.
      *
      * Activities with no volunteer (or no project) share one 'unknown' bucket
      * with a null id, which is what makes such a row unlinkable rather than

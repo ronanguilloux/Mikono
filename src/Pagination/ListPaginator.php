@@ -164,7 +164,7 @@ final class ListPaginator
     }
 
     /**
-     * The array equivalent, for /reports — which paginates an in-memory
+     * The array equivalent, for /reports/volunteers — which paginates an in-memory
      * breakdown, not a query. Sorts the WHOLE list, so the caller must apply
      * it before paginateArray() rather than to a page.
      *

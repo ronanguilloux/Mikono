@@ -36,7 +36,7 @@ See [ADR 0034](../../adr/0034-comply-with-kenyas-data-protection-act-2019.md) ru
   It:
   - clears or replaces every identifying field;
   - deletes the photo;
-  - keeps the stays and activity rows, so `/reports` counts stay true,
+  - keeps the stays and activity rows, so `/reports/volunteers` counts stay true,
     and the recruitment sources
     ([ADR 0041](../../adr/0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md)),
     so channel counts do too.

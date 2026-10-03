@@ -11,7 +11,7 @@ use App\Repository\ProjectRepository;
 use App\Repository\VolunteerRepository;
 
 /**
- * Builds the KPI tiles at the top of /reports.
+ * Builds the KPI tiles at the top of /reports/volunteers.
  *
  * Everything is counted in PHP from the finders the app already has, rather
  * than through new COUNT() queries: ActivitySummaryCalculator already walks

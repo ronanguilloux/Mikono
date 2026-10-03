@@ -321,7 +321,7 @@ final class ListPaginatorTest extends KernelTestCase
 
     /**
      * A "—" cell is missing data, not a small value, so those rows belong at
-     * the bottom whichever way the column points. /reports' `mostRecent` is
+     * the bottom whichever way the column points. /reports/volunteers' `mostRecent` is
      * the only nullable column today.
      */
     #[Test]
@@ -427,7 +427,7 @@ final class ListPaginatorTest extends KernelTestCase
         $html = $twig->render('pagination/tailwind.html.twig', array_merge(
             $pagination->getPaginationData(),
             [
-                'route' => 'report_index',
+                'route' => 'report_volunteers',
                 'query' => [],
                 'options' => $pagination->getPaginatorOptions(),
             ],

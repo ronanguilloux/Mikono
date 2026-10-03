@@ -123,7 +123,7 @@ Data:
   moved to another branch. Its activities' stays have to move first.
 - **Negative / trade-offs:** the "Kibera (Nairobi)" label is gone. "Kibera"
   survives only in `Branch::$projectZones` text, which nothing queries.
-- **Negative / trade-offs:** `/reports` has no per-branch totals and
+- **Negative / trade-offs:** `/reports/volunteers` has no per-branch totals and
   `/activities` has no branch filter; both are backlog work.
 - **Reversibility:** moderate. Dropping the invariant means deleting the
   activity, stay and project guards (the program guard also serves

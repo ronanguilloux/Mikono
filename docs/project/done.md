@@ -6,6 +6,22 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-03 — Reports becomes a menu of reports
+
+More reports are coming, so the nav's Reports link is now a dropdown group
+built from the same `menu_groups` loop as Settings. It lists
+**on Volunteers**: the former `/reports`, now `/reports/volunteers`, titled
+"Volunteering Report", route `report_volunteers`, template
+`report/volunteers.html.twig`. It also lists **on Achievements**: the list and
+its export moved to `/reports/achievements` and `…/export.{format}`. Their
+route names are unchanged, and edit and delete stay at `/achievements/{id}/…`
+(ADR 0038). A new report is one more item in that group.
+
+There is no landing page: we decided against one. Instead, the bare
+`/reports` is a permanent (301) redirect to the home screen, set in `config/routes.yaml`
+(`reports_redirect`). `RouteSmokeTest` asserts that redirect rather than a
+2xx.
+
 ## 2026-10-03 — Volunteer totals by month or by year
 
 The "By period" tab, `/reports?tab=month`, asked for by Edna to follow the

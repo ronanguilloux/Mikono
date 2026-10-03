@@ -115,13 +115,13 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
         (new WebDriverSelect($client->findElement(WebDriverBy::id('volunteer-filter'))))->selectByValue('');
         $client->wait()->until(static fn(RemoteWebDriver $driver) => !$filterOn($driver));
 
-        $client->request('GET', '/reports');
+        $client->request('GET', '/reports/volunteers');
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
 
         // The breakdowns are tabbed now, and unlike the DomCrawler used by the
         // functional tests, Panther reads only what is actually visible — the
         // project name lives on the other tab (and in the print-only panel).
-        $client->request('GET', '/reports?tab=project');
+        $client->request('GET', '/reports/volunteers?tab=project');
         self::assertSelectorTextContains('body', 'Bright Achievers');
 
         $client->getWebDriver()->manage()->window()->setSize(new WebDriverDimension(375, 812));

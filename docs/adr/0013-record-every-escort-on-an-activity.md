@@ -39,7 +39,7 @@ path and the storage: the display has been waiting for this since the
 home screen shipped.
 
 There is also a workload dimension: every escort row is a staff workload
-figure, and `/reports` reads it per escort. A model that attributes a
+figure, and `/reports/volunteers` reads it per escort. A model that attributes a
 session to only one of the two people who ran it would make that report
 wrong from the start.
 
@@ -69,7 +69,7 @@ becomes `Activity::$escorts`, a `ManyToMany` to `Escort`.**
 
 **The read path counts escorts from what the rosters actually record.**
 
-- `/reports` has a **By escort** tab (also in the print panel), built by
+- `/reports/volunteers` has a **By escort** tab (also in the print panel), built by
   `ActivitySummaryCalculator::summarizeByEscort()` over
   `ActivityRepository::findAllWithEscorts()`, which fetch-joins escorts
   and so carries no `LIMIT`. Columns: Escort, Days on duty, Site visits,

@@ -110,7 +110,7 @@ Status:
   It runs one fetch-join query that fills the listed volunteers' managed,
   uninitialized `stays` collections, then asks `getStatus()`, so there is
   no lazy-load per row.
-- The volunteer page's header badge shows the status. On `/reports`, the
+- The volunteer page's header badge shows the status. On `/reports/volunteers`, the
   Volunteers tile reads "N present · N upcoming · N engaged"; it counts
   `getStatus()` in PHP over `findAllOrderedByName()`, which fetch-joins
   stays.
@@ -188,7 +188,7 @@ Data:
   branch; a project at another branch than the stay's is refused at save
   ([ADR 0027](0027-tie-projects-to-a-branch-and-require-an-activitys-project-to-share-its-stays-branch.md)).
   There is no branch column or filter on `/activities` and no per-branch
-  totals on `/reports`.
+  totals on `/reports/volunteers`.
 - **Reversibility:** expensive. Removing stays means dropping a required FK
   from `Activity`, restoring a stored status with a backfill, and
   rewriting the pickers, sorts, filters, reports, factories and fixtures

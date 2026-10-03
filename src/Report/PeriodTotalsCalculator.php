@@ -10,7 +10,7 @@ use App\Repository\ActivityRepository;
 use App\Repository\StayRepository;
 
 /**
- * Volunteers per calendar month or year, for /reports?tab=month. Shares
+ * Volunteers per calendar month or year, for /reports/volunteers?tab=month. Shares
  * nothing with ActivitySummaryCalculator: it reads stays and activity dates,
  * not the per-activity breakdowns. Each total counts distinct volunteers:
  *

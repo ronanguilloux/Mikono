@@ -38,7 +38,7 @@
         <form method="get" class="flex items-center gap-2" data-controller="auto-submit" data-turbo-action="replace">
             {#
                 Carry every other query param through, so changing the page size
-                on /reports doesn't drop the active tab. `page` is deliberately
+                on /reports/volunteers doesn't drop the active tab. `page` is deliberately
                 omitted: a new page size means a new page 1, and keeping the old
                 offset would drop the user somewhere arbitrary.
             #}

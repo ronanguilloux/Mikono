@@ -4,7 +4,8 @@ UCESCO Volunteer Manager (VM) — a Symfony 8.1 web app so UCESCO's
 Volunteer Manager can track volunteers working at UCESCO's projects in
 Kibera (Nairobi) and Mombasa: login-protected CRUD for Volunteers,
 Projects, Activity Types, Escorts, Users and Activities (the log entries),
-a home screen of daily rosters, `/reports`, and an admin `/usage` screen.
+a home screen of daily rosters, a Reports menu (`/reports/volunteers`,
+`/reports/achievements`), and an admin `/usage` screen.
 Stack decision:
 [ADR 0003](docs/adr/0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md);
 narrative: `docs/brainstorm/02-volunteer-manager-v0.1-context.md`.
@@ -113,7 +114,7 @@ implements it.
   without foreign keys here
   ([ADR 0038](docs/adr/0038-record-achievements-on-a-volunteers-stay.md)).
   `BeneficiaryGroup` is a third list, tagging programs, **deliberately
-  unseeded and absent from fixtures** — the VM enters it; `/reports?tab=group`
+  unseeded and absent from fixtures** — the VM enters it; `/reports/volunteers?tab=group`
   credits an activity to every group of its program
   ([ADR 0030](docs/adr/0030-insert-programs-between-projects-and-activities.md)).
 - **Personal data is admitted only under
@@ -140,7 +141,7 @@ implements it.
   - `sortState` — turns headers into sort links; leave it null for a table
     with nothing to re-order (the Reports print panel).
   - A row's optional `badges` map (column key => label) draws a pill after
-    that cell's text — how `/reports` tags a future-dated "Most recent" as
+    that cell's text — how `/reports/volunteers` tags a future-dated "Most recent" as
     `Planned`. Never concatenate the label into `cells`: they must stay the
     plain formatted value, or sorting, number formatting and every test
     matching a cell by text see the decoration too.
@@ -184,7 +185,7 @@ implements it.
   through its `flashes` variable, never a second `app.flashes`
   ([ADR 0040](docs/adr/0040-keep-the-readers-scroll-position-when-a-control-re-renders-the-same-page.md)).
 - `src/Report/` — the app's real domain logic: `ActivitySummaryCalculator`
-  (duration-to-days aggregation for `/reports`), `PeriodTotalsCalculator`
+  (duration-to-days aggregation for `/reports/volunteers`), `PeriodTotalsCalculator`
   (`?tab=month`, "By period", from stays and activity dates; keep it apart from the
   per-activity breakdowns), plus
   `RosterBuilder`/`QuietProjectFinder` and their readonly VOs behind the
@@ -386,7 +387,7 @@ process, hiding template/PHP edits in dev until a restart.
   ```bash
   docker compose exec php php scripts/panther-screenshot.php \
     --login --email=ronan.guilloux@gmail.com --password=<dev-password> \
-    --path=/reports --width=375 --height=812 \
+    --path=/reports/volunteers --width=375 --height=812 \
     --wait-selector='header' --out=mobile-nav.png
   docker compose cp php:/app/var/screenshots/mobile-nav.png ./mobile-nav.png
   ```

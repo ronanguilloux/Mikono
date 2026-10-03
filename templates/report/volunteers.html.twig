@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Reports — UCESCO Volunteer Manager{% endblock %}
+{% block title %}Volunteering Report — UCESCO Volunteer Manager{% endblock %}
 
 {% macro kpi_tile(label, value, sub) %}
     <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -14,7 +14,7 @@
 
 {% block body %}
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-xl font-semibold">Reports</h1>
+        <h1 class="text-xl font-semibold">Volunteering Report</h1>
         <button
             type="button"
             onclick="window.print()"
@@ -100,55 +100,55 @@
 
         <nav class="mb-3 flex flex-wrap items-center gap-2" aria-label="Report breakdown">
             <a
-                href="{{ path('report_index', carried|merge({tab: 'branch'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'branch'})) }}"
                 class="{{ tab == 'branch' ? tab_on : tab_off }}"
                 {{ tab == 'branch' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By branch</a>
             <a
-                href="{{ path('report_index', carried|merge({tab: 'project'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'project'})) }}"
                 class="{{ tab == 'project' ? tab_on : tab_off }}"
                 {{ tab == 'project' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By project</a>
             <a
-                href="{{ path('report_index', carried|merge({tab: 'program'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'program'})) }}"
                 class="{{ tab == 'program' ? tab_on : tab_off }}"
                 {{ tab == 'program' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By program</a>
             <a
-                href="{{ path('report_index', carried|merge({tab: 'type'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'type'})) }}"
                 class="{{ tab == 'type' ? tab_on : tab_off }}"
                 {{ tab == 'type' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By activity type</a>
             <a
-                href="{{ path('report_index', carried|merge({tab: 'group'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'group'})) }}"
                 class="{{ tab == 'group' ? tab_on : tab_off }}"
                 {{ tab == 'group' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By beneficiary group</a>
             <a
-                href="{{ path('report_index', carried|merge({tab: 'volunteer'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'volunteer'})) }}"
                 class="{{ tab == 'volunteer' ? tab_on : tab_off }}"
                 {{ tab == 'volunteer' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By volunteer</a>
             <a
-                href="{{ path('report_index', carried|merge({tab: 'source'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'source'})) }}"
                 class="{{ tab == 'source' ? tab_on : tab_off }}"
                 {{ tab == 'source' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By source</a>
             <a
-                href="{{ path('report_index', carried|merge({tab: 'escort'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'escort'})) }}"
                 class="{{ tab == 'escort' ? tab_on : tab_off }}"
                 {{ tab == 'escort' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"
             >By escort</a>
             <a
-                href="{{ path('report_index', carried|merge({tab: 'month'})) }}"
+                href="{{ path('report_volunteers', carried|merge({tab: 'month'})) }}"
                 class="{{ tab == 'month' ? tab_on : tab_off }}"
                 {{ tab == 'month' ? 'aria-current="page"' : '' }}
                 data-turbo-action="replace"

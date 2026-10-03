@@ -19,7 +19,7 @@ The roster archive
 constrains the shape. Activity type names are shared across projects:
 "School support" appears at three projects, "Clinic support" and
 "Orphanage support" at two each. `ActivityType` names are unique
-(`uniq_activity_type_name`), and `/reports` totals per type.
+(`uniq_activity_type_name`), and `/reports/volunteers` totals per type.
 
 Two existing rules also apply. ADR 0026 derives a fact rather than storing
 it twice
@@ -53,7 +53,7 @@ The entity:
   and its export carry it as a column.
 - `beneficiariesReached` stays as nullable free text for counts ("40
   pupils in grade 3"), never names. The volunteer page's Impact panel shows
-  it beside the figures derived from activities, and `/reports` prints it
+  it beside the figures derived from activities, and `/reports/volunteers` prints it
   under the program table.
 - `activityTypes` is a `ManyToMany` to `ActivityType` through the join
   table `program_activity_type`, with at least one type.
@@ -153,7 +153,7 @@ Data:
 
 - **Positive:** a project can run several programs, and each activity says
   which one it belongs to.
-- **Positive:** type names stay unique, so per-type totals on `/reports`
+- **Positive:** type names stay unique, so per-type totals on `/reports/volunteers`
   still add up across projects.
 - **Positive:** the type picker shows only what the chosen program offers,
   and a dated program refuses activities outside its dates.
@@ -167,11 +167,11 @@ Data:
   `activity.project` now join through the program.
 - **Negative / trade-offs:** a program cannot move to another project once
   it has activities.
-- **Positive:** `/reports` has a "By program" tab, each row labelled
+- **Positive:** `/reports/volunteers` has a "By program" tab, each row labelled
   "Project — Program" because program names repeat across projects, and
   linking to `/activities?program=<id>`, which filters the list and its
   export.
-- **Positive:** whom a program serves can be counted. `/reports` has a "By
+- **Positive:** whom a program serves can be counted. `/reports/volunteers` has a "By
   beneficiary group" tab (`?tab=group`), built by
   `ActivitySummaryCalculator::summarizeByBeneficiaryGroup()`.
 - **Negative / trade-offs:** that tab counts like escorts do
@@ -195,7 +195,7 @@ Data:
 **Rejected.** The archive shares type names across projects ("School
 support" at three of them). Program-owned types would duplicate those
 names, break `uniq_activity_type_name`, and split the per-type totals on
-`/reports`.
+`/reports/volunteers`.
 
 ### 2. Keep `Activity::$project` alongside `Activity::$program`
 
@@ -232,7 +232,7 @@ admits only with a stated purpose, and reporting needs groups, not people.
 ### 8. Free text only for whom a program serves
 
 **Rejected.** Wording drifts from one program to the next, so it can't be
-counted per group on `/reports`.
+counted per group on `/reports/volunteers`.
 
 ### 9. Seed the beneficiary group list by migration
 

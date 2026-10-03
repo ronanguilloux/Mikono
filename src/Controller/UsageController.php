@@ -37,7 +37,7 @@ final class UsageController extends AbstractController
 {
     /**
      * Column key => UsageRow key, array keys rather than DQL paths because
-     * this sorts an in-memory report, exactly like /reports. See ADR 0011 —
+     * this sorts an in-memory report, exactly like /reports/volunteers. See ADR 0011 —
      * the map IS the whitelist, so nothing a reader types reaches anything.
      *
      * @var array<string, string>

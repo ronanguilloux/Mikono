@@ -182,7 +182,7 @@ final class AccessLogReaderTest extends KernelTestCase
     {
         $report = self::read();
 
-        self::assertSame(1, self::row($report, 'GET', '/reports')['serverErrors']);
+        self::assertSame(1, self::row($report, 'GET', '/reports/volunteers')['serverErrors']);
         self::assertSame(1, $report['serverErrors']);
     }
 

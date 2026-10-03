@@ -89,7 +89,7 @@ class StayRepository extends ServiceEntityRepository
 
     /**
      * The years from the earliest stay's start to the latest stay's end, as
-     * a pair, or null with no stays. Bounds /reports' year picker.
+     * a pair, or null with no stays. Bounds /reports/volunteers' year picker.
      *
      * @return array{int, int}|null
      */

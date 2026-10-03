@@ -208,7 +208,7 @@ final class ActivityControllerTest extends WebTestCase
         self::assertInstanceOf(Activity::class, $loggedActivity);
         self::assertSame(['Mr Maeba'], $loggedActivity->getEscortNames());
 
-        $client->request('GET', '/reports');
+        $client->request('GET', '/reports/volunteers');
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
         self::assertSelectorTextContains('body', 'Bright Achievers');
     }
@@ -773,7 +773,7 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     /**
-     * /reports' program tab links here; the filter narrows both renderings
+     * /reports/volunteers' program tab links here; the filter narrows both renderings
      * and the export, and keeps the volunteer filter alongside it.
      */
     #[Test]
