@@ -19,6 +19,19 @@
         <meta name="robots" content="noindex, nofollow" />
         <meta name="googlebot" content="noindex" />
 
+        {#
+            Keeps the reader's place when a sort, page, filter, tab or range
+            control re-renders this page. Turbo applies it only to a same-path
+            `replace` visit, which those controls ask for with
+            data-turbo-action="replace" (ADR 0040). Turbo 8 also makes a POST
+            redirected back to the same URL a `replace`, so a response carrying
+            a flash says `reset`: the message is at the top of <main>, and a
+            blocked delete's error must not land off-screen. Read once here
+            because app.flashes empties the bag — the loop below reuses it.
+        #}
+        {% set flashes = app.flashes %}
+        <meta name="turbo-refresh-scroll" content="{{ flashes is empty ? 'preserve' : 'reset' }}">
+
         {% block stylesheets %}
         {% endblock %}
 
@@ -112,7 +125,7 @@
                 warning: 'bg-amber-50 text-amber-800',
                 success: 'bg-green-50 text-green-700',
             } %}
-            {% for label, messages in app.flashes %}
+            {% for label, messages in flashes %}
                 {% for message in messages %}
                     <div class="mb-4 rounded-md p-3 text-sm {{ flash_styles[label]|default(flash_styles.success) }}" role="alert" aria-live="polite">
                         {{ message }}

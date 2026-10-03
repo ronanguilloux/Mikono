@@ -31,6 +31,8 @@
                                 })) }}"
                                 class="hover:text-brand-700 hover:underline"
                                 data-sort-link="{{ column.key }}"
+                                {# Same page re-sorted: stay where the reader is (ADR 0040). #}
+                                data-turbo-action="replace"
                             >{{ column.label }}</a>
                             {% if sortState.isActive(column.key) %}
                                 <span class="ml-0.5 text-brand-600" aria-hidden="true">{{ sortState.direction == 'asc' ? '↑' : '↓' }}</span>

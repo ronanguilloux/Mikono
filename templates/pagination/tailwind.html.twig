@@ -20,6 +20,9 @@
       - at totalCount == 0 the windowing math yields pagesInRange [1, 0], so
         an unguarded render puts a page "0" link on an empty list. The
         pageCount > 1 guard below is what stops it.
+
+    Every page link carries data-turbo-action="replace" so turning the page
+    leaves the reader where they are rather than at the top (ADR 0040).
 #}
 {% if pageCount is defined and pageCount > 1 %}
     {% set page_param = options.pageParameterName|default('page') %}
@@ -33,7 +36,7 @@
 
     <nav class="flex flex-wrap items-center gap-1 print:hidden" aria-label="Pagination" data-pagination>
         {% if previous is defined %}
-            <a href="{{ pager.page_url(route, query, page_param, previous) }}" rel="prev" aria-label="Previous page" class="{{ link_class }}">&lsaquo;</a>
+            <a href="{{ pager.page_url(route, query, page_param, previous) }}" rel="prev" aria-label="Previous page" class="{{ link_class }}" data-turbo-action="replace">&lsaquo;</a>
         {% else %}
             <span class="{{ muted_class }}" aria-hidden="true">&lsaquo;</span>
         {% endif %}
@@ -42,7 +45,7 @@
            doesn't already reach it. The `> first + 1` guard avoids the silly
            "1 … 2" — if only one page is hidden, there's nothing to collapse. #}
         {% if firstPageInRange > first %}
-            <a href="{{ pager.page_url(route, query, page_param, first) }}" aria-label="Page {{ first }}" class="{{ link_class }}">{{ first }}</a>
+            <a href="{{ pager.page_url(route, query, page_param, first) }}" aria-label="Page {{ first }}" class="{{ link_class }}" data-turbo-action="replace">{{ first }}</a>
             {% if firstPageInRange > first + 1 %}
                 <span class="px-1 text-slate-400" aria-hidden="true">…</span>
             {% endif %}
@@ -52,7 +55,7 @@
             {% if page == current %}
                 <span aria-current="page" class="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-brand-600 bg-brand-600 px-2 text-sm font-semibold text-white">{{ page }}</span>
             {% else %}
-                <a href="{{ pager.page_url(route, query, page_param, page) }}" aria-label="Page {{ page }}" class="{{ link_class }}">{{ page }}</a>
+                <a href="{{ pager.page_url(route, query, page_param, page) }}" aria-label="Page {{ page }}" class="{{ link_class }}" data-turbo-action="replace">{{ page }}</a>
             {% endif %}
         {% endfor %}
 
@@ -64,13 +67,13 @@
                 <span class="px-1 text-slate-400" aria-hidden="true">…</span>
             {% endif %}
             {% if lastPageInRange < last - 1 %}
-                <a href="{{ pager.page_url(route, query, page_param, last - 1) }}" aria-label="Page {{ last - 1 }}" class="{{ link_class }}">{{ last - 1 }}</a>
+                <a href="{{ pager.page_url(route, query, page_param, last - 1) }}" aria-label="Page {{ last - 1 }}" class="{{ link_class }}" data-turbo-action="replace">{{ last - 1 }}</a>
             {% endif %}
-            <a href="{{ pager.page_url(route, query, page_param, last) }}" aria-label="Page {{ last }}" class="{{ link_class }}">{{ last }}</a>
+            <a href="{{ pager.page_url(route, query, page_param, last) }}" aria-label="Page {{ last }}" class="{{ link_class }}" data-turbo-action="replace">{{ last }}</a>
         {% endif %}
 
         {% if next is defined %}
-            <a href="{{ pager.page_url(route, query, page_param, next) }}" rel="next" aria-label="Next page" class="{{ link_class }}">&rsaquo;</a>
+            <a href="{{ pager.page_url(route, query, page_param, next) }}" rel="next" aria-label="Next page" class="{{ link_class }}" data-turbo-action="replace">&rsaquo;</a>
         {% else %}
             <span class="{{ muted_class }}" aria-hidden="true">&rsaquo;</span>
         {% endif %}

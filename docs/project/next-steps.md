@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-09-28
+**Last updated:** 2026-10-03
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -46,6 +46,7 @@ Simplification, from
 each other, take them in any order or none:
 
 - [Cut symfony/ux-live-component](backlog/cut-ux-live-component.md) — **D**
+- [Review adopting LiveComponent across the app](backlog/review-live-component-at-scale.md) — **D**
 - [/reports walks every activity four times](backlog/reports-triple-walk-performance.md) — **G**
 - [Reconsider knplabs/knp-paginator-bundle](backlog/reconsider-knp-paginator.md) — **D**
 

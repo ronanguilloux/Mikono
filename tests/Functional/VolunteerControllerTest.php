@@ -426,8 +426,11 @@ final class VolunteerControllerTest extends WebTestCase
         $client->submitForm('Delete');
 
         self::assertResponseRedirects('/volunteers');
-        $client->followRedirect();
+        $crawler = $client->followRedirect();
         self::assertSelectorTextContains('body', 'No volunteers yet');
+        // A redirect back to the same URL is a Turbo `replace` too: with a
+        // flash to show, the page must go back to the top (ADR 0040).
+        self::assertSame('reset', $crawler->filter('meta[name="turbo-refresh-scroll"]')->attr('content'));
     }
 
     /**
@@ -672,6 +675,32 @@ final class VolunteerControllerTest extends WebTestCase
         // A new order means a new page 1; keeping the old offset would drop
         // the reader somewhere arbitrary in the re-sorted list.
         self::assertStringNotContainsString('page=2', $href);
+    }
+
+    /**
+     * Covers the shared components, not just this screen: every control that
+     * re-renders the list asks Turbo for a `replace` visit, which the layout's
+     * turbo-refresh-scroll meta turns into "stay where the reader is". Without
+     * it a sort click at the bottom of a long page lands back at the top.
+     * See ADR 0040.
+     */
+    #[Test]
+    public function everyListControlKeepsTheReadersPlace(): void
+    {
+        $client = static::createClient();
+        VolunteerFactory::createMany(26);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/volunteers');
+
+        self::assertSame('preserve', $crawler->filter('meta[name="turbo-refresh-scroll"]')->attr('content'));
+
+        $controls = $crawler->filter('[data-sort-link], [data-pagination] a, [data-pagination-bar] form, form[role="search"]');
+        self::assertGreaterThan(4, $controls->count());
+        self::assertSame(
+            array_fill(0, $controls->count(), 'replace'),
+            $controls->each(static fn($control) => $control->attr('data-turbo-action')),
+        );
     }
 
     /**

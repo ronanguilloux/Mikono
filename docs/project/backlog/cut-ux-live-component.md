@@ -33,3 +33,7 @@ pointer, comes with the diff.
 
 [`../../brainstorm/07-ponytail-audit.md`](../../brainstorm/07-ponytail-audit.md)
 has the line counts.
+
+The opposite question — adopting it across the app rather than cutting it
+— is [`review-live-component-at-scale`](review-live-component-at-scale.md).
+One ADR settles both cards.

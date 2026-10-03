@@ -6,6 +6,11 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-03 — Sorting, paging and filtering keep the reader's place
+
+See
+[ADR 0040](../adr/0040-keep-the-readers-scroll-position-when-a-control-re-renders-the-same-page.md).
+
 ## 2026-09-28 — Whole-database zip export
 
 Admin → Export database. See

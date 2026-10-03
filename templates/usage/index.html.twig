@@ -45,6 +45,7 @@
                     class="{{ range.preset == key ? preset_on : preset_off }}"
                     {{ range.preset == key ? 'aria-current="page"' : '' }}
                     data-range-preset="{{ key }}"
+                    data-turbo-action="replace"
                 >{{ label }}</a>
             {% endfor %}
         </nav>
@@ -52,7 +53,7 @@
         {# Native date inputs, no picker library. sr-only-free Apply button
            here — unlike the page-size form this one has nothing to auto-submit
            on, so the button is the only way to send it. #}
-        <form method="get" class="flex flex-wrap items-end gap-2 text-sm text-slate-600" data-range-form>
+        <form method="get" class="flex flex-wrap items-end gap-2 text-sm text-slate-600" data-turbo-action="replace" data-range-form>
             {% for key, value in carried %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endfor %}

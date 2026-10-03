@@ -23,6 +23,7 @@
     {% set select_class = 'rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none' %}
     <form
         method="get"
+        data-turbo-action="replace"
         role="search"
         class="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600 print:hidden"
         data-controller="auto-submit"
@@ -82,6 +83,7 @@
             <a
                 href="{{ path('program_index', app.request.query.all|filter((v, k) => k not in filter_keys and v is not iterable)) }}"
                 class="text-brand-600 hover:underline"
+                data-turbo-action="replace"
             >Clear filters</a>
         {% endif %}
     </form>

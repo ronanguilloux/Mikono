@@ -328,6 +328,11 @@ final class ReportControllerTest extends WebTestCase
             ['By branch', 'By project', 'By program', 'By activity type', 'By beneficiary group', 'By volunteer', 'By escort'],
             $crawler->filter('[data-report-panel="print"] h2')->each(static fn($h) => trim($h->text())),
         );
+        // Switching breakdowns keeps the reader's scroll position (ADR 0040).
+        self::assertSame(
+            array_fill(0, 7, 'replace'),
+            $crawler->filter('[data-report-panel="screen"] nav a')->each(static fn($a) => $a->attr('data-turbo-action')),
+        );
         $active = $crawler->filter('[data-report-panel="screen"] nav a[aria-current="page"]');
         self::assertCount(1, $active);
         self::assertSame('By volunteer', trim($active->text()));

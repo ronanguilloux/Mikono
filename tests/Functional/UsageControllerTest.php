@@ -119,6 +119,27 @@ final class UsageControllerTest extends WebTestCase
         self::assertSame('7d', $crawler->filter('[data-range-presets] [aria-current]')->attr('data-range-preset'));
     }
 
+    /**
+     * Sign-ins is the last table on a long page: sorting it, or changing the
+     * range from wherever the controls end up, must not send the reader back
+     * to the top. See ADR 0040.
+     */
+    #[Test]
+    public function theUsageControlsKeepTheReadersPlace(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+
+        $crawler = $client->request('GET', '/usage');
+
+        $controls = $crawler->filter('[data-sign-ins] [data-sort-link], [data-range-presets] a, [data-range-form]');
+        self::assertGreaterThan(3, $controls->count());
+        self::assertSame(
+            array_fill(0, $controls->count(), 'replace'),
+            $controls->each(static fn($control) => $control->attr('data-turbo-action')),
+        );
+    }
+
     #[Test]
     public function aPresetLinkMovesTheActiveRange(): void
     {

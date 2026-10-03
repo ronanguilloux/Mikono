@@ -90,6 +90,7 @@
         bookmarking, and can't be silently lost when a page link is clicked.
         The links deliberately omit `page`, so switching breakdowns starts over
         at page 1 rather than landing on a page the other list may not have.
+        data-turbo-action="replace" keeps the reader's scroll position (ADR 0040).
     #}
     <div data-report-panel="screen" class="print:hidden">
         {% set tab_base = 'rounded-md px-3 py-1.5 text-sm font-medium' %}
@@ -102,36 +103,43 @@
                 href="{{ path('report_index', carried|merge({tab: 'branch'})) }}"
                 class="{{ tab == 'branch' ? tab_on : tab_off }}"
                 {{ tab == 'branch' ? 'aria-current="page"' : '' }}
+                data-turbo-action="replace"
             >By branch</a>
             <a
                 href="{{ path('report_index', carried|merge({tab: 'project'})) }}"
                 class="{{ tab == 'project' ? tab_on : tab_off }}"
                 {{ tab == 'project' ? 'aria-current="page"' : '' }}
+                data-turbo-action="replace"
             >By project</a>
             <a
                 href="{{ path('report_index', carried|merge({tab: 'program'})) }}"
                 class="{{ tab == 'program' ? tab_on : tab_off }}"
                 {{ tab == 'program' ? 'aria-current="page"' : '' }}
+                data-turbo-action="replace"
             >By program</a>
             <a
                 href="{{ path('report_index', carried|merge({tab: 'type'})) }}"
                 class="{{ tab == 'type' ? tab_on : tab_off }}"
                 {{ tab == 'type' ? 'aria-current="page"' : '' }}
+                data-turbo-action="replace"
             >By activity type</a>
             <a
                 href="{{ path('report_index', carried|merge({tab: 'group'})) }}"
                 class="{{ tab == 'group' ? tab_on : tab_off }}"
                 {{ tab == 'group' ? 'aria-current="page"' : '' }}
+                data-turbo-action="replace"
             >By beneficiary group</a>
             <a
                 href="{{ path('report_index', carried|merge({tab: 'volunteer'})) }}"
                 class="{{ tab == 'volunteer' ? tab_on : tab_off }}"
                 {{ tab == 'volunteer' ? 'aria-current="page"' : '' }}
+                data-turbo-action="replace"
             >By volunteer</a>
             <a
                 href="{{ path('report_index', carried|merge({tab: 'escort'})) }}"
                 class="{{ tab == 'escort' ? tab_on : tab_off }}"
                 {{ tab == 'escort' ? 'aria-current="page"' : '' }}
+                data-turbo-action="replace"
             >By escort</a>
         </nav>
 

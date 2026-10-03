@@ -171,6 +171,13 @@ implements it.
   malformed URL into a 400 or a 500. Every parameter falls back to a
   default
   ([ADR 0023](docs/adr/0023-degrade-malformed-query-input-to-a-default.md)).
+- **A link or GET form that re-renders the current route** with other
+  query params (sort, page, page size, filter, tab, range) carries
+  `data-turbo-action="replace"`, or a click on it throws the reader back
+  to the top of the page. The base layout's `turbo-refresh-scroll` meta
+  does the rest, and says `reset` when a flash is shown — so read flashes
+  through its `flashes` variable, never a second `app.flashes`
+  ([ADR 0040](docs/adr/0040-keep-the-readers-scroll-position-when-a-control-re-renders-the-same-page.md)).
 - `src/Report/` — the app's real domain logic: `ActivitySummaryCalculator`
   (duration-to-days aggregation for `/reports`), plus
   `RosterBuilder`/`QuietProjectFinder` and their readonly VOs behind the
