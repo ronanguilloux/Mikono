@@ -30,6 +30,12 @@ hostname is the one that isn't ours to solve.
 5. [UCESCO's data-protection paperwork under the Kenya DPA](backlog/dpa-governance-for-ucesco.md) — **B**
 6. [A privacy notice and a consent record for volunteers](backlog/volunteer-privacy-notice-and-consent.md) — **G**
 
+Edna flagged these urgent (2026-10-03):
+
+1. [Volunteer status as present, upcoming or past](backlog/volunteer-status-present-past-upcoming.md)
+2. [Record where each volunteer came from](backlog/volunteer-recruitment-sources.md) — **D**
+3. [Monthly volunteer totals](backlog/monthly-volunteer-totals.md) — **G**
+
 ## Next
 
 1. [Open questions for Edna about the fixture data](backlog/roster-archive-open-questions.md) — **B**
