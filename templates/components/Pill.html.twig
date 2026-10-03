@@ -1,0 +1,8 @@
+{#
+    A rounded status label. `tone` is accent, brand or anything else for
+    neutral slate; the classes stay spelled out here so Tailwind finds them.
+#}
+{% props tone = 'neutral' %}
+<span class="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium {{ {accent: 'bg-accent-100 text-accent-800', brand: 'bg-brand-100 text-brand-800'}[tone] ?? 'bg-slate-100 text-slate-600' }}">
+    {%- block content %}{% endblock -%}
+</span>

@@ -81,9 +81,11 @@ implements it.
   escort delete-guard is a `MEMBER OF` query, and the eager escorts join is
   to-many, so it can't carry a `LIMIT`; `Volunteer::$lastName` is
   **optional** ([ADR 0014](docs/adr/0014-make-a-volunteers-last-name-optional.md)).
-  A volunteer's **active is derived, never stored**: active means a `Stay`
-  covers today, and `Activity::$stay` is resolved from volunteer + date on
-  every save, never a form field
+  A volunteer's **status is derived, never stored**: `Volunteer::getStatus()`
+  reads present / upcoming / past / no stay from their stays, and
+  `VolunteerRepository`'s `statusRank` is the same rule in DQL for sorting and
+  filtering — change one, change both. `Activity::$stay` is resolved from
+  volunteer + date on every save, never a form field
   ([ADR 0026](docs/adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md)).
   A project has a required branch, and an activity's project must share its
   stay's branch — checked on activity save, stay edit and project edit, not

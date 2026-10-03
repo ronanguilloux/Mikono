@@ -40,10 +40,10 @@ final class VolunteerControllerTest extends WebTestCase
         $sorted = self::exportedRows($client, '/volunteers/export.csv?sort=name&direction=asc');
         self::assertSame(['Aisha Achieng', 'Zawadi Zuma'], array_column($sorted, 0));
 
-        // The default order is active first, and the status column says so.
+        // The default order is present first, and the status column says so.
         $whole = self::exportedRows($client, '/volunteers/export.csv');
         self::assertSame(['Zawadi Zuma', 'Aisha Achieng'], array_column($whole, 0));
-        self::assertSame(['Active', 'Inactive'], array_column($whole, 3));
+        self::assertSame(['Present', 'Past'], array_column($whole, 3));
     }
 
     /**
@@ -121,17 +121,27 @@ final class VolunteerControllerTest extends WebTestCase
         StayFactory::createOne(['volunteer' => $baraka, 'branch' => $mombasa, 'startDate' => $today->modify('-3 months'), 'endDate' => $today->modify('-2 months')]);
         $zawadi = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
         StayFactory::createOne(['volunteer' => $zawadi, 'branch' => $mombasa, 'startDate' => $today->modify('-3 months'), 'endDate' => $today->modify('-2 months')]);
+        // Past at Nairobi, coming back to Mombasa: upcoming, and only at Mombasa.
+        $chege = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Chege', 'lastName' => 'Kamau']);
+        StayFactory::createOne(['volunteer' => $chege, 'branch' => $nairobi, 'startDate' => $today->modify('-3 months'), 'endDate' => $today->modify('-2 months')]);
+        StayFactory::createOne(['volunteer' => $chege, 'branch' => $mombasa, 'startDate' => $today->modify('+1 day'), 'endDate' => $today->modify('+3 weeks')]);
+        VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Neema', 'lastName' => 'Wafula']);
         $client->loginUser(UserFactory::createOne());
 
         $names = static fn(string $url): array => $client->request('GET', $url)
             ->filter('table tbody tr td:first-child')->each(static fn($cell): string => trim($cell->text()));
 
         foreach ([
-            'status=active' => ['Aisha Njoroge', 'Baraka Otieno'],
-            'status=inactive' => ['Zawadi Zuma'],
-            "branch={$mombasa->getId()}" => ['Aisha Njoroge', 'Baraka Otieno', 'Zawadi Zuma'],
-            "status=active&branch={$mombasa->getId()}" => ['Aisha Njoroge'],
-            "status=inactive&branch={$nairobi->getId()}" => [],
+            'status=present' => ['Aisha Njoroge', 'Baraka Otieno'],
+            'status=upcoming' => ['Chege Kamau'],
+            'status=past' => ['Zawadi Zuma'],
+            'status=none' => ['Neema Wafula'],
+            "branch={$mombasa->getId()}" => ['Chege Kamau', 'Aisha Njoroge', 'Baraka Otieno', 'Zawadi Zuma'],
+            "status=present&branch={$mombasa->getId()}" => ['Aisha Njoroge'],
+            "status=upcoming&branch={$mombasa->getId()}" => ['Chege Kamau'],
+            "status=upcoming&branch={$nairobi->getId()}" => [],
+            "status=past&branch={$mombasa->getId()}" => ['Zawadi Zuma'],
+            "status=none&branch={$mombasa->getId()}" => [],
         ] as $query => $expected) {
             if ([] === $expected) {
                 $client->request('GET', "/volunteers?{$query}");
@@ -143,10 +153,11 @@ final class VolunteerControllerTest extends WebTestCase
         }
 
         // Malformed or unknown input degrades to no filter (ADR 0023).
-        foreach (['status[]=active', 'status=foo', 'branch[]=1', 'branch=abc', 'branch=999999'] as $query) {
+        // The retired active/inactive values included.
+        foreach (['status[]=present', 'status=foo', 'status=active', 'status=inactive', 'branch[]=1', 'branch=abc', 'branch=999999'] as $query) {
             $crawler = $client->request('GET', "/volunteers?{$query}");
             self::assertResponseIsSuccessful();
-            self::assertCount(3, $crawler->filter('table tbody tr'), $query);
+            self::assertCount(5, $crawler->filter('table tbody tr'), $query);
         }
     }
 
@@ -201,20 +212,29 @@ final class VolunteerControllerTest extends WebTestCase
     /**
      * Volunteers leave after a few weeks, so someone who finished their stint
      * shouldn't sit between two people working this week. Nobody is hidden —
-     * active status only decides the default order.
+     * status only decides the default order, and the Status header sorts the
+     * same way.
      */
     #[Test]
-    public function theIndexListsActiveVolunteersBeforeInactiveOnes(): void
+    public function theIndexListsVolunteersByStatusThenName(): void
     {
         $client = static::createClient();
-        VolunteerFactory::new()->inactive()->create(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        $today = new \DateTimeImmutable('today');
+        VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Aisha', 'lastName' => 'Achieng']);
+        VolunteerFactory::new()->inactive()->create(['firstName' => 'Kioko', 'lastName' => 'Kamau']);
+        $upcoming = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Mercy', 'lastName' => 'Mwangi']);
+        StayFactory::createOne(['volunteer' => $upcoming, 'startDate' => $today->modify('+1 day'), 'endDate' => $today->modify('+1 week')]);
         VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
-
         $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', '/volunteers');
 
-        // Zuma sorts after Achieng by name; active-first is what puts her top.
-        self::assertStringContainsString('Zawadi Zuma', $crawler->filter('table tbody tr')->first()->text());
+        // By name alone the order would be exactly reversed.
+        $expected = ['Zawadi Zuma', 'Mercy Mwangi', 'Kioko Kamau', 'Aisha Achieng'];
+        foreach (['/volunteers', '/volunteers?sort=status'] as $url) {
+            $names = $client->request('GET', $url)
+                ->filter('table tbody tr td:first-child')->each(static fn($cell): string => trim($cell->text()));
+            self::assertSame($expected, $names, $url);
+        }
+        self::assertSame(['Present', 'Upcoming', 'Past', 'No stay'], array_column(self::exportedRows($client, '/volunteers/export.csv'), 3));
     }
 
     #[Test]

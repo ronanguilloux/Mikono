@@ -139,7 +139,7 @@ final class ReportControllerTest extends WebTestCase
         $tiles = $crawler->filter('[data-kpi-tiles] > div');
         self::assertCount(4, $tiles);
         self::assertStringContainsString('2', $tiles->eq(0)->text());
-        self::assertStringContainsString('1 active · 1 engaged', $tiles->eq(0)->text());
+        self::assertStringContainsString('1 present · 0 upcoming · 1 engaged', $tiles->eq(0)->text());
         self::assertStringContainsString('incl. 1 planned', $tiles->eq(2)->text());
         self::assertStringContainsString('1.5', $tiles->eq(3)->text());
     }

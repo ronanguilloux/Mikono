@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Report;
 
 use App\Enum\ActivityDuration;
+use App\Enum\VolunteerStatus;
 use App\Repository\ActivityRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\VolunteerRepository;
@@ -17,9 +18,7 @@ use App\Repository\VolunteerRepository;
  * every activity to produce the tables below the tiles, this app serves one
  * Volunteer Manager over hundreds of rows, and a dedicated repository method
  * per figure would be more code to keep mutation-tested for no gain.
- *
- * The one exception is active volunteers: active is read from stays (ADR
- * 0026), and asking each volunteer would lazy-load every volunteer's stays.
+ * Statuses included: findAllOrderedByName() fetches the stays they read.
  */
 final class ReportMetricsCalculator
 {
@@ -32,6 +31,7 @@ final class ReportMetricsCalculator
     public function calculate(\DateTimeImmutable $today): ReportMetrics
     {
         $volunteers = $this->volunteers->findAllOrderedByName();
+        $statuses = array_count_values(array_map(static fn($volunteer) => $volunteer->getStatus($today)->value, $volunteers));
         $projects = $this->projects->findAllOrderedByName();
 
         $activityCount = 0;
@@ -61,7 +61,8 @@ final class ReportMetricsCalculator
 
         return new ReportMetrics(
             \count($volunteers),
-            $this->volunteers->countStayingOn($today),
+            $statuses[VolunteerStatus::Present->value] ?? 0,
+            $statuses[VolunteerStatus::Upcoming->value] ?? 0,
             \count($engaged),
             \count($projects),
             \count(array_filter($projects, static fn($project) => $project->isActive())),

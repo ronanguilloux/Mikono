@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\Volunteer;
 use App\Entity\VolunteerPhoto;
+use App\Enum\VolunteerStatus;
 use App\Export\ListExport;
 use App\Form\VolunteerFormType;
 use App\Pagination\ListPaginator;
@@ -43,9 +44,9 @@ final class VolunteerController extends AbstractController
         'name' => ['v.lastName', 'v.firstName'],
         'email' => ['v.email'],
         'phone' => ['v.phone'],
-        // The HIDDEN count createOrderedByNameQueryBuilder() selects: active is
+        // The HIDDEN rank createOrderedByNameQueryBuilder() selects: status is
         // read from stays, so there is no column to sort on (ADR 0026).
-        'status' => ['isCurrent'],
+        'status' => ['statusRank'],
     ];
 
     private const int PHOTO_MAX_EDGE = 800;
@@ -84,7 +85,7 @@ final class VolunteerController extends AbstractController
         // the index can show Delete as unavailable rather than let the reader
         // discover it from a flash after confirming.
         $activityCounts = $this->volunteers->countReferencingActivitiesFor($volunteersOnPage);
-        $staying = $this->volunteers->findIdsStayingOn($volunteersOnPage, new \DateTimeImmutable('today'));
+        $statuses = $this->volunteers->findStatusesOn($volunteersOnPage, new \DateTimeImmutable('today'));
 
         $rows = [];
         foreach ($volunteersOnPage as $volunteer) {
@@ -92,7 +93,8 @@ final class VolunteerController extends AbstractController
             $referencingCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
 
             $rows[] = [
-                'cells' => $this->cells($volunteer, $staying),
+                'cells' => $this->cells($volunteer, $statuses),
+                'pills' => ['status' => ($statuses[(int) $id] ?? VolunteerStatus::NoStay)->tone()],
                 'links' => ['name' => $this->generateUrl('volunteer_show', ['id' => $id])],
                 // getPhoto() is an unloaded proxy and its id is known without a
                 // query, so the list never reads photo bytes (ADR 0032).
@@ -126,6 +128,7 @@ final class VolunteerController extends AbstractController
             'skill' => $this->requestedSkill($request),
             'skillOptions' => $this->skills->findAllOrderedByName(),
             'status' => $this->requestedStatus($request),
+            'statusOptions' => VolunteerStatus::cases(),
             'branch' => $this->requestedBranch($request),
             'branchOptions' => $this->branches->createOrderedByNameQueryBuilder()->getQuery()->getResult(),
         ]);
@@ -138,18 +141,18 @@ final class VolunteerController extends AbstractController
     public function export(Request $request, string $format): StreamedResponse
     {
         // getResult() rather than toIterable(): the status cell needs the
-        // whole list up front for findIdsStayingOn(), and the query's HIDDEN
+        // whole list up front for findStatusesOn(), and the query's HIDDEN
         // select is not what toIterable() is built for. A few hundred rows at
         // most — the same load as the index's "All" page size.
         /** @var list<Volunteer> $volunteers */
         $volunteers = $this->listQueryBuilder($request)->getQuery()->getResult();
-        $staying = $this->volunteers->findIdsStayingOn($volunteers, new \DateTimeImmutable('today'));
+        $statuses = $this->volunteers->findStatusesOn($volunteers, new \DateTimeImmutable('today'));
 
         return ListExport::response(
             'volunteers',
             $format,
             self::COLUMNS,
-            array_map(fn(Volunteer $volunteer): array => $this->cells($volunteer, $staying), $volunteers),
+            array_map(fn(Volunteer $volunteer): array => $this->cells($volunteer, $statuses), $volunteers),
         );
     }
 
@@ -193,16 +196,15 @@ final class VolunteerController extends AbstractController
     }
 
     /**
-     * The index's `?status=active|inactive` filter, as "has a stay covering
-     * today" (ADR 0026). Anything else means no filter (ADR 0023).
+     * The index's `?status=present|upcoming|past|none` filter (ADR 0026).
+     * Anything else, the retired `active`/`inactive` included, means no
+     * filter (ADR 0023).
      */
-    private function requestedStatus(Request $request): ?bool
+    private function requestedStatus(Request $request): ?VolunteerStatus
     {
-        return match ($request->query->all()['status'] ?? null) {
-            'active' => true,
-            'inactive' => false,
-            default => null,
-        };
+        $raw = $request->query->all()['status'] ?? null;
+
+        return is_string($raw) ? VolunteerStatus::tryFrom($raw) : null;
     }
 
     /** The index's `?branch=<id>` filter, degrading like `?skill=`. */
@@ -214,19 +216,18 @@ final class VolunteerController extends AbstractController
     }
 
     /**
-     * @param array<int, true> $staying volunteer id => true, from findIdsStayingOn()
+     * @param array<int, VolunteerStatus> $statuses volunteer id => status, from findStatusesOn()
      *
      * @return array<string, string>
      */
-    private function cells(Volunteer $volunteer, array $staying): array
+    private function cells(Volunteer $volunteer, array $statuses): array
     {
-        $id = $volunteer->getId();
 
         return [
             'name' => $volunteer->getFullName(),
             'email' => $volunteer->getEmail() ?? '—',
             'phone' => $volunteer->getPhone() ?? '—',
-            'status' => null !== $id && isset($staying[$id]) ? 'Active' : 'Inactive',
+            'status' => ($statuses[(int) $volunteer->getId()] ?? VolunteerStatus::NoStay)->label(),
         ];
     }
 
@@ -556,7 +557,7 @@ final class VolunteerController extends AbstractController
     private function guardReason(Volunteer $volunteer, int $referencingCount): string
     {
         return sprintf(
-            'Cannot delete %s — %d activit%s reference%s them. Mark them inactive instead.',
+            'Cannot delete %s — %d activit%s reference%s them. Their status turns Past once their last stay ends.',
             $volunteer->getFullName(),
             $referencingCount,
             1 === $referencingCount ? 'y' : 'ies',

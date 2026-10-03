@@ -32,9 +32,8 @@ hostname is the one that isn't ours to solve.
 
 Edna flagged these urgent (2026-10-03):
 
-1. [Volunteer status as present, upcoming or past](backlog/volunteer-status-present-past-upcoming.md)
-2. [Record where each volunteer came from](backlog/volunteer-recruitment-sources.md) — **D**
-3. [Monthly volunteer totals](backlog/monthly-volunteer-totals.md) — **G**
+1. [Record where each volunteer came from](backlog/volunteer-recruitment-sources.md) — **D**
+2. [Monthly volunteer totals](backlog/monthly-volunteer-totals.md) — **G**
 
 ## Next
 

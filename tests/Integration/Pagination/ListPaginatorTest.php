@@ -25,14 +25,18 @@ final class ListPaginatorTest extends KernelTestCase
      */
     private const array SORT_MAP = [
         'name' => ['v.lastName', 'v.firstName'],
-        'status' => ['isCurrent'],
+        'status' => ['statusRank'],
     ];
 
     /** Everything before ORDER BY in VolunteerRepository::createOrderedByNameQueryBuilder(). */
-    private const string SELECT_DQL = 'SELECT v, (SELECT COUNT(cs.id) FROM App\Entity\Stay cs WHERE cs.volunteer = v AND cs.startDate <= :today AND cs.endDate >= :today) AS HIDDEN isCurrent FROM App\Entity\Volunteer v';
+    private const string SELECT_DQL = 'SELECT v, CASE'
+        . ' WHEN EXISTS (SELECT rp.id FROM App\Entity\Stay rp WHERE rp.volunteer = v AND rp.startDate <= :today AND rp.endDate >= :today) THEN 0'
+        . ' WHEN EXISTS (SELECT ru.id FROM App\Entity\Stay ru WHERE ru.volunteer = v AND ru.startDate > :today) THEN 1'
+        . ' WHEN EXISTS (SELECT ra.id FROM App\Entity\Stay ra WHERE ra.volunteer = v) THEN 2'
+        . ' ELSE 3 END AS HIDDEN statusRank FROM App\Entity\Volunteer v';
 
     /** The DQL VolunteerRepository::createOrderedByNameQueryBuilder() produces untouched. */
-    private const string DEFAULT_DQL = self::SELECT_DQL . ' ORDER BY isCurrent DESC, v.lastName ASC, v.firstName ASC';
+    private const string DEFAULT_DQL = self::SELECT_DQL . ' ORDER BY statusRank ASC, v.lastName ASC, v.firstName ASC';
 
     #[Test]
     public function defaultsToTwentyFiveRowsPerPage(): void
@@ -263,15 +267,15 @@ final class ListPaginatorTest extends KernelTestCase
     #[Test]
     public function putsTheRequestedColumnFirstAndKeepsTheDefaultOrderAsTieBreak(): void
     {
-        // Without the trailing tie-break, every row falls into one of two
-        // active/inactive buckets and SQLite may repeat a page-1 row on page 2.
+        // Without the trailing tie-break, every row falls into one of four
+        // status buckets and SQLite may repeat a page-1 row on page 2.
         //
-        // isCurrent appears twice because it is both the requested column and
-        // part of the view's own active-first default. The second term is
+        // statusRank appears twice because it is both the requested column and
+        // part of the view's own status-first default. The second term is
         // inert — SQL settles on the first key — and the same harmless
         // duplication already shows up under `sort=name` below.
         self::assertSame(
-            self::SELECT_DQL . ' ORDER BY isCurrent ASC, isCurrent DESC, v.lastName ASC, v.firstName ASC',
+            self::SELECT_DQL . ' ORDER BY statusRank ASC, statusRank ASC, v.lastName ASC, v.firstName ASC',
             $this->dqlAfterSort(['sort' => 'status']),
         );
     }
@@ -282,7 +286,7 @@ final class ListPaginatorTest extends KernelTestCase
         // `name` has no single column behind it — getFullName() is lastName
         // plus firstName, and both have to flip together.
         self::assertSame(
-            self::SELECT_DQL . ' ORDER BY v.lastName DESC, v.firstName DESC, isCurrent DESC, v.lastName ASC, v.firstName ASC',
+            self::SELECT_DQL . ' ORDER BY v.lastName DESC, v.firstName DESC, statusRank ASC, v.lastName ASC, v.firstName ASC',
             $this->dqlAfterSort(['sort' => 'name', 'direction' => 'desc']),
         );
     }

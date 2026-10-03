@@ -23,7 +23,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * RowActions hands it to Twig's `csrf_token()`.
  *
  * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfTokenId?: string, disabledReason?: string}
- * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, avatars?: array<string, string|null>, links?: array<string, string>, actions?: list<Action>, tone?: 'warning'}
+ * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, pills?: array<string, string>, avatars?: array<string, string|null>, links?: array<string, string>, actions?: list<Action>, tone?: 'warning'}
  */
 #[AsTwigComponent]
 final class DataTable
@@ -38,6 +38,10 @@ final class DataTable
      * per row so a badge lands on the cell it qualifies, and left out of the
      * cell string itself so sorting, `number_format()` and the print panel all
      * still see the plain value.
+     *
+     * A row's optional `pills` key is a column key => tone map that draws the
+     * cell's text itself as a <twig:Pill> — /volunteers' Status column, in the
+     * same pill as the volunteer page. The cell string stays the plain label.
      *
      * A row's optional `links` key works the same way — column key => URL,
      * wrapping that cell's text in an anchor — and exists for the same reason:

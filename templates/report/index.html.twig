@@ -28,7 +28,7 @@
        is asserted in tests, and a bare .grid selector would break the moment a
        shared component grew a grid class. #}
     <div class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4" data-kpi-tiles>
-        {{ report.kpi_tile('Volunteers', metrics.volunteerCount, metrics.activeVolunteerCount ~ ' active · ' ~ metrics.engagedVolunteerCount ~ ' engaged') }}
+        {{ report.kpi_tile('Volunteers', metrics.volunteerCount, metrics.presentVolunteerCount ~ ' present · ' ~ metrics.upcomingVolunteerCount ~ ' upcoming · ' ~ metrics.engagedVolunteerCount ~ ' engaged') }}
         {{ report.kpi_tile('Projects', metrics.projectCount, metrics.activeProjectCount ~ ' active') }}
         {{ report.kpi_tile(
             'Activities logged',

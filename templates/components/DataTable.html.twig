@@ -84,7 +84,9 @@
                                     </span>
                                 {%- endif -%}
                             {%- endif -%}
-                            {%- if row.links[column.key] is defined -%}
+                            {%- if row.pills[column.key] is defined -%}
+                                <twig:Pill :tone="row.pills[column.key]">{{- row.cells[column.key]|default('') -}}</twig:Pill>
+                            {%- elseif row.links[column.key] is defined -%}
                                 <a href="{{ row.links[column.key] }}" class="text-brand-600 hover:underline">{{- row.cells[column.key]|default('') -}}</a>
                             {%- else -%}
                                 {{- row.cells[column.key]|default('') -}}

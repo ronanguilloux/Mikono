@@ -254,8 +254,8 @@ final class ProgramControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $rows = $crawler->filter('table tbody tr')->each(static fn($row): array => $row->filter('td')->each(static fn($cell): string => trim($cell->text())));
         self::assertSame([
-            ['Two Matches', 'Active', 'Painting, Plumbing', '2 of 2'],
-            ['One Match', 'Active', 'Painting', '1 of 2'],
+            ['Two Matches', 'Present', 'Painting, Plumbing', '2 of 2'],
+            ['One Match', 'Present', 'Painting', '1 of 2'],
         ], $rows);
 
         self::assertSame($rows, self::exportedRows($client, "/programs/{$program->getId()}/matches/export.csv"));

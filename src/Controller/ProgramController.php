@@ -242,7 +242,7 @@ final class ProgramController extends AbstractController
     {
         /** @var list<Volunteer> $volunteers */
         $volunteers = $this->volunteers->createMatchingProgramQueryBuilder($program)->getQuery()->getResult();
-        $staying = $this->volunteers->findIdsStayingOn($volunteers, new \DateTimeImmutable('today'));
+        $statuses = $this->volunteers->findStatusesOn($volunteers, new \DateTimeImmutable('today'));
         $needed = $program->getSkills();
 
         $rows = [];
@@ -251,7 +251,7 @@ final class ProgramController extends AbstractController
             $matched = $volunteer->getSkills()->filter(static fn(Skill $skill): bool => $needed->contains($skill))->toArray();
             $rows[$id] = [
                 'name' => $volunteer->getFullName(),
-                'status' => isset($staying[$id]) ? 'Active' : 'Inactive',
+                'status' => $statuses[$id]->label(),
                 'matchedSkills' => self::skillNames($matched),
                 'matched' => sprintf('%d of %d', count($matched), $needed->count()),
             ];

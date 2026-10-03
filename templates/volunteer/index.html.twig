@@ -72,8 +72,9 @@
             data-action="change->auto-submit#submit"
         >
             <option value="">Any status</option>
-            <option value="active" {{ status is same as(true) ? 'selected' : '' }}>Active</option>
-            <option value="inactive" {{ status is same as(false) ? 'selected' : '' }}>Inactive</option>
+            {% for option in statusOptions %}
+                <option value="{{ option.value }}" {{ status is same as(option) ? 'selected' : '' }}>{{ option.label }}</option>
+            {% endfor %}
         </select>
         <label for="volunteer-branch" class="sr-only">Branch</label>
         <select

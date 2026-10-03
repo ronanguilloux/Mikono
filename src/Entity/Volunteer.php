@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Enum\Gender;
+use App\Enum\VolunteerStatus;
 use App\Repository\VolunteerRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -109,8 +110,8 @@ class Volunteer
     private ?VolunteerPhoto $photo = null;
 
     /**
-     * Newest first. Whether a volunteer is active is read from these, never
-     * stored: a stay ending is what "finished their stint" means.
+     * Newest first. A volunteer's status is read from these, never stored:
+     * a stay ending is what "finished their stint" means.
      *
      * @var Collection<int, Stay>
      */
@@ -460,16 +461,33 @@ class Volunteer
         return null;
     }
 
-    /** Active means a stay covers today. See ADR 0026. */
+    /**
+     * The first rule that matches wins: a stay covering $today, then one
+     * starting after it (even with past stays behind it), then any stay.
+     * VolunteerRepository ranks the same rule in SQL. See ADR 0026.
+     */
+    public function getStatus(\DateTimeImmutable $today): VolunteerStatus
+    {
+        if (null !== $this->getStayCovering($today)) {
+            return VolunteerStatus::Present;
+        }
+        if ($this->stays->exists(static fn(int|string $key, Stay $stay): bool => $stay->getStartDate() > $today)) {
+            return VolunteerStatus::Upcoming;
+        }
+
+        return $this->stays->isEmpty() ? VolunteerStatus::NoStay : VolunteerStatus::Past;
+    }
+
+    /** Present today. See ADR 0026. */
     public function isActive(): bool
     {
-        return null !== $this->getStayCovering(new \DateTimeImmutable('today'));
+        return VolunteerStatus::Present === $this->getStatus(new \DateTimeImmutable('today'));
     }
 
     /**
      * Calendar days covered by this volunteer's stays, up to $today inclusive.
      * Stays never overlap (StayController refuses it), so the sum is exact.
-     * No column: derived from stays, like isActive(). See ADR 0026.
+     * No column: derived from stays, like getStatus(). See ADR 0026.
      */
     public function getDaysOnSite(\DateTimeImmutable $today): int
     {

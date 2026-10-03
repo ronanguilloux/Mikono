@@ -39,7 +39,7 @@ more than placement. Proposed columns:
 
 | Column | Counts |
 | --- | --- |
-| Present | Distinct volunteers with a stay overlapping the month. This is the headline figure, and it follows the same rule as Present in [volunteer-status-present-past-upcoming](volunteer-status-present-past-upcoming.md) |
+| Present | Distinct volunteers with a stay overlapping the month. This is the headline figure, and it follows the same rule as Present in [ADR 0026](../../adr/0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) (`Volunteer::getStatus()`) |
 | Arrived | Stays starting in the month (new arrivals) |
 | Engaged | Distinct volunteers with at least one activity dated in the month |
 
