@@ -29,6 +29,11 @@ final readonly class SortState
         public array $sortableKeys,
         public ?string $activeKey,
         public string $direction,
+        // The query-string names DataTable builds its header links from —
+        // prefixed when a second sorted list shares the page (ListPaginator::param()).
+        public string $sortParam = 'sort',
+        public string $directionParam = 'direction',
+        public string $pageParam = 'page',
     ) {}
 
     public function isSortable(string $key): bool

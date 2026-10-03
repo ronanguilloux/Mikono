@@ -34,8 +34,8 @@
     {% set preset_base = 'rounded-md px-3 py-1.5 text-sm font-medium' %}
     {% set preset_on = preset_base ~ ' bg-brand-600 text-white' %}
     {% set preset_off = preset_base ~ ' border border-slate-300 text-slate-700 hover:border-brand-500 hover:text-brand-700' %}
-    {# `page` is dropped on purpose: a new range means a new page 1. #}
-    {% set carried = app.request.query.all|filter((v, k) => k not in ['range', 'from', 'to', 'page'] and v is not iterable) %}
+    {# `page` and `signInsPage` are dropped on purpose: a new range means a new page 1 in both tables. #}
+    {% set carried = app.request.query.all|filter((v, k) => k not in ['range', 'from', 'to', 'page', 'signInsPage'] and v is not iterable) %}
 
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4 print:hidden">
         <nav class="flex flex-wrap gap-2" aria-label="Date range" data-range-presets>
@@ -172,16 +172,20 @@
     <section class="mt-10" aria-labelledby="sign-ins-heading" data-sign-ins>
         <h2 id="sign-ins-heading" class="font-semibold">Sign-ins</h2>
         <p class="mb-3 mt-0.5 text-xs text-slate-500">
-            Every sign-in attempt by the address typed and the network address it came from, failures first.
+            Every sign-in attempt by the address typed and the network address it came from, most recent first.
+            An address that belongs to a user shows their name and links to them; one that matches no user is
+            highlighted, since that attempt could never have succeeded.
             Passwords are never recorded, and neither is anything typed that isn't an email address.
             Attempts are deleted after {{ loginRetentionDays }} days, so a longer window still shows at most that.
-            At most {{ loginLimit }} rows. Same window as above: {{ range.label }}.
+            Same window as above: {{ range.label }}.
             See <span class="font-mono text-xs">ADR 0028</span>.
         </p>
 
         <twig:DataTable
             :columns="loginColumns"
             :rows="loginRows"
+            :pagination="loginPagination"
+            :sortState="loginSortState"
             :withActions="false"
             emptyMessage="No sign-in attempts in this date range."
         />

@@ -74,9 +74,14 @@ no cron job or scheduler is needed.
 **6. Shown to admins only, as a "Sign-ins" section on `/usage`.** The
 section inherits `UsageController`'s `ROLE_ADMIN` gate. Rows are grouped by
 (identifier, IP), with signed-in and failed counts and the last attempt.
-The section is capped at 50 rows and uses the same
-`App\Usage\UsageDateRange` as the other two tables, so all three cover the
-same period.
+The newest attempt comes first. The section is sorted and paginated like
+every other list, under its own `signIns`-prefixed query parameters so it
+doesn't collide with the access-log table above it. An identifier that
+matches a user's email (case-insensitively) shows that user's name and
+links to their edit page. One that matches no user keeps the address as
+typed, tinted amber and badged "Unknown account": such an attempt could
+never have succeeded. The section uses the same `App\Usage\UsageDateRange`
+as the other two tables, so all three cover the same period.
 
 ## Consequences
 

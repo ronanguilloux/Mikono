@@ -27,6 +27,8 @@ use Symfony\Contracts\Cache\ItemInterface;
  *
  * @phpstan-import-type UsageRow from AccessLogReader
  * @phpstan-import-type UsageReport from AccessLogReader
+ *
+ * @phpstan-type SignInRow array{account: string, accountSort: string, ip: ?string, succeeded: int, failed: int, lastAttempt: \DateTimeImmutable, userId: ?int}
  */
 #[Route('/usage', name: 'usage_')]
 #[IsGranted('ROLE_ADMIN')]
@@ -47,6 +49,23 @@ final class UsageController extends AbstractController
         'p95' => 'p95',
         'lastSeen' => 'lastSeen',
     ];
+
+    /**
+     * The Sign-ins table's, keyed into the rows signInRows() builds. Its params
+     * are prefixed `signIns` (ListPaginator::param()) so the two tables on this
+     * page don't share one `sort` and one `page`.
+     *
+     * @var array<string, string>
+     */
+    private const array LOGIN_SORT_MAP = [
+        'account' => 'accountSort',
+        'ip' => 'ip',
+        'succeeded' => 'succeeded',
+        'failed' => 'failed',
+        'lastAttempt' => 'lastAttempt',
+    ];
+
+    private const string LOGIN_PARAM_PREFIX = 'signIns';
 
     public function __construct(
         private readonly AccessLogReader $reader,
@@ -92,6 +111,20 @@ final class UsageController extends AbstractController
         /** @var list<UsageRow> $pageOfRows */
         $pageOfRows = iterator_to_array($pagination, false);
 
+        $loginPagination = $this->paginator->paginateArray(
+            $this->paginator->sortArray(
+                $this->signInRows($range),
+                $request,
+                self::LOGIN_SORT_MAP,
+                self::LOGIN_PARAM_PREFIX,
+            ),
+            $request,
+            self::LOGIN_PARAM_PREFIX,
+        );
+
+        /** @var list<SignInRow> $pageOfLogins */
+        $pageOfLogins = iterator_to_array($loginPagination, false);
+
         return $this->render('usage/index.html.twig', [
             'report' => $report,
             'range' => $range,
@@ -136,22 +169,59 @@ final class UsageController extends AbstractController
                 ['key' => 'lastAttempt', 'label' => 'Last attempt'],
             ],
             'loginRows' => array_map(
-                static fn(array $attempt): array => [
+                fn(array $row): array => [
                     'cells' => [
-                        'account' => $attempt['identifier'] ?? 'not an email address',
-                        'ip' => $attempt['ip'] ?? '—',
-                        'succeeded' => (string) $attempt['succeeded'],
-                        'failed' => (string) $attempt['failed'],
-                        'lastAttempt' => $attempt['lastAttempt']->format('j M, H:i'),
+                        'account' => $row['account'],
+                        'ip' => $row['ip'] ?? '—',
+                        'succeeded' => (string) $row['succeeded'],
+                        'failed' => (string) $row['failed'],
+                        'lastAttempt' => $row['lastAttempt']->format('j M, H:i'),
                     ],
-                    'badges' => $attempt['failed'] > 0 ? ['failed' => 'Failed'] : [],
-                    'links' => [],
-                ],
-                $this->loginAttempts->summarize($range),
+                    // Badges rather than colour alone: the amber row says
+                    // nothing to a screen reader or on paper.
+                    'badges' => array_filter([
+                        'account' => null === $row['userId'] ? 'Unknown account' : null,
+                        'failed' => $row['failed'] > 0 ? 'Failed' : null,
+                    ]),
+                    'links' => null === $row['userId']
+                        ? []
+                        : ['account' => $this->generateUrl('user_edit', ['id' => $row['userId']])],
+                ] + (null === $row['userId'] ? ['tone' => 'warning'] : []),
+                $pageOfLogins,
             ),
+            'loginPagination' => $loginPagination,
+            'loginSortState' => $this->paginator->sortState($request, self::LOGIN_SORT_MAP, self::LOGIN_PARAM_PREFIX),
             'loginRetentionDays' => LoginAttemptRecorder::RETENTION_DAYS,
-            'loginLimit' => LoginAttemptRepository::SUMMARY_LIMIT,
         ]);
+    }
+
+    /**
+     * Sign-in summaries keyed for LOGIN_SORT_MAP. `account` is the text the
+     * reader sees — the user's name when the address is a known account, the
+     * address as typed otherwise — so sorting follows what's on screen.
+     *
+     * @return list<SignInRow>
+     */
+    private function signInRows(UsageDateRange $range): array
+    {
+        return array_map(
+            static function (array $attempt): array {
+                $account = $attempt['userName'] ?? $attempt['identifier'] ?? 'not an email address';
+
+                return [
+                    'account' => $account,
+                    // Lowercased, or every capitalised name sorts ahead of every
+                    // lowercase address.
+                    'accountSort' => mb_strtolower($account),
+                    'ip' => $attempt['ip'],
+                    'succeeded' => $attempt['succeeded'],
+                    'failed' => $attempt['failed'],
+                    'lastAttempt' => $attempt['lastAttempt'],
+                    'userId' => $attempt['userId'],
+                ];
+            },
+            $this->loginAttempts->summarize($range),
+        );
     }
 
     /**

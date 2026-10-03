@@ -23,7 +23,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * RowActions hands it to Twig's `csrf_token()`.
  *
  * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfTokenId?: string, disabledReason?: string}
- * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, avatars?: array<string, string|null>, links?: array<string, string>, actions?: list<Action>}
+ * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, avatars?: array<string, string|null>, links?: array<string, string>, actions?: list<Action>, tone?: 'warning'}
  */
 #[AsTwigComponent]
 final class DataTable
@@ -51,6 +51,10 @@ final class DataTable
      * before that cell's text: an image URL, or null for the generic person
      * icon. `/volunteers` uses it for photo thumbnails. It is sized to the text
      * line, so it never makes a row taller.
+     *
+     * A row's optional `tone: 'warning'` tints the whole row amber — /usage's
+     * Sign-ins uses it for an address that matches no user. Pair it with a
+     * badge: colour alone says nothing to a screen reader or on paper.
      *
      * @var list<Row>
      */

@@ -71,6 +71,37 @@ final class UsageControllerTest extends WebTestCase
         self::assertStringContainsString('90 days', $section);
     }
 
+    #[Test]
+    public function aKnownAccountLinksToItsUserAndAnUnknownOneIsFlagged(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+        $known = UserFactory::createOne(['email' => 'vm@example.org', 'fullName' => 'Zara Manager']);
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new LoginAttempt('vm@example.org', true, '10.0.0.1', new \DateTimeImmutable('-2 hours')));
+        $entityManager->persist(new LoginAttempt('probe@example.org', false, '10.0.0.2', new \DateTimeImmutable('-1 hour')));
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', '/usage');
+
+        self::assertResponseIsSuccessful();
+        $rows = $crawler->filter('[data-sign-ins] tbody tr');
+        // Most recent first by default.
+        self::assertStringContainsString('probe@example.org', $rows->eq(0)->text());
+        self::assertStringContainsString('Unknown account', $rows->eq(0)->text());
+        self::assertSame('warning', $rows->eq(0)->attr('data-row-tone'));
+        self::assertCount(0, $rows->eq(0)->filter('a'));
+
+        $link = $rows->eq(1)->filter('a[href="/users/' . $known->getId() . '/edit"]');
+        self::assertSame('Zara Manager', $link->text());
+        self::assertStringNotContainsString('vm@example.org', $rows->eq(1)->text());
+        self::assertNull($rows->eq(1)->attr('data-row-tone'));
+
+        // Its own sort params, so the access-log table's `sort` is untouched.
+        $crawler = $client->request('GET', '/usage?signInsSort=account&signInsDirection=desc');
+        self::assertStringContainsString('Zara Manager', $crawler->filter('[data-sign-ins] tbody tr')->eq(0)->text());
+    }
+
     /**
      * The default range has to be visible on the control. A screen that opens
      * filtered without saying so reads as "nobody ever used this" when the

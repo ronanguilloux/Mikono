@@ -82,16 +82,25 @@ final class ListPaginator
      *
      * @param list<TValue> $items
      *
+     * @param string      $prefix see param() — for a second list on the same page
+     *
      * @return SlidingPaginationInterface<int, TValue>
      */
-    public function paginateArray(array $items, Request $request): SlidingPaginationInterface
+    public function paginateArray(array $items, Request $request, string $prefix = ''): SlidingPaginationInterface
     {
+        // pageParameterName is Knp's own option, read back by
+        // templates/pagination/tailwind.html.twig; perPageParameterName is
+        // ours, carried in the same bag for PaginationBar. Knp merges options
+        // with a plain array_merge, so the extra key survives.
         /** @var SlidingPaginationInterface<int, TValue> $pagination */
         $pagination = $this->paginator->paginate(
             $items,
-            $this->page($request),
-            $this->perPage($request),
-            self::SORTING_OFF,
+            $this->page($request, $prefix),
+            $this->perPage($request, $prefix),
+            self::SORTING_OFF + [
+                PaginatorInterface::PAGE_PARAMETER_NAME => self::param($prefix, 'page'),
+                'perPageParameterName' => self::param($prefix, 'perPage'),
+            ],
         );
 
         return $pagination;
@@ -104,12 +113,15 @@ final class ListPaginator
      * @param array<string, mixed> $sortMap only its keys matter here — the column
      *                                      keys this view offers
      */
-    public function sortState(Request $request, array $sortMap): SortState
+    public function sortState(Request $request, array $sortMap, string $prefix = ''): SortState
     {
         return new SortState(
             array_keys($sortMap),
-            $this->sortKey($request, $sortMap),
-            $this->sortDirection($request),
+            $this->sortKey($request, $sortMap, $prefix),
+            $this->sortDirection($request, $prefix),
+            self::param($prefix, 'sort'),
+            self::param($prefix, 'direction'),
+            self::param($prefix, 'page'),
         );
     }
 
@@ -164,16 +176,16 @@ final class ListPaginator
      *
      * @return list<TRow>
      */
-    public function sortArray(array $rows, Request $request, array $sortMap): array
+    public function sortArray(array $rows, Request $request, array $sortMap, string $prefix = ''): array
     {
-        $key = $this->sortKey($request, $sortMap);
+        $key = $this->sortKey($request, $sortMap, $prefix);
 
         if (null === $key) {
             return $rows;
         }
 
         $field = $sortMap[$key];
-        $descending = SortState::DESC === $this->sortDirection($request);
+        $descending = SortState::DESC === $this->sortDirection($request, $prefix);
 
         // usort has been stable since PHP 8.0, so rows that tie keep the order
         // the caller handed them in — ActivitySummaryCalculator's own totalDays
@@ -204,13 +216,13 @@ final class ListPaginator
         return $rows;
     }
 
-    public function perPage(Request $request): int
+    public function perPage(Request $request, string $prefix = ''): int
     {
         // Read through all() rather than InputBag::get(), which throws a
         // BadRequestException on a non-scalar — `?perPage[]=25` would then be a
         // 400 instead of the harmless fallback this class promises. Same reason
         // as sortKey() and sortDirection() below.
-        $requested = $request->query->all()['perPage'] ?? null;
+        $requested = $request->query->all()[self::param($prefix, 'perPage')] ?? null;
 
         if (!is_scalar($requested)) {
             return self::DEFAULT_PER_PAGE;
@@ -229,11 +241,11 @@ final class ListPaginator
             : self::DEFAULT_PER_PAGE;
     }
 
-    public function page(Request $request): int
+    public function page(Request $request, string $prefix = ''): int
     {
         // Same reasons as perPage(): all() so `?page[]=2` is not a 400, and a
         // cast rather than getInt() so `?page=abc` is not one either.
-        $requested = $request->query->all()['page'] ?? null;
+        $requested = $request->query->all()[self::param($prefix, 'page')] ?? null;
 
         return is_scalar($requested) ? max(1, (int) $requested) : 1;
     }
@@ -241,22 +253,22 @@ final class ListPaginator
     /**
      * @param array<string, mixed> $sortMap
      */
-    private function sortKey(Request $request, array $sortMap): ?string
+    private function sortKey(Request $request, array $sortMap, string $prefix = ''): ?string
     {
         // Read through all() rather than InputBag::get(), which throws a
         // BadRequestException on a non-scalar — `?sort[]=x` would then be a 400
         // instead of the harmless fallback this class promises.
-        $requested = $request->query->all()['sort'] ?? null;
+        $requested = $request->query->all()[self::param($prefix, 'sort')] ?? null;
 
         return \is_string($requested) && \array_key_exists($requested, $sortMap)
             ? $requested
             : null;
     }
 
-    private function sortDirection(Request $request): string
+    private function sortDirection(Request $request, string $prefix = ''): string
     {
         // Same reason as sortKey() for going through all().
-        $requested = $request->query->all()['direction'] ?? null;
+        $requested = $request->query->all()[self::param($prefix, 'direction')] ?? null;
 
         // Ascending unless descending was asked for explicitly: the first click
         // on a header sorts ascending, so that is the safer default for a
@@ -264,5 +276,16 @@ final class ListPaginator
         return \is_string($requested) && SortState::DESC === strtolower($requested)
             ? SortState::DESC
             : SortState::ASC;
+    }
+
+    /**
+     * The query-string name of one of this class's four params. A prefix lets
+     * a second list share a page with the first without the two fighting over
+     * `sort` and `page` — /usage's Sign-ins table reads `signInsSort`,
+     * `signInsPage` and so on. No prefix, no change: every other list.
+     */
+    private static function param(string $prefix, string $name): string
+    {
+        return '' === $prefix ? $name : $prefix . ucfirst($name);
     }
 }

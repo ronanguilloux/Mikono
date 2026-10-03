@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\LoginAttempt;
+use App\Entity\User;
 use App\Usage\UsageDateRange;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -14,23 +15,26 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class LoginAttemptRepository extends ServiceEntityRepository
 {
-    /**
-     * ponytail: a fixed cap, so a spray of distinct identifiers can't grow the
-     * /usage page without bound. Paginate if the cap is ever reached.
-     */
-    public const int SUMMARY_LIMIT = 50;
-
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, LoginAttempt::class);
     }
 
     /**
-     * Attempts per (identifier, IP), failures first — "who is failing to get
-     * in, from where" is the question. Bounded by the same window as the rest
-     * of /usage, like UsageEventRepository::summarize().
+     * Attempts per (identifier, IP), most recent first, with the app user the
+     * identifier belongs to — null for an address that matches no account,
+     * which is an attempt that could never have succeeded. Bounded by the
+     * same window as the rest of /usage, like UsageEventRepository::summarize().
      *
-     * @return list<array{identifier: ?string, ip: ?string, succeeded: int, failed: int, lastAttempt: \DateTimeImmutable}>
+     * Matched case-insensitively: the address is stored as typed, and
+     * "VM@example.org" is still somebody's account to the person reading.
+     *
+     * ponytail: the whole result is returned and paginated in memory —
+     * bounded by the 90-day retention, not by a cap. Doctrine's paginator
+     * can't reliably count a GROUP BY query; move the count into SQL if a
+     * credential spray ever makes this heavy.
+     *
+     * @return list<array{identifier: ?string, ip: ?string, succeeded: int, failed: int, lastAttempt: \DateTimeImmutable, userId: ?int, userName: ?string}>
      */
     public function summarize(?UsageDateRange $range = null): array
     {
@@ -41,11 +45,12 @@ class LoginAttemptRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN a.succeeded = true THEN 1 ELSE 0 END) AS succeeded',
                 'SUM(CASE WHEN a.succeeded = true THEN 0 ELSE 1 END) AS failed',
                 'MAX(a.occurredAt) AS lastAttempt',
+                'u.id AS userId',
+                'u.fullName AS userName',
             )
-            ->groupBy('a.identifier', 'a.ip')
-            ->orderBy('failed', 'DESC')
-            ->addOrderBy('lastAttempt', 'DESC')
-            ->setMaxResults(self::SUMMARY_LIMIT);
+            ->leftJoin(User::class, 'u', 'WITH', 'LOWER(u.email) = LOWER(a.identifier)')
+            ->groupBy('a.identifier', 'a.ip', 'u.id', 'u.fullName')
+            ->orderBy('lastAttempt', 'DESC');
 
         if (null !== $range?->from()) {
             $queryBuilder->andWhere('a.occurredAt >= :from')->setParameter('from', $range->from());
@@ -56,7 +61,7 @@ class LoginAttemptRepository extends ServiceEntityRepository
         }
 
         // Aggregates come back driver-formatted, as in UsageEventRepository.
-        /** @var list<array{identifier: ?string, ip: ?string, succeeded: int|string, failed: int|string, lastAttempt: string|\DateTimeImmutable}> $rows */
+        /** @var list<array{identifier: ?string, ip: ?string, succeeded: int|string, failed: int|string, lastAttempt: string|\DateTimeImmutable, userId: int|string|null, userName: ?string}> $rows */
         $rows = $queryBuilder->getQuery()->getResult();
 
         return array_map(
@@ -68,6 +73,8 @@ class LoginAttemptRepository extends ServiceEntityRepository
                 'lastAttempt' => $row['lastAttempt'] instanceof \DateTimeImmutable
                     ? $row['lastAttempt']
                     : new \DateTimeImmutable($row['lastAttempt']),
+                'userId' => null === $row['userId'] ? null : (int) $row['userId'],
+                'userName' => $row['userName'],
             ],
             $rows,
         );

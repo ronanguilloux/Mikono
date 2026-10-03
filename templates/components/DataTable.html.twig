@@ -3,9 +3,10 @@
     `perPage` and the Reports `tab`. `page` is dropped deliberately: a new sort
     order means a new page 1, and keeping the old offset would drop the reader
     somewhere arbitrary. Same idiom as the Reports tab nav and PaginationBar's
-    page-size form.
+    page-size form. The names come from sortState, so a second sorted table on
+    the page (/usage's Sign-ins) keeps the first one's sort and page.
 #}
-{% set sort_carried = app.request.query.all|filter((v, k) => k not in ['sort', 'direction', 'page'] and v is not iterable) %}
+{% set sort_carried = sortState is null ? {} : app.request.query.all|filter((v, k) => k not in [sortState.sortParam, sortState.directionParam, sortState.pageParam] and v is not iterable) %}
 
 <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
     <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -25,8 +26,8 @@
                             #}
                             <a
                                 href="{{ path(app.request.attributes.get('_route'), sort_carried|merge({
-                                    sort: column.key,
-                                    direction: sortState.nextDirectionFor(column.key),
+                                    (sortState.sortParam): column.key,
+                                    (sortState.directionParam): sortState.nextDirectionFor(column.key),
                                 })) }}"
                                 class="hover:text-brand-700 hover:underline"
                                 data-sort-link="{{ column.key }}"
@@ -46,7 +47,7 @@
         </thead>
         <tbody class="divide-y divide-slate-100">
             {% for row in rows %}
-                <tr>
+                <tr{% if row.tone|default(null) == 'warning' %} class="bg-amber-50" data-row-tone="warning"{% endif %}>
                     {% for column in columns %}
                         {#
                             The badge is a sibling of the cell text, not part of

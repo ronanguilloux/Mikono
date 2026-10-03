@@ -20,7 +20,10 @@
 {# Read through .all like every other query-string read in these templates:
    app.request.query.get() throws a BadRequestException on `?perPage[]=25`,
    which renders as a 500 from inside a template rather than a 400. #}
-{% set current_per_page = app.request.query.all['perPage']|default('') %}
+{# Prefixed on a page with two paginated lists — ListPaginator::param(). #}
+{% set per_page_param = pagination.getPaginatorOptions().perPageParameterName|default('perPage') %}
+{% set page_param = pagination.getPaginatorOptions().pageParameterName|default('page') %}
+{% set current_per_page = app.request.query.all[per_page_param]|default('') %}
 
 <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600 print:hidden" data-pagination-bar>
     <p>
@@ -40,16 +43,16 @@
                 offset would drop the user somewhere arbitrary.
             #}
             {% for key, value in app.request.query.all %}
-                {% if key not in ['page', 'perPage'] and value is not iterable %}
+                {% if key not in [page_param, per_page_param] and value is not iterable %}
                     <input type="hidden" name="{{ key }}" value="{{ value }}">
                 {% endif %}
             {% endfor %}
 
-            <label for="per-page" class="sr-only">Rows per page</label>
+            <label for="per-page-{{ per_page_param }}" class="sr-only">Rows per page</label>
             <span aria-hidden="true">Show</span>
             <select
-                id="per-page"
-                name="perPage"
+                id="per-page-{{ per_page_param }}"
+                name="{{ per_page_param }}"
                 class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
                 data-action="change->auto-submit#submit"
             >
