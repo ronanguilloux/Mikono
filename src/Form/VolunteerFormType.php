@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\Skill;
+use App\Entity\Source;
 use App\Entity\Volunteer;
 use App\Enum\Gender;
 use App\Repository\SkillRepository;
+use App\Repository\SourceRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
@@ -63,6 +65,17 @@ final class VolunteerFormType extends AbstractType
                 'expanded' => true,
                 'required' => false,
                 'by_reference' => false,
+            ])
+            // Optional: existing volunteers can't be truthfully backfilled (ADR 0041).
+            ->add('sources', EntityType::class, [
+                'class' => Source::class,
+                'choice_label' => 'name',
+                'query_builder' => static fn(SourceRepository $sources): QueryBuilder => $sources->createOrderedByNameQueryBuilder(),
+                'multiple' => true,
+                'expanded' => true,
+                'required' => false,
+                'by_reference' => false,
+                'help' => 'How they heard of UCESCO — tick every channel that applies.',
             ])
             ->add('interests', TextareaType::class, ['required' => false])
             ->add('emergencyContacts', TextareaType::class, [

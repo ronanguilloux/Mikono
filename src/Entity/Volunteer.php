@@ -74,6 +74,17 @@ class Volunteer
     #[ORM\OrderBy(['name' => 'ASC'])]
     private Collection $skills;
 
+    /**
+     * Where they heard of UCESCO, possibly several channels. Recorded once per
+     * volunteer, not per stay. See ADR 0041.
+     *
+     * @var Collection<int, Source>
+     */
+    #[ORM\ManyToMany(targetEntity: Source::class)]
+    #[ORM\JoinTable(name: 'volunteer_source')]
+    #[ORM\OrderBy(['name' => 'ASC'])]
+    private Collection $sources;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $interests = null;
 
@@ -129,6 +140,7 @@ class Volunteer
     {
         $this->stays = new ArrayCollection();
         $this->skills = new ArrayCollection();
+        $this->sources = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -282,6 +294,28 @@ class Volunteer
     public function removeSkill(Skill $skill): static
     {
         $this->skills->removeElement($skill);
+
+        return $this;
+    }
+
+    /** @return Collection<int, Source> */
+    public function getSources(): Collection
+    {
+        return $this->sources;
+    }
+
+    public function addSource(Source $source): static
+    {
+        if (!$this->sources->contains($source)) {
+            $this->sources->add($source);
+        }
+
+        return $this;
+    }
+
+    public function removeSource(Source $source): static
+    {
+        $this->sources->removeElement($source);
 
         return $this;
     }

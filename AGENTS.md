@@ -71,7 +71,7 @@ implements it.
 - `.claude/agents/` — Claude Code-specific subagents (`adr-scribe`,
   `context-capturer`).
 - `src/Entity/`, `src/Repository/` — Doctrine entities (`User`,
-  `Volunteer`, `Project`, `Program`, `ActivityType`, `Skill`, `BeneficiaryGroup`, `Activity`, `Escort`, `Branch`, `Stay`, `Achievement`)
+  `Volunteer`, `Project`, `Program`, `ActivityType`, `Skill`, `Source`, `BeneficiaryGroup`, `Activity`, `Escort`, `Branch`, `Stay`, `Achievement`)
   and their repositories, each with a `countReferencingActivities()`
   delete-guard where applicable. `Branch`'s guard counts stays and projects, and its five real rows come from its migration, not the
   fixtures — tests start with them
@@ -103,6 +103,9 @@ implements it.
   `Branch`, held by volunteers and needed by programs; `/programs/{id}/matches`
   pairs the two
   ([ADR 0036](docs/adr/0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md)).
+  `Source` (recruitment channels) is seeded the same way and held by
+  volunteers only; it is not part of a complete profile
+  ([ADR 0041](docs/adr/0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md)).
   An `Achievement` belongs to a stay: its day within the stay, its project
   at the stay's branch — checked on achievement save, stay edit and project
   edit, so a new write path needs the same check. It's removed with its

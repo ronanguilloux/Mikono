@@ -8,6 +8,7 @@ use App\Entity\Activity;
 use App\Entity\Branch;
 use App\Entity\Program;
 use App\Entity\Skill;
+use App\Entity\Source;
 use App\Entity\Stay;
 use App\Entity\Volunteer;
 use App\Enum\VolunteerStatus;
@@ -58,7 +59,7 @@ class VolunteerRepository extends ServiceEntityRepository
      * and upcoming at Mombasa means the upcoming stay is there. Past at a
      * branch is any stay there, since every stay of a past volunteer ended.
      */
-    public function createOrderedByNameQueryBuilder(?string $search = null, ?Skill $skill = null, ?VolunteerStatus $status = null, ?Branch $branch = null): QueryBuilder
+    public function createOrderedByNameQueryBuilder(?string $search = null, ?Skill $skill = null, ?VolunteerStatus $status = null, ?Branch $branch = null, ?Source $source = null): QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('v')
             ->addSelect(self::statusRank('r') . ' AS HIDDEN statusRank')
@@ -78,6 +79,12 @@ class VolunteerRepository extends ServiceEntityRepository
             $queryBuilder
                 ->andWhere(':skill MEMBER OF v.skills')
                 ->setParameter('skill', $skill);
+        }
+
+        if (null !== $source) {
+            $queryBuilder
+                ->andWhere(':source MEMBER OF v.sources')
+                ->setParameter('source', $source);
         }
 
         if (null !== $status) {

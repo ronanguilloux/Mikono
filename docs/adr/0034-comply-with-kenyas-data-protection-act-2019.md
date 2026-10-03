@@ -94,6 +94,7 @@ The existing personal-data stores, and the ADR that bounds each one:
 | `volunteer` | Identity, contact, profile, notes, emergency contacts, gender | [0014](0014-make-a-volunteers-last-name-optional.md), [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md), [0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md), this ADR |
 | Passport number | Encrypted at rest | [0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md) |
 | `volunteer_photo` | Re-encoded JPEG, no metadata | [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) |
+| `volunteer_source` | The recruitment channels a volunteer came through | [0041](0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md) |
 | `stay` | Where a volunteer is attached, and when | [0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) |
 | `achievement` | What a volunteer achieved in a stay; free-text description | [0038](0038-record-achievements-on-a-volunteers-stay.md) |
 | `activity`, `escort` | What a volunteer did, when, with whom | [0013](0013-record-every-escort-on-an-activity.md), [0030](0030-insert-programs-between-projects-and-activities.md) |

@@ -12,10 +12,12 @@ use App\Form\VolunteerFormType;
 use App\Pagination\ListPaginator;
 use App\Entity\Branch;
 use App\Entity\Skill;
+use App\Entity\Source;
 use App\Repository\AchievementRepository;
 use App\Repository\ActivityRepository;
 use App\Repository\BranchRepository;
 use App\Repository\SkillRepository;
+use App\Repository\SourceRepository;
 use App\Repository\VolunteerRepository;
 use App\Security\PassportNumberCipher;
 use Doctrine\ORM\EntityManagerInterface;
@@ -67,6 +69,7 @@ final class VolunteerController extends AbstractController
         private readonly ActivityRepository $activities,
         private readonly AchievementRepository $achievements,
         private readonly SkillRepository $skills,
+        private readonly SourceRepository $sources,
         private readonly BranchRepository $branches,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
@@ -131,6 +134,8 @@ final class VolunteerController extends AbstractController
             'statusOptions' => VolunteerStatus::cases(),
             'branch' => $this->requestedBranch($request),
             'branchOptions' => $this->branches->createOrderedByNameQueryBuilder()->getQuery()->getResult(),
+            'source' => $this->requestedSource($request),
+            'sourceOptions' => $this->sources->findAllOrderedByName(),
         ]);
     }
 
@@ -166,6 +171,7 @@ final class VolunteerController extends AbstractController
             $this->requestedSkill($request),
             $this->requestedStatus($request),
             $this->requestedBranch($request),
+            $this->requestedSource($request),
         );
         $this->paginator->applySort($queryBuilder, $request, self::SORT_MAP);
 
@@ -213,6 +219,14 @@ final class VolunteerController extends AbstractController
         $raw = $request->query->all()['branch'] ?? null;
 
         return is_scalar($raw) && (int) $raw >= 1 ? $this->branches->find((int) $raw) : null;
+    }
+
+    /** The index's `?source=<id>` filter, degrading like `?skill=`. */
+    private function requestedSource(Request $request): ?Source
+    {
+        $raw = $request->query->all()['source'] ?? null;
+
+        return is_scalar($raw) && (int) $raw >= 1 ? $this->sources->find((int) $raw) : null;
     }
 
     /**

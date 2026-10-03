@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Add source — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <h1 class="mb-4 text-xl font-semibold">Add source</h1>
+    <twig:FormShell :form="form" cancelUrl="{{ path('source_index') }}" />
+{% endblock %}

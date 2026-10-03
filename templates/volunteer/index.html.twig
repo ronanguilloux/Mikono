@@ -37,7 +37,7 @@
         data-volunteer-search
     >
         {% for key, value in app.request.query.all %}
-            {% if key not in ['page', 'q', 'skill', 'status', 'branch'] and value is not iterable %}
+            {% if key not in ['page', 'q', 'skill', 'status', 'branch', 'source'] and value is not iterable %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endif %}
         {% endfor %}
@@ -88,11 +88,23 @@
                 <option value="{{ option.id }}" {{ branch and branch.id == option.id ? 'selected' : '' }}>{{ option.name }}</option>
             {% endfor %}
         </select>
+        <label for="volunteer-source" class="sr-only">Source</label>
+        <select
+            id="volunteer-source"
+            name="source"
+            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-action="change->auto-submit#submit"
+        >
+            <option value="">Any source</option>
+            {% for option in sourceOptions %}
+                <option value="{{ option.id }}" {{ source and source.id == option.id ? 'selected' : '' }}>{{ option.name }}</option>
+            {% endfor %}
+        </select>
         <button type="submit" class="sr-only">Search</button>
 
-        {% if search or skill or status is not null or branch %}
+        {% if search or skill or status is not null or branch or source %}
             <a
-                href="{{ path('volunteer_index', app.request.query.all|filter((v, k) => k not in ['page', 'q', 'skill', 'status', 'branch'] and v is not iterable)) }}"
+                href="{{ path('volunteer_index', app.request.query.all|filter((v, k) => k not in ['page', 'q', 'skill', 'status', 'branch', 'source'] and v is not iterable)) }}"
                 class="text-brand-600 hover:underline"
                 data-turbo-action="replace"
             >Clear filters</a>
@@ -104,6 +116,6 @@
         :rows="rows"
         :pagination="pagination"
         :sortState="sortState"
-        :emptyMessage="status is not null or branch ? 'No volunteers match these filters.' : (search ? 'No volunteers match “' ~ search ~ '”' ~ (skill ? ' with ' ~ skill.name : '') ~ '.' : (skill ? 'No volunteers hold ' ~ skill.name ~ '.' : 'No volunteers yet — add the first one above.'))"
+        :emptyMessage="status is not null or branch or source ? 'No volunteers match these filters.' : (search ? 'No volunteers match “' ~ search ~ '”' ~ (skill ? ' with ' ~ skill.name : '') ~ '.' : (skill ? 'No volunteers hold ' ~ skill.name ~ '.' : 'No volunteers yet — add the first one above.'))"
     />
 {% endblock %}

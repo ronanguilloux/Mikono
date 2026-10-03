@@ -6,6 +6,11 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-03 — Record where each volunteer came from
+
+See
+[ADR 0041](../adr/0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md).
+
 ## 2026-10-03 — /usage's In-page actions table sorts and pages
 
 Same treatment as Sign-ins: its own `events`-prefixed sort and page params

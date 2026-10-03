@@ -14,8 +14,10 @@ use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\SkillFactory;
+use App\Factory\SourceFactory;
 use App\Factory\VolunteerFactory;
 use App\Repository\SkillRepository;
+use App\Repository\SourceRepository;
 use PHPUnit\Framework\Attributes\Test;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -77,6 +79,35 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'No volunteers match');
 
         self::assertSame(['Zawadi Zuma'], array_column(self::exportedRows($client, '/volunteers/export.csv?q=zuma'), 0));
+    }
+
+    #[Test]
+    public function theSourceFilterNarrowsTheListAndItsExportAndCombinesWithSkill(): void
+    {
+        $client = static::createClient();
+        $tikTok = SourceFactory::find(['name' => 'TikTok']);
+        $plumbing = SkillFactory::createOne(['name' => 'Plumbing']);
+        VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge', 'sources' => [$tikTok], 'skills' => [$plumbing]]);
+        VolunteerFactory::createOne(['firstName' => 'Baraka', 'lastName' => 'Otieno', 'sources' => [$tikTok]]);
+        VolunteerFactory::createOne(['firstName' => 'Zawadi', 'lastName' => 'Zuma']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers?source={$tikTok->getId()}");
+        self::assertSame(['Aisha Njoroge', 'Baraka Otieno'], $crawler->filter('table tbody tr')->each(static fn($row): string => trim($row->filter('td')->first()->text())));
+        self::assertSame(['Aisha Njoroge', 'Baraka Otieno'], array_column(self::exportedRows($client, "/volunteers/export.csv?source={$tikTok->getId()}"), 0));
+
+        $crawler = $client->request('GET', "/volunteers?source={$tikTok->getId()}&skill={$plumbing->getId()}");
+        self::assertSame(['Aisha Njoroge'], $crawler->filter('table tbody tr')->each(static fn($row): string => trim($row->filter('td')->first()->text())));
+
+        $client->request('GET', "/volunteers?source={$tikTok->getId()}&q=zuma");
+        self::assertSelectorTextContains('body', 'No volunteers match these filters.');
+
+        // Malformed or unknown input degrades to no filter (ADR 0023).
+        foreach (['/volunteers?source[]=1', '/volunteers?source=abc', '/volunteers?source=999999'] as $url) {
+            $crawler = $client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertCount(3, $crawler->filter('table tbody tr'), $url);
+        }
     }
 
     #[Test]
@@ -747,6 +778,38 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertCount(25, $firstPage);
         self::assertCount(1, $secondPage);
         self::assertSame([], array_intersect($firstPage, $secondPage));
+    }
+
+    #[Test]
+    public function editSavesSeveralSourcesAndTheProfileListsThem(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha']);
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+
+        $form = $crawler->selectButton('Save')->form();
+        $sources = $client->getContainer()->get(SourceRepository::class);
+        $wanted = array_map(
+            static fn(string $name): string => (string) $sources->findOneBy(['name' => $name])?->getId(),
+            ['TikTok', 'Volunteer World'],
+        );
+        $boxes = $form['volunteer_form[sources]'];
+        self::assertIsArray($boxes);
+        // Expanded choices are named by position, not by id: tick the box by its value.
+        foreach ($boxes as $box) {
+            if ($box instanceof ChoiceFormField && in_array($box->availableOptionValues()[0], $wanted, true)) {
+                $box->tick();
+            }
+        }
+        $client->submit($form);
+
+        self::assertResponseRedirects('/volunteers');
+        $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
+        self::assertSame(['TikTok', 'Volunteer World'], $volunteer->getSources()->map(static fn($source): string => $source->getName())->getValues());
+
+        $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        self::assertSelectorTextContains('[data-profile]', 'TikTok, Volunteer World');
     }
 
     #[Test]
