@@ -208,11 +208,8 @@ final class ProgramController extends AbstractController
     public function matches(Program $program): Response
     {
         $rows = [];
-        foreach ($this->matchingRows($program) as $volunteerId => $cells) {
-            $rows[] = [
-                'cells' => $cells,
-                'links' => ['name' => $this->generateUrl('volunteer_show', ['id' => $volunteerId])],
-            ];
+        foreach ($this->matchingRows($program) as $volunteerId => $row) {
+            $rows[] = $row + ['links' => ['name' => $this->generateUrl('volunteer_show', ['id' => $volunteerId])]];
         }
 
         return $this->render('program/matches.html.twig', [
@@ -229,14 +226,14 @@ final class ProgramController extends AbstractController
             'program-matches',
             $format,
             self::MATCH_COLUMNS,
-            array_values($this->matchingRows($program)),
+            array_column($this->matchingRows($program), 'cells'),
         );
     }
 
     /**
      * The one query behind the matches page and its export.
      *
-     * @return array<int, array<string, string>> volunteer id => cells
+     * @return array<int, array{cells: array<string, string>, pills: array<string, string>}> volunteer id => row
      */
     private function matchingRows(Program $program): array
     {
@@ -250,10 +247,13 @@ final class ProgramController extends AbstractController
             $id = (int) $volunteer->getId();
             $matched = $volunteer->getSkills()->filter(static fn(Skill $skill): bool => $needed->contains($skill))->toArray();
             $rows[$id] = [
-                'name' => $volunteer->getFullName(),
-                'status' => $statuses[$id]->label(),
-                'matchedSkills' => self::skillNames($matched),
-                'matched' => sprintf('%d of %d', count($matched), $needed->count()),
+                'cells' => [
+                    'name' => $volunteer->getFullName(),
+                    'status' => $statuses[$id]->label(),
+                    'matchedSkills' => self::skillNames($matched),
+                    'matched' => sprintf('%d of %d', count($matched), $needed->count()),
+                ],
+                'pills' => ['status' => $statuses[$id]->tone()],
             ];
         }
 

@@ -40,7 +40,7 @@ final class DataTable
      * still see the plain value.
      *
      * A row's optional `pills` key is a column key => tone map that draws the
-     * cell's text itself as a <twig:Pill> — /volunteers' Status column, in the
+     * cell's text itself as a <twig:Pill> — the volunteer Status columns, in the
      * same pill as the volunteer page. The cell string stays the plain label.
      *
      * A row's optional `links` key works the same way — column key => URL,
