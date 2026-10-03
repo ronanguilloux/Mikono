@@ -81,8 +81,7 @@ final class ListPaginator
      * @template TValue
      *
      * @param list<TValue> $items
-     *
-     * @param string      $prefix see param() — for a second list on the same page
+     * @param string       $prefix see param() — for a second list on the same page
      *
      * @return SlidingPaginationInterface<int, TValue>
      */
