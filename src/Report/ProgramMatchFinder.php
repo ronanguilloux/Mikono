@@ -49,18 +49,7 @@ final class ProgramMatchFinder
             return [];
         }
 
-        /** @var array<int, list<Stay>> $staysByVolunteer earliest first */
-        $staysByVolunteer = [];
-        foreach ($this->stays->findNotEndedWithVolunteerSkills($today, $branch) as $stay) {
-            $isWanted = match ($who) {
-                VolunteerStatus::Present => $stay->covers($today),
-                VolunteerStatus::Upcoming => $stay->getStartDate() > $today,
-                default => true,
-            };
-            if ($isWanted) {
-                $staysByVolunteer[(int) $stay->getVolunteer()?->getId()][] = $stay;
-            }
-        }
+        $staysByVolunteer = $this->staysByVolunteer($today, $branch, $who);
 
         $experience = [];
         foreach ($this->activities->findExperienceOf(array_keys($staysByVolunteer), $today) as $row) {
@@ -77,6 +66,51 @@ final class ProgramMatchFinder
         usort($result, static fn(ProgramMatches $a, ProgramMatches $b): int => [...self::urgency($a), $a->program->getName()] <=> [...self::urgency($b), $b->program->getName()]);
 
         return $result;
+    }
+
+    /**
+     * The pool find() draws from, minus anyone with a skill on their profile:
+     * ticking theirs is how they become skill matches. Each volunteer's
+     * earliest stay, by name.
+     *
+     * @return list<Stay>
+     */
+    public function findStaysWithoutSkills(\DateTimeImmutable $today, ?Branch $branch = null, ?VolunteerStatus $who = null): array
+    {
+        $result = [];
+        foreach ($this->staysByVolunteer($today, $branch, $who) as [$stay]) {
+            if (true === $stay->getVolunteer()?->getSkills()->isEmpty()) {
+                $result[] = $stay;
+            }
+        }
+
+        usort($result, static fn(Stay $a, Stay $b): int => [$a->getVolunteer()?->getLastName() ?? '', $a->getVolunteer()?->getFirstName()]
+            <=> [$b->getVolunteer()?->getLastName() ?? '', $b->getVolunteer()?->getFirstName()]);
+
+        return $result;
+    }
+
+    /**
+     * Not-ended stays, narrowed by $who to those covering today (Present) or
+     * starting later (Upcoming).
+     *
+     * @return array<int, non-empty-list<Stay>> volunteer id => stays, earliest first
+     */
+    private function staysByVolunteer(\DateTimeImmutable $today, ?Branch $branch, ?VolunteerStatus $who): array
+    {
+        $staysByVolunteer = [];
+        foreach ($this->stays->findNotEndedWithVolunteerSkills($today, $branch) as $stay) {
+            $isWanted = match ($who) {
+                VolunteerStatus::Present => $stay->covers($today),
+                VolunteerStatus::Upcoming => $stay->getStartDate() > $today,
+                default => true,
+            };
+            if ($isWanted) {
+                $staysByVolunteer[(int) $stay->getVolunteer()?->getId()][] = $stay;
+            }
+        }
+
+        return $staysByVolunteer;
     }
 
     /**

@@ -6,6 +6,10 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-04 — /matches lists what to tick for more matches
+
+See ADR 0042, "What to tick for more matches".
+
 ## 2026-10-04 — Local backups keep the newest 5
 
 `scripts/backup-db.sh` now keeps the newest 5 `.db` files in its

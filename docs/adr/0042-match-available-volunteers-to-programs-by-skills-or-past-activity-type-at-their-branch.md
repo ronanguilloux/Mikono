@@ -124,13 +124,25 @@ lexicographic order with no composite score.**
 - **Programs without candidates.** A program with skills but no
   candidate keeps its block, since an empty block is the recruiting
   signal. A program with no skills can still have experience candidates.
-  Programs with neither skills nor candidates are listed together at the
-  bottom, each with a link to its edit page, collapsed in a `<details>`
-  that gives their count: until staff tick skills, that is most programs.
-- **The page explains its rule in plain words:** a one-line lead, and a
-  native `<details>` headed "How matches are found". **That text is part
-  of this decision.** A change to `ProgramMatchFinder` changes the text in
-  the same commit.
+  A program with neither skills nor candidates gets no block and appears
+  only in the no-skills list below. That is most of the list, so the list
+  marks the exceptions: "also shown above".
+- **What to tick for more matches.** Below the program blocks, always
+  visible and never inside a note, are up to three lists. Each one follows
+  the filters and links to the edit page where the gap is fixed:
+  - available volunteers with no skill on their profile, meaning anyone
+    with a current or upcoming stay. Each shows its branch and either
+    "here until" or "arrives", and the list stays on screen when empty.
+    These come from `ProgramMatchFinder::findStaysWithoutSkills()`: the
+    same not-ended stays `find()` draws from, narrowed by Who and by the
+    branch, or by the chosen program's branch;
+  - open programs with no recommended skills, hidden when empty;
+  - open programs with only one recommended skill, hidden when empty.
+- **The page explains its rule in plain words:** a one-line lead, then
+  two native `<details>`. "How matches are found" states the rule, and
+  "How to get more matches" says what each list above is for. **That text
+  is part of this decision.** A change to `ProgramMatchFinder` changes the
+  text in the same commit.
 - **Export**
   ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md)):
   flat, one row per program and volunteer pair, with columns Branch,
@@ -142,7 +154,8 @@ lexicographic order with no composite score.**
   not-ended stays with their volunteers and skills; activity counts
   grouped by volunteer, type and program; and the latest activity date
   per program. It pairs them in memory, a few hundred program and
-  volunteer combinations at UCESCO's scale. This mirrors
+  volunteer combinations at UCESCO's scale. The page runs the stays query
+  a second time for its list of volunteers with no skills. This mirrors
   `Volunteer::getStatus()`, which keeps its rule in PHP.
 - **Personal data**
   ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md)): no

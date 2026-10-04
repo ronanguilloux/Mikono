@@ -161,6 +161,37 @@ final class ProgramMatchFinderTest extends KernelTestCase
         self::assertSame(['Moving'], self::candidateNames($this->finder()->find($today, who: VolunteerStatus::Upcoming)[0]));
     }
 
+    /**
+     * Here now, somewhere else later: each branch's programs get them through
+     * the stay at that branch, never through the other one.
+     */
+    #[Test]
+    public function aVolunteerWithStaysAtTwoBranchesMatchesEachBranchThroughItsOwnStay(): void
+    {
+        self::bootKernel();
+        $today = new \DateTimeImmutable('today');
+        [$hq, $mombasa] = [self::branch('Nairobi (HQ)'), self::branch('Mombasa')];
+        $coaching = SkillFactory::findOrCreate(['name' => 'Coaching']);
+        ProgramFactory::createOne(['name' => 'HQ football', 'project' => ProjectFactory::createOne(['branch' => $hq]), 'skills' => [$coaching]]);
+        ProgramFactory::createOne(['name' => 'Mombasa football', 'project' => ProjectFactory::createOne(['branch' => $mombasa]), 'skills' => [$coaching]]);
+        ProgramFactory::createOne(['name' => 'Mombasa, over before they come', 'project' => ProjectFactory::createOne(['branch' => $mombasa]), 'skills' => [$coaching], 'endDate' => $today->modify('+5 days')]);
+        VolunteerFactory::createOne(['firstName' => 'Moving', 'skills' => [$coaching], 'stays' => [
+            StayFactory::new(['branch' => $hq, 'startDate' => $today->modify('-5 days'), 'endDate' => $today->modify('+5 days')]),
+            StayFactory::new(['branch' => $mombasa, 'startDate' => $today->modify('+10 days'), 'endDate' => $today->modify('+30 days')]),
+        ]]);
+
+        $byName = [];
+        foreach ($this->finder()->find($today) as $matches) {
+            $byName[$matches->program->getName()] = $matches->candidates;
+        }
+
+        self::assertSame($hq, $byName['HQ football'][0]->stay->getBranch());
+        self::assertTrue($byName['HQ football'][0]->present);
+        self::assertSame($mombasa, $byName['Mombasa football'][0]->stay->getBranch());
+        self::assertFalse($byName['Mombasa football'][0]->present, 'Upcoming there, though present at HQ.');
+        self::assertSame([], $byName['Mombasa, over before they come'], 'Their HQ stay overlaps it, but not at its branch.');
+    }
+
     #[Test]
     public function programsComeNeverRunFirstThenQuietestThenNotStartedYet(): void
     {

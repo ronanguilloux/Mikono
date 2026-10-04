@@ -67,12 +67,19 @@ final class MatchController extends AbstractController
         $filters = $this->requestedFilters($request);
 
         $groups = [];
-        $unmatched = [];
+        $noSkills = [];
+        $oneSkill = [];
         foreach ($this->finder->find($today, ...$filters) as $matches) {
-            // Nothing to show and nothing to look for: one line at the bottom.
-            if ($matches->program->getSkills()->isEmpty() && [] === $matches->candidates) {
-                $unmatched[] = $matches->program;
-                continue;
+            $skills = $matches->program->getSkills()->count();
+            if (1 === $skills) {
+                $oneSkill[] = $matches->program;
+            }
+            if (0 === $skills) {
+                $noSkills[] = $matches;
+                // Nothing to show and nothing to look for: only in the list below.
+                if ([] === $matches->candidates) {
+                    continue;
+                }
             }
             $groups[] = ['matches' => $matches, 'rows' => $this->rows($matches, $today)];
         }
@@ -80,7 +87,10 @@ final class MatchController extends AbstractController
         return $this->render('match/index.html.twig', [
             'columns' => self::COLUMNS,
             'groups' => $groups,
-            'unmatched' => $unmatched,
+            'noSkills' => $noSkills,
+            'oneSkill' => $oneSkill,
+            // Picking one program narrows the list to its branch.
+            'volunteersWithoutSkills' => $this->finder->findStaysWithoutSkills($today, $filters['branch'] ?? $filters['program']?->getProject()?->getBranch(), $filters['who']),
             'today' => $today,
             'filters' => $filters,
             'branchOptions' => $this->branches->findBy(['isActive' => true], ['name' => 'ASC']),

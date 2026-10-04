@@ -15,7 +15,7 @@
     <p class="text-sm text-slate-600">
         Volunteers who can be at a program and have a reason to fit it, best fits first. The choice is yours.
     </p>
-    <details class="mb-4 mt-1 text-sm text-slate-600" data-match-explainer>
+    <details class="mt-1 text-sm text-slate-600" data-match-explainer>
         <summary class="cursor-pointer text-brand-600 hover:underline">How matches are found</summary>
         <div class="mt-2 max-w-3xl space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3">
             <p>A volunteer is suggested for a program when both are true:</p>
@@ -31,6 +31,18 @@
             </ol>
             <p><strong>Order:</strong> most matching skills first, then the most past activities of the program's types, then volunteers present now before upcoming ones. Programs that have gone longest without an activity come first; programs that haven't started yet come last.</p>
             <p>The app only knows that an activity was logged, not whether it went well — treat the order as a suggestion.</p>
+        </div>
+    </details>
+    <details class="mb-4 mt-1 text-sm text-slate-600" data-more-matches-explainer>
+        <summary class="cursor-pointer text-brand-600 hover:underline">How to get more matches</summary>
+        <div class="mt-2 max-w-3xl space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3">
+            <p>Most matches come from skills, so ticking skills is what brings more of them. The lists below the matches show where to start:</p>
+            <ul class="list-disc space-y-1 pl-5">
+                <li><strong>Available volunteers with no skills</strong> — here now or arriving later, with nothing ticked on their profile. Tick what they can do, and they can be suggested on skills, not only on past activities.</li>
+                <li><strong>Programs with no recommended skills</strong> — tick the skills they need. Until then, only volunteers who have already done their activities can be suggested.</li>
+                <li><strong>Programs with only one recommended skill</strong> — add the others they need. A single skill matches few people.</li>
+            </ul>
+            <p>Matches on experience grow by themselves as activities are logged.</p>
         </div>
     </details>
 
@@ -69,7 +81,7 @@
         {% endif %}
     </form>
 
-    {% if groups is empty and unmatched is empty %}
+    {% if groups is empty and noSkills is empty %}
         <p class="text-sm text-slate-500">No open program matches these filters.</p>
     {% endif %}
 
@@ -123,17 +135,41 @@
         {% endfor %}
     </div>
 
-    {% if unmatched is not empty %}
-        {# Collapsed: before staff tick skills, that is most programs. #}
-        <details class="mt-4 text-sm text-slate-600" data-no-skills>
-            <summary class="cursor-pointer">
-                {{ unmatched|length }} program{{ unmatched|length == 1 ? ' has' : 's have' }} no recommended skills and nobody available who has done their activities — tick their skills to find matches
-            </summary>
+    {# What to tick for more matches; "How to get more matches" above explains it. #}
+    {# Always shown, even empty: an empty list is the good news. #}
+    <section class="mt-6 text-sm text-slate-600" aria-labelledby="volunteers-no-skills-heading" data-volunteers-no-skills>
+        <h2 id="volunteers-no-skills-heading" class="font-semibold text-slate-800">Available volunteers with no skills ({{ volunteersWithoutSkills|length }})</h2>
+        {% if volunteersWithoutSkills is empty %}
+            <p class="mt-2 text-slate-500">Every volunteer with a current or upcoming stay has at least one skill on their profile.</p>
+        {% else %}
             <ul class="mt-2 columns-1 gap-6 sm:columns-2 lg:columns-3">
-                {% for program in unmatched %}
-                    <li><a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">{{ program.name }}</a> <span class="text-slate-400">· {{ program.project.branch.name }}</span></li>
+                {% for stay in volunteersWithoutSkills %}
+                    <li><a href="{{ path('volunteer_edit', {id: stay.volunteer.id}) }}" class="text-brand-600 hover:underline">{{ stay.volunteer.fullName }}</a> <span class="text-slate-400">· {{ stay.branch.name }} · {{ stay.covers(today) ? 'here until ' ~ stay.endDate|date('j M Y') : 'arrives ' ~ stay.startDate|date('j M Y') }}</span></li>
                 {% endfor %}
             </ul>
-        </details>
+        {% endif %}
+    </section>
+
+    {% if noSkills is not empty %}
+        <section class="mt-6 text-sm text-slate-600" aria-labelledby="no-skills-heading" data-no-skills>
+            <h2 id="no-skills-heading" class="font-semibold text-slate-800">Programs with no recommended skills ({{ noSkills|length }})</h2>
+            <ul class="mt-2 columns-1 gap-6 sm:columns-2 lg:columns-3">
+                {% for matches in noSkills %}
+                    {% set program = matches.program %}
+                    <li><a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">{{ program.name }}</a> <span class="text-slate-400">· {{ program.project.branch.name }}{{ matches.candidates is not empty ? ' · also shown above' }}</span></li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if oneSkill is not empty %}
+        <section class="mt-6 text-sm text-slate-600" aria-labelledby="one-skill-heading" data-one-skill>
+            <h2 id="one-skill-heading" class="font-semibold text-slate-800">Programs with only one recommended skill ({{ oneSkill|length }})</h2>
+            <ul class="mt-2 columns-1 gap-6 sm:columns-2 lg:columns-3">
+                {% for program in oneSkill %}
+                    <li><a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">{{ program.name }}</a> <span class="text-slate-400">· {{ program.project.branch.name }} · {{ program.skills.first.name }}</span></li>
+                {% endfor %}
+            </ul>
+        </section>
     {% endif %}
 {% endblock %}
