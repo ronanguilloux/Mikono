@@ -59,7 +59,6 @@ Features not yet decided:
 - [An "Ask UCESCO Africa" AI assistant](backlog/ask-ucesco-ai-assistant.md) — **D**
 - [A full API and an MCP server with API Platform, behind OAuth](backlog/api-platform-api-and-mcp-server.md) — **D**
 - [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **D**
-- [Show pagination controls only when a list needs them](backlog/pagination-controls-only-when-needed.md) — **D**
 
 Deferred behind a trigger — each card names the event that wakes it:
 

@@ -1,6 +1,6 @@
 # 9. Adopt KnpPaginatorBundle for list pagination across every index view
 
-Date: 2026-08-31
+Date: 2026-10-04
 
 ## Status
 
@@ -8,11 +8,11 @@ Accepted
 
 ## Context
 
-Every list view — the CRUD indexes and both breakdown tables on `/reports/volunteers` —
-rendered all rows. The Activities list grows without bound. The UI was
-already validated in the Reports mockup review: a 25 / 50 / 100 / All
-page-size selector and windowed page numbers with ellipsis
-(`« 1 2 3 … 66 67 »`), as one shared pattern rendered through the
+Every list view — the CRUD indexes and both breakdown tables on
+`/reports/volunteers` — rendered all rows. The Activities list grows
+without bound. The UI was already validated in the Reports mockup review:
+a 25 / 50 / 100 / All page-size selector and windowed page numbers with
+ellipsis (`« 1 2 3 … 66 67 »`), as one shared pattern rendered through the
 `DataTable` TwigComponent.
 
 Two forces make the mechanism non-obvious:
@@ -40,6 +40,16 @@ for every list view, rendered by a project-owned Tailwind template.**
 - `perPage` offers 25 / 50 / 100 / All, default 25, identical everywhere.
   Reading and validating query parameters is `ListPaginator`'s job; sorting
   is [ADR 0011](0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md).
+- The footer under every paginated list (`PaginationBar`, reached through
+  `DataTable`'s `pagination` prop and hoisted on the Activities index)
+  always shows the row count ("Showing 1–4 of 4" / "No rows"). The
+  page-size select and the page links show only when the total exceeds the
+  smallest page size (`ListPaginator::PER_PAGE_OPTIONS`' first value, 25):
+  below that every size fits on one page, so the controls would do nothing.
+  Gate it by **total, not page count** — a 30-row list read at 100 per page
+  is one page but keeps the select, so the reader can get back to 25. Page
+  links already hide at a single page on their own (the `pageCount > 1`
+  guard in the pagination template).
 - The controls are `templates/pagination/tailwind.html.twig`, built on
   `getPaginationData()` in the brand palette, and included by
   `PaginationBar`. `knp_pagination_render()` is not used: it needs a
@@ -56,7 +66,9 @@ for every list view, rendered by a project-owned Tailwind template.**
 - **Negative / trade-offs:** a hand-wired runtime dependency to keep working
   across Symfony majors, which buys the algorithm and the array/query
   unification, not the markup. At current data volume none of it is
-  load-bearing yet.
+  load-bearing yet. On a list of 25 rows or fewer the reader can't
+  pre-select a bigger page size, which costs nothing: there is no more to
+  show.
 - **Reversibility:** cheap by design. URLs, markup and behaviour live in our
   template and `ListPaginator`; swapping the mechanism means replacing the
   `paginate()` call sites and the object handed to `DataTable`.

@@ -120,8 +120,10 @@ final class UsageControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         // Most used first by default.
         self::assertStringContainsString('Roster copied to clipboard', $crawler->filter('[data-in-page-actions] tbody tr')->eq(0)->text());
-        // Its own page-size param, so the access-log table's `perPage` is untouched.
-        self::assertCount(1, $crawler->filter('[data-in-page-actions] select[name="eventsPerPage"]'));
+        // A list that fits the smallest page size keeps its row count but
+        // drops the page-size select and page links (ADR 0009).
+        self::assertSelectorTextContains('[data-in-page-actions] [data-pagination-bar]', 'Showing 1–2 of 2');
+        self::assertCount(0, $crawler->filter('[data-in-page-actions] [data-pagination-bar] form'));
 
         $crawler = $client->request('GET', '/usage?eventsSort=count&eventsDirection=asc');
         self::assertStringContainsString('Roster opened', $crawler->filter('[data-in-page-actions] tbody tr')->eq(0)->text());
@@ -157,7 +159,7 @@ final class UsageControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/usage');
 
-        $controls = $crawler->filter('[data-in-page-actions] [data-sort-link], [data-in-page-actions] [data-pagination-bar] form, [data-sign-ins] [data-sort-link], [data-range-presets] a, [data-range-form]');
+        $controls = $crawler->filter('[data-in-page-actions] [data-sort-link], [data-sign-ins] [data-sort-link], [data-range-presets] a, [data-range-form]');
         self::assertGreaterThan(3, $controls->count());
         self::assertSame(
             array_fill(0, $controls->count(), 'replace'),
