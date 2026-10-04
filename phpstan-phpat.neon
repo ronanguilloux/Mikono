@@ -2,7 +2,7 @@ includes:
     - vendor/phpat/phpat/extension.neon
 
 parameters:
-    tmpDir: var/cache/phpstan
+    tmpDir: var/cache/phpstan-phpat
     paths:
         - src
         - tests/Architecture
