@@ -78,10 +78,15 @@ The newest attempt comes first. The section is sorted and paginated like
 every other list, under its own `signIns`-prefixed query parameters so it
 doesn't collide with the access-log table above it. An identifier that
 matches a user's email (case-insensitively) shows that user's name and
-links to their edit page. One that matches no user keeps the address as
+links to their user page. One that matches no user keeps the address as
 typed, tinted amber and badged "Unknown account": such an attempt could
 never have succeeded. The section uses the same `App\Usage\UsageDateRange`
 as the other two tables, so all three cover the same period.
+
+That user page, `/users/{id}`, also lists the account's own attempts one
+by one, matched the same way, in its timeline. It sits behind
+`UserController`'s `ROLE_ADMIN` gate and reads the same 90 days of rows
+(ADR 0043).
 
 ## Consequences
 

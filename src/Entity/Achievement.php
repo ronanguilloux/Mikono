@@ -16,8 +16,10 @@ use Symfony\Component\Validator\Constraints as Assert;
  * checks both on save, and stay and project edits re-check them. See ADR 0038.
  */
 #[ORM\Entity(repositoryClass: AchievementRepository::class)]
-class Achievement
+class Achievement implements Authored
 {
+    use AuthoredTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

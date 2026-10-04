@@ -79,6 +79,7 @@ drafts and maintains these.
 | [0040](0040-keep-the-readers-scroll-position-when-a-control-re-renders-the-same-page.md) | Keep the reader's scroll position when a control re-renders the same page | Accepted |
 | [0041](0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md) | Record where each volunteer came from as a seeded list of recruitment sources | Accepted |
 | [0042](0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md) | Match available volunteers to programs by skills or past activity type at their branch | Accepted |
+| [0043](0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md) | Record who added and last edited volunteers, stays, achievements, activities, projects and programs | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

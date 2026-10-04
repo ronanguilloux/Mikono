@@ -215,7 +215,7 @@ final class UsageController extends AbstractController
                     ]),
                     'links' => null === $row['userId']
                         ? []
-                        : ['account' => $this->generateUrl('user_edit', ['id' => $row['userId']])],
+                        : ['account' => $this->generateUrl('user_show', ['id' => $row['userId']])],
                 ] + (null === $row['userId'] ? ['tone' => 'warning'] : []),
                 $pageOfLogins,
             ),

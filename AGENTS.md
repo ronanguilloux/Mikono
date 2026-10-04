@@ -116,6 +116,14 @@ implements it.
   unseeded and absent from fixtures** — the VM enters it; `/reports/volunteers?tab=group`
   credits an activity to every group of its program
   ([ADR 0030](docs/adr/0030-insert-programs-between-projects-and-activities.md)).
+  Volunteer, Stay, Achievement, Project and Program carry `createdBy` /
+  `updatedBy`; Activity only `updatedBy`, since `loggedBy` is its creator.
+  `App\Security\AuthorStamper` stamps them on flush, an update only when
+  `updatedAt` moved, so **a new edit path must call `touch()` or it isn't
+  attributed**. Never form fields. Deleting a user nulls them
+  (`UserRepository::detachAuthorship()`), and a new `Authored` entity needs
+  its label in `UserTimeline::describe()` or `/users/{id}` throws
+  ([ADR 0043](docs/adr/0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md)).
 - **Personal data is admitted only under
   [ADR 0034](docs/adr/0034-comply-with-kenyas-data-protection-act-2019.md)**
   (Kenya's Data Protection Act 2019). A new personal-data field, store,

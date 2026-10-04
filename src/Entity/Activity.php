@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: ActivityRepository::class)]
-class Activity
+class Activity implements Authored
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -67,6 +67,10 @@ class Activity
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $loggedBy = null;
+
+    // No createdBy: loggedBy already says who added it. See ADR 0043.
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    private ?User $updatedBy = null;
 
     /**
      * The VM's own roster messages sometimes end "Accompanied by Edna and
@@ -261,5 +265,15 @@ class Activity
     public function touch(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function getUpdatedBy(): ?User
+    {
+        return $this->updatedBy;
+    }
+
+    public function recordAuthor(User $user, bool $isNew): void
+    {
+        $this->updatedBy = $user;
     }
 }

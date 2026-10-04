@@ -18,8 +18,10 @@ use Symfony\Component\Validator\Constraints as Assert;
  * covering its date, which is how an activity knows its branch.
  */
 #[ORM\Entity(repositoryClass: StayRepository::class)]
-class Stay
+class Stay implements Authored
 {
+    use AuthoredTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

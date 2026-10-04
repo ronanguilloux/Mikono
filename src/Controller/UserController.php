@@ -9,6 +9,7 @@ use App\Export\ListExport;
 use App\Form\UserFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\UserRepository;
+use App\Usage\UserTimeline;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -50,6 +51,7 @@ final class UserController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ListPaginator $paginator,
+        private readonly UserTimeline $timeline,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -61,7 +63,9 @@ final class UserController extends AbstractController
         foreach ($pagination as $user) {
             $rows[] = [
                 'cells' => $this->cells($user),
+                'links' => ['name' => $this->generateUrl('user_show', ['id' => $user->getId()])],
                 'actions' => [
+                    ['label' => 'View', 'url' => $this->generateUrl('user_show', ['id' => $user->getId()])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('user_edit', ['id' => $user->getId()])],
                     [
                         'label' => 'Delete',
@@ -137,6 +141,34 @@ final class UserController extends AbstractController
         return $this->render('user/new.html.twig', ['form' => $form]);
     }
 
+    #[Route('/{id}', name: 'show', methods: ['GET'])]
+    public function show(User $user): Response
+    {
+        $rows = array_map(
+            static fn(array $entry): array => [
+                'cells' => [
+                    'at' => $entry['at']->format('j M Y, H:i'),
+                    'event' => $entry['event'],
+                    'details' => $entry['details'],
+                ],
+                'links' => null === $entry['url'] ? [] : ['details' => $entry['url']],
+            ] + ($entry['failed'] ? ['tone' => 'warning'] : []),
+            $this->timeline->build($user),
+        );
+
+        return $this->render('user/show.html.twig', [
+            'user_account' => $user,
+            'activityCount' => $this->users->countReferencingActivities($user),
+            'columns' => [
+                ['key' => 'at', 'label' => 'When'],
+                ['key' => 'event', 'label' => 'What'],
+                ['key' => 'details', 'label' => 'Details'],
+            ],
+            'rows' => $rows,
+            'limit' => UserTimeline::LIMIT,
+        ]);
+    }
+
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, User $user): Response
     {
@@ -185,8 +217,11 @@ final class UserController extends AbstractController
             return $this->redirectToRoute('user_index');
         }
 
-        $this->entityManager->remove($user);
-        $this->entityManager->flush();
+        // Their added/edited records survive, unattributed (ADR 0043).
+        $this->entityManager->wrapInTransaction(function () use ($user): void {
+            $this->users->detachAuthorship($user);
+            $this->entityManager->remove($user);
+        });
 
         $this->addFlash('success', sprintf('%s was deleted.', $user->getFullName()));
 

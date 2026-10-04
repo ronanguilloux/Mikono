@@ -11,8 +11,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProjectRepository::class)]
 #[Assert\Callback('validatePartnerOrganizationName')]
-class Project
+class Project implements Authored
 {
+    use AuthoredTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

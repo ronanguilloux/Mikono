@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Activity;
+use App\Entity\Authored;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -56,5 +57,31 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->createQuery('SELECT COUNT(a.id) FROM ' . Activity::class . ' a WHERE a.loggedBy = :user')
             ->setParameter('user', $user)
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Clears every createdBy/updatedBy pointing at $user, so deleting them
+     * leaves no dangling id: SQLite runs without foreign keys here, so ON
+     * DELETE SET NULL would never fire. Every Authored entity is found from
+     * the metadata, so a new one is covered without touching this. ADR 0043.
+     */
+    public function detachAuthorship(User $user): void
+    {
+        $entityManager = $this->getEntityManager();
+
+        foreach ($entityManager->getMetadataFactory()->getAllMetadata() as $metadata) {
+            if (!is_subclass_of($metadata->getName(), Authored::class)) {
+                continue;
+            }
+
+            foreach (['createdBy', 'updatedBy'] as $field) {
+                if ($metadata->hasAssociation($field)) {
+                    $entityManager
+                        ->createQuery(\sprintf('UPDATE %s e SET e.%s = NULL WHERE e.%2$s = :user', $metadata->getName(), $field))
+                        ->setParameter('user', $user)
+                        ->execute();
+                }
+            }
+        }
     }
 }

@@ -98,7 +98,7 @@ The existing personal-data stores, and the ADR that bounds each one:
 | `stay` | Where a volunteer is attached, and when | [0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) |
 | `achievement` | What a volunteer achieved in a stay; free-text description | [0038](0038-record-achievements-on-a-volunteers-stay.md) |
 | `activity`, `escort` | What a volunteer did, when, with whom | [0013](0013-record-every-escort-on-an-activity.md), [0030](0030-insert-programs-between-projects-and-activities.md) |
-| `user` | Staff email, full name, roles, password hash | This ADR, rule 7 |
+| `user` | Staff email, full name, roles, password hash; their id as `createdBy`/`updatedBy` on volunteers, stays, achievements, activities, projects and programs | This ADR, rule 7, [0043](0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md) |
 | `login_attempt` | Email-or-null and IP, 90 days | [0028](0028-record-login-attempts-with-identifier-and-ip-for-90-days-admin-only.md) |
 | `usage_event` | None, by design | [0021](0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md) |
 | Caddy access log | IP, user agent, full URI including search terms | [0021](0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md), rule 6 |

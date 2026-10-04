@@ -94,7 +94,7 @@ final class UsageControllerTest extends WebTestCase
         self::assertSame('warning', $rows->eq(0)->attr('data-row-tone'));
         self::assertCount(0, $rows->eq(0)->filter('a'));
 
-        $link = $rows->eq(1)->filter('a[href="/users/' . $known->getId() . '/edit"]');
+        $link = $rows->eq(1)->filter('a[href="/users/' . $known->getId() . '"]');
         self::assertSame('Zara Manager', $link->text());
         self::assertStringNotContainsString('vm@example.org', $rows->eq(1)->text());
         self::assertNull($rows->eq(1)->attr('data-row-tone'));

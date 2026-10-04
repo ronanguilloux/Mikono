@@ -46,6 +46,16 @@
                         Volunteer since {{ firstActivity|date('j F Y') }}
                     {% endif %}
                 </p>
+                {# Null for records from before ADR 0043 or written from the console; then say nothing. #}
+                {% set editedLater = volunteer.updatedBy and volunteer.updatedAt > volunteer.createdAt %}
+                {% if volunteer.createdBy or editedLater %}
+                    {% import _self as authors %}
+                    <p class="mt-0.5 text-xs text-slate-500" data-volunteer-authors>
+                        {%- if volunteer.createdBy %}Added by {{ authors.name(volunteer.createdBy) }} on {{ volunteer.createdAt|date('j F Y') }}{% endif -%}
+                        {%- if volunteer.createdBy and editedLater %} · {% endif -%}
+                        {%- if editedLater %}{{ volunteer.createdBy ? 'last' : 'Last' }} edited by {{ authors.name(volunteer.updatedBy) }} on {{ volunteer.updatedAt|date('j F Y') }}{% endif -%}
+                    </p>
+                {% endif %}
             </div>
         </div>
         <div class="flex gap-2">
@@ -369,3 +379,12 @@
         {% endif %}
     </div>
 {% endblock %}
+
+{# A staff name; linked for admins only, since /users is theirs alone. #}
+{% macro name(user) -%}
+    {%- if is_granted('ROLE_ADMIN') -%}
+        <a href="{{ path('user_show', {id: user.id}) }}" class="hover:underline">{{ user.fullName }}</a>
+    {%- else -%}
+        {{ user.fullName }}
+    {%- endif -%}
+{%- endmacro %}

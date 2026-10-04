@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Entity\Activity;
+use App\Entity\LoginAttempt;
+use App\Entity\Volunteer;
+use App\Factory\ActivityFactory;
 use App\Factory\UserFactory;
+use App\Factory\VolunteerFactory;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
@@ -217,5 +223,85 @@ final class UserControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Aisha Achieng', $crawler->filter('table tbody tr')->first()->text());
+    }
+
+    #[Test]
+    public function theUserPageListsWhatTheAccountDidNewestFirst(): void
+    {
+        $client = static::createClient();
+        $vm = UserFactory::createOne(['email' => 'vm@example.org', 'fullName' => 'Zara Manager']);
+        // Created before anyone signs in, so unattributed: only the edit below
+        // is the VM's.
+        $edited = VolunteerFactory::createOne(['firstName' => 'Aisha', 'lastName' => 'Njoroge']);
+        ActivityFactory::createOne(['loggedBy' => $vm, 'volunteer' => VolunteerFactory::createOne(['firstName' => 'Baraka', 'lastName' => 'Otieno'])]);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        // Timestamps are stored to the second; push the setup into the past so
+        // the edit is later than the creation and the order is deterministic.
+        $entityManager->createQuery('UPDATE ' . Volunteer::class . ' v SET v.createdAt = :past')
+            ->setParameter('past', new \DateTimeImmutable('-1 day'))
+            ->execute();
+        $entityManager->createQuery('UPDATE ' . Activity::class . ' a SET a.createdAt = :past')
+            ->setParameter('past', new \DateTimeImmutable('-2 hours'))
+            ->execute();
+        $entityManager->persist(new LoginAttempt('VM@example.org', true, '10.0.0.1', new \DateTimeImmutable('-3 hours')));
+        $entityManager->persist(new LoginAttempt('vm@example.org', false, '10.0.0.2', new \DateTimeImmutable('-4 hours')));
+        $entityManager->persist(new LoginAttempt('probe@example.org', false, '203.0.113.7'));
+        $entityManager->flush();
+
+        $client->loginUser($vm);
+        $crawler = $client->request('GET', '/volunteers/new');
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[firstName]' => 'Grace',
+            'volunteer_form[lastName]' => 'Wanjiru',
+        ]));
+        $crawler = $client->request('GET', "/volunteers/{$edited->getId()}/edit");
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[firstName]' => 'Aisha',
+            'volunteer_form[lastName]' => 'Njoroge',
+            'volunteer_form[phone]' => '+254711111111',
+        ]));
+
+        $client->loginUser(UserFactory::new()->admin()->create());
+        $crawler = $client->request('GET', "/users/{$vm->getId()}");
+
+        self::assertResponseIsSuccessful();
+        $rows = $crawler->filter('[data-user-timeline] tbody tr')->each(static fn($row): string => $row->text());
+        self::assertCount(5, $rows);
+        // The first two happened in the same second; their order is not.
+        $justNow = [$rows[0], $rows[1]];
+        sort($justNow);
+        self::assertStringContainsString('Added volunteer Grace Wanjiru', $justNow[0]);
+        self::assertStringContainsString('Edited volunteer Aisha Njoroge', $justNow[1]);
+        self::assertStringContainsString('Logged activity Baraka Otieno', $rows[2]);
+        self::assertStringContainsString('Signed in from 10.0.0.1', $rows[3]);
+        self::assertStringContainsString('Failed sign-in from 10.0.0.2', $rows[4]);
+        self::assertSame('warning', $crawler->filter('[data-user-timeline] tbody tr')->eq(4)->attr('data-row-tone'));
+        self::assertSelectorTextContains('[data-account-dates]', '1 activity logged');
+    }
+
+    #[Test]
+    public function deletingAUserKeepsWhatTheyAddedWithoutAnAuthor(): void
+    {
+        $client = static::createClient();
+        $author = UserFactory::createOne(['fullName' => 'Leaving Manager']);
+        $client->loginUser($author);
+        $crawler = $client->request('GET', '/volunteers/new');
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[firstName]' => 'Grace',
+            'volunteer_form[lastName]' => 'Wanjiru',
+        ]));
+
+        $client->loginUser(UserFactory::new()->admin()->create());
+        $crawler = $client->request('GET', '/users');
+        $client->submit($crawler->filter("form[action=\"/users/{$author->getId()}/delete\"]")->form());
+
+        self::assertResponseRedirects('/users');
+        $client->followRedirect();
+        self::assertSelectorTextContains('body', 'Leaving Manager was deleted.');
+        $authors = static::getContainer()->get(EntityManagerInterface::class)
+            ->createQuery('SELECT IDENTITY(v.createdBy) AS createdBy, IDENTITY(v.updatedBy) AS updatedBy FROM ' . Volunteer::class . " v WHERE v.firstName = 'Grace'")
+            ->getSingleResult();
+        self::assertSame(['createdBy' => null, 'updatedBy' => null], $authors);
     }
 }

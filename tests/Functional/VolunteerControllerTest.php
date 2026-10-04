@@ -324,6 +324,44 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Full day');
     }
 
+    #[Test]
+    public function showSaysWhoAddedAndLastEditedTheVolunteer(): void
+    {
+        $client = static::createClient();
+        $vm = UserFactory::createOne(['fullName' => 'Zara Manager']);
+        $admin = UserFactory::new()->admin()->create(['fullName' => 'Edna Admin']);
+        $untracked = VolunteerFactory::createOne(['firstName' => 'Baraka']);
+
+        $client->loginUser($vm);
+        $crawler = $client->request('GET', '/volunteers/new');
+        $client->submit($crawler->selectButton('Save')->form(['volunteer_form[firstName]' => 'Grace']));
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $id = $entityManager->createQuery('SELECT v.id FROM ' . Volunteer::class . " v WHERE v.firstName = 'Grace'")->getSingleScalarResult();
+        // Stored to the second: backdate the creation so the edit is later.
+        $entityManager->createQuery('UPDATE ' . Volunteer::class . ' v SET v.createdAt = :past')
+            ->setParameter('past', new \DateTimeImmutable('2026-09-01 10:00'))
+            ->execute();
+
+        $client->loginUser($admin);
+        $crawler = $client->request('GET', "/volunteers/{$id}/edit");
+        $client->submit($crawler->selectButton('Save')->form(['volunteer_form[phone]' => '+254711111111']));
+
+        $crawler = $client->request('GET', "/volunteers/{$id}");
+        $authors = $crawler->filter('[data-volunteer-authors]');
+        self::assertMatchesRegularExpression('/^Added by Zara Manager on 1 September 2026 · last edited by Edna Admin on \d+ \w+ \d{4}$/', $authors->text());
+        self::assertCount(1, $authors->filter("a[href=\"/users/{$vm->getId()}\"]"));
+
+        // A VM sees the names but not links to the admin-only user page.
+        $client->loginUser($vm);
+        $crawler = $client->request('GET', "/volunteers/{$id}");
+        self::assertStringContainsString('Added by Zara Manager', $crawler->filter('[data-volunteer-authors]')->text());
+        self::assertCount(0, $crawler->filter('[data-volunteer-authors] a'));
+
+        // Nobody signed in when this one was written: no line at all.
+        $client->request('GET', "/volunteers/{$untracked->getId()}");
+        self::assertSelectorNotExists('[data-volunteer-authors]');
+    }
+
     /**
      * Days on site count the stay up to today; days logged count distinct
      * past activity dates — a doubled day once, "Other" too, planned never.

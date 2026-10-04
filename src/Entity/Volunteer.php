@@ -13,8 +13,10 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: VolunteerRepository::class)]
-class Volunteer
+class Volunteer implements Authored
 {
+    use AuthoredTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

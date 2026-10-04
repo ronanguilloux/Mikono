@@ -18,8 +18,10 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * See ADR 0030.
  */
 #[ORM\Entity(repositoryClass: ProgramRepository::class)]
-class Program
+class Program implements Authored
 {
+    use AuthoredTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
