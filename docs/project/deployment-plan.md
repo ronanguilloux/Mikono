@@ -446,8 +446,8 @@ This form is idempotent, so it is safe to re-run:
 ```bash
 crontab -l 2>/dev/null | grep -v backup-db.sh > /tmp/mikono.cron
 cat >> /tmp/mikono.cron <<'CRON'
-# Daily at 02:15 Africa/Nairobi, keeping 30 days locally
-15 2 * * * cd /opt/mikono && COMPOSE_FILES="--env-file deploy.env -f compose.yaml -f compose.prod.yaml" KEEP_DAYS=30 scripts/backup-db.sh /opt/mikono/backups >> /opt/mikono/backups/backup.log 2>&1
+# Daily at 02:15 Africa/Nairobi, keeping the newest 5 locally
+15 2 * * * cd /opt/mikono && COMPOSE_FILES="--env-file deploy.env -f compose.yaml -f compose.prod.yaml" scripts/backup-db.sh /opt/mikono/backups >> /opt/mikono/backups/backup.log 2>&1
 CRON
 crontab /tmp/mikono.cron && rm /tmp/mikono.cron && crontab -l
 ```

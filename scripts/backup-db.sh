@@ -13,13 +13,13 @@
 #
 # Environment:
 #   COMPOSE_FILES  compose flags to use (default: deploy.env + the production pair)
-#   KEEP_DAYS      prune local backups older than this (default: 30)
+#   KEEP_COUNT     keep only the newest N local backups (default: 5; 0 keeps all)
 #   APP_ENV_NAME   which database file to back up (default: prod)
 #
 set -euo pipefail
 
 DEST_DIR="${1:-./backups}"
-KEEP_DAYS="${KEEP_DAYS:-30}"
+KEEP_COUNT="${KEEP_COUNT:-5}"
 APP_ENV_NAME="${APP_ENV_NAME:-prod}"
 COMPOSE_FILES="${COMPOSE_FILES:---env-file deploy.env -f compose.yaml -f compose.prod.yaml}"
 
@@ -59,8 +59,10 @@ echo "Copying to ${DEST_DIR}/${NAME} ..."
 compose cp "php:${IN_CONTAINER}" "${DEST_DIR}/${NAME}"
 compose exec -T php rm -f "${IN_CONTAINER}"
 
-if [ "${KEEP_DAYS}" -gt 0 ]; then
-    find "${DEST_DIR}" -name 'mikono-*.db' -type f -mtime "+${KEEP_DAYS}" -delete
+# By name, not mtime: the UTC stamp sorts lexically, and a copy that
+# touches mtimes cannot change which files survive.
+if [ "${KEEP_COUNT}" -gt 0 ]; then
+    ls -1r "${DEST_DIR}"/mikono-"${APP_ENV_NAME}"-*.db | tail -n "+$((KEEP_COUNT + 1))" | xargs rm -f --
 fi
 
 echo "OK: ${DEST_DIR}/${NAME}"

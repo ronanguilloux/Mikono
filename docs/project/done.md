@@ -6,6 +6,16 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-04 — Local backups keep the newest 5
+
+`scripts/backup-db.sh` now keeps the newest 5 `.db` files in its
+destination (`KEEP_COUNT`, default 5), not 30 days (`KEEP_DAYS` is gone).
+The daily cron and the pre-deploy backup share `backups/`, so the rule
+covers both: about 5 days of local history. Files are picked by the UTC
+stamp in their name, and the prune only runs after a verified copy. The
+installed crontab's `KEEP_DAYS=30` is now ignored; re-run the §7 install
+snippet in `deployment-plan.md` to tidy it. The DPIA draft says the same.
+
 ## 2026-10-04 — Data map brought up to date
 
 `/datamap` gains a Source box, chip and ADR 0041 row. The volunteer's
