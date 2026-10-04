@@ -63,3 +63,6 @@
 ###> private geoIP dbs ###
 /private-unversioned/
 ###< private geoIP dbs ###
+
+###> Legal docs ###
+/docs/legal/
