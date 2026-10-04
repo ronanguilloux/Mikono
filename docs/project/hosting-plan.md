@@ -1,6 +1,6 @@
 # Hosting plan
 
-**Last updated:** 2026-09-27
+**Last updated:** 2026-10-04
 
 What Mikono's architecture requires of a server, and where that server
 should be. A living document — it is edited in place as the answers firm
@@ -10,13 +10,17 @@ deliberately left hosting out of v0.1's scope; this file is where that
 deferred question gets answered. The *how to ship it* half lives in
 [`deployment-plan.md`](deployment-plan.md).
 
-**Settled:** production runs on a Compute Engine `e2-small` in
-Johannesburg
-([ADR 0035](../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md));
-UAT stays on the GandiCloud VPS in France
+**Settled:** production goes to a provider with a datacentre in Kenya
+that commits in writing to Kenya's Data Protection Act 2019 and to
+keeping the data in Kenya
+([ADR 0035](../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)).
+**Which provider is still open:**
+[`backlog/choose-kenyan-production-host.md`](backlog/choose-kenyan-production-host.md).
+UAT runs on the GandiCloud VPS in France for now. It is temporary, holds
+test data only, and is destroyed once production is live
 ([ADR 0017](../adr/0017-host-production-on-gandicloud-vps-in-france.md)).
-The requirements below apply to both boxes. §5's Nairobi research stays
-so that reopening the question starts from it.
+The requirements below apply to every box. §5 is where the Kenyan
+candidates are compared.
 
 ## 1. What the architecture forces
 
@@ -219,13 +223,15 @@ the app carries real data, and after any change to the storage setup.
 
 ## 5. Where to host
 
-> **Decided on 2026-09-05: GandiCloud VPS in France — see ADR 0017.**
-> Kenyan hosting is not being pursued for now, and
-> [`provider-questions.md`](provider-questions.md) was never sent. The
-> evaluation below is kept in full as the ADR's cited evidence and as the
-> starting point if the question is ever reopened; note that it ranks
-> Nairobi first, which ADR 0017 knowingly overrides on cost and on
-> evidence in hand. Read it as research, not as an open question.
+> **Decided on 2026-10-04: production goes to Kenya, with a provider that
+> commits in writing to the DPA 2019** (ADR 0035). That commitment is the
+> filter. Everything else in this section ranks the providers that pass
+> it. The provider isn't chosen yet; the work is
+> [`backlog/choose-kenyan-production-host.md`](backlog/choose-kenyan-production-host.md).
+>
+> To widen the shortlist, paste
+> [`kenya-hosting-brief.md`](kenya-hosting-brief.md) into an outside AI
+> agent: it restates §1–§5 for a reader without the repo.
 
 The stated reason for hosting in Kenya is network latency for users in
 Kibera and Mombasa. That instinct points at the right country for the
@@ -322,6 +328,53 @@ trades a settled question for three unsettled ones.
 
 ### Candidates
 
+**Named on 2026-10-04 for the ADR 0035 filter: Servercore and Skyhost
+Kenya.** The maintainer picked them because they state DPA 2019
+compliance explicitly.
+
+#### Agent research, 2026-10-04: unverified
+
+An outside AI agent, briefed with
+[`kenya-hosting-brief.md`](kenya-hosting-brief.md), returned the rows
+below. **Nobody has checked them against the providers' pages yet**, and
+none of them is an answer in writing. Treat them as leads for
+[`provider-questions.md`](provider-questions.md), not as findings. The
+agent didn't cover Skyhost Kenya.
+
+| Provider | Plan / spec | Price/month (as reported) | Datacentre (as reported) | DPA 2019 (as reported) | Still open |
+| --- | --- | --- | --- | --- | --- |
+| Servercore | Cloud Server, 2 vCPU / 2 GB / 30 GB SSD, KVM, x86_64, unmanaged | ~US$26.22 / ~3,400 KSh, said to include taxes | Tier III, Nairobi, pool `ke-1a` | Markets DPA 2019 and GDPR compliance; PCI DSS 4.0.1 | Whether `ke-1a` is really Servercore's (see below). UDP 443 reportedly openable via security groups. **Kenyan S3-compatible storage reported**, which would solve the off-site backup |
+| Safaricom Cloud | Starter 1 vCPU / 2 GB / 50 GB; Standard 2 vCPU / 4 GB / 100 GB | 5,000 KSh / 7,500 KSh, VAT unclear | Safaricom's own, Nairobi and Thika | Registered with the ODPC | UDP 443 (may need a ticket), IPv6, virtualisation type, no S3 advertised |
+| Angani | "Medium" VM, 2 vCPU / 2 GB / 40 GB, KVM | Quote only; "historically" 3,000–5,000 KSh | Nairobi | Kenyan company; "compliant with ODPC regulations" | Price, UDP 443, IPv6, object storage, a written DPA commitment |
+
+The agent's ranking was Servercore, then Safaricom Cloud, then Angani.
+
+It **excluded**:
+
+- HostAfrica's unmanaged Linux VPS, hosted in South Africa;
+- Africloud, served from Johannesburg;
+- the AWS Local Zone in Nairobi: egress is expensive and there's no local
+  S3.
+
+**Check before relying on it:**
+
+- **`ke-1a` is also the pool name §5 recorded for Lineserve.** Either
+  both providers use the same name, or the agent mixed the two up.
+  Confirm the datacentre with Servercore directly.
+- **Being Kenyan doesn't satisfy s.42(2).** The agent said Safaricom's
+  contracts "satisfy s.42(2) and s.48" because they fall under Kenyan
+  law. They don't, on that basis alone. s.42(2) needs a written processor
+  contract whoever the host is. s.48 governs transfers abroad and doesn't
+  arise for a Kenyan server.
+- **"Compliant with ODPC regulations" is a claim, not evidence.** The
+  evidence is ODPC registration as a data processor plus a processor
+  agreement UCESCO can sign. Ask each provider for both.
+
+#### Researched 2026-09-04, before the DPA filter
+
+The table below predates the filter, and nobody checked these providers
+for a stated DPA 2019 commitment. **Each is out until it gives one in
+writing.**
 Verified against each provider's own pricing page on **2026-09-04**
 (prices exclude 16% VAT; Truehost's are the three-year billing rate):
 
@@ -569,9 +622,9 @@ answered on its own terms rather than assumed away.
   §5 surfaces on the Nairobi box either way. The consequence to accept
   knowingly: the first real deploy debugs two unknowns at once, the
   runbook and the provider.
-- ~~**Provider and region**~~ — **closed on 2026-09-05 by ADR 0017**:
-  GandiCloud VPS in France, with the Kenyan shortlist not pursued. The
-  evaluation that led there is kept in §5 as that ADR's evidence.
+- **Provider:** the region is settled (Kenya, ADR 0035), the provider
+  isn't. Tracked in
+  [`backlog/choose-kenyan-production-host.md`](backlog/choose-kenyan-production-host.md).
 - **Domain name — narrowed, not closed.** The DuckDNS question is
   settled and settled cheaply: `mikono.guilloux.org` (§3) costs nothing,
   keeps the namespace in an account the project controls, and needs no

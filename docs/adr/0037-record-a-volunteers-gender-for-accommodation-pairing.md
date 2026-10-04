@@ -1,6 +1,6 @@
 # 0037. Record a volunteer's gender for accommodation pairing
 
-Date: 2026-09-28
+Date: 2026-10-04
 
 ## Status
 
@@ -19,9 +19,10 @@ Sex is sensitive personal data under Kenya's Data Protection Act 2019
 dedicated field for a sensitive category only under its own ADR, naming
 its s.45 ground and the consent UCESCO records for it (rule 2). It also
 keeps sensitive categories out of free text, so `notes` is not an option.
-Production runs in South Africa
+Production is to be hosted in Kenya
 ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)),
-so any sensitive field also needs each volunteer's consent under s.49(1).
+so the server needs no s.49(1) consent. Any processing of a sensitive
+field outside Kenya does (ADR 0034, rule 3).
 
 ## Decision
 
@@ -47,10 +48,10 @@ zip.**
   towards the volunteers it places and houses. Not vital interests, which
   a room allocation does not engage, and not s.45(a), which ADR 0034
   rejects for UCESCO.
-- **Consent.** Because the field is processed in South Africa, UCESCO
-  records each volunteer's s.49(1) consent the same way it does for
-  emergency contacts: at onboarding, alongside the privacy notice (ADR
-  0034, rules 3 and 4). A withdrawal empties the field.
+- **Consent.** If the field is processed outside Kenya, UCESCO records
+  each volunteer's s.49(1) consent the same way it does for emergency
+  contacts: at onboarding, alongside the privacy notice (ADR 0034, rules 3
+  and 4). A withdrawal empties the field.
 - **Retention.** The same as the volunteer row (ADR 0034, rule 6): it goes
   when the volunteer is anonymised.
 - **Where it appears.** The volunteer profile page (`[data-profile]`) and
@@ -80,8 +81,9 @@ zip.**
     sensitive value to the one screen that needs it, plus the admin-only
     full copy.
 - **Negative / trade-offs:**
-  - One more s.49(1) consent for UCESCO staff to gather and keep proof of
-    at onboarding, and the privacy notice must mention the field.
+  - The privacy notice must mention the field, and if it is processed
+    outside Kenya, UCESCO staff gather and keep proof of one more s.49(1)
+    consent at onboarding.
   - Staff who want gender in a list or an export can't have it without an
     ADR change.
 - **Reversibility:** cheap. Dropping the column and the enum removes it;

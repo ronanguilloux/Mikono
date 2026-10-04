@@ -1,6 +1,6 @@
 # 0028. Record login attempts, with identifier and IP, for 90 days, admin-only
 
-Date: 2026-09-16
+Date: 2026-10-04
 
 ## Status
 
@@ -24,9 +24,10 @@ cannot say who signs in, or who fails to:
   any trace an admin can see.
 
 Other constraints: the repo is public, the app is used by a handful of
-UCESCO colleagues, and production is hosted in South Africa
-([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)). This is
-personal data, so it needs a purpose, a minimum and a retention period.
+UCESCO colleagues, and production is to be hosted in Kenya
+([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)),
+so the table does not leave Kenya with the server. This is personal data, so it
+needs a purpose, a minimum and a retention period.
 
 ## Decision
 

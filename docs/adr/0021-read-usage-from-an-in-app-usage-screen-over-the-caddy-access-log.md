@@ -20,9 +20,11 @@ Four facts decide it:
   access log is a local file the app can open — no sidecar, no shipper.
 - **Every page is behind a login**, so every event is a named staff
   member's behaviour, and URLs like `/volunteers/12/edit` carry record
-  identifiers. Sending that to a US provider reopens the cross-border
-  transfer question [ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)
-  already has to carry.
+  identifiers. Production is to be hosted in Kenya under
+  [ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md),
+  so the server is not a transfer. Sending the data to a US provider would
+  be one, under
+  [ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md) rule 3.
 - **The app has one regular user.** Funnels, audiences and attribution —
   GA4's strengths — have nothing to work on.
 - **A shell pipeline over the log is only available to whoever remembers

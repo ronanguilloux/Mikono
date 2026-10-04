@@ -26,9 +26,9 @@ An ADR decides, before any code:
 - **Whether to build it at all**, given that four of the seven sample
   questions have no data behind them (below).
 - **What leaves the server.** Sending volunteer records to a third-party
-  model is a DPA 2019 and GDPR question — personal data about people in
-  Kenya, hosted in South Africa
-  ([ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)).
+  model is a DPA 2019 and GDPR question. The data is about people in Kenya
+  and hosted in Kenya ([ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)), so a model run abroad is a transfer under
+  ADR 0034 rule 3.
   A local model, a hosted one, or none at all are three different answers.
 - **Who may ask.** The app has exactly two roles today, `ROLE_USER` and
   `ROLE_ADMIN`. An assistant that can read every record is at least as

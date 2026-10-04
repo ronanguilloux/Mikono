@@ -1,6 +1,6 @@
 # 10. Build the production image in CI and deploy by pulling it
 
-Date: 2026-09-01
+Date: 2026-10-04
 
 ## Status
 
@@ -18,7 +18,8 @@ was a bypassable local hook.
 SQLite means one machine and one container, so this is a single-server
 deployment with no orchestration
 ([`hosting-plan.md`](../project/hosting-plan.md)). The open question is where
-the image is built and how it reaches the server. The provider is
+the image is built and how it reaches the server. Production is to be
+hosted in Kenya under
 [ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md).
 
 ## Decision

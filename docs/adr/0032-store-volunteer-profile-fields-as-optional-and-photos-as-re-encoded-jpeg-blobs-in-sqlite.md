@@ -1,6 +1,6 @@
 # 32. Store volunteer profile fields as optional and photos as re-encoded JPEG blobs in SQLite
 
-Date: 2026-09-25
+Date: 2026-10-04
 
 ## Status
 
@@ -25,13 +25,15 @@ These facts drive the decision:
   which has no birth dates, nationalities or contacts.
   [ADR 0014](0014-make-a-volunteers-last-name-optional.md) already made the
   last name optional for the same reason.
-- **This is personal data about people in Kenya, hosted in South
-  Africa.** Production runs in Johannesburg
-  ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)), so the
-  Kenya Data Protection Act 2019 applies to a cross-border transfer
-  ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md)). A
-  phone photo carries EXIF metadata, including GPS coordinates. Nothing in
-  this ADR depends on which country hosts the server.
+- **This is personal data about people in Kenya.** The Kenya Data
+  Protection Act 2019 applies
+  ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md)).
+  Production is to be hosted in Kenya
+  ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)),
+  so the server is not a transfer; a copy that leaves Kenya, such as an off-site
+  backup abroad, is one under ADR 0034 rule 3. A phone photo carries EXIF
+  metadata, including GPS coordinates. Nothing in this ADR depends on
+  which country hosts the server.
 - **Not every field applies to every volunteer.** A Kenyan volunteer has
   no pickup airport and may hold no passport, and the choices for
   accommodation and airports have not been listed by anyone.

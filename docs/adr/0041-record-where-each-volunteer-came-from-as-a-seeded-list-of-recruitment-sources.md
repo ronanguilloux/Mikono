@@ -1,6 +1,6 @@
 # 0041. Record where each volunteer came from as a seeded list of recruitment sources
 
-Date: 2026-10-03
+Date: 2026-10-04
 
 ## Status
 
@@ -76,9 +76,11 @@ recorded once per volunteer.**
     SQLite runs here without foreign keys
     ([ADR 0038](0038-record-achievements-on-a-volunteers-stay.md)).
   - *Transfer basis:* no third party receives it. It sits in the
-    production database on the same s.48 safeguards as the rest of the
-    volunteer row (ADR 0034, rule 3) and, not being sensitive, needs no
-    s.49(1) consent.
+    production database with the rest of the volunteer row, hosted in
+    Kenya
+    ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)).
+    A copy that leaves Kenya is covered by ADR 0034 rule 3 like the rest of
+    the row and, not being sensitive, needs no s.49(1) consent.
   - The admin whole-database zip picks up `source` and `volunteer_source`
     automatically. Neither holds a secret, so neither goes on a drop list
     ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)).

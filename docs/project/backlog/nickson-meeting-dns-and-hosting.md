@@ -26,7 +26,7 @@ account is the other half
 
 The meeting has happened, the answers below are written into this card,
 and [`production-hostname-dns`](production-hostname-dns.md) and
-[`production-on-compute-engine-johannesburg`](production-on-compute-engine-johannesburg.md) are unblocked or
+[`choose-kenyan-production-host`](choose-kenyan-production-host.md) are unblocked or
 re-scoped accordingly.
 
 ## Notes & links
@@ -43,27 +43,24 @@ re-scoped accordingly.
   must keep resolving, because renewal happens unattended every 60 days. A
   DNS that lives behind someone else's ticket queue is an operational
   dependency, not a one-off form to fill in.
-- **Does UCESCO have Google Workspace or Cloud Identity, and who there
-  can create the Google Cloud organisation and billing account?** UCESCO
-  is the customer and the maintainer funds it (ADR 0035). Also ask
-  whether UCESCO is enrolled in Google for Nonprofits. The answers go
-  in
-  [`production-on-compute-engine-johannesburg`](production-on-compute-engine-johannesburg.md).
+- **Who at UCESCO can open the hosting account and sign the provider's
+  processor agreement?** Production goes to a Kenyan provider that
+  commits in writing to the DPA 2019 (ADR 0035). UCESCO is the customer,
+  and the maintainer may fund it. Does UCESCO have a preference between
+  the candidates (Servercore, Skyhost Kenya), or an existing relationship
+  with a Kenyan host? The answers go in
+  [`choose-kenyan-production-host`](choose-kenyan-production-host.md).
 
-**Ask about the data-protection safeguard**, which the meeting is the
-natural place to raise even though it is not Nickson's to sign: production
-will be in South Africa, on Google Cloud, and holds personal data about
-Kenyan volunteers. Kenya's Data Protection Act 2019 Part VI permits
-transfer abroad with appropriate safeguards or consent. South Africa has
-its own data-protection law (POPIA), and Google publishes processor
-terms, so this is defensible, not a problem to fix. But somebody at UCESCO has
-to own the documentation, and UCESCO has no DPO. The sentence to put in
-front of them is in [`../hosting-plan.md`](../hosting-plan.md) §5. Not
-legal advice; if UCESCO has counsel, that is the sentence to show them.
+**Ask about the data-protection paperwork**, which the meeting is the
+natural place to raise even though it is not Nickson's to sign. Hosting
+in Kenya means the production server is no transfer out of the country,
+which is what UCESCO's DPIA relies on. UCESCO still has to sign the
+provider's processor agreement and own the rest of the paperwork, and
+UCESCO has no DPO. See
+[`dpa-governance-for-ucesco`](dpa-governance-for-ucesco.md). Not legal
+advice.
 
-**If the hosting question ever reopens**, none of the research was thrown
-away: [`../hosting-plan.md`](../hosting-plan.md) §5 keeps the Nairobi
-candidates table, the five pre-sales questions and the ranking that put
-Kenya first, and [`../provider-questions.md`](../provider-questions.md) is
-still the email to send. [ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md) is what a superseding ADR would
-have to argue against.
+The provider research lives in [`../hosting-plan.md`](../hosting-plan.md)
+§5 and [`../kenya-hosting-brief.md`](../kenya-hosting-brief.md), and
+[`../provider-questions.md`](../provider-questions.md) is the email to
+send.

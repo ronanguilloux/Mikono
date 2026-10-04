@@ -1,6 +1,6 @@
 # 0034. Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor
 
-Date: 2026-09-28
+Date: 2026-10-04
 
 ## Status
 
@@ -12,22 +12,21 @@ Mikono holds personal data about people in Kenya: UCESCO's volunteers,
 the staff who log in, and the relatives a volunteer names as emergency
 contacts. The Data Protection Act 2019 (No. 24 of 2019) applies, because
 UCESCO is established in Kenya and processes the data there (s.4(b)(i)).
-Production is hosted in South Africa
+Production is to be hosted in Kenya
 ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)).
 This ADR covers only the Kenyan Act. It does not decide whether another
-law also applies to this processing, such as South Africa's Protection of
-Personal Information Act 2013 (POPIA) or the GDPR (the maintainer works
-from France).
+law also applies to this processing, such as the GDPR (the maintainer
+works from France, and UAT is hosted there).
 
 These facts drive the decision:
 
-- **The Act's duties were spread across feature ADRs.** ADR 0035 names
-  the transfer out of Kenya, ADR 0028 bounds sign-ins to 90 days, ADR
-  0032 strips photo metadata. No record said which rules every field and store must meet,
-  so a duty that sits across features could go unseen. One did: s.49(1)
-  requires the data subject's consent before sensitive personal data is
-  processed out of Kenya, and emergency contacts are sensitive personal
-  data processed in South Africa.
+- **The Act's duties were spread across feature ADRs.** ADR 0035 sets
+  where the data is hosted, ADR 0028 bounds sign-ins to 90 days, ADR
+  0032 strips photo metadata. No record said which rules every field and
+  store must meet, so a duty that sits across features could go unseen.
+  One did: s.49(1) requires the data subject's consent before sensitive
+  personal data is processed out of Kenya, and emergency contacts are
+  sensitive personal data.
 - **What Mikono holds.** A volunteer has a first name, an optional last
   name, email, phone, free-text notes, nationality, country of residence,
   date of birth, profession, skills, interests, free-text emergency
@@ -43,15 +42,17 @@ These facts drive the decision:
 - **Volunteers never log in.** Only UCESCO staff do, as `ROLE_USER` or
   `ROLE_ADMIN`. Anything a volunteer must be told or asked happens
   outside the app, at onboarding.
-- **The data leaves Kenya.** Production runs on a Google Compute Engine
-  VM in Johannesburg, South Africa. Its Google Cloud project is under a
-  billing account that UCESCO can take over (ADR 0035). UAT runs on a
-  GandiCloud VPS in France and holds no real data, so it is not a
-  transfer
+- **Where the data sits.** Production is to run on a VPS in Kenya, from a
+  provider that commits in writing to the Act and to keeping the data in
+  Kenya, under an account UCESCO holds (ADR 0035). UAT runs on a
+  GandiCloud VPS in France until then. It holds test records only, a few
+  of them personal, and is destroyed with every copy of its data when it
+  ends
   ([ADR 0017](0017-host-production-on-gandicloud-vps-in-france.md)). The
   domain and DNS are in the maintainer's personal Gandi account. The
   off-site backup is planned to be encrypted with `age`
-  ([`docs/brainstorm/08`](../brainstorm/08-off-site-encrypted-backups.md)).
+  ([`docs/brainstorm/08`](../brainstorm/08-off-site-encrypted-backups.md)),
+  and its destination is preferably in Kenya.
 - **The repository is public**, and the raw WhatsApp exports that name
   sponsored children and donors stay out of it
   ([ADR 0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
@@ -67,13 +68,14 @@ export or processor is admitted only under the rules below.**
 
 **Roles.** UCESCO determines the purpose and means of the processing, so
 it is the **data controller** (s.2). The maintainer, who operates the app,
-and Google, which hosts production, process personal data on UCESCO's behalf, so
-they are **data processors**. Each needs a written contract with UCESCO
-under which it acts only on UCESCO's instructions and is bound by
-UCESCO's obligations (s.42(2)(b)). A processor that processes personal
-data other than as instructed becomes a data controller for that
-processing (s.42(3)). Google's terms are the Google Cloud Data Processing
-Addendum. Gandi hosts only UAT, which holds no personal data.
+and the Kenyan provider that hosts production process personal data on
+UCESCO's behalf, so they are **data processors**. Each needs a written
+contract with UCESCO under which it acts only on UCESCO's instructions and
+is bound by UCESCO's obligations (s.42(2)(b)). A processor that processes
+personal data other than as instructed becomes a data controller for that
+processing (s.42(3)). The provider's contract carries its written
+commitment to the Act and to keeping the data in Kenya (ADR 0035). Gandi
+hosts only UAT, which holds test records only.
 
 ### 1. Every field and store has a purpose, a minimum and a retention period
 
@@ -130,8 +132,8 @@ Sensitive personal data is processed only where the s.25 principles apply
   the vital interests of the volunteer in an emergency, and UCESCO's
   obligations towards the people it places. Family details are collected
   only with a valid explanation (s.25(e)), which the privacy notice gives
-  (rule 4). Because the field is processed in South Africa, it also needs each
-  volunteer's consent under s.49(1) (rule 3).
+  (rule 4). If the field is ever processed outside Kenya, it also needs
+  each volunteer's consent under s.49(1) (rule 3).
 - **Free-text fields never hold health, belief, ethnicity or any other
   s.2 category.** `notes`, `interests`, `supervisor`,
   `accommodationPreference` and activity notes say so in their form help
@@ -161,29 +163,40 @@ necessity listed in s.48(c). **Sensitive personal data is processed out
 of Kenya only with the data subject's consent and confirmed safeguards**
 (s.49(1)).
 
-Hosting in South Africa under ADR 0035 holds only while both are true:
+**The production server is not a transfer:** ADR 0035 hosts it in Kenya,
+with a provider that commits in writing to keeping the data there. A
+move abroad would bring it under this rule.
+
+Whatever personal data still leaves Kenya may do so only while both are
+true:
 
 - **UCESCO keeps the proof of safeguards** it can give the Data
-  Commissioner: the measures in rule 7, Google's processor terms, and any
-  commensurate-law argument under s.48(b). For South Africa, that argument
-  would rest on POPIA. This ADR does not claim that POPIA meets s.48(b),
-  or that the Data Commissioner accepts it. UCESCO's transfer file must
-  establish that.
+  Commissioner: the measures in rule 7, the recipient's processor terms,
+  and any commensurate-law argument under s.48(b). This ADR does not
+  claim that any destination's law meets s.48(b), or that the Data
+  Commissioner accepts it. UCESCO's transfer file must establish that.
   The Data Commissioner may ask for this proof to be demonstrated, and may
   prohibit, suspend or condition the transfer (s.49(2), (3)).
-- **UCESCO holds each volunteer's consent** to their emergency contacts,
-  and any other sensitive personal data, being processed out of Kenya.
-  UCESCO bears the burden of proving that consent (s.32(1)). A volunteer
-  may withdraw it at any time (s.32(2)); the field is then emptied.
+- **UCESCO holds each volunteer's consent** before their emergency
+  contacts, or any other sensitive personal data, are processed out of
+  Kenya. UCESCO bears the burden of proving that consent (s.32(1)). A
+  volunteer may withdraw it at any time (s.32(2)); the data is then
+  removed from that processing.
 
-The off-site backup destination is a transfer on the same terms. An
-`age`-encrypted file whose key the destination does not hold is the
-safeguard, and the destination's country is named in the ADR that
-chooses it.
+What this covers:
+
+- **UAT in France, while it lasts.** It holds test records only, a few of
+  them personal, never real volunteer data, and is destroyed with every
+  copy when production runs in Kenya (ADR 0017).
+- **The off-site backup, if its destination is abroad.** A destination in
+  Kenya is preferred. Abroad, an `age`-encrypted file whose key the
+  destination does not hold is the safeguard, and the destination's
+  country is named in the ADR that chooses it.
+- **Any third-party service** that receives personal data (rule 8).
 
 The Cabinet Secretary may require some processing to run on a server in
-Kenya (s.50). No such rule is known to cover this processing. If one is
-prescribed, it decides the hosting question over ADR 0035.
+Kenya (s.50). No such rule is known to cover this processing; hosting in
+Kenya under ADR 0035 already meets one if it is prescribed.
 
 ### 4. Volunteers are told before their data is collected
 
@@ -205,8 +218,9 @@ practicable (s.29):
 
 **This is a written privacy notice, given by UCESCO at onboarding.**
 Volunteers never log in, so it is not an in-app banner or checkbox. The
-same conversation is where UCESCO gathers and records the s.49(1)
-consent. The notice describes the data Mikono actually holds, so a new
+same conversation is where UCESCO gathers and records any consent the
+processing needs, including s.49(1) consent where rule 3 requires it.
+The notice describes the data Mikono actually holds, so a new
 field (rule 1) updates the notice.
 
 Emergency contacts are data about the relatives, collected through the
@@ -322,7 +336,7 @@ person and there is a real risk of harm (s.43(1)):
 
 - **The processor tells the controller** without delay and, where
   reasonably practicable, within 48 hours of becoming aware (s.43(3)).
-  In practice, the maintainer or Google tells UCESCO.
+  In practice, the maintainer or the hosting provider tells UCESCO.
 - **UCESCO tells the Data Commissioner** without delay, within 72 hours
   of becoming aware (s.43(1)(a)). A later notification gives the reasons
   for the delay (s.43(2)).
@@ -372,8 +386,9 @@ them:
   against that test and keeps the result.
 - **Transfer proof and consents** (rule 3).
 - **Ownership of the domain and DNS**, which are in the maintainer's
-  personal Gandi account (ADR 0017), **and of the Google Cloud billing
-  account** that production runs under (ADR 0035).
+  personal Gandi account (ADR 0017), **and of the production hosting
+  account**, which is UCESCO's, with the Kenyan provider, never the
+  maintainer's (ADR 0035).
 
 **Automated decisions and commercial use.** Mikono takes no decision based
 solely on automated processing (s.35) and makes no commercial use of
@@ -394,9 +409,9 @@ volunteers reopens this ADR.
 - **Negative / trade-offs:**
   - **Notice and consent fall on UCESCO staff**, at every onboarding, on
     paper or equivalent, and they must keep the proof.
-  - **Emergency contacts depend on a signed consent.** Under s.49(1),
-    without it the field may not be filled while production is outside
-    Kenya, and a withdrawal empties it.
+  - **Sensitive data abroad depends on a signed consent.** Under s.49(1),
+    without it emergency contacts or gender may not be processed outside
+    Kenya: not on a server, backup destination or service abroad.
   - **Anonymisation, restriction, per-volunteer export and time-bound
     retention cost code** that no screen needed before.
   - **The exposure is real.** An administrative fine of up to KES 5
@@ -418,14 +433,14 @@ against, and that is how the s.49(1) consent requirement for emergency
 contacts processed outside Kenya went unnoticed across the hosting ADR and
 ADR 0032.
 
-### 2. Move hosting to Kenya to escape Part VI
+### 2. Host production abroad and carry the transfer under rule 3
 
-**Rejected for now.** ADR 0035 chose Johannesburg for latency, for x86
-machines in the region, and for an account UCESCO can own, and the Kenyan
-candidates never answered. Kenya remains the fallback if gathering
-s.49(1) consent proves impractical, and moving is cheap (ADR 0035,
-Reversibility). Backups would still leave the server, so rules
-6 and 7 would stand.
+**Rejected.** A server in South Africa or France would be a transfer for
+as long as it runs: UCESCO would keep s.48 proof of safeguards and gather
+s.49(1) consent for every sensitive field, indefinitely, with no data
+protection officer to own the file. ADR 0035 keeps production in Kenya
+instead. Rule 3 stays the general rule for whatever else leaves Kenya, and
+rules 6 and 7 apply wherever the data sits.
 
 ### 3. Rely on the s.45(a) not-for-profit ground for sensitive data
 

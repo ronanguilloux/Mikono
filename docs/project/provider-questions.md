@@ -1,27 +1,38 @@
 # Pre-sales email to VPS providers
 
-**Last updated:** 2026-09-04
+**Last updated:** 2026-10-04
 
-> **Dormant since 2026-09-05: this was never sent, and is not going to be
-> for now.** Production goes to a Google Compute Engine VM in Johannesburg
-> (ADR 0035); UAT stays on GandiCloud in France (ADR 0017). Kept
-> ready to send unchanged if the Kenyan option is ever reopened — the
-> candidates it addresses are in
-> [`hosting-plan.md`](hosting-plan.md) §5.
+> **Active again since 2026-10-04.** Production goes to a Kenyan
+> provider that commits in writing to the DPA 2019 (ADR 0035), and this
+> email is how that commitment, and the five technical answers, get
+> collected. Candidates and status:
+> [`hosting-plan.md`](hosting-plan.md) §5 and
+> [`backlog/choose-kenyan-production-host.md`](backlog/choose-kenyan-production-host.md).
 
 The five questions in
 [`hosting-plan.md`](hosting-plan.md#five-questions-to-ask-before-paying),
-written as one email to send unchanged to every candidate. Send it to
-all four and compare the replies side by side — the reply is a sample of
+plus the written DPA 2019 commitment ADR 0035 requires, written as one email to send unchanged to every candidate. Send it to
+every candidate and compare the replies side by side — the reply is a sample of
 the support you would be buying, so how fast and how specifically they
 answer is part of the data, not a preamble to it.
 
-Do not send it from the app or automate it. It is four emails, once.
+Do not send it from the app or automate it. It is one email per candidate, once.
 
 ## Where to send it
 
 Use each provider's own contact form or the sales address on their site
 rather than a guessed mailbox:
+
+Candidates named for the DPA filter (URLs as reported by the agent
+research in hosting-plan §5, unchecked):
+
+- **Servercore** — <https://servercore.com/services/cloud-servers/>
+- **Skyhost Kenya** — find its sales contact; no URL recorded yet
+- **Safaricom Cloud** — <https://www.safaricom.co.ke/business/cloud>
+- **Angani** — <https://angani.co/virtual-machines/>
+
+Researched before the filter, and only back in the running with a written
+DPA commitment:
 
 - **Lineserve** — <https://www.lineserve.co.ke/>
 - **Truehost Kenya** — <https://truehost.co.ke/>
@@ -40,7 +51,7 @@ rather than a guessed mailbox:
 > and 443 — there is no cPanel or other web server in front of it. I am
 > looking at your [PLAN NAME] plan at [PRICE].
 >
-> Five questions before I buy, if you would be kind enough to answer
+> Six questions before I buy, if you would be kind enough to answer
 > them in writing:
 >
 > 1. **Which datacentre is this plan physically hosted in?** I need the
@@ -56,6 +67,13 @@ rather than a guessed mailbox:
 > 5. **Do you offer snapshots — and can a customer restore one
 >    themselves from the control panel?** If so, roughly how long does a
 >    restore of a 20 GB volume take?
+>
+> 6. **Will you confirm in writing that you comply with Kenya's Data
+>    Protection Act 2019 and that the data stays in Kenya?** Please
+>    include your ODPC registration as a data processor and the processor
+>    agreement our client, a Kenyan NGO, would sign as data controller
+>    (s.42(2)). Do any of your sub-processors or support staff access
+>    customer data from outside Kenya?
 >
 > Two smaller ones, if they are not already on the plan's page: **is
 > IPv6 included**, and **is the CPU x86-64 rather than ARM?** The

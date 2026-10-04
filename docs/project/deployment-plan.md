@@ -464,9 +464,9 @@ and the log holds no error.
 `rclone`/`rsync` to object storage or another host, on the same schedule.
 The destination is chosen in
 [`backlog/off-site-encrypted-backups.md`](backlog/off-site-encrypted-backups.md):
-production moved to South Africa (ADR 0035), so it no longer simply
-follows the server into Europe, and it is a cross-border transfer in
-its own right (ADR 0034 rule 3). Use an `rclone` **crypt**
+production goes to a Kenyan provider (ADR 0035), so prefer a
+destination in Kenya too. One abroad is a cross-border transfer in its
+own right (ADR 0034 rule 3). Use an `rclone` **crypt**
 remote with the key held off the server — the destination then holds
 ciphertext it cannot read, which is both the right posture for a file
 containing every volunteer record and what keeps the destination cheaply
@@ -849,11 +849,11 @@ As `deploy`, in `/opt/mikono`, with `$COMPOSE` set as in §5:
 ### Notify
 
 UCESCO is the data controller and gives the legal notices. The
-maintainer (and Google, as host) are processors and tell UCESCO.
+maintainer (and the Kenyan hosting provider) are processors and tell UCESCO.
 
 | Who | Tells | By | Section |
 | --- | --- | --- | --- |
-| Maintainer, or Google | UCESCO's data-protection contact | Without delay; **48 h** after becoming aware, where practicable | s.43(3) |
+| Maintainer, or the hosting provider | UCESCO's data-protection contact | Without delay; **48 h** after becoming aware, where practicable | s.43(3) |
 | UCESCO | The Data Commissioner (ODPC, odpc.go.ke) | Without delay; **72 h** after becoming aware. Later means giving the reasons for the delay | s.43(1)(a), s.43(2) |
 | UCESCO | Each affected volunteer, **in writing** | Within a reasonably practicable period | s.43(1)(b) |
 

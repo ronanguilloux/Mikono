@@ -42,7 +42,7 @@ it:
 - **What does consent status mean operationally?** Who sets it, what it
   blocks, and what happens to a photo whose consent is withdrawn. This is
   the one field with legal weight: the stated purpose is publication, the
-  subjects are in Kenya and the server is in South Africa (ADR 0035, DPA 2019).
+  subjects are in Kenya, and so is the server (ADR 0035, DPA 2019).
 - Whether the existing single profile photo becomes a row in the library or
   stays separate.
 
@@ -53,7 +53,7 @@ it:
   also has photos and video on its list. Decide both in one ADR, or say in
   that ADR why they differ.
 - Size pressure is real and already tracked:
-  [ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)'s 20 GB disk and
+  a production box of about 20 GB of disk ([ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)) and
   [off-site-encrypted-backups](off-site-encrypted-backups.md) both assume a
   small database file.
 - The search itself is the cheap half. `ListPaginator` plus a filtered

@@ -71,7 +71,7 @@ drafts and maintains these.
 | [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) | Store volunteer profile fields as optional and photos as re-encoded JPEG blobs in SQLite | Accepted |
 | [0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md) | Encrypt passport numbers at rest with a runtime sodium key | Accepted |
 | [0034](0034-comply-with-kenyas-data-protection-act-2019.md) | Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor | Accepted |
-| [0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md) | Host production on a Compute Engine e2-small in Johannesburg | Accepted |
+| [0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md) | Host production in Kenya, with a provider that commits in writing to the Data Protection Act 2019 | Accepted |
 | [0036](0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md) | Manage skills as a seeded list shared by volunteers and programs | Accepted |
 | [0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md) | Record a volunteer's gender for accommodation pairing | Accepted |
 | [0038](0038-record-achievements-on-a-volunteers-stay.md) | Record achievements on a volunteer's stay | Accepted |

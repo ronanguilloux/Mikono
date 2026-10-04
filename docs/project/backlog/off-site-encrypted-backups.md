@@ -16,13 +16,14 @@ sits on the same disk as the database it protects, which is not a backup.
 This is the first of three things gating real volunteer data landing on a
 server.
 
-**The destination is open again.** It was settled when production was
-in France, where the copy followed the server into Europe. Production now
-moves to Johannesburg
-([ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)), so choose where the
-copy goes before configuring the remote. It is a cross-border transfer
-under [ADR 0034](../../adr/0034-comply-with-kenyas-data-protection-act-2019.md)
-rule 3, like the server itself. The rest is mechanical.
+**The destination is open.** Production goes to a Kenyan provider
+([ADR 0035](../../adr/0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)),
+so the server itself is no transfer. **Prefer a destination in Kenya
+too**, such as the production provider's own object storage or a second
+Kenyan provider, so the backup doesn't become the one transfer left. A
+destination abroad is a cross-border transfer under
+[ADR 0034](../../adr/0034-comply-with-kenyas-data-protection-act-2019.md)
+rule 3 and needs its own safeguard. The rest is mechanical.
 
 ## Done when
 

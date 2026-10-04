@@ -1,6 +1,6 @@
 # 33. Encrypt passport numbers at rest with a runtime sodium key
 
-Date: 2026-09-25
+Date: 2026-10-04
 
 ## Status
 
@@ -24,14 +24,13 @@ The number needs its own decision, for these reasons:
   file, and that copy is shipped off-site. Whoever holds a backup holds
   every column in it. The app's login and screens protect nothing once the
   file itself has left the server.
-- **Hosting assumption.** This decision was framed under the assumption
-  that production will be hosted in Kenya. Under Kenyan hosting there is
-  no cross-border transfer question, but protection at rest still matters,
-  because backups leave the server either way.
-  Production is in fact hosted in South Africa
-  ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)), which makes
-  the backups a cross-border transfer too. This decision holds whichever
-  country hosts the server.
+- **Hosting.** Production is to be hosted in Kenya
+  ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)),
+  so the server raises no cross-border transfer question. Protection at rest
+  still matters, because backups leave the server either way, and an
+  off-site copy abroad is a transfer under
+  [ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md) rule 3.
+  This decision holds whichever country hosts the server.
 
 ## Decision
 

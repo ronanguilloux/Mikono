@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-10-03
+**Last updated:** 2026-10-04
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -23,7 +23,7 @@ ready to open and work.
 Three things gate real volunteer data landing on a server, and the
 hostname is the one that isn't ours to solve.
 
-1. [Stand up production on a Compute Engine e2-small in Johannesburg](backlog/production-on-compute-engine-johannesburg.md) — **B**
+1. [Choose a Kenyan production host that commits to the DPA 2019, and stand production up on it](backlog/choose-kenyan-production-host.md)
 2. [An encrypted off-site copy of the backups](backlog/off-site-encrypted-backups.md)
 3. [Meet Nickson about the production hostname and DNS](backlog/nickson-meeting-dns-and-hosting.md)
 4. [A production hostname that resolves](backlog/production-hostname-dns.md) — **B**
@@ -38,6 +38,7 @@ hostname is the one that isn't ours to solve.
 4. [Record minor volunteers with a guardian's consent](backlog/minor-volunteers-with-guardian-consent.md) — **D**
 5. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
 6. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
+7. [Decommission UAT on Gandi and destroy every copy of its test data](backlog/decommission-uat-on-gandi.md) — **B**
 
 ## Later
 

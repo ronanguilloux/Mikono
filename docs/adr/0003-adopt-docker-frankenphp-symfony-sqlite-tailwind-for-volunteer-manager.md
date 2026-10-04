@@ -1,6 +1,6 @@
 # 3. Adopt Docker+FrankenPHP, Symfony 8.1, SQLite, and Tailwind+Symfony UX for the Volunteer Manager app
 
-Date: 2026-08-24
+Date: 2026-10-04
 
 ## Status
 
@@ -17,7 +17,8 @@ records. See
 
 The development machine has no PHP or Composer installed. The choices below
 were made together as one stack, so they share one ADR. Deployment is
-[ADR 0010](0010-build-in-ci-and-deploy-by-image-pull.md) and
+[ADR 0010](0010-build-in-ci-and-deploy-by-image-pull.md); production is
+to be hosted in Kenya under
 [ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md).
 
 ## Decision
