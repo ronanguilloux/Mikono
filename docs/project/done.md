@@ -6,6 +6,14 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-04 — Data map brought up to date
+
+`/datamap` gains a Source box, chip and ADR 0041 row. The volunteer's
+four-way status replaces "active" (ADR 0026), Matches is the single
+`/matches` page on skills or past activity types (ADR 0042), and gender is
+noted as carried by the admin database export (ADR 0037). The page is
+hand-written, so a model change has to reach it by hand.
+
 ## 2026-10-04 — A stay page for its achievements
 
 `/stays/{id}` shows a stay with its achievements (add, edit, delete), and
