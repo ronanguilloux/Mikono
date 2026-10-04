@@ -27,7 +27,7 @@
             <span class="sr-only"> — {{ action.disabledReason }}</span>
         </span>
     {% elseif action.method|default('get') == 'get' %}
-        <a href="{{ action.url }}" class="{{ linkClass }}">{{ action.label }}</a>
+        <a href="{{ action.url }}" class="{{ action.primary|default(false) ? 'rounded-md bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700' : linkClass }}">{{ action.label }}</a>
     {% else %}
         <form
             method="post"

@@ -20,9 +20,10 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * why that key is optional.
  *
  * A non-GET action carries `csrfTokenId` — the token id, not a minted token;
- * RowActions hands it to Twig's `csrf_token()`.
+ * RowActions hands it to Twig's `csrf_token()`. A GET action with
+ * `primary` renders as a small filled button: the row's main action.
  *
- * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfTokenId?: string, disabledReason?: string}
+ * @phpstan-type Action array{label: string, url?: string, method?: string, confirm?: string, csrfTokenId?: string, disabledReason?: string, primary?: true}
  * @phpstan-type Row array{cells: array<string, string>, badges?: array<string, string>, pills?: array<string, string>, avatars?: array<string, string|null>, links?: array<string, string>, actions?: list<Action>, tone?: 'warning'}
  */
 #[AsTwigComponent]

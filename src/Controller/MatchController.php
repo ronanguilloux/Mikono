@@ -157,7 +157,7 @@ final class MatchController extends AbstractController
                     'program' => $matches->program->getId(),
                     'volunteer' => $id,
                     'date' => self::firstDay($matches, $match, $today)->format('Y-m-d'),
-                ])]],
+                ]), 'primary' => true]],
             ];
             if ($match->isByExperienceOnly()) {
                 $row['badges'] = ['matched' => 'By experience'];
