@@ -6,6 +6,22 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-04 — Activity forms warn before booking a volunteer twice on one day
+
+Both activity forms (`/activities/new` and edit) come back with a 422
+listing any volunteer who already has an activity that day, and save only
+once "Log anyway" is ticked — a warning, never a block, since a morning and
+an afternoon session is a real day. The box carries the ids of the
+activities it warned about, so a changed date or volunteer list warns
+afresh (`ActivityController::unconfirmedSameDay()`). On `/matches`, see
+ADR 0042: a Booked column, and Assign opens on the first free day.
+
+## 2026-10-04 — /matches groups its "what to tick" lists
+
+Programs with no recommended skills are grouped by branch, then project;
+available volunteers with no skills by present now and upcoming. Every
+program link there opens the edit form at `#skills`.
+
 ## 2026-10-04 — A page per user, with who added and last edited what
 
 See ADR 0043. `/users/{id}` lists the account's sign-ins, logged

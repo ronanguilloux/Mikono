@@ -237,6 +237,7 @@ final class ActivityController extends AbstractController
         $data->volunteers = $this->offerableVolunteer($this->requestedVolunteer($request));
         $form = $this->createForm(BatchActivityFormType::class, $data);
         $form->handleRequest($request);
+        $sameDay = null;
 
         if ($form->isSubmitted() && $form->isValid()) {
             $loggedBy = $this->loggedByUser();
@@ -261,7 +262,7 @@ final class ActivityController extends AbstractController
             // All or nothing: one volunteer without a stay that day, or staying
             // at another branch than the program's, refuses the whole batch,
             // rather than logging the others and losing them.
-            if ($this->resolveStays($form, $activities)) {
+            if ($this->resolveStays($form, $activities) && null === $sameDay = $this->unconfirmedSameDay($request, $activities)) {
                 foreach ($activities as $activity) {
                     $this->entityManager->persist($activity);
                 }
@@ -280,9 +281,10 @@ final class ActivityController extends AbstractController
 
         return $this->render('activity/new.html.twig', [
             'form' => $form,
+            'sameDay' => $sameDay,
             'todayIso' => $today->format('Y-m-d'),
             'tomorrowIso' => $today->modify('+1 day')->format('Y-m-d'),
-        ]);
+        ], null === $sameDay ? null : new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
@@ -292,8 +294,10 @@ final class ActivityController extends AbstractController
         // shouldn't silently reassign who originally logged it.
         $form = $this->createForm(ActivityFormType::class, $activity);
         $form->handleRequest($request);
+        $sameDay = null;
 
-        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form, [$activity])) {
+        if ($form->isSubmitted() && $form->isValid() && $this->resolveStays($form, [$activity])
+            && null === $sameDay = $this->unconfirmedSameDay($request, [$activity], $activity)) {
             $activity->touch();
             $this->entityManager->flush();
 
@@ -302,7 +306,11 @@ final class ActivityController extends AbstractController
             return $this->redirectToRoute('activity_index');
         }
 
-        return $this->render('activity/edit.html.twig', ['form' => $form, 'activity' => $activity]);
+        return $this->render(
+            'activity/edit.html.twig',
+            ['form' => $form, 'activity' => $activity, 'sameDay' => $sameDay],
+            null === $sameDay ? null : new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY),
+        );
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
@@ -475,6 +483,42 @@ final class ActivityController extends AbstractController
         }
 
         return $valid;
+    }
+
+    /**
+     * A warning, never a refusal: a volunteer may well do a morning and an
+     * afternoon session. When a volunteer in the batch already has an
+     * activity that day, the form comes back (422) listing them, with a "Log
+     * anyway" box. Ticking it posts the ids of the activities it was shown,
+     * so a changed date or volunteer list warns afresh rather than riding on
+     * an old confirmation.
+     *
+     * @param list<Activity> $activities all sharing one date
+     *
+     * @return array{key: string, lines: list<string>}|null null when there is nothing left to confirm
+     */
+    private function unconfirmedSameDay(Request $request, array $activities, ?Activity $except = null): ?array
+    {
+        $date = ($activities[0] ?? null)?->getDate();
+        $volunteers = array_values(array_filter(array_map(static fn(Activity $activity): ?Volunteer => $activity->getVolunteer(), $activities)));
+        $booked = null === $date ? [] : $this->activities->findSameDay($volunteers, $date, $except);
+        if ([] === $booked) {
+            return null;
+        }
+
+        $key = implode(',', array_map(static fn(Activity $activity): int => (int) $activity->getId(), $booked));
+        $confirmed = $request->request->all()['confirm_same_day'] ?? null;
+        if (is_scalar($confirmed) && (string) $confirmed === $key) {
+            return null;
+        }
+
+        return ['key' => $key, 'lines' => array_map(fn(Activity $activity): string => sprintf(
+            '%s already has %s in %s (%s)',
+            $activity->getVolunteer()?->getFullName() ?? 'The volunteer',
+            $activity->getActivityType()?->getName() ?? 'an activity',
+            $activity->getProgram()?->getName() ?? 'another program',
+            $this->cells($activity)['duration'],
+        ), $booked)];
     }
 
     private function loggedByUser(): ?User

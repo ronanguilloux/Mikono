@@ -29,6 +29,8 @@ final readonly class VolunteerMatch
         public int $activitiesInProgram,
         /** The latest of them; null with no experience. */
         public ?\DateTimeImmutable $lastExperience,
+        /** @var list<\DateTimeImmutable> days of the stay, from today, they already have an activity on */
+        public array $booked = [],
     ) {}
 
     public function experienceCount(): int

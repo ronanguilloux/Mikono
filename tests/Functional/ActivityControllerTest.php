@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
 
 #[ResetDatabase]
@@ -211,6 +212,51 @@ final class ActivityControllerTest extends WebTestCase
         $client->request('GET', '/reports/volunteers');
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
         self::assertSelectorTextContains('body', 'Bright Achievers');
+    }
+
+    /**
+     * Two activities on one day may be real (a morning and an afternoon
+     * session), so it's a warning to confirm, never a refusal.
+     */
+    #[Test]
+    public function aVolunteerAlreadyBookedThatDayIsWarnedAboutThenLoggedOnceConfirmed(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Busy']);
+        $today = new \DateTimeImmutable('today');
+        $booked = ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => $today, 'activityType' => ActivityTypeFactory::createOne(['name' => 'Football session'])]);
+        $activityType = ActivityTypeFactory::createOne();
+        $program = ProgramFactory::createOne(['activityTypes' => [$activityType]]);
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/activities/new');
+        $this->checkVolunteers($crawler, [$volunteer]);
+        $fields = [
+            'batch_activity_form[date]' => $today->format('Y-m-d'),
+            'batch_activity_form[program]' => (string) $program->getId(),
+            'batch_activity_form[activityType]' => (string) $activityType->getId(),
+            'batch_activity_form[duration]' => 'half_day',
+        ];
+
+        $crawler = $client->submit($crawler->selectButton('Save')->form($fields));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Ann Busy already has Football session in ' . $booked->getProgram()?->getName(), $crawler->filter('[data-same-day-warning]')->text());
+        self::assertCount(1, $client->getContainer()->get('doctrine')->getRepository(Activity::class)->findAll(), 'Nothing logged yet.');
+
+        $form = $crawler->selectButton('Save')->form($fields);
+        $box = $form['confirm_same_day'];
+        self::assertInstanceOf(ChoiceFormField::class, $box);
+        $box->tick();
+        $client->submit($form);
+
+        self::assertResponseRedirects('/activities');
+        self::assertCount(2, $client->getContainer()->get('doctrine')->getRepository(Activity::class)->findAll());
+
+        // Editing either one warns about the other, not about itself.
+        $crawler = $client->request('GET', sprintf('/activities/%d/edit', $booked->getId()));
+        $crawler = $client->submit($crawler->selectButton('Save')->form(['activity_form[notes]' => 'moved to the afternoon']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(1, $crawler->filter('[data-same-day-warning] li'));
     }
 
     #[Test]

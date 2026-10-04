@@ -37,6 +37,7 @@ final class MatchController extends AbstractController
         ['key' => 'matchedSkills', 'label' => 'Matching skills'],
         ['key' => 'missingSkills', 'label' => 'Missing skills'],
         ['key' => 'experience', 'label' => 'Experience'],
+        ['key' => 'booked', 'label' => 'Booked'],
     ];
 
     /** @var list<array{key: string, label: string}> one row per program and volunteer */
@@ -52,6 +53,7 @@ final class MatchController extends AbstractController
         ['key' => 'matchedSkills', 'label' => 'Matching skills'],
         ['key' => 'missingSkills', 'label' => 'Missing skills'],
         ['key' => 'experience', 'label' => 'Experience'],
+        ['key' => 'booked', 'label' => 'Booked'],
     ];
 
     /** Why a volunteer is on a program's list: the export's Basis column, and the Assign link's `via` tag. */
@@ -74,7 +76,9 @@ final class MatchController extends AbstractController
         $filters = $this->requestedFilters($request);
 
         $groups = [];
+        // Branch name => project name => programs, both alphabetical; programs keep the finder's order.
         $noSkills = [];
+        $noSkillsCount = 0;
         $oneSkill = [];
         foreach ($this->finder->find($today, ...$filters) as $matches) {
             $skills = $matches->program->getSkills()->count();
@@ -82,7 +86,9 @@ final class MatchController extends AbstractController
                 $oneSkill[] = $matches->program;
             }
             if (0 === $skills) {
-                $noSkills[] = $matches;
+                $project = $matches->program->getProject();
+                $noSkills[$project?->getBranch()?->getName() ?? ''][$project?->getName() ?? ''][] = $matches;
+                ++$noSkillsCount;
                 // Nothing to show and nothing to look for: only in the list below.
                 if ([] === $matches->candidates) {
                     continue;
@@ -90,11 +96,17 @@ final class MatchController extends AbstractController
             }
             $groups[] = ['matches' => $matches, 'rows' => $this->rows($matches, $today)];
         }
+        ksort($noSkills);
+        foreach ($noSkills as &$projects) {
+            ksort($projects);
+        }
+        unset($projects);
 
         return $this->render('match/index.html.twig', [
             'columns' => self::COLUMNS,
             'groups' => $groups,
             'noSkills' => $noSkills,
+            'noSkillsCount' => $noSkillsCount,
             'oneSkill' => $oneSkill,
             // Picking one program narrows the list to its branch.
             'volunteersWithoutSkills' => $this->finder->findStaysWithoutSkills($today, $filters['branch'] ?? $filters['program']?->getProject()?->getBranch(), $filters['who']),
@@ -207,6 +219,7 @@ final class MatchController extends AbstractController
             'matchedSkills' => self::skillNames($match->matchedSkills),
             'missingSkills' => self::skillNames($match->missingSkills),
             'experience' => self::experience($match),
+            'booked' => [] === $match->booked ? '—' : implode(', ', array_map(static fn(\DateTimeImmutable $day): string => $day->format('j M'), $match->booked)),
         ];
     }
 
@@ -244,13 +257,24 @@ final class MatchController extends AbstractController
 
     /**
      * The Assign link's date: the first day from today that both the stay and
-     * the program cover. The finder keeps only not-ended stays overlapping an
-     * open program, so this day exists; today would refuse an upcoming
-     * volunteer or a program not started yet.
+     * the program cover, and that the volunteer has no activity on yet. The
+     * finder keeps only not-ended stays overlapping an open program, so a
+     * covered day exists; today would refuse an upcoming volunteer or a
+     * program not started yet. With every such day booked, the first one: the
+     * form's same-day warning then says so.
      */
     private static function firstDay(ProgramMatches $matches, VolunteerMatch $match, \DateTimeImmutable $today): \DateTimeImmutable
     {
-        return max(array_filter([$today, $match->stay->getStartDate(), $matches->program->getStartDate()]));
+        $first = max(array_filter([$today, $match->stay->getStartDate(), $matches->program->getStartDate()]));
+        $ends = array_filter([$match->stay->getEndDate(), $matches->program->getEndDate()]);
+        $booked = array_map(static fn(\DateTimeImmutable $day): string => $day->format('Y-m-d'), $match->booked);
+        for ($day = $first; [] !== $ends && $day <= min($ends); $day = $day->modify('+1 day')) {
+            if (!in_array($day->format('Y-m-d'), $booked, true)) {
+                return $day;
+            }
+        }
+
+        return $first;
     }
 
     private static function experience(VolunteerMatch $match): string

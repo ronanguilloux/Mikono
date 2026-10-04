@@ -30,6 +30,7 @@
                 </li>
             </ol>
             <p><strong>Order:</strong> most matching skills first, then the most past activities of the program's types, then volunteers present now before upcoming ones. Programs that have gone longest without an activity come first; programs that haven't started yet come last.</p>
+            <p><strong>Booked</strong> lists the days of that stay they already have an activity on. They stay suggested, and Assign opens the form on their first free day.</p>
             <p>The app only knows that an activity was logged, not whether it went well — treat the order as a suggestion.</p>
         </div>
     </details>
@@ -95,7 +96,7 @@
                     <h2 id="program-{{ program.id }}-heading" class="font-semibold">{{ program.name }}</h2>
                     <p class="mt-1 text-sm text-slate-600">
                         {% if program.skills is empty %}
-                            No recommended skills yet — <a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">tick them</a>.
+                            No recommended skills yet — <a href="{{ path('program_edit', {id: program.id, _fragment: 'skills'}) }}" class="text-brand-600 hover:underline">tick them</a>.
                         {% else %}
                             Needs: {{ program.skills|map(s => s.name)|sort|join(', ') }}
                         {% endif %}
@@ -142,26 +143,45 @@
         {% if volunteersWithoutSkills is empty %}
             <p class="mt-2 text-slate-500">Every volunteer with a current or upcoming stay has at least one skill on their profile.</p>
         {% else %}
-            <ul class="mt-2 columns-1 gap-6 sm:columns-2 lg:columns-3">
-                {% for stays in volunteersWithoutSkills %}
-                    {% set volunteer = stays[0].volunteer %}
-                    <li><a href="{{ path('volunteer_edit', {id: volunteer.id}) }}" class="text-brand-600 hover:underline">{{ volunteer.fullName }}</a> <span class="text-slate-400">
-                        {%- for stay in stays %} · {{ stay.branch.name }}, {{ stay.covers(today) ? 'here until ' ~ stay.endDate|date('j M Y') : 'arrives ' ~ stay.startDate|date('j M Y') }}{% endfor -%}
-                    </span></li>
-                {% endfor %}
-            </ul>
+            {# Stays are not ended and earliest first: here now if the first one covers today. #}
+            {% for label, volunteers in {
+                'Present now': volunteersWithoutSkills|filter(stays => stays[0].covers(today)),
+                'Upcoming': volunteersWithoutSkills|filter(stays => not stays[0].covers(today)),
+            } %}
+                {% if volunteers is not empty %}
+                    <h3 class="mt-2 font-medium text-slate-700" data-volunteers-no-skills-group>{{ label }} ({{ volunteers|length }})</h3>
+                    <ul class="columns-1 gap-6 pl-3 sm:columns-2 lg:columns-3">
+                        {% for stays in volunteers %}
+                            {% set volunteer = stays[0].volunteer %}
+                            <li><a href="{{ path('volunteer_edit', {id: volunteer.id}) }}" class="text-brand-600 hover:underline">{{ volunteer.fullName }}</a> <span class="text-slate-400">
+                                {%- for stay in stays %} · {{ stay.branch.name }}, {{ stay.covers(today) ? 'here until ' ~ stay.endDate|date('j M Y') : 'arrives ' ~ stay.startDate|date('j M Y') }}{% endfor -%}
+                            </span></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endfor %}
         {% endif %}
     </section>
 
     {% if noSkills is not empty %}
         <section class="mt-6 text-sm text-slate-600" aria-labelledby="no-skills-heading" data-no-skills>
-            <h2 id="no-skills-heading" class="font-semibold text-slate-800">Programs with no recommended skills ({{ noSkills|length }})</h2>
-            <ul class="mt-2 columns-1 gap-6 sm:columns-2 lg:columns-3">
-                {% for matches in noSkills %}
-                    {% set program = matches.program %}
-                    <li><a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">{{ program.name }}</a> <span class="text-slate-400">· {{ program.project.branch.name }}{{ matches.candidates is not empty ? ' · also shown above' }}</span></li>
+            <h2 id="no-skills-heading" class="font-semibold text-slate-800">Programs with no recommended skills ({{ noSkillsCount }})</h2>
+            <div class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {% for branch, projects in noSkills %}
+                    <div data-no-skills-branch>
+                        <h3 class="font-medium text-slate-700">{{ branch }}</h3>
+                        {% for project, programs in projects %}
+                            <p class="mt-1 text-xs text-slate-500" data-no-skills-project>{{ project }}</p>
+                            <ul class="pl-3">
+                                {% for matches in programs %}
+                                    {% set program = matches.program %}
+                                    <li><a href="{{ path('program_edit', {id: program.id, _fragment: 'skills'}) }}" class="text-brand-600 hover:underline">{{ program.name }}</a>{% if matches.candidates is not empty %} <span class="text-slate-400">· also shown above</span>{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endfor %}
+                    </div>
                 {% endfor %}
-            </ul>
+            </div>
         </section>
     {% endif %}
 
@@ -170,7 +190,7 @@
             <h2 id="one-skill-heading" class="font-semibold text-slate-800">Programs with only one recommended skill ({{ oneSkill|length }})</h2>
             <ul class="mt-2 columns-1 gap-6 sm:columns-2 lg:columns-3">
                 {% for program in oneSkill %}
-                    <li><a href="{{ path('program_edit', {id: program.id}) }}" class="text-brand-600 hover:underline">{{ program.name }}</a> <span class="text-slate-400">· {{ program.project.branch.name }} · {{ program.skills.first.name }}</span></li>
+                    <li><a href="{{ path('program_edit', {id: program.id, _fragment: 'skills'}) }}" class="text-brand-600 hover:underline">{{ program.name }}</a> <span class="text-slate-400">· {{ program.project.branch.name }} · {{ program.skills.first.name }}</span></li>
                 {% endfor %}
             </ul>
         </section>

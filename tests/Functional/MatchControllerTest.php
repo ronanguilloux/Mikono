@@ -81,7 +81,7 @@ final class MatchControllerTest extends WebTestCase
         self::assertCount(1, $section->filter(sprintf('a[href="/volunteers/%d/edit"]', $volunteer->getId())));
         self::assertStringContainsString('Nobody available for: Plumbing', $section->filter('[data-uncovered]')->text());
         self::assertSame('By experience', self::rowsOf($crawler, (int) $past->getProgram()?->getId())[0][3], 'No skills to count: the badge alone, no dash.');
-        $listed = $crawler->filter(sprintf('[data-no-skills] a[href="/programs/%d/edit"]', $past->getProgram()?->getId()))->closest('li');
+        $listed = $crawler->filter(sprintf('[data-no-skills] a[href="/programs/%d/edit#skills"]', $past->getProgram()?->getId()))->closest('li');
         self::assertStringContainsString('also shown above', (string) $listed?->text(), 'Skill-less, but with a block above.');
     }
 
@@ -108,6 +108,36 @@ final class MatchControllerTest extends WebTestCase
         $assign = static fn(int $volunteerId, \DateTimeImmutable $date): string => sprintf('/activities/new?program=%d&volunteer=%d&date=%s&via=matches_skills', $program->getId(), $volunteerId, $date->format('Y-m-d'));
         self::assertSame(
             [$assign((int) $here->getId(), $today), $assign((int) $arriving->getId(), $today->modify('+10 days'))],
+            $crawler->filter(sprintf('[data-program-matches="%d"] a', $program->getId()))->reduce(static fn(Crawler $link): bool => 'Assign' === trim($link->text()))->extract(['href']),
+        );
+    }
+
+    /**
+     * Already booked is still suggested: Booked lists the days, and Assign
+     * opens on the first day left free.
+     */
+    #[Test]
+    public function aBookedVolunteerStaysSuggestedAndAssignSkipsTheirBookedDays(): void
+    {
+        $client = static::createClient();
+        $skill = SkillFactory::findOrCreate(['name' => 'Plumbing']);
+        $program = ProgramFactory::createOne(['skills' => [$skill]]);
+        $today = new \DateTimeImmutable('today');
+        $volunteer = VolunteerFactory::createOne(['skills' => [$skill]]);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => $today]);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => $today->modify('+1 day')]);
+        ActivityFactory::createOne(['volunteer' => $volunteer, 'date' => $today->modify('-1 day')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/matches');
+
+        self::assertSame(
+            $today->format('j M') . ', ' . $today->modify('+1 day')->format('j M'),
+            self::rowsOf($crawler, (int) $program->getId())[0][7],
+            'From today on: yesterday is history, not a booking.',
+        );
+        self::assertSame(
+            [sprintf('/activities/new?program=%d&volunteer=%d&date=%s&via=matches_skills', $program->getId(), $volunteer->getId(), $today->modify('+2 days')->format('Y-m-d'))],
             $crawler->filter(sprintf('[data-program-matches="%d"] a', $program->getId()))->reduce(static fn(Crawler $link): bool => 'Assign' === trim($link->text()))->extract(['href']),
         );
     }
@@ -167,10 +197,36 @@ final class MatchControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-program-matches]'));
-        $item = $crawler->filter(sprintf('[data-no-skills] a[href="/programs/%d/edit"]', $program->getId()))->closest('li');
+        $item = $crawler->filter(sprintf('[data-no-skills] a[href="/programs/%d/edit#skills"]', $program->getId()))->closest('li');
         self::assertStringNotContainsString('also shown above', (string) $item?->text());
         self::assertStringContainsString('Every volunteer with a current or upcoming stay has at least one skill', $crawler->filter('[data-volunteers-no-skills]')->text(), 'Shown even when empty.');
         self::assertSame([], self::exportedRows($client, '/matches/export.csv'));
+    }
+
+    #[Test]
+    public function theNoSkillsListIsGroupedByBranchThenProject(): void
+    {
+        $client = static::createClient();
+        $mombasa = ProjectFactory::createOne(['name' => 'Beach', 'branch' => BranchFactory::find(['name' => 'Mombasa'])]);
+        [$zebra, $alpha] = [ProjectFactory::createOne(['name' => 'Zebra']), ProjectFactory::createOne(['name' => 'Alpha'])];
+        ProgramFactory::createOne(['name' => 'Swim', 'project' => $mombasa]);
+        ProgramFactory::createOne(['name' => 'Paint', 'project' => $zebra]);
+        ProgramFactory::createOne(['name' => 'Read', 'project' => $alpha]);
+        ProgramFactory::createOne(['name' => 'Write', 'project' => $alpha]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/matches');
+
+        self::assertStringContainsString('(4)', $crawler->filter('#no-skills-heading')->text());
+        self::assertSame(
+            [['Mombasa', ['Beach'], ['Swim']], ['Nairobi (HQ)', ['Alpha', 'Zebra'], ['Read', 'Write', 'Paint']]],
+            $crawler->filter('[data-no-skills-branch]')->each(static fn(Crawler $branch): array => [
+                $branch->filter('h3')->text(),
+                $branch->filter('[data-no-skills-project]')->each(static fn(Crawler $project): string => $project->text()),
+                $branch->filter('li a')->each(static fn(Crawler $program): string => $program->text()),
+            ]),
+            'Branches, then their projects, alphabetical.',
+        );
     }
 
     #[Test]
@@ -198,8 +254,12 @@ final class MatchControllerTest extends WebTestCase
 
         self::assertCount(1, $crawler->filter('[data-more-matches-explainer]'));
         $links = static fn(Crawler $crawler, string $list): array => $crawler->filter($list . ' a')->extract(['href']);
-        self::assertSame([sprintf('/programs/%d/edit', $none->getId())], $links($crawler, '[data-no-skills]'));
-        self::assertSame([sprintf('/programs/%d/edit', $one->getId())], $links($crawler, '[data-one-skill]'));
+        self::assertSame([sprintf('/programs/%d/edit#skills', $none->getId())], $links($crawler, '[data-no-skills]'));
+        self::assertSame([sprintf('/programs/%d/edit#skills', $one->getId())], $links($crawler, '[data-one-skill]'));
+        $skillsRow = $client->request('GET', sprintf('/programs/%d/edit', $none->getId()))->filter('#skills');
+        self::assertStringContainsString('Recommended Skills', $skillsRow->filter('label')->first()->text(), 'The anchor lands on the row, label included.');
+        self::assertStringContainsString('Plumbing', $skillsRow->text(), 'The checkboxes to tick are in it.');
+        $crawler = $client->request('GET', '/matches');
         self::assertStringContainsString('Plumbing', $crawler->filter('[data-one-skill] li')->text());
         self::assertSame(
             [sprintf('/volunteers/%d/edit', $blank->getId()), sprintf('/volunteers/%d/edit', $arriving->getId())],
@@ -213,6 +273,7 @@ final class MatchControllerTest extends WebTestCase
             'Every stay, earliest first.',
         );
         self::assertStringContainsString('arrives ' . $date('+10 days'), $crawler->filter('[data-volunteers-no-skills] li')->last()->text());
+        self::assertSame(['Present now (1)', 'Upcoming (1)'], $crawler->filter('[data-volunteers-no-skills-group]')->each(static fn(Crawler $h): string => $h->text()), 'Here now if a stay covers today, else upcoming.');
 
         $upcoming = $client->request('GET', '/matches?who=upcoming');
         self::assertSame(

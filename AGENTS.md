@@ -96,7 +96,10 @@ implements it.
   it (`Activity::getProject()`, never a column). Its type must be offered by
   the program and its date covered by the program's optional dates —
   checked in `ActivityController::resolveStays()`, so a new write path
-  needs the same check. Activity types stay one global list; a program
+  needs the same check. Saving an activity for a volunteer who already has
+  one that day warns ("Log anyway"), never refuses —
+  `ActivityController::unconfirmedSameDay()`, again on every write path.
+  Activity types stay one global list; a program
   offers a subset
   ([ADR 0030](docs/adr/0030-insert-programs-between-projects-and-activities.md)).
   `ActivityFactory` still takes a `project` attribute and builds a program

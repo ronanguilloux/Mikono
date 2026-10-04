@@ -56,11 +56,12 @@ final class ProgramMatchFinder
             $experience[$row['volunteerId']][] = $row;
         }
 
+        $booked = $this->activities->findBookedDaysOf(array_keys($staysByVolunteer), $today);
         $lastActivities = $this->programs->findLastActivityDates($programs);
 
         $result = [];
         foreach ($programs as $open) {
-            $result[] = $this->matchesFor($open, $staysByVolunteer, $experience, $lastActivities[(int) $open->getId()] ?? null, $today);
+            $result[] = $this->matchesFor($open, $staysByVolunteer, $experience, $booked, $lastActivities[(int) $open->getId()] ?? null, $today);
         }
 
         usort($result, static fn(ProgramMatches $a, ProgramMatches $b): int => [...self::urgency($a), $a->program->getName()] <=> [...self::urgency($b), $b->program->getName()]);
@@ -116,8 +117,9 @@ final class ProgramMatchFinder
     /**
      * @param array<int, list<Stay>>                                                                                       $staysByVolunteer
      * @param array<int, list<array{volunteerId: int, typeId: int, programId: int, total: int, last: \DateTimeImmutable}>> $experience
+     * @param array<int, list<\DateTimeImmutable>>                                                                         $booked
      */
-    private function matchesFor(Program $program, array $staysByVolunteer, array $experience, ?\DateTimeImmutable $lastActivity, \DateTimeImmutable $today): ProgramMatches
+    private function matchesFor(Program $program, array $staysByVolunteer, array $experience, array $booked, ?\DateTimeImmutable $lastActivity, \DateTimeImmutable $today): ProgramMatches
     {
         // By name, whatever order the collection was loaded in.
         $needed = array_values($program->getSkills()->toArray());
@@ -167,6 +169,7 @@ final class ProgramMatchFinder
                 $done,
                 $inProgram,
                 $last,
+                array_values(array_filter($booked[$volunteerId] ?? [], $stay->covers(...))),
             );
         }
 

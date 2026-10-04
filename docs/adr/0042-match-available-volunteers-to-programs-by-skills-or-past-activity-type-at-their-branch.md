@@ -105,12 +105,17 @@ lexicographic order with no composite score.**
     gap); candidate count.
   - *Candidate row:* status pill; stay dates and days left; matched
     skills as "n of m"; matching skills; missing skills; experience by
-    activity type, with its count in this program and its last date.
+    activity type, with its count in this program and its last date;
+    booked, the days of that stay from today on that already have an
+    activity. A booked volunteer stays a candidate: a booking takes days,
+    not the whole stay.
   - *Assign action:* each row links to `/activities/new` with the
     program, the volunteer and a date already filled in. The date is the
-    first day from today that both the stay and the program cover, so an
-    upcoming volunteer or a program not started yet still gets a date
-    that saves. More volunteers are added through the form's search.
+    first day from today that both the stay and the program cover and that
+    isn't booked, so an upcoming volunteer or a program not started yet
+    still gets a date that saves, and a booked one a free day. With every
+    such day booked it is the first of them, and the form's same-day
+    warning says so. More volunteers are added through the form's search.
     Saving a planned activity makes the program count as covered here.
     The link also carries `via=matches_<basis>` (`skills`, `experience`
     or `both`) for `/usage`

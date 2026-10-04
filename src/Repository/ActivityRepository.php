@@ -182,6 +182,76 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * The activities these volunteers already have on $date, but $except (the
+     * one being edited): what the activity forms warn about before logging
+     * someone twice on one day.
+     *
+     * @param list<Volunteer> $volunteers
+     *
+     * @return list<Activity>
+     */
+    public function findSameDay(array $volunteers, \DateTimeImmutable $date, ?Activity $except = null): array
+    {
+        if ([] === $volunteers) {
+            return [];
+        }
+
+        $queryBuilder = $this->createQueryBuilder('a')
+            ->addSelect('v', 'prg', 't')
+            ->join('a.volunteer', 'v')
+            ->join('a.program', 'prg')
+            ->join('a.activityType', 't')
+            ->where('a.volunteer IN (:volunteers)')
+            ->andWhere('a.date = :date')
+            ->setParameter('volunteers', $volunteers)
+            ->setParameter('date', $date, Types::DATE_IMMUTABLE)
+            ->orderBy('v.lastName', 'ASC')
+            ->addOrderBy('v.firstName', 'ASC')
+            ->addOrderBy('a.id', 'ASC');
+        if (null !== $except?->getId()) {
+            $queryBuilder->andWhere('a != :except')->setParameter('except', $except);
+        }
+
+        /** @var list<Activity> $activities */
+        $activities = $queryBuilder->getQuery()->getResult();
+
+        return $activities;
+    }
+
+    /**
+     * The days, from today on, on which these volunteers already have an
+     * activity: /matches shows them and skips them for Assign (ADR 0042).
+     *
+     * @param list<int> $volunteerIds
+     *
+     * @return array<int, list<\DateTimeImmutable>> volunteer id => days, earliest first
+     */
+    public function findBookedDaysOf(array $volunteerIds, \DateTimeImmutable $today): array
+    {
+        if ([] === $volunteerIds) {
+            return [];
+        }
+
+        /** @var list<array{volunteerId: int|string, date: \DateTimeImmutable}> $rows */
+        $rows = $this->createQueryBuilder('a')
+            ->select('DISTINCT IDENTITY(a.volunteer) AS volunteerId', 'a.date')
+            ->where('a.volunteer IN (:volunteers)')
+            ->andWhere('a.date >= :today')
+            ->setParameter('volunteers', $volunteerIds)
+            ->setParameter('today', $today, Types::DATE_IMMUTABLE)
+            ->orderBy('a.date', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $days = [];
+        foreach ($rows as $row) {
+            $days[(int) $row['volunteerId']][] = $row['date'];
+        }
+
+        return $days;
+    }
+
+    /**
      * What these volunteers have done so far, by activity type and program:
      * the experience /matches counts (ADR 0042). Planned activities, dated
      * after today, aren't experience yet.

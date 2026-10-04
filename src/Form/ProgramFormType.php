@@ -65,6 +65,8 @@ final class ProgramFormType extends AbstractType
                 'required' => false,
                 'by_reference' => false,
                 'label' => 'Recommended Skills',
+                // /matches links here with #skills: the row, so the label shows too.
+                'row_attr' => ['id' => 'skills', 'class' => 'scroll-mt-4'],
                 'help' => 'What the program needs. Its Matches page lists the volunteers who hold any of these.',
             ])
             ->add('suggestedRoles', TextareaType::class, ['required' => false])

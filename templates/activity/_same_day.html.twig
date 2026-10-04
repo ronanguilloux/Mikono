@@ -1,0 +1,13 @@
+{# ActivityController::unconfirmedSameDay(): a warning to confirm, never a refusal. #}
+{% if sameDay|default(null) %}
+    <div class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert" data-same-day-warning>
+        <p class="font-semibold">Already booked that day</p>
+        <ul class="mt-1 list-disc pl-5">
+            {% for line in sameDay.lines %}<li>{{ line }}</li>{% endfor %}
+        </ul>
+        <label class="mt-2 flex items-center gap-2">
+            <input type="checkbox" name="confirm_same_day" value="{{ sameDay.key }}" class="rounded border-slate-300">
+            Log anyway — they can do both
+        </label>
+    </div>
+{% endif %}
