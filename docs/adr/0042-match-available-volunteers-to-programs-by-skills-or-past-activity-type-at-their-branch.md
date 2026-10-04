@@ -1,6 +1,6 @@
 # 0042. Match available volunteers to programs by skills or past activity type at their branch
 
-Date: 2026-10-03
+Date: 2026-10-04
 
 ## Status
 
@@ -112,6 +112,11 @@ lexicographic order with no composite score.**
     upcoming volunteer or a program not started yet still gets a date
     that saves. More volunteers are added through the form's search.
     Saving a planned activity makes the program count as covered here.
+    The link also carries `via=matches_<basis>` (`skills`, `experience`
+    or `both`) for `/usage`
+    ([ADR 0021](0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md));
+    the form ignores it. `MatchController::basis()` is the one rule behind
+    both that tag and the export's Basis column.
 - **Experience-only rows** carry a "By experience" badge on Matched, and
   a "Not on profile" badge on missing skills that links to the
   volunteer's edit page. Nothing changes on the profile automatically; the
@@ -177,6 +182,17 @@ lexicographic order with no composite score.**
   means it went fine" is an assumption: a volunteer who ran sessions badly
   ranks like one who ran them well. The on-page explanation must be kept
   in step with the code by hand.
+- **Reading Assign's effect on `/usage`:**
+  - `GET /matches` counts page opens, filter changes included;
+  - `GET /activities/new · via matches_{skills,experience,both}` counts
+    Assign clicks per basis;
+  - `POST /activities/new · via matches_…` counts submissions: saves are
+    views minus rejected minus errors, and clicks minus saves is roughly
+    "left without saving".
+
+  "Save and add another" redirects to a plain `/activities/new`, so later
+  entries are not credited. What it cannot tell: whether the VM kept the
+  suggested volunteer on the form, or later edited or deleted the activity.
 - **Reversibility:** cheap. The screen adds no table or column, so the
   finder, controller and template can be reworked or removed without a
   migration. A per-program view already exists as `?program=`.
@@ -232,3 +248,11 @@ in this program is still shown on the row.
 what it offers, and like alternative 6 it finds nobody for a new program.
 The activity type is what records what a volunteer did, and it is the
 one unit shared by every program.
+
+### 8. An origin column on `Activity` to follow each suggestion
+
+**Rejected.** It would show whether the suggested volunteer was kept, or
+the activity later edited or deleted, but it is a schema change on the
+core log entry for a question the request counts on `/usage` already
+mostly answer. Revisit if those counts show Assign is used and the VM
+asks how often its suggestions stick.

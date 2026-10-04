@@ -1,6 +1,6 @@
 # 21. Answer usage questions from the Caddy access log, read in an in-app `/usage` screen
 
-Date: 2026-09-13
+Date: 2026-10-04
 
 ## Status
 
@@ -68,6 +68,15 @@ the aggregate is cached 60 seconds. Load-bearing details:
   (`/volunteers/{id}/edit`). That collapses noise, strips record
   identifiers so nothing identifying reaches the screen, and *is* the asset
   filter — `/assets/*`, `/brand/*` and `favicon` match no route.
+- **A link may tag its way in with `?via=<source>`**, appended to the label
+  (`/activities/new · via matches_skills`), so one entry point gets its own
+  row. Only a scalar matching `/^[a-z_]{1,40}$/` counts: lowercase and
+  underscores, so a tag can never carry a record identifier. A malformed tag
+  is ignored and the request counts in the plain row
+  ([ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)). A form
+  with no `action` posts back to its own URL, so its save (303) or rejection
+  (422) carries the tag too; a redirect to a plain URL drops it. The tag is
+  read by the reader, never by the target screen.
 - **Requests with `X-Sec-Purpose: prefetch` are skipped** (and counted as
   skipped): Turbo Drive prefetches on hover, and unfiltered every hover is a
   page view.
@@ -154,3 +163,11 @@ volunteer records, nor complicate a restore drill.
 **Rejected.** Arbitrary names, a JSON payload and a user id is in-house
 analytics with the data-protection problem this ADR declines. The enum
 whitelist and three columns are the point.
+
+### 7. Telling entry points apart by each feature's own query shape
+
+**Rejected.** Recognising, say, `program=` on `/activities/new` inside the
+reader couples a generic log reader to one screen's parameters, and breaks
+silently when that screen changes. A generic `via` tag set by the linking
+page keeps the reader feature-blind. A `usage_event` case for the same
+click is ruled out by point 3: the request already shows it.

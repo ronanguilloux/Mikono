@@ -105,11 +105,36 @@ final class MatchControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/matches');
 
-        $assign = static fn(int $volunteerId, \DateTimeImmutable $date): string => sprintf('/activities/new?program=%d&volunteer=%d&date=%s', $program->getId(), $volunteerId, $date->format('Y-m-d'));
+        $assign = static fn(int $volunteerId, \DateTimeImmutable $date): string => sprintf('/activities/new?program=%d&volunteer=%d&date=%s&via=matches_skills', $program->getId(), $volunteerId, $date->format('Y-m-d'));
         self::assertSame(
             [$assign((int) $here->getId(), $today), $assign((int) $arriving->getId(), $today->modify('+10 days'))],
             $crawler->filter(sprintf('[data-program-matches="%d"] a', $program->getId()))->reduce(static fn(Crawler $link): bool => 'Assign' === trim($link->text()))->extract(['href']),
         );
+    }
+
+    /**
+     * The `via` tag is how /usage tells which kind of match got assigned.
+     */
+    #[Test]
+    public function theAssignLinkIsTaggedWithWhyTheVolunteerMatched(): void
+    {
+        $client = static::createClient();
+        $plumbing = SkillFactory::findOrCreate(['name' => 'Plumbing']);
+        $football = ActivityTypeFactory::createOne(['name' => 'Football session']);
+        $program = ProgramFactory::createOne(['skills' => [$plumbing], 'activityTypes' => [$football]]);
+        $both = VolunteerFactory::createOne(['skills' => [$plumbing]]);
+        $experienced = VolunteerFactory::createOne();
+        foreach ([$both, $experienced] as $volunteer) {
+            ActivityFactory::createOne(['volunteer' => $volunteer, 'activityType' => $football, 'date' => new \DateTimeImmutable('today')->modify('-3 months')]);
+        }
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/matches');
+
+        $tags = $crawler->filter(sprintf('[data-program-matches="%d"] a', $program->getId()))
+            ->reduce(static fn(Crawler $link): bool => 'Assign' === trim($link->text()))
+            ->each(static fn(Crawler $link): string => (string) preg_replace('/.*via=/', '', (string) $link->attr('href')));
+        self::assertSame(['matches_both', 'matches_experience'], $tags);
     }
 
     #[Test]

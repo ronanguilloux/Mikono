@@ -292,13 +292,26 @@ final class AccessLogReader
         // MethodNotAllowedException, which carries no route name, and every
         // write action would vanish from the screen — losing exactly the
         // "which actions get performed" half of the question.
-        $memo[$key] = \is_string($name)
+        $label = \is_string($name)
             && !str_starts_with($name, '_')
             && !\in_array($name, self::NOT_A_SCREEN, true)
                 ? ($patterns[$name] ?? $path)
                 : null;
 
-        return $memo[$key];
+        // A link may tag itself `?via=<source>` — /matches' Assign does — so
+        // one way onto a screen gets its own row apart from the others. A form
+        // without an action posts back to its own URL, so the save is tagged
+        // too. Lowercase and underscores only: a tag can never carry a record
+        // id, and a malformed one just counts in the plain row (ADR 0023).
+        if (null !== $label && false !== $query) {
+            parse_str(substr($uri, $query + 1), $params);
+            $via = $params['via'] ?? null;
+            if (\is_string($via) && 1 === preg_match('/^[a-z_]{1,40}$/', $via)) {
+                $label .= ' · via ' . $via;
+            }
+        }
+
+        return $memo[$key] = $label;
     }
 
     /**

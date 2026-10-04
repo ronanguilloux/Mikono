@@ -148,6 +148,30 @@ final class AccessLogReaderTest extends KernelTestCase
     }
 
     /**
+     * /matches' Assign link carries `?via=matches_<basis>`, and the batch form
+     * posts back to that URL, so clicks and saves from it get their own rows.
+     * A malformed tag folds into the plain row rather than minting a label.
+     */
+    #[Test]
+    public function aViaTagGetsItsOwnRowAndAMalformedOneIsIgnored(): void
+    {
+        $report = self::read('access-log-via-sample.ndjson');
+
+        self::assertSame(1, self::row($report, 'GET', '/activities/new · via matches_skills')['views']);
+        $post = self::row($report, 'POST', '/activities/new · via matches_skills');
+        self::assertSame(2, $post['views']);
+        self::assertSame(1, $post['rejected'], 'the 303 saved, the 422 was redisplayed');
+        self::assertSame(2, self::row($report, 'GET', '/activities/new')['views'], 'untagged, and via=Bad-1');
+        // The experience-tagged line was a hover prefetch.
+        self::assertNull(self::maybeRow($report, 'GET', '/activities/new · via matches_experience'));
+        self::assertEqualsCanonicalizing(
+            ['/activities/new', '/activities/new · via matches_skills', '/activities/new · via matches_skills'],
+            array_column($report['rows'], 'path'),
+            'no id from the query string reaches a label',
+        );
+    }
+
+    /**
      * /usage/event is the screen's own recorder — every in-page action posts
      * to it — so listing it would make this feature look like one of the app's
      * busiest pages and report itself as measuring itself.

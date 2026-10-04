@@ -54,6 +54,13 @@ final class MatchController extends AbstractController
         ['key' => 'experience', 'label' => 'Experience'],
     ];
 
+    /** Why a volunteer is on a program's list: the export's Basis column, and the Assign link's `via` tag. */
+    private const array BASIS = [
+        'experience' => 'Experience',
+        'skills' => 'Skills',
+        'both' => 'Skills + experience',
+    ];
+
     public function __construct(
         private readonly ProgramMatchFinder $finder,
         private readonly ProgramRepository $programs,
@@ -111,11 +118,7 @@ final class MatchController extends AbstractController
                     'branch' => $program->getProject()?->getBranch()?->getName() ?? '',
                     'project' => $program->getProject()?->getName() ?? '',
                     'program' => $program->getName(),
-                    'basis' => match (true) {
-                        $match->isByExperienceOnly() => 'Experience',
-                        [] === $match->experience => 'Skills',
-                        default => 'Skills + experience',
-                    },
+                    'basis' => self::BASIS[self::basis($match)],
                 ] + $this->cells($matches, $match, $today);
             }
         }
@@ -167,6 +170,9 @@ final class MatchController extends AbstractController
                     'program' => $matches->program->getId(),
                     'volunteer' => $id,
                     'date' => self::firstDay($matches, $match, $today)->format('Y-m-d'),
+                    // Read by /usage, not the form: an Assign click, and the
+                    // save that follows on the same URL, get their own rows.
+                    'via' => 'matches_' . self::basis($match),
                 ]), 'primary' => true]],
             ];
             if ($match->isByExperienceOnly()) {
@@ -202,6 +208,18 @@ final class MatchController extends AbstractController
             'missingSkills' => self::skillNames($match->missingSkills),
             'experience' => self::experience($match),
         ];
+    }
+
+    /**
+     * @return key-of<self::BASIS>
+     */
+    private static function basis(VolunteerMatch $match): string
+    {
+        return match (true) {
+            $match->isByExperienceOnly() => 'experience',
+            [] === $match->experience => 'skills',
+            default => 'both',
+        };
     }
 
     private static function stay(VolunteerMatch $match, \DateTimeImmutable $today): string

@@ -207,7 +207,9 @@ implements it.
 - `src/Usage/` — `AccessLogReader` streams Caddy's JSON access log
   (`var/log/access.log`, the `log_data` volume) for the admin-only `/usage`
   screen, plus the `usage_event` table for gestures that send no request.
-  Route-pattern labelling, the prefetch skip, the 422-before-`>= 400`
+  Route-pattern labelling (plus a link's optional `?via=` tag, `[a-z_]`
+  only and never an id — how `/matches`' Assign gets its own rows), the
+  prefetch skip, the 422-before-`>= 400`
   ordering, the three-column event row and the `UsageDateRange` window
   (shared by both tables, applied while streaming, part of the cache key)
   are load-bearing:
