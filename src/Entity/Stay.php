@@ -50,6 +50,7 @@ class Stay
      * @var Collection<int, Achievement>
      */
     #[ORM\OneToMany(targetEntity: Achievement::class, mappedBy: 'stay', cascade: ['remove'])]
+    #[ORM\OrderBy(['achievedOn' => 'DESC', 'id' => 'DESC'])]
     private Collection $achievements;
 
     #[ORM\Column]

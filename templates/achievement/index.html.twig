@@ -3,10 +3,11 @@
 {% block title %}Achievements — UCESCO Volunteer Manager{% endblock %}
 
 {% block body %}
-    <div class="mb-4 flex items-center justify-between">
+    <div class="mb-1 flex items-center justify-between">
         <h1 class="text-xl font-semibold">Achievements</h1>
         <twig:ExportMenu route="achievement_export" />
     </div>
+    <p class="mb-4 text-sm text-slate-600">Each achievement belongs to a volunteer's stay: it falls on a day of that stay, at one of its branch's projects. Open the stay to add, edit or delete them.</p>
 
     <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No achievements yet — add one from a stay on a volunteer's page." />
 {% endblock %}

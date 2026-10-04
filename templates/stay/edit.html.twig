@@ -5,4 +5,8 @@
 {% block body %}
     <h1 class="mb-4 text-xl font-semibold">Edit stay for {{ volunteer.fullName }}</h1>
     <twig:FormShell :form="form" cancelUrl="{{ path('volunteer_show', {id: volunteer.id}) }}" />
+
+    <div class="mt-6">
+        {{ include('stay/_achievements.html.twig') }}
+    </div>
 {% endblock %}

@@ -131,7 +131,8 @@ Branch of attachment and days on site:
 Managing stays:
 
 - Stays live on the volunteer page, in a Stays panel on
-  `/volunteers/{id}`: new at `/volunteers/{id}/stays/new`, edit at
+  `/volunteers/{id}`: new at `/volunteers/{id}/stays/new`, view at
+  `/stays/{id}` (the stay with its achievements, ADR 0038), edit at
   `/stays/{id}/edit`, and delete as `POST /stays/{id}/delete`. There is no
   `/stays` area.
 - An edit that would leave activities outside the stay's new dates is

@@ -359,6 +359,7 @@ final class VolunteerController extends AbstractController
             $stays[] = [
                 'stay' => $stay,
                 'actions' => [
+                    ['label' => 'View', 'url' => $this->generateUrl('stay_show', ['id' => $stay->getId()])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('stay_edit', ['id' => $stay->getId()])],
                     $referencingCount > 0
                         ? ['label' => 'Delete', 'disabledReason' => StayController::guardReason($referencingCount)]

@@ -22,8 +22,9 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * What volunteers achieved during their stays. Listed across volunteers at
- * /reports/achievements, but added from a stay on the volunteer's page, so the new
- * route is `stay_achievement_new` with the stay's `{id}`. See ADR 0038.
+ * /reports/achievements, but managed from their stay's page, so the new
+ * route is `stay_achievement_new` with the stay's `{id}`, and every save or
+ * delete returns to `stay_show`. See ADR 0038.
  */
 final class AchievementController extends AbstractController
 {
@@ -70,6 +71,7 @@ final class AchievementController extends AbstractController
             $rows[] = [
                 'cells' => $this->cells($achievement),
                 'actions' => [
+                    ['label' => 'View stay', 'url' => $this->generateUrl('stay_show', ['id' => $achievement->getStay()?->getId()])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('achievement_edit', ['id' => $achievement->getId()])],
                     [
                         'label' => 'Delete',
@@ -142,7 +144,7 @@ final class AchievementController extends AbstractController
 
             $this->addFlash('success', sprintf('Achievement added for %s.', $volunteer->getFullName()));
 
-            return $this->redirectToRoute('volunteer_show', ['id' => $volunteer->getId()]);
+            return $this->redirectToRoute('stay_show', ['id' => $stay->getId()]);
         }
 
         return $this->render('achievement/new.html.twig', ['form' => $form, 'volunteer' => $volunteer, 'stay' => $stay]);
@@ -162,7 +164,7 @@ final class AchievementController extends AbstractController
 
             $this->addFlash('success', sprintf('Achievement updated for %s.', $volunteer->getFullName()));
 
-            return $this->redirectToRoute('volunteer_show', ['id' => $volunteer->getId()]);
+            return $this->redirectToRoute('stay_show', ['id' => $stay->getId()]);
         }
 
         return $this->render('achievement/edit.html.twig', ['form' => $form, 'volunteer' => $volunteer, 'stay' => $stay]);
@@ -171,8 +173,8 @@ final class AchievementController extends AbstractController
     #[Route('/achievements/{id}/delete', name: 'achievement_delete', methods: ['POST'])]
     public function delete(Request $request, Achievement $achievement): Response
     {
-        $volunteer = $achievement->getStay()?->getVolunteer() ?? throw $this->createNotFoundException();
-        $redirect = $this->redirectToRoute('volunteer_show', ['id' => $volunteer->getId()]);
+        $stay = $achievement->getStay() ?? throw $this->createNotFoundException();
+        $redirect = $this->redirectToRoute('stay_show', ['id' => $stay->getId()]);
 
         $token = $request->request->all()['_token'] ?? null;
         if (!\is_string($token) || !$this->isCsrfTokenValid(self::csrfTokenId($achievement), $token)) {

@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Stay at {{ stay.branch.name }} for {{ volunteer.fullName }} — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mb-4 flex items-start justify-between gap-2">
+        <div>
+            <h1 class="mb-1 text-xl font-semibold">Stay at {{ stay.branch.name }} for <a href="{{ path('volunteer_show', {id: volunteer.id}) }}" class="text-brand-600 hover:underline">{{ volunteer.fullName }}</a></h1>
+            <p class="text-sm text-slate-600">{{ stay.startDate|date('j M Y') }} – {{ stay.endDate|date('j M Y') }}</p>
+        </div>
+        <a href="{{ path('stay_edit', {id: stay.id}) }}" class="text-sm text-brand-600 hover:underline">Edit stay</a>
+    </div>
+
+    {{ include('stay/_achievements.html.twig') }}
+{% endblock %}

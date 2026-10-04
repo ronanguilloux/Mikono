@@ -6,6 +6,11 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-04 — A stay page for its achievements
+
+`/stays/{id}` shows a stay with its achievements (add, edit, delete), and
+every achievement save returns there; see ADR 0038.
+
 ## 2026-10-03 — Reports becomes a menu of reports
 
 More reports are coming, so the nav's Reports link is now a dropdown group

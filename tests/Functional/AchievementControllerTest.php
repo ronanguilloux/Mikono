@@ -20,7 +20,7 @@ final class AchievementControllerTest extends WebTestCase
     use ReadsListExports;
 
     #[Test]
-    public function anAchievementAddedFromAStayShowsOnTheVolunteerPage(): void
+    public function anAchievementAddedFromAStayShowsOnItsStayPage(): void
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Nadia']);
@@ -39,10 +39,10 @@ final class AchievementControllerTest extends WebTestCase
             'achievement_form[project]' => (string) $project->getId(),
         ]));
 
-        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
+        self::assertResponseRedirects("/stays/{$stay->getId()}");
         $client->followRedirect();
         self::assertSelectorTextContains('[data-achievements]', 'Building a library');
-        self::assertSelectorTextContains('[data-achievements]', '15 Sep 2026 · Kibera Library · Nairobi (HQ)');
+        self::assertSelectorTextContains('[data-achievements]', '15 Sep 2026 · Kibera Library');
         AchievementFactory::assert()->count(1);
     }
 
@@ -116,7 +116,7 @@ final class AchievementControllerTest extends WebTestCase
         $crawler = $client->request('GET', "/achievements/{$achievement->getId()}/edit");
         $client->submit($crawler->selectButton('Save')->form(['achievement_form[title]' => 'Opening a library']));
 
-        self::assertResponseRedirects("/volunteers/{$achievement->getStay()?->getVolunteer()?->getId()}");
+        self::assertResponseRedirects("/stays/{$achievement->getStay()?->getId()}");
         $client->followRedirect();
         self::assertSelectorTextContains('[data-achievements]', 'Opening a library');
     }
@@ -187,7 +187,7 @@ final class AchievementControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Nadia', 'lastName' => 'Otieno']);
-        AchievementFactory::createOne([
+        $achievement = AchievementFactory::createOne([
             'stay' => StayFactory::new(['volunteer' => $volunteer]),
             'project' => ProjectFactory::new(['name' => 'Kibera Library']),
             'title' => 'Building a library',
@@ -198,7 +198,9 @@ final class AchievementControllerTest extends WebTestCase
 
         $client->request('GET', '/reports/achievements');
         self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Each achievement belongs to a volunteer\'s stay');
         self::assertSelectorTextContains('table tbody', 'Building a library');
+        self::assertSelectorExists("table tbody a[href=\"/stays/{$achievement->getStay()?->getId()}\"]");
 
         self::assertSame(
             [[$today->format('j M Y'), 'Building a library', 'Nadia Otieno', 'Kibera Library', 'Nairobi (HQ)']],

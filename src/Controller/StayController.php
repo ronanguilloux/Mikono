@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Achievement;
 use App\Entity\Stay;
 use App\Entity\Volunteer;
 use App\Form\StayFormType;
@@ -50,6 +51,18 @@ final class StayController extends AbstractController
         return $this->render('stay/new.html.twig', ['form' => $form, 'volunteer' => $volunteer]);
     }
 
+    /**
+     * The stay's own page, home of its achievements: every achievement save
+     * or delete comes back here (ADR 0038).
+     */
+    #[Route('/stays/{id}', name: 'stay_show', methods: ['GET'])]
+    public function show(Stay $stay): Response
+    {
+        $volunteer = $stay->getVolunteer() ?? throw $this->createNotFoundException();
+
+        return $this->render('stay/show.html.twig', ['stay' => $stay, 'volunteer' => $volunteer, 'achievements' => $this->achievementRows($stay)]);
+    }
+
     #[Route('/stays/{id}/edit', name: 'stay_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Stay $stay): Response
     {
@@ -66,7 +79,7 @@ final class StayController extends AbstractController
             return $this->redirectToRoute('volunteer_show', ['id' => $volunteer->getId()]);
         }
 
-        return $this->render('stay/edit.html.twig', ['form' => $form, 'volunteer' => $volunteer]);
+        return $this->render('stay/edit.html.twig', ['form' => $form, 'volunteer' => $volunteer, 'stay' => $stay, 'achievements' => $this->achievementRows($stay)]);
     }
 
     #[Route('/stays/{id}/delete', name: 'stay_delete', methods: ['POST'])]
@@ -115,6 +128,34 @@ final class StayController extends AbstractController
     public static function csrfTokenId(Stay $stay): string
     {
         return 'delete-stay-' . $stay->getId();
+    }
+
+    /**
+     * The stay's achievements with their Edit/Delete, for its show and edit
+     * pages; newest first by Stay::$achievements' mapping.
+     *
+     * @return list<array{achievement: Achievement, actions: list<array<string, string>>}>
+     */
+    private function achievementRows(Stay $stay): array
+    {
+        $rows = [];
+        foreach ($stay->getAchievements() as $achievement) {
+            $rows[] = [
+                'achievement' => $achievement,
+                'actions' => [
+                    ['label' => 'Edit', 'url' => $this->generateUrl('achievement_edit', ['id' => $achievement->getId()])],
+                    [
+                        'label' => 'Delete',
+                        'url' => $this->generateUrl('achievement_delete', ['id' => $achievement->getId()]),
+                        'method' => 'post',
+                        'confirm' => sprintf('Delete "%s"?', $achievement->getTitle()),
+                        'csrfTokenId' => AchievementController::csrfTokenId($achievement),
+                    ],
+                ],
+            ];
+        }
+
+        return $rows;
     }
 
     /**

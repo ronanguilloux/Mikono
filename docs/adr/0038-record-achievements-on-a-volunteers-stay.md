@@ -66,9 +66,14 @@ its stay.**
     `DataTable`. It is in the Reports menu and exports to CSV and XLSX
     ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md)).
     It has no "New" button.
-  - Achievements are added from a stay row on the volunteer's page (route
-    `stay_achievement_new`), and that page has an Achievements panel,
-    newest first.
+  - A stay's page, `/stays/{id}` (`stay_show`, opened by View on the
+    volunteer's stays list), is the home of its achievements: newest first,
+    with Add (`stay_achievement_new`), Edit and Delete. The stay's edit page
+    lists them the same way.
+  - Every achievement save, delete or cancel returns to its stay's page. The
+    achievement form and each `/reports/achievements` row link to that stay.
+  - The volunteer's page keeps an Achievements panel across all their
+    stays, newest first.
 - **Personal data**
   ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md)):
   - Purpose: to recognise a volunteer's contribution and to give staff a

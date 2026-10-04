@@ -222,4 +222,22 @@ final class StayControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', "1 achievement in this stay is at another branch's projects.");
     }
+
+    #[Test]
+    public function viewOpensTheStayPageWithItsAchievementsWhichTheEditPageListsToo(): void
+    {
+        $client = static::createClient();
+        $achievement = AchievementFactory::createOne(['title' => 'Building a library']);
+        $stay = $achievement->getStay();
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers/{$stay?->getVolunteer()?->getId()}");
+        $client->click($crawler->filter('[data-stays]')->selectLink('View')->link());
+
+        self::assertRouteSame('stay_show');
+        self::assertSelectorTextContains('[data-achievements]', 'Building a library');
+
+        $client->request('GET', "/stays/{$stay?->getId()}/edit");
+        self::assertSelectorTextContains('[data-achievements]', 'Building a library');
+    }
 }
