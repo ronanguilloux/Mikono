@@ -70,22 +70,22 @@ final class ProgramMatchFinder
 
     /**
      * The pool find() draws from, minus anyone with a skill on their profile:
-     * ticking theirs is how they become skill matches. Each volunteer's
-     * earliest stay, by name.
+     * ticking theirs is how they become skill matches. Every stay of each
+     * volunteer, earliest first, volunteers by name.
      *
-     * @return list<Stay>
+     * @return list<non-empty-list<Stay>>
      */
     public function findStaysWithoutSkills(\DateTimeImmutable $today, ?Branch $branch = null, ?VolunteerStatus $who = null): array
     {
         $result = [];
-        foreach ($this->staysByVolunteer($today, $branch, $who) as [$stay]) {
-            if (true === $stay->getVolunteer()?->getSkills()->isEmpty()) {
-                $result[] = $stay;
+        foreach ($this->staysByVolunteer($today, $branch, $who) as $stays) {
+            if (true === $stays[0]->getVolunteer()?->getSkills()->isEmpty()) {
+                $result[] = $stays;
             }
         }
 
-        usort($result, static fn(Stay $a, Stay $b): int => [$a->getVolunteer()?->getLastName() ?? '', $a->getVolunteer()?->getFirstName()]
-            <=> [$b->getVolunteer()?->getLastName() ?? '', $b->getVolunteer()?->getFirstName()]);
+        usort($result, static fn(array $a, array $b): int => [$a[0]->getVolunteer()?->getLastName() ?? '', $a[0]->getVolunteer()?->getFirstName()]
+            <=> [$b[0]->getVolunteer()?->getLastName() ?? '', $b[0]->getVolunteer()?->getFirstName()]);
 
         return $result;
     }

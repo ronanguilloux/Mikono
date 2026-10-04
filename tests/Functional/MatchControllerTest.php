@@ -157,7 +157,10 @@ final class MatchControllerTest extends WebTestCase
         $one = ProgramFactory::createOne(['skills' => [$plumbing]]);
         ProgramFactory::createOne(['skills' => [$plumbing, $painting]]);
         $today = new \DateTimeImmutable('today');
-        $blank = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Blank']);
+        $blank = VolunteerFactory::createOne(['firstName' => 'Ann', 'lastName' => 'Blank', 'stays' => [
+            StayFactory::new(['startDate' => $today->modify('-5 days'), 'endDate' => $today->modify('+5 days')]),
+            StayFactory::new(['branch' => BranchFactory::find(['name' => 'Mombasa']), 'startDate' => $today->modify('+20 days'), 'endDate' => $today->modify('+50 days')]),
+        ]]);
         $arriving = VolunteerFactory::createOne(['firstName' => 'Ben', 'lastName' => 'Coming', 'stays' => StayFactory::new([
             'startDate' => $today->modify('+10 days'),
             'endDate' => $today->modify('+40 days'),
@@ -178,9 +181,20 @@ final class MatchControllerTest extends WebTestCase
             $links($crawler, '[data-volunteers-no-skills]'),
             'Current and future stays alike; neither the inactive one nor the one with a skill.',
         );
-        self::assertStringContainsString('arrives ' . $today->modify('+10 days')->format('j M Y'), $crawler->filter('[data-volunteers-no-skills] li')->last()->text());
+        $date = static fn(string $days): string => $today->modify($days)->format('j M Y');
+        self::assertSame(
+            sprintf('Ann Blank · Nairobi (HQ), here until %s · Mombasa, arrives %s', $date('+5 days'), $date('+20 days')),
+            $crawler->filter('[data-volunteers-no-skills] li')->first()->text(),
+            'Every stay, earliest first.',
+        );
+        self::assertStringContainsString('arrives ' . $date('+10 days'), $crawler->filter('[data-volunteers-no-skills] li')->last()->text());
 
-        self::assertSame([sprintf('/volunteers/%d/edit', $arriving->getId())], $links($client->request('GET', '/matches?who=upcoming'), '[data-volunteers-no-skills]'), 'The Who filter reaches the list.');
+        $upcoming = $client->request('GET', '/matches?who=upcoming');
+        self::assertSame(
+            sprintf('Ann Blank · Mombasa, arrives %s', $date('+20 days')),
+            $upcoming->filter('[data-volunteers-no-skills] li')->first()->text(),
+            'The Who filter reaches the stays listed.',
+        );
     }
 
     /**

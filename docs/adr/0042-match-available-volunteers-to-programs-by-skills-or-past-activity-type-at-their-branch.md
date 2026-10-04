@@ -131,8 +131,9 @@ lexicographic order with no composite score.**
   visible and never inside a note, are up to three lists. Each one follows
   the filters and links to the edit page where the gap is fixed:
   - available volunteers with no skill on their profile, meaning anyone
-    with a current or upcoming stay. Each shows its branch and either
-    "here until" or "arrives", and the list stays on screen when empty.
+    with a current or upcoming stay. Each volunteer shows every such stay,
+    earliest first, as its branch plus "here until" or "arrives". The list
+    stays on screen when empty.
     These come from `ProgramMatchFinder::findStaysWithoutSkills()`: the
     same not-ended stays `find()` draws from, narrowed by Who and by the
     branch, or by the chosen program's branch;
