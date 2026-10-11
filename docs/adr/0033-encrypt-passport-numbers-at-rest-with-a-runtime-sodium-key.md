@@ -1,6 +1,6 @@
 # 33. Encrypt passport numbers at rest with a runtime sodium key
 
-Date: 2026-10-04
+Date: 2026-10-11
 
 ## Status
 
@@ -36,7 +36,8 @@ The number needs its own decision, for these reasons:
 
 **A volunteer's passport number is stored only as a libsodium
 `secretbox` ciphertext, sealed with a key supplied at runtime that never
-travels with the database or the image.**
+travels with the image, nor with the database outside the one governed
+development sync of §4.**
 
 **1. Storage.** `Volunteer::$passportNumberCiphertext` (TEXT, nullable)
 holds `v1:` followed by base64(nonce ‖ `sodium_crypto_secretbox` output),
@@ -73,11 +74,20 @@ encoding of 32 random bytes (`openssl rand -base64 32`).
 
 **4. Key lifecycle.** The production key lives in the password manager.
 Losing it loses every stored passport number: nothing can decrypt them.
-**It must never travel with the off-site database copy** — a backup and
-its key stored together are a plaintext backup. The `v1:` prefix names the
-key generation and leaves room for rotation; no rotation command exists,
-so rotating means writing one that decrypts under `v1` and re-encrypts
-under `v2`.
+**It must never travel with the off-site database copy or any backup** —
+a backup and its key stored together are a plaintext backup. The single
+exception is the production-to-dev sync of
+[ADR 0044](0044-allow-syncing-production-database-to-local-development.md):
+`make db_update` fetches the key over SSH from `/opt/mikono/deploy.env` and
+writes it, mode 600, into the gitignored `.env.dev.local`, which Symfony
+loads over the public dev key, because a synced volunteer with a number is
+otherwise unreadable and its profile and edit pages fail. That laptop
+therefore holds readable passport numbers for the length of the debugging
+session, and falls under ADR 0044's endpoint, transfer and retention rules,
+which destroy the key file along with the database. The `v1:` prefix
+names the key generation and leaves room for rotation; no rotation command
+exists, so rotating means writing one that decrypts under `v1` and
+re-encrypts under `v2`.
 
 **5. Never exported, never in fixtures.** The number stays out of the
 volunteers export
@@ -88,9 +98,10 @@ as ADR 0032 already rules for the profile fields, and fixtures leave it
 ## Consequences
 
 - **Positive:** A leaked `.db` file or backup carries no usable passport
-  numbers. The protection costs one small class and needs no extension
-  beyond PHP's bundled libsodium. A deployment that forgot the key fails
-  at once instead of corrupting data.
+  numbers; only a developer machine holding an ADR 0044 sync has both the
+  file and its key. The protection costs one small class and needs no
+  extension beyond PHP's bundled libsodium. A deployment that forgot the
+  key fails at once instead of corrupting data.
 - **Negative / trade-offs:** The app cannot search, sort or deduplicate by
   passport number, because every write produces a different ciphertext.
   There is one more secret to manage, and its loss is unrecoverable. The

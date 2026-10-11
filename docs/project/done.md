@@ -6,6 +6,15 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-11 — Dashboard reminders: daily arrivals by branch, birthdays 0–3 days
+
+Arrival reminders now show every day for the week before a stay starts,
+not only at 7, 3 and 1 days. Every stay start counts: the continuation
+skip is gone, so a volunteer moving branch the next day is reminded as an
+arrival at the new branch. The dashboard groups them by branch, then by
+days away ("Arriving in 4 days at Mombasa"). Birthday reminders shrink to
+the day itself and the three days before; the week-ahead one is gone.
+
 ## 2026-10-04 — Activity forms warn before booking a volunteer twice on one day
 
 Both activity forms (`/activities/new` and edit) come back with a 422

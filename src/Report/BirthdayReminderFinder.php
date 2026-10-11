@@ -7,8 +7,8 @@ namespace App\Report;
 use App\Repository\VolunteerRepository;
 
 /**
- * Finds the volunteers whose birthday is today, or exactly a week, three days
- * or one day away, so the team can send a message. Past volunteers are
+ * Finds the volunteers whose birthday is today, or one, two or three days
+ * away, so the team can send a message. Past volunteers are
  * included on purpose: recognising them is the point. The age is never
  * computed.
  *
@@ -17,7 +17,7 @@ use App\Repository\VolunteerRepository;
 final class BirthdayReminderFinder
 {
     /** @var list<int> */
-    public const array DAYS_AHEAD = [0, 1, 3, 7];
+    public const array DAYS_AHEAD = [0, 1, 2, 3];
 
     public function __construct(private readonly VolunteerRepository $volunteers) {}
 

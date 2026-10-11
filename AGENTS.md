@@ -498,7 +498,10 @@ in [`deployment-plan.md`](docs/project/deployment-plan.md)):
   `passportNumberCiphertext` column), never mapped as a plain field, exported
   or put in a fixture. Losing the key loses every number; it never travels
   with a database copy
-  ([ADR 0033](docs/adr/0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)).
+  ([ADR 0033](docs/adr/0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)),
+  except `make db_update`, which writes it to the gitignored `.env.dev.local`
+  for the debugging session
+  ([ADR 0044](docs/adr/0044-allow-syncing-production-database-to-local-development.md)).
 - In `frankenphp_prod_builder`, `tailwind:build` must run **before**
   `asset-map:compile`, or the image build fails. Don't reorder or drop it.
 - `date.timezone` is `Africa/Nairobi`, not UTC

@@ -10,7 +10,7 @@ final readonly class ArrivalReminder
         public int $volunteerId,
         public string $fullName,
         public string $branchName,
-        /** One of ArrivalReminderFinder::DAYS_AHEAD. */
+        /** 1 for tomorrow, up to ArrivalReminderFinder::DAYS_AHEAD. */
         public int $daysAway,
         public \DateTimeImmutable $startDate,
         public \DateTimeImmutable $endDate,

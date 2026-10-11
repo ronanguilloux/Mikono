@@ -59,8 +59,6 @@
                                     🎂 It's {{ name }}'s birthday today! A quick message from the team goes a long way.
                                 {% elseif birthday.daysAway == 1 %}
                                     🎈 {{ name }}'s birthday is tomorrow — time to prepare a message?
-                                {% elseif birthday.daysAway == 7 %}
-                                    📅 {{ name }}'s birthday is in a week — {{ birthday.date|date('D j M') }}.
                                 {% else %}
                                     🎁 {{ name }}'s birthday is in {{ birthday.daysAway }} days — {{ birthday.date|date('D j M') }}.
                                 {% endif %}
@@ -88,19 +86,21 @@
                         {% endfor %}
                     </ul>
                     {% endif %}
-                    {% for daysAway, label in {1: 'Arriving tomorrow', 3: 'Arriving in 3 days', 7: 'Arriving in a week'} %}
-                        {% set group = arrivals|filter(a => a.daysAway == daysAway) %}
-                        {% if group is not empty %}
-                            <h3 class="border-t border-slate-200 bg-slate-50 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ label }}</h3>
+                    {# Arrivals come sorted by branch, then days away: one heading per pair. #}
+                    {% for arrival in arrivals %}
+                        {% set previous = loop.first ? null : arrivals[loop.index0 - 1] %}
+                        {% if previous is null or previous.branchName != arrival.branchName or previous.daysAway != arrival.daysAway %}
+                            {% if previous is not null %}</ul>{% endif %}
+                            <h3 class="border-t border-slate-200 bg-slate-50 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500" data-arrival-heading>
+                                Arriving {{ arrival.daysAway == 1 ? 'tomorrow' : 'in ' ~ arrival.daysAway ~ ' days' }} at {{ arrival.branchName }}
+                            </h3>
                             <ul class="divide-y divide-slate-200 border-t border-slate-200">
-                                {% for arrival in group %}
-                                    <li class="px-5 py-3 text-sm" data-arrival-days="{{ arrival.daysAway }}">
-                                        🧳 <a href="{{ path('volunteer_show', {id: arrival.volunteerId}) }}" class="font-semibold text-brand-600 hover:underline">{{ arrival.fullName }}</a>
-                                        at {{ arrival.branchName }} — {{ arrival.startDate|date('D j M') }} to {{ arrival.endDate|date('D j M Y') }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
                         {% endif %}
+                        <li class="px-5 py-3 text-sm" data-arrival-days="{{ arrival.daysAway }}">
+                            🧳 <a href="{{ path('volunteer_show', {id: arrival.volunteerId}) }}" class="font-semibold text-brand-600 hover:underline">{{ arrival.fullName }}</a>
+                            — {{ arrival.startDate|date('D j M') }} to {{ arrival.endDate|date('D j M Y') }}
+                        </li>
+                        {% if loop.last %}</ul>{% endif %}
                     {% endfor %}
                 </section>
             {% endif %}

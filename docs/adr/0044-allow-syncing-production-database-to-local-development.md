@@ -1,6 +1,6 @@
 # 0044. Allow syncing the production database to local development environments using a dedicated script
 
-Date: 2026-10-08
+Date: 2026-10-11
 
 ## Status
 
@@ -34,12 +34,19 @@ without compromising the repository's safety or UCESCO's legal compliance.
 
 ## Decision
 
-**Allow syncing the production database to local development environments using a
-dedicated script, subject to explicit authorization and strict data protection
-controls.**
+**Allow syncing the production database to local development environments
+using a dedicated script, subject to explicit authorization and strict data
+protection controls.**
 
-The dedicated script (e.g., `scripts/sync-prod-db.sh`) will automate securely
-fetching the production SQLite database via SSH as the `deploy` user.
+The dedicated script (`scripts/sync-prod-db.sh`, run as `make db_update`)
+fetches the production SQLite database via SSH as the `deploy` user. It also
+reads the production `PASSPORT_ENCRYPTION_KEY` from `/opt/mikono/deploy.env`
+over the same SSH connection and writes it, mode 600, into the gitignored
+`.env.dev.local`, which Symfony loads over the public dev key in `.env.dev`.
+Without it the copy is unusable on the volunteer screens: every passport
+number in it is sealed under the production key
+([ADR 0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)),
+so opening or editing any volunteer who has one fails with a server error.
 
 This is reconciled with previous decisions as follows:
 
@@ -64,11 +71,14 @@ This is reconciled with previous decisions as follows:
     offshore maintenance, the database **cannot** be synced to a foreign local
     machine. Debugging must instead occur on a secure, UCESCO-owned UAT
     instance within Kenya.
-  - **Retention and Destruction:** The synced database is strictly temporary.
-    It must be destroyed (deleted from the local `var/` directory and emptied
-    from any trash/recycle bin) immediately after the debugging session
-    concludes, satisfying the data minimization and retention bounds of
-    ADR 0034.
+  - **Retention and Destruction:** The synced database and the fetched key
+    are strictly temporary. Immediately after the debugging session
+    concludes, both must be destroyed, satisfying the data minimization and
+    retention bounds of ADR 0034: delete `.env.dev.local` (or its
+    `PASSPORT_ENCRYPTION_KEY` line), replace the database with
+    `make fixtures`, run `docker compose restart php` so the workers drop
+    the key and the old file, and empty any trash/recycle bin that received
+    either file.
 
 ## Consequences
 
@@ -76,10 +86,12 @@ This is reconciled with previous decisions as follows:
   profilers) to reproduce and resolve production-only bugs accurately and
   quickly.
 - **Negative / trade-offs:** Introduces significant operational and compliance
-  overhead. Developers must ensure their machines are secure and rigorously
-  delete data post-debugging. If the developer is outside Kenya, gathering
-  consent or provisioning a compliant Kenyan debug environment is a steep
-  prerequisite.
+  overhead. Because the key travels with the copy, the local database is not
+  protected by passport encryption: a lost or compromised developer machine
+  exposes every passport number in it. Developers must ensure their machines
+  are secure and rigorously delete data post-debugging. If the developer is
+  outside Kenya, gathering consent or provisioning a compliant Kenyan debug
+  environment is a steep prerequisite.
 - **Reversibility:** Easy in code (remove the sync script), but any leaked data
   from a compromised or lost developer machine is irreversible and constitutes
   a reportable breach.

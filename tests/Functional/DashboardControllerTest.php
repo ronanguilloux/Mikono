@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Factory\BranchFactory;
 use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
@@ -197,7 +198,7 @@ final class DashboardControllerTest extends WebTestCase
     public function hidesTheRemindersPanelWhenNothingIsDue(): void
     {
         $client = static::createClient();
-        VolunteerFactory::createOne(['dateOfBirth' => (new \DateTimeImmutable('today'))->modify('-30 years +2 days')]);
+        VolunteerFactory::createOne(['dateOfBirth' => (new \DateTimeImmutable('today'))->modify('-30 years +4 days')]);
         VolunteerFactory::createOne(['dateOfBirth' => null]);
 
         $client->loginUser(UserFactory::createOne());
@@ -221,10 +222,34 @@ final class DashboardControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('#reminders-heading', 'Reminders');
         self::assertSelectorTextContains('[data-arrival-days="1"]', 'Amani Otieno');
-        self::assertSelectorTextContains('[data-arrival-days="1"]', 'Nairobi (HQ)');
+        self::assertSelectorTextContains('[data-arrival-heading]', 'Arriving tomorrow at Nairobi (HQ)');
         self::assertSame(
             sprintf('/volunteers/%d', $volunteer->getId()),
             $crawler->filter('[data-arrival-days="1"] a')->attr('href'),
+        );
+    }
+
+    #[Test]
+    public function groupsArrivalsByBranchThenDaysAway(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        foreach ([['Amani', 'Nairobi (HQ)', 1], ['Baraka', 'Mombasa', 3], ['Chausiku', 'Mombasa', 3]] as [$name, $branch, $days]) {
+            $volunteer = VolunteerFactory::new()->withoutStay()->create(['firstName' => $name, 'lastName' => null]);
+            $start = $today->modify("+{$days} days");
+            StayFactory::createOne(['volunteer' => $volunteer, 'branch' => BranchFactory::find(['name' => $branch]), 'startDate' => $start, 'endDate' => $start->modify('+2 weeks')]);
+        }
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame(
+            ['Arriving in 3 days at Mombasa', 'Arriving tomorrow at Nairobi (HQ)'],
+            $crawler->filter('[data-arrival-heading]')->each(static fn($h) => trim((string) preg_replace('/\s+/', ' ', $h->text()))),
+        );
+        self::assertSame(
+            [2, 1],
+            $crawler->filter('[data-arrival-heading] + ul')->each(static fn($ul) => $ul->filter('[data-arrival-days]')->count()),
         );
     }
 

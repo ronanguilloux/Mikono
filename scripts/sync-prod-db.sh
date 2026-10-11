@@ -5,7 +5,10 @@
 #
 # It uses the remote `scripts/backup-db.sh` to safely snapshot the live
 # production database without downtime, downloads the snapshot, and replaces
-# the local `data_dev.db` inside the Docker volume.
+# the local `data_dev.db` inside the Docker volume. It also copies the
+# production PASSPORT_ENCRYPTION_KEY into the gitignored .env.dev.local, or
+# every volunteer with a passport number 500s on decrypt (ADR 0033, 0044).
+# Delete that line when the debugging session ends.
 #
 # Usage:
 #   scripts/sync-prod-db.sh
@@ -40,7 +43,15 @@ docker compose cp "${LOCAL_TMP_DB}" "php:/app/var/data/data_${DB_ENV}.db"
 echo "5. Cleaning up local temporary file..."
 rm -f "${LOCAL_TMP_DB}"
 
-echo "6. Restarting the local PHP container to clear file handles..."
+echo "6. Fetching the production passport key into .env.dev.local..."
+KEY_LINE=$(ssh "${REMOTE_HOST}" "grep '^PASSPORT_ENCRYPTION_KEY=.' ${REMOTE_DIR}/deploy.env")
+(
+    umask 077
+    { grep -v '^PASSPORT_ENCRYPTION_KEY=' .env.dev.local 2>/dev/null || true; echo "${KEY_LINE}"; } > .env.tmp.local
+    mv .env.tmp.local .env.dev.local
+)
+
+echo "7. Restarting the local PHP container to clear file handles..."
 # As noted in AGENTS.md, FrankenPHP workers might hold connections to the replaced file
 # causing "database disk image is malformed" errors until restarted.
 docker compose restart php
@@ -51,4 +62,8 @@ echo ""
 echo "⚠️  NOTE: Your local dev accounts were overwritten by production data."
 echo "If you need a local admin account to log in, recreate/reset your test user:"
 echo "  docker compose exec php bin/console app:user:create --email=TEST_ACCOUNT@gmail.com --password=<new-password> --admin"
+echo ""
+echo "⚠️  This machine now holds readable passport numbers (prod key in .env.dev.local)."
+echo "When the debugging session ends (ADR 0044), destroy both:"
+echo "  sed -i '' '/^PASSPORT_ENCRYPTION_KEY=/d' .env.dev.local && make fixtures && docker compose restart php"
 echo ""
