@@ -6,6 +6,16 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-11 — "Projects needing volunteers" lists never-visited projects at once
+
+A project with no activity used to count its quiet days from `createdAt`,
+which is when it was entered in the app, not its real age. So every
+project loaded on 2026-09-28 with nothing logged stayed hidden while the
+dashboard said "Every active project has been visited in the last 30
+days". `QuietProjectFinder` now lists a never-visited project from day one,
+as critical and ahead of the quiet ones, with a "Never visited" badge.
+A future-dated activity still counts as a visit.
+
 ## 2026-10-11 — Dashboard reminders: daily arrivals by branch, birthdays 0–3 days
 
 Arrival reminders now show every day for the week before a stay starts,

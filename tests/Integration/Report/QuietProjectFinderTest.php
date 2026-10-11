@@ -55,12 +55,13 @@ final class QuietProjectFinderTest extends KernelTestCase
         self::bootKernel();
         ProjectFactory::createOne(['name' => 'Nyali Beach', 'isActive' => true]);
 
-        // Looking at the project 62 days on from the day it was created.
-        $quiet = $this->finder()->find((new \DateTimeImmutable('today'))->modify('+62 days'));
+        // Listed the day it is added, not 30 days later.
+        $quiet = $this->finder()->find(new \DateTimeImmutable('today'));
 
         self::assertCount(1, $quiet);
         self::assertSame('Nyali Beach', $quiet[0]->name);
-        self::assertSame(62, $quiet[0]->days);
+        self::assertSame(0, $quiet[0]->days);
+        self::assertSame(QuietProjectSeverity::Critical, $quiet[0]->severity);
         self::assertTrue($quiet[0]->hasNeverBeenUsed());
         self::assertNull($quiet[0]->lastActivity);
     }
@@ -130,10 +131,11 @@ final class QuietProjectFinderTest extends KernelTestCase
             'date' => $today->modify('-62 days'),
             'project' => ProjectFactory::createOne(['name' => 'Quiet the longest']),
         ]);
+        ProjectFactory::createOne(['name' => 'Never visited']);
 
         $names = array_map(static fn(QuietProject $p) => $p->name, $this->finder()->find($today));
 
-        self::assertSame(['Quiet the longest', 'Recently quiet'], $names);
+        self::assertSame(['Never visited', 'Quiet the longest', 'Recently quiet'], $names);
     }
 
     private function finder(): QuietProjectFinder

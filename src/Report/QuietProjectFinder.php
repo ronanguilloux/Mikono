@@ -17,9 +17,10 @@ use App\Repository\ProjectRepository;
  * are never coming back would bury the signal that is actionable. A quiet
  * project always is: it's somewhere the next volunteer could be assigned.
  *
- * A project with nothing ever logged against it counts from the day it was
- * created rather than being skipped — that's the site most in need of
- * attention, not the one to hide.
+ * A project with nothing ever logged against it is listed from day one, ahead
+ * of the quiet ones — that's the site most in need of attention, not the one
+ * to hide. Its `days` is only its age, for display: `createdAt` is when it was
+ * entered in the app, not when the project started.
  */
 final class QuietProjectFinder
 {
@@ -44,18 +45,18 @@ final class QuietProjectFinder
             $lastActivity = $this->toDate($row['lastActivity']);
             $days = $this->daysBetween($lastActivity ?? $project->getCreatedAt(), $today);
 
-            if ($days >= self::WARN_AFTER_DAYS) {
+            if (null === $lastActivity || $days >= self::WARN_AFTER_DAYS) {
                 $quiet[] = new QuietProject(
                     $id,
                     $project->getName(),
                     $days,
-                    QuietProjectSeverity::forDays($days),
+                    null === $lastActivity ? QuietProjectSeverity::Critical : QuietProjectSeverity::forDays($days),
                     $lastActivity,
                 );
             }
         }
 
-        usort($quiet, static fn(QuietProject $a, QuietProject $b) => [$b->days, $a->name] <=> [$a->days, $b->name]);
+        usort($quiet, static fn(QuietProject $a, QuietProject $b) => [$b->hasNeverBeenUsed(), $b->days, $a->name] <=> [$a->hasNeverBeenUsed(), $a->days, $b->name]);
 
         return $quiet;
     }

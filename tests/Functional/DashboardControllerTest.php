@@ -101,6 +101,22 @@ final class DashboardControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function listsAProjectNeverVisitedFromTheDayItIsAdded(): void
+    {
+        $client = static::createClient();
+        ProjectFactory::createOne(['name' => 'Nyali Beach']);
+
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('#quiet-projects-heading + p', 'Never visited');
+        self::assertSelectorTextContains('section[aria-labelledby="quiet-projects-heading"] li', 'Nyali Beach');
+        self::assertSelectorTextContains('section[aria-labelledby="quiet-projects-heading"] li', 'added today');
+        self::assertSelectorTextContains('section[aria-labelledby="quiet-projects-heading"] li', 'Never visited');
+    }
+
+    #[Test]
     public function neverListsAVolunteerAsNeedingAttention(): void
     {
         // Volunteers come for a few weeks and then leave — one who has stopped
