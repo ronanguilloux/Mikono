@@ -80,6 +80,8 @@ drafts and maintains these.
 | [0041](0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md) | Record where each volunteer came from as a seeded list of recruitment sources | Accepted |
 | [0042](0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md) | Match available volunteers to programs by skills or past activity type at their branch | Accepted |
 | [0043](0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md) | Record who added and last edited volunteers, stays, achievements, activities, projects and programs | Accepted |
+| [0044](0044-allow-syncing-production-database-to-local-development.md) | Allow syncing the production database to local development environments using a dedicated script | Accepted |
+| [0045](0045-adopt-a-makefile-as-the-unified-entry-point-for-developer-commands.md) | Adopt a Makefile as the unified entry point for developer commands | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

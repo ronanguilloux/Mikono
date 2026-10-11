@@ -9,7 +9,7 @@ entries), plus a basic per-volunteer/per-project report.
 ## Quick start
 
 ```bash
-docker compose up -d --wait   # start (first run auto-bootstraps the app)
+make up   # start (first run auto-bootstraps the app)
 ```
 
 The first run takes a few minutes and needs network access: the entrypoint
@@ -21,7 +21,7 @@ fresh checkout, and the container only reports healthy once it is done.
 ## Quick stop
 
 ```bash
-docker compose down           # stop — the SQLite data survives (named volume)
+make down           # stop — the SQLite data survives (named volume)
 ```
 
 You can interact with Symfony CLI and the SQLite DB:
@@ -64,11 +64,11 @@ services:
       CADDY_SERVER_EXTRA_DIRECTIVES: tls /app/frankenphp/certs/tls.pem /app/frankenphp/certs/tls.key
 ```
 
-and include it in every local compose command:
+and include it in every local compose command (or use `make up` after setting this environment variable):
 
 ```bash
 export COMPOSE_FILE=compose.yaml:compose.override.yaml:compose.local.yaml
-docker compose up -d --wait
+make up
 ```
 
 That `export` is per-shell, and forgetting it fails quietly: `docker compose`
@@ -95,7 +95,8 @@ this in production, which gets a real certificate from Caddy.
 ### Running tests
 
 ```bash
-docker compose exec php php bin/phpunit
+make test
+make e2e-test # End-to-End browser tests with Panther
 ```
 
 ### Quality checks
@@ -104,9 +105,9 @@ Before committing, run the full toolchain — static analysis, style,
 and dependency audit:
 
 ```bash
-docker compose exec php composer quality    # cs-check + phpstan + phpat + security-audit
-docker compose exec php composer cs-fix     # auto-fix style issues
-docker compose exec php composer rector     # preview refactors (dry-run only — review before applying)
+make quality    # cs-check + phpstan + phpat + security-audit
+make cs-fix     # auto-fix style issues
+make rector     # preview refactors (dry-run only — review before applying)
 ```
 
 - **PHPStan** runs at level `max` against `src/` and `tests/`.
