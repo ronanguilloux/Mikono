@@ -109,6 +109,11 @@ final class VolunteerFormType extends AbstractType
                 'input' => 'datetime_immutable',
                 'label' => 'Passport expiry date',
             ])
+            ->add('driveFolderUrl', UrlType::class, [
+                'required' => false,
+                'label' => 'GDrive folder URL',
+                'default_protocol' => 'https',
+            ])
             // Unmapped: the controller re-encodes the upload before it becomes a
             // VolunteerPhoto (ADR 0032). Listing the types in `accept` makes iOS
             // convert HEIC to JPEG on upload.

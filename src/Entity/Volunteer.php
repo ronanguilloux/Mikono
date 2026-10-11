@@ -116,6 +116,12 @@ class Volunteer implements Authored
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $passportExpiresOn = null;
 
+    // A pointer to the folder holding their documents; the app never fetches
+    // it. See ADR 0046.
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(requireTld: true)]
+    private ?string $driveFolderUrl = null;
+
     // Owning side, so Doctrine loads it lazily and list pages never read the
     // bytes; an inverse one-to-one would always be fetched.
     #[ORM\OneToOne(targetEntity: VolunteerPhoto::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -429,6 +435,18 @@ class Volunteer implements Authored
         return null !== $this->passportExpiresOn
             && !$this->isPassportExpired($today)
             && $this->passportExpiresOn < $today->modify('+6 months');
+    }
+
+    public function getDriveFolderUrl(): ?string
+    {
+        return $this->driveFolderUrl;
+    }
+
+    public function setDriveFolderUrl(?string $driveFolderUrl): static
+    {
+        $this->driveFolderUrl = self::nullIfBlank($driveFolderUrl);
+
+        return $this;
     }
 
     /**

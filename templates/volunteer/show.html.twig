@@ -310,6 +310,16 @@
                     {% endif %}
                 </dd>
             </div>
+            <div>
+                <dt class="text-xs text-slate-500">GDrive folder</dt>
+                <dd class="mt-0.5 break-all text-sm" data-drive-folder>
+                    {% if volunteer.driveFolderUrl %}
+                        <a href="{{ volunteer.driveFolderUrl }}" target="_blank" rel="noopener noreferrer nofollow" class="text-brand-600 hover:underline">{{ volunteer.driveFolderUrl }}</a>
+                    {% else %}
+                        {{ notOnFile }}
+                    {% endif %}
+                </dd>
+            </div>
             {% for field in [
                 {label: 'Skills', value: volunteer.skills is empty ? null : volunteer.skills|map(s => s.name)|join(', ')},
                 {label: 'Sources', value: volunteer.sources is empty ? null : volunteer.sources|map(s => s.name)|join(', ')},

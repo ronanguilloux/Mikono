@@ -82,6 +82,7 @@ drafts and maintains these.
 | [0043](0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md) | Record who added and last edited volunteers, stays, achievements, activities, projects and programs | Accepted |
 | [0044](0044-allow-syncing-production-database-to-local-development.md) | Allow syncing the production database to local development environments using a dedicated script | Accepted |
 | [0045](0045-adopt-a-makefile-as-the-unified-entry-point-for-developer-commands.md) | Adopt a Makefile as the unified entry point for developer commands | Accepted |
+| [0046](0046-link-each-volunteer-to-their-google-drive-folder.md) | Link each volunteer to their Google Drive folder | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

@@ -931,6 +931,7 @@ final class VolunteerControllerTest extends WebTestCase
             'volunteer_form[pickupAirport]' => 'JKIA, Nairobi',
             'volunteer_form[socialMediaUrl]' => 'https://example.org/aisha',
             'volunteer_form[supervisor]' => '',
+            'volunteer_form[driveFolderUrl]' => 'https://drive.google.com/drive/folders/abc123',
         ]));
 
         self::assertResponseRedirects('/volunteers');
@@ -939,8 +940,10 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertSame('JKIA, Nairobi', $volunteer->getPickupAirport());
         self::assertSame('https://example.org/aisha', $volunteer->getSocialMediaUrl());
         self::assertNull($volunteer->getSupervisor());
+        self::assertSame('https://drive.google.com/drive/folders/abc123', $volunteer->getDriveFolderUrl());
 
         $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        self::assertCount(1, $crawler->filter('[data-drive-folder] a[href="https://drive.google.com/drive/folders/abc123"][rel~="noopener"]'));
         self::assertSelectorTextContains('[data-profile]', 'Host family');
         self::assertSelectorTextContains('[data-profile]', 'JKIA, Nairobi');
         $link = $crawler->filter('[data-profile] a[href="https://example.org/aisha"]');
@@ -958,6 +961,21 @@ final class VolunteerControllerTest extends WebTestCase
 
         $client->submit($crawler->selectButton('Save')->form([
             'volunteer_form[socialMediaUrl]' => 'not a link',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    #[Test]
+    public function aDriveFolderLinkThatIsNotAUrlIsRefused(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[driveFolderUrl]' => 'not a link',
         ]));
 
         self::assertResponseStatusCodeSame(422);
