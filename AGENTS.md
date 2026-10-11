@@ -72,7 +72,7 @@ implements it.
 - `.claude/agents/` — Claude Code-specific subagents (`adr-scribe`,
   `context-capturer`).
 - `src/Entity/`, `src/Repository/` — Doctrine entities (`User`,
-  `Volunteer`, `Project`, `Program`, `ActivityType`, `Skill`, `Source`, `BeneficiaryGroup`, `Activity`, `Escort`, `Branch`, `Stay`, `Achievement`)
+  `Volunteer`, `Project`, `Program`, `ActivityType`, `Skill`, `Source`, `BeneficiaryGroup`, `Activity`, `Escort`, `Branch`, `Stay`, `Achievement`, `Indicator`)
   and their repositories, each with a `countReferencingActivities()`
   delete-guard where applicable. `Branch`'s guard counts stays and projects, and its five real rows come from its migration, not the
   fixtures — tests start with them
@@ -119,6 +119,11 @@ implements it.
   unseeded and absent from fixtures** — the VM enters it; `/reports/volunteers?tab=group`
   credits an activity to every group of its program
   ([ADR 0030](docs/adr/0030-insert-programs-between-projects-and-activities.md)).
+  `Indicator` is a fourth, unseeded the same way: an achievement's optional
+  indicator and quantity come **as a pair**, never one alone. Impact counts
+  live on achievements, never on activities, which are one row per
+  volunteer and would multiply them
+  ([ADR 0047](docs/adr/0047-count-achievements-with-an-optional-indicator-and-quantity.md)).
   Volunteer, Stay, Achievement, Project and Program carry `createdBy` /
   `updatedBy`; Activity only `updatedBy`, since `loggedBy` is its creator.
   `App\Security\AuthorStamper` stamps them on flush, an update only when

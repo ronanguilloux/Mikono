@@ -8,6 +8,7 @@ use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
 use App\Factory\ActivityTypeFactory;
 use App\Factory\BeneficiaryGroupFactory;
+use App\Factory\IndicatorFactory;
 use App\Factory\BranchFactory;
 use App\Factory\EscortFactory;
 use App\Factory\ProgramFactory;
@@ -34,7 +35,7 @@ final class RouteSmokeTest extends WebTestCase
      * Route-name prefix => the seeded entity whose id fills that route's
      * `{id}`. Longest first: `activity_type_` must win over `activity_`.
      */
-    private const ID_PREFIXES = ['achievement_', 'activity_type_', 'activity_', 'beneficiary_group_', 'branch_', 'escort_', 'program_', 'project_', 'skill_', 'source_', 'stay_', 'user_', 'volunteer_'];
+    private const ID_PREFIXES = ['achievement_', 'activity_type_', 'activity_', 'beneficiary_group_', 'branch_', 'escort_', 'indicator_', 'program_', 'project_', 'skill_', 'source_', 'stay_', 'user_', 'volunteer_'];
 
     #[Test]
     public function everyGetRouteRendersWithoutAServerError(): void
@@ -114,6 +115,7 @@ final class RouteSmokeTest extends WebTestCase
             'program_' => (int) ProgramFactory::createOne(['project' => $project, 'activityTypes' => [$activityType]])->getId(),
             'project_' => (int) $project->getId(),
             'beneficiary_group_' => (int) BeneficiaryGroupFactory::createOne()->getId(),
+            'indicator_' => (int) IndicatorFactory::createOne()->getId(),
             'skill_' => (int) SkillFactory::createOne()->getId(),
             'source_' => (int) SourceFactory::createOne()->getId(),
             'stay_' => (int) $activity->getStay()?->getId(),

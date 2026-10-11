@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-10-04
+**Last updated:** 2026-10-11
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -48,11 +48,13 @@ each other, take them in any order or none:
 
 - [Cut symfony/ux-live-component](backlog/cut-ux-live-component.md) — **D**
 - [Review adopting LiveComponent across the app](backlog/review-live-component-at-scale.md) — **D**
-- [/reports/volunteers walks every activity four times](backlog/reports/volunteers-triple-walk-performance.md) — **G**
+- [/reports/volunteers walks every activity four times](backlog/reports-triple-walk-performance.md) — **G**
 - [Reconsider knplabs/knp-paginator-bundle](backlog/reconsider-knp-paginator.md) — **D**
 
 Features not yet decided:
 
+- [First charts on the reports, from today's schema](backlog/dataviz-first-charts.md) — **D**
+- [Branch capacity and program staffing targets](backlog/branch-capacity-and-program-staffing-targets.md) — **D**
 - [Geolocate usage with GeoIP](backlog/geoip-usage-location.md) — **D**
 - [A searchable photo library with metadata](backlog/photo-library-with-metadata.md) — **D**
 - [Offline field capture and sync](backlog/offline-field-capture.md) — **D**

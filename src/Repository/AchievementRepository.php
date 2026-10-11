@@ -27,11 +27,12 @@ class AchievementRepository extends ServiceEntityRepository
     public function createNewestFirstQueryBuilder(): QueryBuilder
     {
         return $this->createQueryBuilder('ach')
-            ->addSelect('s', 'v', 'b', 'p')
+            ->addSelect('s', 'v', 'b', 'p', 'i')
             ->join('ach.stay', 's')
             ->join('s.volunteer', 'v')
             ->join('s.branch', 'b')
             ->join('ach.project', 'p')
+            ->leftJoin('ach.indicator', 'i')
             ->orderBy('ach.achievedOn', 'DESC')
             ->addOrderBy('ach.id', 'DESC');
     }

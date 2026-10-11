@@ -10,7 +10,7 @@
             <li class="flex flex-wrap items-start justify-between gap-2 py-2">
                 <div class="text-sm">
                     <div class="font-medium text-slate-800">{{ achievement.title }}</div>
-                    <div class="text-slate-600">{{ achievement.achievedOn|date('j M Y') }} · {{ achievement.project.name }}</div>
+                    <div class="text-slate-600">{{ achievement.achievedOn|date('j M Y') }} · {{ achievement.project.name }}{% if achievement.indicator %} · {{ achievement.quantity|number_format }} {{ achievement.indicator.name }}{% endif %}</div>
                     {% if achievement.description %}
                         <p class="mt-1 whitespace-pre-line text-slate-600">{{ achievement.description }}</p>
                     {% endif %}

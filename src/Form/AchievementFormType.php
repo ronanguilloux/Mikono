@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\Achievement;
+use App\Entity\Indicator;
 use App\Entity\Project;
+use App\Repository\IndicatorRepository;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -41,6 +44,20 @@ final class AchievementFormType extends AbstractType
                 'choice_label' => static fn(Project $project) => sprintf('%s (%s)', $project->getName(), $project->getBranch()?->getName() ?? '—'),
                 'query_builder' => static fn(ProjectRepository $projects): QueryBuilder => $projects->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose a project',
+            ])
+            // Optional, as a pair: Achievement::validateIndicatorAndQuantity().
+            ->add('quantity', IntegerType::class, [
+                'required' => false,
+                'label' => 'How many',
+                'attr' => ['min' => 1],
+                'help' => 'Optional. With the indicator below: "12" children reached.',
+            ])
+            ->add('indicator', EntityType::class, [
+                'class' => Indicator::class,
+                'choice_label' => 'name',
+                'query_builder' => static fn(IndicatorRepository $indicators): QueryBuilder => $indicators->createOrderedByNameQueryBuilder(),
+                'required' => false,
+                'placeholder' => 'Not counted',
             ])
             ->add('description', TextareaType::class, [
                 'required' => false,

@@ -8,12 +8,17 @@ use App\Repository\AchievementRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Something a volunteer left behind during a stay — "Built a library" — as
  * opposed to an activity, which is one day's log entry. Its day falls within
  * the stay and its project is at the stay's branch; AchievementController
  * checks both on save, and stay and project edits re-check them. See ADR 0038.
+ *
+ * An optional indicator and quantity make it countable — "12 children
+ * reached" — and come as a pair: a number without its unit means nothing,
+ * and a unit without its number counts nothing.
  */
 #[ORM\Entity(repositoryClass: AchievementRepository::class)]
 class Achievement implements Authored
@@ -45,6 +50,13 @@ class Achievement implements Authored
     #[ORM\Column(type: 'date_immutable')]
     #[Assert\NotNull(message: 'Enter the day it was achieved.')]
     private ?\DateTimeImmutable $achievedOn = null;
+
+    #[ORM\ManyToOne(targetEntity: Indicator::class)]
+    private ?Indicator $indicator = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Assert\Positive]
+    private ?int $quantity = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -121,6 +133,45 @@ class Achievement implements Authored
         $this->achievedOn = $achievedOn;
 
         return $this;
+    }
+
+    public function getIndicator(): ?Indicator
+    {
+        return $this->indicator;
+    }
+
+    public function setIndicator(?Indicator $indicator): static
+    {
+        $this->indicator = $indicator;
+
+        return $this;
+    }
+
+    public function getQuantity(): ?int
+    {
+        return $this->quantity;
+    }
+
+    public function setQuantity(?int $quantity): static
+    {
+        $this->quantity = $quantity;
+
+        return $this;
+    }
+
+    #[Assert\Callback]
+    public function validateIndicatorAndQuantity(ExecutionContextInterface $context): void
+    {
+        if (null !== $this->quantity && null === $this->indicator) {
+            $context->buildViolation('Choose what this number counts.')
+                ->atPath('indicator')
+                ->addViolation();
+        }
+        if (null !== $this->indicator && null === $this->quantity) {
+            $context->buildViolation('Enter how many.')
+                ->atPath('quantity')
+                ->addViolation();
+        }
     }
 
     public function getCreatedAt(): \DateTimeImmutable

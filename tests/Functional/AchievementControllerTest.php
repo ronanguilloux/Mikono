@@ -6,10 +6,12 @@ namespace App\Tests\Functional;
 
 use App\Factory\AchievementFactory;
 use App\Factory\BranchFactory;
+use App\Factory\IndicatorFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
@@ -104,6 +106,63 @@ final class AchievementControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', 'Say what was achieved.');
+    }
+
+    #[Test]
+    public function anAchievementCanCountSomething(): void
+    {
+        $client = static::createClient();
+        $stay = StayFactory::createOne();
+        $project = ProjectFactory::createOne(['name' => 'Kibera Library']);
+        $children = IndicatorFactory::createOne(['name' => 'Children reached']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/stays/{$stay->getId()}/achievements/new");
+        $client->submit($crawler->selectButton('Save')->form([
+            'achievement_form[title]' => 'Reading club',
+            'achievement_form[achievedOn]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'achievement_form[project]' => (string) $project->getId(),
+            'achievement_form[quantity]' => '1200',
+            'achievement_form[indicator]' => (string) $children->getId(),
+        ]));
+
+        self::assertResponseRedirects("/stays/{$stay->getId()}");
+        $client->followRedirect();
+        self::assertSelectorTextContains('[data-achievements]', 'Kibera Library · 1,200 Children reached');
+    }
+
+    /**
+     * @return iterable<string, array{string, ?string, string}>
+     */
+    public static function halfAPair(): iterable
+    {
+        yield 'a number without what it counts' => ['12', null, 'Choose what this number counts.'];
+        yield 'what it counts without a number' => ['', 'indicator', 'Enter how many.'];
+        yield 'zero' => ['0', 'indicator', 'This value should be positive.'];
+    }
+
+    #[Test]
+    #[DataProvider('halfAPair')]
+    public function theIndicatorAndQuantityComeAsAPair(string $quantity, ?string $indicator, string $error): void
+    {
+        $client = static::createClient();
+        $stay = StayFactory::createOne();
+        $project = ProjectFactory::createOne();
+        $children = IndicatorFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/stays/{$stay->getId()}/achievements/new");
+        $client->submit($crawler->selectButton('Save')->form([
+            'achievement_form[title]' => 'Reading club',
+            'achievement_form[achievedOn]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'achievement_form[project]' => (string) $project->getId(),
+            'achievement_form[quantity]' => $quantity,
+            'achievement_form[indicator]' => null === $indicator ? '' : (string) $children->getId(),
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', $error);
+        AchievementFactory::assert()->count(0);
     }
 
     #[Test]
@@ -203,7 +262,7 @@ final class AchievementControllerTest extends WebTestCase
         self::assertSelectorExists("table tbody a[href=\"/stays/{$achievement->getStay()?->getId()}\"]");
 
         self::assertSame(
-            [[$today->format('j M Y'), 'Building a library', 'Nadia Otieno', 'Kibera Library', 'Nairobi (HQ)']],
+            [[$today->format('j M Y'), 'Building a library', 'Nadia Otieno', 'Kibera Library', 'Nairobi (HQ)', '—', '—']],
             self::exportedRows($client, '/reports/achievements/export.csv'),
         );
     }

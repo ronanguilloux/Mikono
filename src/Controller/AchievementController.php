@@ -40,6 +40,8 @@ final class AchievementController extends AbstractController
         'volunteer' => ['v.firstName', 'v.lastName'],
         'project' => ['p.name'],
         'branch' => ['b.name'],
+        'quantity' => ['ach.quantity'],
+        'indicator' => ['i.name'],
     ];
 
     /**
@@ -53,6 +55,8 @@ final class AchievementController extends AbstractController
         ['key' => 'volunteer', 'label' => 'Volunteer'],
         ['key' => 'project', 'label' => 'Project'],
         ['key' => 'branch', 'label' => 'Branch'],
+        ['key' => 'quantity', 'label' => 'How many'],
+        ['key' => 'indicator', 'label' => 'Indicator'],
     ];
 
     public function __construct(
@@ -127,6 +131,8 @@ final class AchievementController extends AbstractController
             'volunteer' => $stay?->getVolunteer()?->getFullName() ?? '—',
             'project' => $achievement->getProject()?->getName() ?? '—',
             'branch' => $stay?->getBranch()?->getName() ?? '—',
+            'quantity' => null === $achievement->getQuantity() ? '—' : (string) $achievement->getQuantity(),
+            'indicator' => $achievement->getIndicator()?->getName() ?? '—',
         ];
     }
 
