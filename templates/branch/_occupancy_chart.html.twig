@@ -1,0 +1,18 @@
+{# One OccupancyLookAhead row as a chart, shared by the home screen and the
+   branch page so their summaries can't drift. `href` is optional. #}
+{% set busiest = max(row.weeks|map(w => w.peak)) %}
+{% if row.capacity is null %}
+    {% set summary = 'Busiest week: ' ~ busiest ~ ' on site · no capacity set' %}
+{% elseif row.firstOver %}
+    {% set summary = 'Over capacity from the week of ' ~ row.firstOver|date('j M') %}
+{% else %}
+    {% set summary = 'Busiest week: ' ~ busiest ~ ' of ' ~ row.capacity ~ ' places' %}
+{% endif %}
+<twig:ColumnChart
+    :title="row.branch.name"
+    :summary="summary"
+    :columns="row.weeks|map(w => {label: w.start|date('j M'), title: 'Week of ' ~ w.start|date('j M'), value: w.peak})"
+    :limit="row.capacity"
+    :sparseLabels="true"
+    :href="href ?? null"
+/>

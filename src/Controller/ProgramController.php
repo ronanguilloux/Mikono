@@ -33,7 +33,7 @@ final class ProgramController extends AbstractController
      *
      * @var array<string, non-empty-list<string>>
      */
-    private const array SORT_MAP = [
+    public const array SORT_MAP = [
         'name' => ['prg.name'],
         'project' => ['p.name'],
         'branch' => ['b.name'],
@@ -41,7 +41,7 @@ final class ProgramController extends AbstractController
     ];
 
     /** @var list<array{key: string, label: string}> */
-    private const array COLUMNS = [
+    public const array COLUMNS = [
         ['key' => 'name', 'label' => 'Name'],
         ['key' => 'project', 'label' => 'Project'],
         ['key' => 'branch', 'label' => 'Branch'],
@@ -73,7 +73,7 @@ final class ProgramController extends AbstractController
             $id = $program->getId();
             $activityCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
             $rows[] = [
-                'cells' => $this->cells($program),
+                'cells' => self::cells($program),
                 'actions' => [
                     ['label' => 'Matches', 'url' => $this->generateUrl('match_index', ['program' => $id])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('program_edit', ['id' => $id])],
@@ -113,7 +113,7 @@ final class ProgramController extends AbstractController
         return ListExport::response('programs', $format, self::COLUMNS, (function () use ($request): \Generator {
             /** @var Program $program */
             foreach ($this->listQueryBuilder($request)->getQuery()->toIterable() as $program) {
-                yield $this->cells($program);
+                yield self::cells($program);
             }
         })());
     }
@@ -171,7 +171,7 @@ final class ProgramController extends AbstractController
     /**
      * @return array<string, string>
      */
-    private function cells(Program $program): array
+    public static function cells(Program $program): array
     {
         return [
             'name' => $program->getName(),

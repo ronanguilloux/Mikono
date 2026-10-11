@@ -46,7 +46,7 @@ final class ActivityController extends AbstractController
      *
      * @var array<string, non-empty-list<string>>
      */
-    private const array SORT_MAP = [
+    public const array SORT_MAP = [
         'date' => ['a.date'],
         'volunteer' => ['v.lastName', 'v.firstName'],
         'project' => ['p.name'],
@@ -55,7 +55,7 @@ final class ActivityController extends AbstractController
     ];
 
     /** @var list<array{key: string, label: string}> */
-    private const array COLUMNS = [
+    public const array COLUMNS = [
         ['key' => 'date', 'label' => 'Date'],
         ['key' => 'volunteer', 'label' => 'Volunteer'],
         ['key' => 'project', 'label' => 'Project'],
@@ -96,7 +96,7 @@ final class ActivityController extends AbstractController
                 // the home screen's tomorrow roster does. The desktop table
                 // stays exactly as it was.
                 'planned' => null !== $date && $date > $today,
-                'cells' => $this->cells($activity),
+                'cells' => self::cells($activity),
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('activity_edit', ['id' => $activity->getId()])],
                     [
@@ -141,7 +141,7 @@ final class ActivityController extends AbstractController
         return ListExport::response('activities', $format, self::COLUMNS, (function () use ($queryBuilder): \Generator {
             /** @var Activity $activity */
             foreach ($queryBuilder->getQuery()->toIterable() as $activity) {
-                yield $this->cells($activity);
+                yield self::cells($activity);
             }
         })());
     }
@@ -160,7 +160,7 @@ final class ActivityController extends AbstractController
     /**
      * @return array<string, string>
      */
-    private function cells(Activity $activity): array
+    public static function cells(Activity $activity): array
     {
         return [
             'date' => $activity->getDate()?->format('D j M Y') ?? '—',
@@ -177,6 +177,30 @@ final class ActivityController extends AbstractController
             'duration' => ActivityDuration::Other === $activity->getDuration()
                 ? ($activity->getDurationOther() ?? ActivityDuration::Other->label())
                 : ($activity->getDuration()?->label() ?? '—'),
+        ];
+    }
+
+    /**
+     * An activity as a read-only row on another screen's list (the branch and
+     * project pages): the date opens it, volunteer and project their pages,
+     * and a future date is tagged Planned, as on /reports/volunteers.
+     *
+     * @param \Closure(string, array<string, mixed>): string $url generateUrl(...)
+     *
+     * @return array{cells: array<string, string>, links: array<string, string>, badges: array<string, string>}
+     */
+    public static function linkedRow(Activity $activity, \DateTimeImmutable $today, \Closure $url): array
+    {
+        $date = $activity->getDate();
+
+        return [
+            'cells' => self::cells($activity),
+            'links' => [
+                'date' => $url('activity_edit', ['id' => $activity->getId()]),
+                'volunteer' => $url('volunteer_show', ['id' => $activity->getVolunteer()?->getId()]),
+                'project' => $url('project_show', ['id' => $activity->getProject()?->getId()]),
+            ],
+            'badges' => null !== $date && $date > $today ? ['date' => 'Planned'] : [],
         ];
     }
 
@@ -517,7 +541,7 @@ final class ActivityController extends AbstractController
             $activity->getVolunteer()?->getFullName() ?? 'The volunteer',
             $activity->getActivityType()?->getName() ?? 'an activity',
             $activity->getProgram()?->getName() ?? 'another program',
-            $this->cells($activity)['duration'],
+            self::cells($activity)['duration'],
         ), $booked)];
     }
 

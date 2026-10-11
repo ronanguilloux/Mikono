@@ -47,6 +47,36 @@ class ProjectRepository extends ServiceEntityRepository
     }
 
     /**
+     * The latest activity at each project, planned ones included, for the
+     * branch page's list — ProgramRepository::findLastActivityDates() a level
+     * up.
+     *
+     * @param list<Project> $projects
+     *
+     * @return array<int, \DateTimeImmutable> project id => date; absent means never
+     */
+    public function findLastActivityDates(array $projects): array
+    {
+        if ([] === $projects) {
+            return [];
+        }
+
+        /** @var list<array{projectId: int|string, last: string}> $rows */
+        $rows = $this->getEntityManager()
+            ->createQuery('SELECT IDENTITY(prg.project) AS projectId, MAX(a.date) AS last FROM ' . Activity::class . ' a JOIN a.program prg WHERE prg.project IN (:projects) GROUP BY prg.project')
+            ->setParameter('projects', $projects)
+            ->getResult();
+
+        $dates = [];
+        foreach ($rows as $row) {
+            // MAX() bypasses Doctrine's type conversion: the date comes back raw.
+            $dates[(int) $row['projectId']] = new \DateTimeImmutable($row['last']);
+        }
+
+        return $dates;
+    }
+
+    /**
      * Every still-active project with the date it was last worked on, or null
      * if nothing has ever been logged against it. Unlike volunteers, a project
      * with no activity at all is kept — that's the one most in need of

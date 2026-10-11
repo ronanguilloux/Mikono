@@ -343,8 +343,8 @@ final class ReportController extends AbstractController
      * these rows are. A volunteer's name links to their page and a program's
      * or a branch's to its activities (`/activities?program=<id>`,
      * `?branch=<id>`), a source's to the volunteers holding it
-     * (`/volunteers?source=<id>`). A project's goes to its edit form, the only project
-     * page there is. The Unknown bucket carries no id, so it stays plain text. The Most recent date links on every tab, to
+     * (`/volunteers?source=<id>`). A project's goes to its page
+     * (`/projects/<id>`). The Unknown bucket carries no id, so it stays plain text. The Most recent date links on every tab, to
      * the edit form of the activity it came from: an activity has no other
      * page. On a date with several activities, that is one of them.
      *
@@ -395,7 +395,7 @@ final class ReportController extends AbstractController
                 $links['label'] = $this->generateUrl('volunteer_show', ['id' => $id]);
             }
             if (self::TAB_PROJECT === $tab && null !== $id) {
-                $links['label'] = $this->generateUrl('project_edit', ['id' => $id]);
+                $links['label'] = $this->generateUrl('project_show', ['id' => $id]);
             }
             if (self::TAB_PROGRAM === $tab && null !== $id) {
                 $links['label'] = $this->generateUrl('activity_index', ['program' => $id]);

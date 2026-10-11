@@ -70,7 +70,7 @@
                     <ul class="divide-y divide-slate-200 {{ birthdays is not empty ? 'border-t border-slate-200' }}">
                         {% for anniversary in anniversaries %}
                             {% set name %}<a href="{{ path('volunteer_show', {id: anniversary.volunteerId}) }}" class="font-semibold text-brand-600 hover:underline">{{ anniversary.firstName }}</a>{% endset %}
-                            {% set what %}{{ name }} achieved “{{ anniversary.title }}” as part of the <a href="{{ path('project_edit', {id: anniversary.projectId}) }}" class="font-semibold text-brand-600 hover:underline">{{ anniversary.projectName }}</a> project in {{ anniversary.branchName }}{% endset %}
+                            {% set what %}{{ name }} achieved “{{ anniversary.title }}” as part of the <a href="{{ path('project_show', {id: anniversary.projectId}) }}" class="font-semibold text-brand-600 hover:underline">{{ anniversary.projectName }}</a> project in {{ anniversary.branchName }}{% endset %}
                             {% set span = anniversary.years == 1 ? 'One year' : anniversary.years ~ ' years' %}
                             <li class="px-5 py-3 text-sm" data-anniversary-days="{{ anniversary.daysAway }}" data-anniversary-years="{{ anniversary.years }}">
                                 {% if anniversary.daysAway == 1 %}
@@ -141,7 +141,7 @@
                         {% for project in quietProjects %}
                             <li class="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3">
                                 <div class="min-w-0 flex-1">
-                                    <div class="truncate text-sm font-semibold">{{ project.name }}</div>
+                                    <a href="{{ path('project_show', {id: project.id}) }}" class="block truncate text-sm font-semibold text-brand-600 hover:underline">{{ project.name }}</a>
                                     <div class="mt-0.5 text-xs text-slate-500">
                                         {% if project.hasNeverBeenUsed %}
                                             added {{ project.days == 0 ? 'today' : project.days ~ (project.days == 1 ? ' day' : ' days') ~ ' ago' }}
@@ -244,21 +244,7 @@
                     </div>
                     <div class="grid grid-cols-1 gap-3 p-3">
                         {% for row in occupancy %}
-                            {% set busiest = max(row.weeks|map(w => w.peak)) %}
-                            {% if row.capacity is null %}
-                                {% set summary = 'Busiest week: ' ~ busiest ~ ' on site · no capacity set' %}
-                            {% elseif row.firstOver %}
-                                {% set summary = 'Over capacity from the week of ' ~ row.firstOver|date('j M') %}
-                            {% else %}
-                                {% set summary = 'Busiest week: ' ~ busiest ~ ' of ' ~ row.capacity ~ ' places' %}
-                            {% endif %}
-                            <twig:ColumnChart
-                                :title="row.branch.name"
-                                :summary="summary"
-                                :columns="row.weeks|map(w => {label: w.start|date('j M'), title: 'Week of ' ~ w.start|date('j M'), value: w.peak})"
-                                :limit="row.capacity"
-                                :sparseLabels="true"
-                            />
+                            {{ include('branch/_occupancy_chart.html.twig', {row: row, href: path('branch_show', {id: row.branch.id})}) }}
                         {% endfor %}
                     </div>
                 </section>

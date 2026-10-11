@@ -61,17 +61,18 @@ final class ListPaginator
      * @param class-string<T> $entityClass the type $queryBuilder selects — unused at
      *                                     runtime, it exists so callers iterating the
      *                                     result get the entity type instead of mixed
+     * @param string          $prefix      see param() — for a second list on the same page
      *
      * @return SlidingPaginationInterface<int, T>
      */
-    public function paginateQuery(QueryBuilder $queryBuilder, string $entityClass, Request $request): SlidingPaginationInterface
+    public function paginateQuery(QueryBuilder $queryBuilder, string $entityClass, Request $request, string $prefix = ''): SlidingPaginationInterface
     {
         /** @var SlidingPaginationInterface<int, T> $pagination */
         $pagination = $this->paginator->paginate(
             $queryBuilder,
-            $this->page($request),
-            $this->perPage($request),
-            self::SORTING_OFF,
+            $this->page($request, $prefix),
+            $this->perPage($request, $prefix),
+            self::optionsFor($prefix),
         );
 
         return $pagination;
@@ -87,22 +88,28 @@ final class ListPaginator
      */
     public function paginateArray(array $items, Request $request, string $prefix = ''): SlidingPaginationInterface
     {
-        // pageParameterName is Knp's own option, read back by
-        // templates/pagination/tailwind.html.twig; perPageParameterName is
-        // ours, carried in the same bag for PaginationBar. Knp merges options
-        // with a plain array_merge, so the extra key survives.
         /** @var SlidingPaginationInterface<int, TValue> $pagination */
         $pagination = $this->paginator->paginate(
             $items,
             $this->page($request, $prefix),
             $this->perPage($request, $prefix),
-            self::SORTING_OFF + [
-                PaginatorInterface::PAGE_PARAMETER_NAME => self::param($prefix, 'page'),
-                'perPageParameterName' => self::param($prefix, 'perPage'),
-            ],
+            self::optionsFor($prefix),
         );
 
         return $pagination;
+    }
+
+    /** @return array<string, mixed> */
+    private static function optionsFor(string $prefix): array
+    {
+        // pageParameterName is Knp's own option, read back by
+        // templates/pagination/tailwind.html.twig; perPageParameterName is
+        // ours, carried in the same bag for PaginationBar. Knp merges options
+        // with a plain array_merge, so the extra key survives.
+        return self::SORTING_OFF + [
+            PaginatorInterface::PAGE_PARAMETER_NAME => self::param($prefix, 'page'),
+            'perPageParameterName' => self::param($prefix, 'perPage'),
+        ];
     }
 
     /**
@@ -133,9 +140,9 @@ final class ListPaginator
      *                                                       whitelist, no user-supplied
      *                                                       string ever reaches DQL
      */
-    public function applySort(QueryBuilder $queryBuilder, Request $request, array $sortMap): void
+    public function applySort(QueryBuilder $queryBuilder, Request $request, array $sortMap, string $prefix = ''): void
     {
-        $key = $this->sortKey($request, $sortMap);
+        $key = $this->sortKey($request, $sortMap, $prefix);
 
         if (null === $key) {
             return;
@@ -152,7 +159,7 @@ final class ListPaginator
         // Uppercased on the way into DQL: the constants are lowercase because
         // that is what goes in a URL, but Doctrine echoes the direction
         // verbatim and the repositories' own ORDER BY reads "ASC".
-        $direction = strtoupper($this->sortDirection($request));
+        $direction = strtoupper($this->sortDirection($request, $prefix));
 
         foreach ($sortMap[$key] as $field) {
             $queryBuilder->addOrderBy($field, $direction);

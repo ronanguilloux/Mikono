@@ -290,7 +290,7 @@ final class DashboardControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-anniversary-days="0"]', 'One year ago today, Nadia achieved “Building a Library” as part of the Project X project in Nairobi (HQ). A lasting difference');
         self::assertSame(
-            [sprintf('/volunteers/%d', $volunteer->getId()), sprintf('/projects/%d/edit', $project->getId())],
+            [sprintf('/volunteers/%d', $volunteer->getId()), sprintf('/projects/%d', $project->getId())],
             $crawler->filter('[data-anniversary-days="0"] a')->each(static fn($a) => $a->attr('href')),
         );
     }
@@ -320,5 +320,6 @@ final class DashboardControllerTest extends WebTestCase
         self::assertStringContainsString('Over capacity from the week of ' . $today->modify('monday this week')->format('j M'), $chart->text());
         self::assertCount(1, $chart->filter('[data-limit]'));
         self::assertSame('2', $chart->filter('table tbody tr')->first()->filter('td')->text());
+        self::assertSame(sprintf('/branches/%d', $mombasa->getId()), $chart->filter('figcaption a')->attr('href'));
     }
 }

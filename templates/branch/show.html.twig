@@ -1,0 +1,113 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ branch.name }} — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <a href="{{ path('branch_index') }}" class="mb-4 inline-block text-sm text-slate-600 hover:underline">← Back to Branches</a>
+
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <h1 class="flex flex-wrap items-center gap-2 text-xl font-semibold">
+                {{ branch.name }}
+                <twig:Pill :tone="branch.active ? 'brand' : 'neutral'">{{ branch.active ? 'Active' : 'Inactive' }}</twig:Pill>
+            </h1>
+            <p class="mt-1 text-sm text-slate-500">
+                {{ branch.physicalLocation }} ·
+                {{ branch.capacity is null ? 'No capacity set' : 'Room for ' ~ branch.capacity ~ ' volunteer' ~ (branch.capacity == 1 ? '' : 's') }}
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ path('branch_edit', {id: branch.id}) }}"
+               class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                Edit
+            </a>
+            <a href="{{ path('match_index', {branch: branch.id}) }}"
+               class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                Find matches
+            </a>
+        </div>
+    </div>
+
+    {% if branch.projectZones or branch.programFocus %}
+        <dl class="mb-6 grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2">
+            {% if branch.projectZones %}
+                <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Project zones</dt>
+                    <dd class="mt-1 whitespace-pre-line text-sm">{{ branch.projectZones }}</dd>
+                </div>
+            {% endif %}
+            {% if branch.programFocus %}
+                <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Program focus</dt>
+                    <dd class="mt-1 whitespace-pre-line text-sm">{{ branch.programFocus }}</dd>
+                </div>
+            {% endif %}
+        </dl>
+    {% endif %}
+
+    <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <section aria-labelledby="months-heading" data-branch-months>
+            <h2 id="months-heading" class="mb-3 font-semibold">Volunteers on site per month</h2>
+            {% set current = months|last %}
+            <twig:ColumnChart
+                :title="(months|first).period|date('M Y') ~ ' – ' ~ current.period|date('M Y')"
+                :summary="'This month: ' ~ current.present ~ ' on site'"
+                :columns="months|map(m => {label: m.period|date('M'), title: m.period|date('F Y'), value: m.present})"
+            />
+            <a href="{{ path('report_volunteers', {tab: 'month', branch: branch.id}) }}" class="mt-2 inline-block text-sm text-brand-600 hover:underline">Full history in Reports →</a>
+        </section>
+
+        {% if occupancy %}
+            <section aria-labelledby="occupancy-heading" data-occupancy>
+                <h2 id="occupancy-heading" class="mb-3 font-semibold">Room over the next {{ occupancy_weeks }} weeks</h2>
+                {{ include('branch/_occupancy_chart.html.twig', {row: occupancy}) }}
+                <p class="mt-2 text-xs text-slate-500">Each week at its busiest day, against the branch's capacity</p>
+            </section>
+        {% endif %}
+    </div>
+
+    <section class="mb-10" aria-labelledby="on-site-heading" data-branch-on-site>
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="on-site-heading" class="font-semibold">On site and arriving</h2>
+            <a href="{{ path('volunteer_index', {branch: branch.id}) }}" class="text-sm text-brand-600 hover:underline">Volunteers at this branch →</a>
+        </div>
+        <twig:DataTable
+            :columns="stayColumns"
+            :rows="stayRows"
+            :pagination="stayPagination"
+            :sortState="staySortState"
+            :withActions="false"
+            emptyMessage="Nobody is staying here now or booked to come."
+        />
+    </section>
+
+    <section class="mb-10" aria-labelledby="projects-heading" data-branch-projects>
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="projects-heading" class="font-semibold">Projects</h2>
+            <a href="{{ path('program_index', {branch: branch.id}) }}" class="text-sm text-brand-600 hover:underline">Programs at this branch →</a>
+        </div>
+        <twig:DataTable
+            :columns="projectColumns"
+            :rows="projectRows"
+            :pagination="projectPagination"
+            :sortState="projectSortState"
+            :withActions="false"
+            emptyMessage="No project at this branch yet."
+        />
+    </section>
+
+    <section aria-labelledby="activities-heading" data-branch-activities>
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="activities-heading" class="font-semibold">Activities</h2>
+            <a href="{{ path('activity_index', {branch: branch.id}) }}" class="text-sm text-brand-600 hover:underline">Open in Activities, to filter or export →</a>
+        </div>
+        <twig:DataTable
+            :columns="activityColumns"
+            :rows="activityRows"
+            :pagination="activityPagination"
+            :sortState="activitySortState"
+            :withActions="false"
+            emptyMessage="Nothing logged at this branch yet."
+        />
+    </section>
+{% endblock %}

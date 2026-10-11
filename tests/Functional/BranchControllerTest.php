@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Factory\ActivityFactory;
 use App\Factory\BranchFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
+use App\Factory\VolunteerFactory;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
+
+use function Zenstruck\Foundry\Persistence\save;
 
 /**
  * Foundry resets the test database by replaying migrations, so every test
@@ -241,5 +245,79 @@ final class BranchControllerTest extends WebTestCase
         $client->submit($crawler->selectButton('Save')->form(['branch_form[capacity]' => '12']));
         self::assertResponseRedirects('/branches');
         BranchFactory::assert()->exists(['name' => 'Kisumu', 'capacity' => 12]);
+    }
+
+    #[Test]
+    public function theIndexLinksEachNameToItsPage(): void
+    {
+        $client = static::createClient();
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/branches');
+
+        self::assertSame(sprintf('/branches/%d', $mombasa->getId()), $crawler->filter('table a:contains("Mombasa")')->attr('href'));
+    }
+
+    #[Test]
+    public function theShowPageGathersTheBranchsProjectsPeopleAndActivity(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $mombasa->setCapacity(4);
+        save($mombasa);
+        $project = ProjectFactory::createOne(['name' => 'Likoni School', 'branch' => $mombasa]);
+        ProjectFactory::createOne(['name' => 'Kibera Library']);
+        $stay = StayFactory::createOne([
+            'volunteer' => VolunteerFactory::new()->withoutStay()->with(['firstName' => 'Amina']),
+            'branch' => $mombasa,
+            'startDate' => $today->modify('-3 days'),
+            'endDate' => $today->modify('+10 days'),
+        ]);
+        ActivityFactory::createOne(['project' => $project, 'volunteer' => $stay->getVolunteer(), 'stay' => $stay, 'date' => $today->modify('-1 day')]);
+        ActivityFactory::createOne(['project' => $project, 'volunteer' => $stay->getVolunteer(), 'stay' => $stay, 'date' => $today->modify('+2 days')]);
+        StayFactory::createOne(['branch' => $mombasa, 'startDate' => $today->modify('+3 months'), 'endDate' => $today->modify('+4 months')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', sprintf('/branches/%d', $mombasa->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Mombasa');
+        self::assertSelectorTextContains('[data-branch-projects]', 'Likoni School');
+        self::assertSelectorTextNotContains('[data-branch-projects]', 'Kibera Library');
+        self::assertSelectorTextContains('[data-branch-on-site]', 'Amina');
+        self::assertCount(2, $crawler->filter('[data-branch-activities] tbody tr'));
+        self::assertSelectorTextContains('[data-branch-activities] tbody tr:first-child', 'Planned');
+        self::assertCount(1, $crawler->filter('[data-occupancy] figure [data-limit]'));
+        $lastMonth = $crawler->filter('[data-branch-months] table tbody tr')->last();
+        self::assertSame($today->format('F Y'), $lastMonth->filter('th')->text(), 'a booked future month is not charted');
+        self::assertSame('1', $lastMonth->filter('td')->text());
+    }
+
+    #[Test]
+    public function eachListOnTheShowPagePaginatesAndSortsOnItsOwn(): void
+    {
+        $client = static::createClient();
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $project = ProjectFactory::createOne(['name' => 'Likoni School', 'branch' => $mombasa]);
+        // Without a stay of their own, each volunteer's activity gets one at the project's branch.
+        ActivityFactory::createMany(26, ['project' => $project, 'volunteer' => VolunteerFactory::new()->withoutStay()]);
+        $client->loginUser(UserFactory::createOne());
+        $path = sprintf('/branches/%d', $mombasa->getId());
+
+        $crawler = $client->request('GET', $path);
+
+        self::assertCount(25, $crawler->filter('[data-branch-activities] tbody tr'));
+        self::assertSelectorTextContains('[data-branch-activities] [data-pagination-bar]', 'Showing 1–25 of 26');
+        self::assertSame($path . '?activitiesPage=2', $crawler->filter('[data-branch-activities] [data-pagination-bar] a[aria-label="Page 2"]')->attr('href'));
+        self::assertSame($path . '?activitiesSort=volunteer&activitiesDirection=asc', $crawler->filter('[data-branch-activities] [data-sort-link="volunteer"]')->attr('href'));
+
+        $crawler = $client->request('GET', $path . '?activitiesPage=2&activitiesSort=volunteer&activitiesDirection=desc');
+
+        self::assertCount(1, $crawler->filter('[data-branch-activities] tbody tr'));
+        self::assertCount(1, $crawler->filter('[data-branch-activities] th[aria-sort="descending"]'));
+        self::assertCount(0, $crawler->filter('[data-branch-projects] th[aria-sort]'), 'another list keeps its own sort');
+        self::assertSelectorTextContains('[data-branch-projects] tbody', 'Likoni School');
     }
 }

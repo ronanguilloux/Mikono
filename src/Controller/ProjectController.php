@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Achievement;
+use App\Entity\Activity;
+use App\Entity\Program;
 use App\Entity\Project;
 use App\Export\ListExport;
 use App\Form\ProjectFormType;
 use App\Pagination\ListPaginator;
 use App\Repository\AchievementRepository;
+use App\Repository\ActivityRepository;
 use App\Repository\ProgramRepository;
 use App\Repository\ProjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,7 +38,7 @@ final class ProjectController extends AbstractController
      *
      * @var array<string, non-empty-list<string>>
      */
-    private const array SORT_MAP = [
+    public const array SORT_MAP = [
         'name' => ['p.name'],
         'branch' => ['b.name'],
         'ownership' => ['p.ownership'],
@@ -42,12 +46,21 @@ final class ProjectController extends AbstractController
     ];
 
     /** @var list<array{key: string, label: string}> */
-    private const array COLUMNS = [
+    public const array COLUMNS = [
         ['key' => 'name', 'label' => 'Name'],
         ['key' => 'branch', 'label' => 'Branch'],
         ['key' => 'ownership', 'label' => 'Ownership'],
         ['key' => 'status', 'label' => 'Status'],
     ];
+
+    /**
+     * The project page's three lists, each paginated and sorted on its own:
+     * the prefix keeps their `page`, `perPage`, `sort` and `direction` apart
+     * in the URL, as on /usage (ListPaginator::param()).
+     */
+    private const string PROGRAMS = 'programs';
+    private const string ACTIVITIES = 'activities';
+    private const string ACHIEVEMENTS = 'achievements';
 
     public function __construct(
         private readonly ProjectRepository $projects,
@@ -55,6 +68,7 @@ final class ProjectController extends AbstractController
         private readonly AchievementRepository $achievements,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
+        private readonly ActivityRepository $activities,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -78,8 +92,10 @@ final class ProjectController extends AbstractController
             $guardReason = null === $id ? null : $this->guardReason($project, $activityCounts[$id] ?? 0, $programCounts[$id] ?? 0, $achievementCounts[$id] ?? 0);
 
             $rows[] = [
-                'cells' => $this->cells($project),
+                'cells' => self::cells($project),
+                'links' => ['name' => $this->generateUrl('project_show', ['id' => $id])],
                 'actions' => [
+                    ['label' => 'View', 'url' => $this->generateUrl('project_show', ['id' => $id])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('project_edit', ['id' => $id])],
                     null !== $guardReason
                         ? ['label' => 'Delete', 'disabledReason' => $guardReason]
@@ -108,7 +124,7 @@ final class ProjectController extends AbstractController
         return ListExport::response('projects', $format, self::COLUMNS, (function () use ($request): \Generator {
             /** @var Project $project */
             foreach ($this->listQueryBuilder($request)->getQuery()->toIterable() as $project) {
-                yield $this->cells($project);
+                yield self::cells($project);
             }
         })());
     }
@@ -127,7 +143,7 @@ final class ProjectController extends AbstractController
     /**
      * @return array<string, string>
      */
-    private function cells(Project $project): array
+    public static function cells(Project $project): array
     {
         return [
             'name' => $project->getName(),
@@ -135,6 +151,127 @@ final class ProjectController extends AbstractController
             'ownership' => $project->getOwnership()?->label() ?? '—',
             'status' => $project->isActive() ? 'Active' : 'Inactive',
         ];
+    }
+
+    /**
+     * One project at a glance, the twin of the branch page: volunteers per
+     * month, then its programs, activities and achievements — each list
+     * paginated and sortable like its index, with that index's columns.
+     * Read-only.
+     */
+    #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function show(Request $request, Project $project): Response
+    {
+        $today = new \DateTimeImmutable('today');
+        $url = $this->generateUrl(...);
+
+        $programQuery = $this->programs->createOrderedQueryBuilder(project: $project);
+        $this->paginator->applySort($programQuery, $request, ProgramController::SORT_MAP, self::PROGRAMS);
+        $programPagination = $this->paginator->paginateQuery($programQuery, Program::class, $request, self::PROGRAMS);
+        /** @var list<Program> $programsOnPage */
+        $programsOnPage = iterator_to_array($programPagination, false);
+        $activityCounts = $this->programs->countActivitiesFor($programsOnPage);
+        $bookedCounts = $this->programs->countBookedVolunteers($programsOnPage, $today);
+        $programRows = [];
+        foreach ($programsOnPage as $program) {
+            $id = (int) $program->getId();
+            $programRows[] = [
+                'cells' => ProgramController::cells($program) + [
+                    'booked' => (string) ($bookedCounts[$id] ?? 0),
+                    'activities' => (string) ($activityCounts[$id] ?? 0),
+                ],
+                'links' => [
+                    'name' => $url('program_edit', ['id' => $id]),
+                    'activities' => $url('activity_index', ['program' => $id]),
+                ],
+            ];
+        }
+
+        // `p` is the project alias inside the activity query.
+        $activityQuery = $this->activities->createOrderedByDateDescQueryBuilder()
+            ->andWhere('p = :project')
+            ->setParameter('project', $project);
+        $this->paginator->applySort($activityQuery, $request, ActivityController::SORT_MAP, self::ACTIVITIES);
+        $activityPagination = $this->paginator->paginateQuery($activityQuery, Activity::class, $request, self::ACTIVITIES);
+        $activityRows = [];
+        foreach ($activityPagination as $activity) {
+            $activityRows[] = ActivityController::linkedRow($activity, $today, $url);
+        }
+
+        $achievementQuery = $this->achievements->createNewestFirstQueryBuilder()
+            ->andWhere('ach.project = :project')
+            ->setParameter('project', $project);
+        $this->paginator->applySort($achievementQuery, $request, AchievementController::SORT_MAP, self::ACHIEVEMENTS);
+        $achievementPagination = $this->paginator->paginateQuery($achievementQuery, Achievement::class, $request, self::ACHIEVEMENTS);
+        $achievementRows = [];
+        foreach ($achievementPagination as $achievement) {
+            $achievementRows[] = [
+                'cells' => AchievementController::cells($achievement),
+                'links' => [
+                    'title' => $url('achievement_edit', ['id' => $achievement->getId()]),
+                    'volunteer' => $url('volunteer_show', ['id' => $achievement->getStay()?->getVolunteer()?->getId()]),
+                ],
+            ];
+        }
+
+        return $this->render('project/show.html.twig', [
+            'project' => $project,
+            'months' => $this->volunteersPerMonth($project, $today),
+            'programColumns' => [
+                ...self::withoutColumns(ProgramController::COLUMNS, 'project', 'branch'),
+                ['key' => 'booked', 'label' => 'Booked'],
+                ['key' => 'activities', 'label' => 'Activities'],
+            ],
+            'programRows' => $programRows,
+            'programPagination' => $programPagination,
+            'programSortState' => $this->paginator->sortState($request, ProgramController::SORT_MAP, self::PROGRAMS),
+            'activityColumns' => self::withoutColumns(ActivityController::COLUMNS, 'project'),
+            'activityRows' => $activityRows,
+            'activityPagination' => $activityPagination,
+            'activitySortState' => $this->paginator->sortState($request, ActivityController::SORT_MAP, self::ACTIVITIES),
+            'achievementColumns' => self::withoutColumns(AchievementController::COLUMNS, 'project', 'branch'),
+            'achievementRows' => $achievementRows,
+            'achievementPagination' => $achievementPagination,
+            'achievementSortState' => $this->paginator->sortState($request, AchievementController::SORT_MAP, self::ACHIEVEMENTS),
+        ]);
+    }
+
+    /**
+     * An index's columns less the ones a show page makes redundant — the
+     * project's own name, its branch.
+     *
+     * @param list<array{key: string, label: string}> $columns
+     *
+     * @return list<array{key: string, label: string}>
+     */
+    private static function withoutColumns(array $columns, string ...$keys): array
+    {
+        return array_values(array_filter($columns, static fn(array $column): bool => !\in_array($column['key'], $keys, true)));
+    }
+
+    /**
+     * Distinct volunteers with an activity here in each of the last twelve
+     * months, oldest first, zeros included; planned ones count, as in
+     * PeriodTotalsCalculator's "engaged".
+     *
+     * @return list<array{month: \DateTimeImmutable, volunteers: int}>
+     */
+    private function volunteersPerMonth(Project $project, \DateTimeImmutable $today): array
+    {
+        /** @var array<string, array<int|string, true>> $seen 'Y-m' => volunteer ids */
+        $seen = [];
+        foreach ($this->activities->findVolunteerDates(project: $project) as $row) {
+            $seen[substr($row['date'], 0, 7)][$row['volunteerId']] = true;
+        }
+
+        $first = $today->modify('first day of this month')->modify('-11 months');
+        $months = [];
+        for ($i = 0; $i < 12; ++$i) {
+            $month = $first->modify(sprintf('+%d months', $i));
+            $months[] = ['month' => $month, 'volunteers' => \count($seen[$month->format('Y-m')] ?? [])];
+        }
+
+        return $months;
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

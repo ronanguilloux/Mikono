@@ -35,7 +35,7 @@ final class AchievementController extends AbstractController
      *
      * @var array<string, non-empty-list<string>>
      */
-    private const array SORT_MAP = [
+    public const array SORT_MAP = [
         'achievedOn' => ['ach.achievedOn'],
         'title' => ['ach.title'],
         'volunteer' => ['v.firstName', 'v.lastName'],
@@ -50,7 +50,7 @@ final class AchievementController extends AbstractController
      *
      * @var list<array{key: string, label: string}>
      */
-    private const array COLUMNS = [
+    public const array COLUMNS = [
         ['key' => 'achievedOn', 'label' => 'Achieved on'],
         ['key' => 'title', 'label' => 'Achievement'],
         ['key' => 'volunteer', 'label' => 'Volunteer'],
@@ -75,7 +75,7 @@ final class AchievementController extends AbstractController
         $rows = [];
         foreach ($pagination as $achievement) {
             $rows[] = [
-                'cells' => $this->cells($achievement),
+                'cells' => self::cells($achievement),
                 'actions' => [
                     ['label' => 'View stay', 'url' => $this->generateUrl('stay_show', ['id' => $achievement->getStay()?->getId()])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('achievement_edit', ['id' => $achievement->getId()])],
@@ -105,7 +105,7 @@ final class AchievementController extends AbstractController
         return ListExport::response('achievements', $format, self::COLUMNS, (function () use ($request): \Generator {
             /** @var Achievement $achievement */
             foreach ($this->listQueryBuilder($request)->getQuery()->toIterable() as $achievement) {
-                yield $this->cells($achievement);
+                yield self::cells($achievement);
             }
         })());
     }
@@ -124,7 +124,7 @@ final class AchievementController extends AbstractController
     /**
      * @return array<string, string>
      */
-    private function cells(Achievement $achievement): array
+    public static function cells(Achievement $achievement): array
     {
         $stay = $achievement->getStay();
 

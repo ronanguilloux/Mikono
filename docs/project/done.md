@@ -6,6 +6,50 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-11 — The layout is 1280px wide, not 1024px
+
+`base.html.twig`'s header and `<main>` go from `max-w-5xl` to `max-w-7xl`.
+At 1024px `/programs`' eight columns plus Matches · Edit · Delete scrolled
+sideways even on a 1440px laptop with empty margins either side; now they fit
+from 1280px. Every wide list gains the same room. Forms keep their own
+`max-w-lg` (`FormShell`), so they don't stretch.
+
+## 2026-10-11 — A page per project
+
+`/projects/{id}` (`ProjectController::show()`) is the branch page's twin: the
+branch, ownership and description; distinct volunteers per month over the
+last 12 months, planned activities included; then its programs (with
+volunteers booked and an activity count linking to `/activities?program=`),
+its activities and its achievements. The month chart gave
+`ActivityRepository::findVolunteerDates()` an optional project. Every
+read-only link to a project now lands here instead of its edit form: the
+project index, the dashboard's anniversaries and "Projects needing
+volunteers", the branch page, `/reports/volunteers?tab=project` and the user
+timeline.
+
+## 2026-10-11 — A page per branch, linked from the home screen's charts
+
+`/branches/{id}` (`BranchController::show()`) gathers one branch: its zones
+and focus, volunteers present per month, the home screen's 12-week
+occupancy chart, then who is on site or arriving, its projects with their
+last activity, and its activities.
+
+Every list on both pages is a `DataTable` paginated and sorted like an
+index, each on its own: a prefix keeps their URL params apart, as on
+`/usage` (`?activitiesPage=2`, `?programsSort=name`), now that
+`ListPaginator::paginateQuery()` and `applySort()` take one too. They reuse
+their index's `COLUMNS`, `SORT_MAP` and `cells()`, made public for it, less
+the columns the page makes redundant. They don't export: each links to its
+filtered index, which does. `DataTable`'s sort links now carry the route's
+own params, which a list on a show page needs for its `{id}`. Each section
+links to the list or report already filtered by that branch. It adds no
+query of its own: the month chart is `PeriodTotalsCalculator`'s "present"
+column with the future months cut, and the occupancy chart is a shared
+partial (`branch/_occupancy_chart.html.twig`) so the two screens' summaries
+can't drift. `ColumnChart` gained an optional `href` for the title, and
+each home-screen chart now links to its branch's page, as does every name on
+the branch index.
+
 ## 2026-10-11 — "Projects needing volunteers" lists never-visited projects at once
 
 A project with no activity used to count its quiet days from `createdAt`,

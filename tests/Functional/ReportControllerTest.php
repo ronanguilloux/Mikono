@@ -252,7 +252,7 @@ final class ReportControllerTest extends WebTestCase
     }
 
     #[Test]
-    public function theProjectBreakdownLinksEachNameToItsEditForm(): void
+    public function theProjectBreakdownLinksEachNameToItsPage(): void
     {
         $client = static::createClient();
         $this->summarised(['Ronan Guilloux'], ['Bright Achievers']);
@@ -260,13 +260,13 @@ final class ReportControllerTest extends WebTestCase
         $client->loginUser(UserFactory::createOne());
         $crawler = $client->request('GET', '/reports/volunteers?tab=project');
 
-        // A project has no show page; its edit form is the only one.
         $link = $crawler->filter('[data-report-panel="screen"] table tbody td:first-child a');
         self::assertCount(1, $link);
         self::assertSame('Bright Achievers', trim($link->text()));
         $client->click($link->link());
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('input[name="project_form[name]"][value="Bright Achievers"]');
+        self::assertSelectorTextContains('h1', 'Bright Achievers');
+        self::assertSelectorExists('[data-project-programs]');
     }
 
     #[Test]

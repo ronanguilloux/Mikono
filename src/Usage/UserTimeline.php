@@ -127,7 +127,7 @@ final readonly class UserTimeline
                 $this->url('stay_show', $subject),
             ],
             $subject instanceof Achievement => ['achievement', $subject->getTitle(), $this->url('achievement_edit', $subject)],
-            $subject instanceof Project => ['project', $subject->getName(), $this->url('project_edit', $subject)],
+            $subject instanceof Project => ['project', $subject->getName(), $this->url('project_show', $subject)],
             $subject instanceof Program => ['program', $subject->getName(), $this->url('program_edit', $subject)],
             $subject instanceof Activity => [
                 'activity',

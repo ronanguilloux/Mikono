@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Activity;
 use App\Entity\Branch;
+use App\Entity\Project;
+use App\Entity\Stay;
 use App\Export\ListExport;
 use App\Form\BranchFormType;
 use App\Pagination\ListPaginator;
+use App\Report\OccupancyLookAhead;
+use App\Report\PeriodTotalsCalculator;
+use App\Repository\ActivityRepository;
 use App\Repository\BranchRepository;
+use App\Repository\ProjectRepository;
+use App\Repository\StayRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -45,10 +53,38 @@ final class BranchController extends AbstractController
         ['key' => 'status', 'label' => 'Status'],
     ];
 
+    /**
+     * The branch page's three lists, each paginated and sorted on its own:
+     * the prefix keeps their `page`, `perPage`, `sort` and `direction` apart
+     * in the URL, as on /usage (ListPaginator::param()).
+     */
+    private const string PROJECTS = 'projects';
+    private const string STAYS = 'stays';
+    private const string ACTIVITIES = 'activities';
+
+    /** @var array<string, non-empty-list<string>> */
+    private const array STAY_SORT_MAP = [
+        'volunteer' => ['v.lastName', 'v.firstName'],
+        'startDate' => ['s.startDate'],
+        'endDate' => ['s.endDate'],
+    ];
+
+    /** @var list<array{key: string, label: string}> */
+    private const array STAY_COLUMNS = [
+        ['key' => 'volunteer', 'label' => 'Volunteer'],
+        ['key' => 'startDate', 'label' => 'Arrives'],
+        ['key' => 'endDate', 'label' => 'Leaves'],
+    ];
+
     public function __construct(
         private readonly BranchRepository $branches,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
+        private readonly OccupancyLookAhead $occupancy,
+        private readonly PeriodTotalsCalculator $periods,
+        private readonly StayRepository $stays,
+        private readonly ProjectRepository $projects,
+        private readonly ActivityRepository $activities,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -67,7 +103,9 @@ final class BranchController extends AbstractController
 
             $rows[] = [
                 'cells' => $this->cells($branch),
+                'links' => ['name' => $this->generateUrl('branch_show', ['id' => $id])],
                 'actions' => [
+                    ['label' => 'View', 'url' => $this->generateUrl('branch_show', ['id' => $id])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('branch_edit', ['id' => $id])],
                     $referencingCount > 0
                         ? ['label' => 'Delete', 'disabledReason' => $this->guardReason($branch, $referencingCount)]
@@ -123,6 +161,99 @@ final class BranchController extends AbstractController
             'capacity' => null === $branch->getCapacity() ? '—' : (string) $branch->getCapacity(),
             'status' => $branch->isActive() ? 'Active' : 'Inactive',
         ];
+    }
+
+    /**
+     * One branch at a glance: the home screen's occupancy chart (ADR 0049),
+     * volunteers present per month, then its projects, who is on site or
+     * arriving, and its activities — each list paginated and sortable like
+     * the indexes, reusing their columns. Read-only.
+     */
+    #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function show(Request $request, Branch $branch): Response
+    {
+        $today = new \DateTimeImmutable('today');
+        $url = $this->generateUrl(...);
+
+        $occupancy = array_values(array_filter(
+            $this->occupancy->calculate($today),
+            static fn(array $row): bool => $row['branch'] === $branch,
+        ))[0] ?? null;
+
+        // Newest first and running on to the last booked stay: drop the
+        // future months, then the first twelve are the last twelve.
+        $months = array_reverse(\array_slice(array_values(array_filter(
+            $this->periods->calculate($today, $branch),
+            static fn(array $row): bool => $row['period'] <= $today,
+        )), 0, 12));
+
+        $projectQuery = $this->projects->createOrderedByNameQueryBuilder()
+            ->andWhere('p.branch = :branch')
+            ->setParameter('branch', $branch);
+        $this->paginator->applySort($projectQuery, $request, ProjectController::SORT_MAP, self::PROJECTS);
+        $projectPagination = $this->paginator->paginateQuery($projectQuery, Project::class, $request, self::PROJECTS);
+        /** @var list<Project> $projectsOnPage */
+        $projectsOnPage = iterator_to_array($projectPagination, false);
+        $lastActivities = $this->projects->findLastActivityDates($projectsOnPage);
+        $projectRows = [];
+        foreach ($projectsOnPage as $project) {
+            $last = $lastActivities[(int) $project->getId()] ?? null;
+            $projectRows[] = [
+                'cells' => ProjectController::cells($project) + ['lastActivity' => $last?->format('j M Y') ?? 'Never visited'],
+                'links' => ['name' => $url('project_show', ['id' => $project->getId()])],
+                'badges' => null !== $last && $last > $today ? ['lastActivity' => 'Planned'] : [],
+            ];
+        }
+
+        $stayQuery = $this->stays->createNotEndedAtBranchQueryBuilder($branch, $today);
+        $this->paginator->applySort($stayQuery, $request, self::STAY_SORT_MAP, self::STAYS);
+        $stayPagination = $this->paginator->paginateQuery($stayQuery, Stay::class, $request, self::STAYS);
+        $stayRows = [];
+        foreach ($stayPagination as $stay) {
+            $start = $stay->getStartDate();
+            $stayRows[] = [
+                'cells' => [
+                    'volunteer' => $stay->getVolunteer()?->getFullName() ?? '—',
+                    'startDate' => $start?->format('D j M Y') ?? '—',
+                    'endDate' => $stay->getEndDate()?->format('D j M Y') ?? '—',
+                ],
+                'links' => [
+                    'volunteer' => $url('volunteer_show', ['id' => $stay->getVolunteer()?->getId()]),
+                    'startDate' => $url('stay_show', ['id' => $stay->getId()]),
+                ],
+                'badges' => null !== $start && $start > $today ? ['startDate' => 'Arriving'] : ['startDate' => 'On site'],
+            ];
+        }
+
+        $activityQuery = $this->activities->createOrderedByDateDescQueryBuilder(branch: $branch);
+        $this->paginator->applySort($activityQuery, $request, ActivityController::SORT_MAP, self::ACTIVITIES);
+        $activityPagination = $this->paginator->paginateQuery($activityQuery, Activity::class, $request, self::ACTIVITIES);
+        $activityRows = [];
+        foreach ($activityPagination as $activity) {
+            $activityRows[] = ActivityController::linkedRow($activity, $today, $url);
+        }
+
+        return $this->render('branch/show.html.twig', [
+            'branch' => $branch,
+            'occupancy' => $occupancy,
+            'occupancy_weeks' => OccupancyLookAhead::WEEKS,
+            'months' => $months,
+            'projectColumns' => [
+                ...array_values(array_filter(ProjectController::COLUMNS, static fn(array $column): bool => 'branch' !== $column['key'])),
+                ['key' => 'lastActivity', 'label' => 'Last activity'],
+            ],
+            'projectRows' => $projectRows,
+            'projectPagination' => $projectPagination,
+            'projectSortState' => $this->paginator->sortState($request, ProjectController::SORT_MAP, self::PROJECTS),
+            'stayColumns' => self::STAY_COLUMNS,
+            'stayRows' => $stayRows,
+            'stayPagination' => $stayPagination,
+            'staySortState' => $this->paginator->sortState($request, self::STAY_SORT_MAP, self::STAYS),
+            'activityColumns' => ActivityController::COLUMNS,
+            'activityRows' => $activityRows,
+            'activityPagination' => $activityPagination,
+            'activitySortState' => $this->paginator->sortState($request, ActivityController::SORT_MAP, self::ACTIVITIES),
+        ]);
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Activity;
 use App\Entity\Branch;
 use App\Entity\Program;
+use App\Entity\Project;
 use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
@@ -80,11 +81,12 @@ class ActivityRepository extends ServiceEntityRepository
     /**
      * Each activity's date (as stored, `Y-m-d`) and volunteer, nothing
      * hydrated, for the monthly totals. A branch filters on the stay's
-     * branch, where ADR 0026 anchors an activity's branch.
+     * branch, where ADR 0026 anchors an activity's branch; a project goes
+     * through the program (ADR 0030).
      *
      * @return list<array{date: string, volunteerId: int|string}>
      */
-    public function findVolunteerDates(?Branch $branch = null): array
+    public function findVolunteerDates(?Branch $branch = null, ?Project $project = null): array
     {
         $queryBuilder = $this->createQueryBuilder('a')
             ->select('a.date AS date', 'IDENTITY(a.volunteer) AS volunteerId');
@@ -94,6 +96,13 @@ class ActivityRepository extends ServiceEntityRepository
                 ->join('a.stay', 's')
                 ->andWhere('s.branch = :branch')
                 ->setParameter('branch', $branch);
+        }
+
+        if (null !== $project) {
+            $queryBuilder
+                ->join('a.program', 'prg')
+                ->andWhere('prg.project = :project')
+                ->setParameter('project', $project);
         }
 
         /** @var list<array{date: string, volunteerId: int|string}> $rows */

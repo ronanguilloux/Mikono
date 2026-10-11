@@ -8,6 +8,7 @@ use App\Enum\ProjectOwnership;
 use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
 use App\Factory\BranchFactory;
+use App\Factory\IndicatorFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
@@ -315,5 +316,73 @@ final class ProjectControllerTest extends WebTestCase
 
         self::assertSelectorTextContains('[aria-disabled="true"]', 'Cannot delete Kibera Library — 1 achievement is recorded at it.');
         ProjectFactory::assert()->count(1);
+    }
+
+    #[Test]
+    public function theIndexLinksEachNameToItsPage(): void
+    {
+        $client = static::createClient();
+        $project = ProjectFactory::createOne(['name' => 'Likoni School']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/projects');
+
+        self::assertSame(sprintf('/projects/%d', $project->getId()), $crawler->filter('table a:contains("Likoni School")')->attr('href'));
+    }
+
+    #[Test]
+    public function theShowPageGathersTheProjectsProgramsActivityAndAchievements(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $project = ProjectFactory::createOne(['name' => 'Likoni School', 'description' => 'Reading club on Saturdays.']);
+        $program = ProgramFactory::createOne(['name' => 'Reading club', 'project' => $project, 'volunteersNeeded' => 3]);
+        ActivityFactory::createOne(['program' => $program, 'date' => $today]);
+        ActivityFactory::createOne(['program' => $program, 'date' => $today->modify('+2 days')]);
+        ActivityFactory::createOne(['date' => $today]);
+        AchievementFactory::createOne([
+            'project' => $project,
+            'title' => 'Library opened',
+            'indicator' => IndicatorFactory::createOne(['name' => 'books donated']),
+            'quantity' => 40,
+        ]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', sprintf('/projects/%d', $project->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Likoni School');
+        self::assertSelectorTextContains('body', 'Reading club on Saturdays.');
+        $cells = $crawler->filter('[data-project-programs] tbody tr td')->each(static fn($td): string => trim($td->text()));
+        self::assertSame(['Reading club', 'Always on', '3'], \array_slice($cells, 0, 3));
+        self::assertSame(['2', '2'], \array_slice($cells, -2), 'booked, then activities');
+        self::assertSame(sprintf('/activities?program=%d', $program->getId()), $crawler->filter('[data-project-programs] tbody td:last-child a')->attr('href'));
+        self::assertCount(2, $crawler->filter('[data-project-activities] tbody tr'), 'not another project\'s');
+        self::assertSelectorTextContains('[data-project-activities] tbody tr:first-child', 'Planned');
+        self::assertSelectorTextContains('[data-project-achievements] tbody', 'Library opened');
+        self::assertSelectorTextContains('[data-project-achievements] tbody', 'books donated');
+        // Planned activities count in their month, so near a month's end the planned one is next month's.
+        $expected = $today->modify('+2 days')->format('Y-m') === $today->format('Y-m') ? '2' : '1';
+        self::assertSame($expected, $crawler->filter('[data-project-months] table tbody tr')->last()->filter('td')->text());
+    }
+
+    #[Test]
+    public function eachListOnTheShowPagePaginatesOnItsOwn(): void
+    {
+        $client = static::createClient();
+        $project = ProjectFactory::createOne();
+        ProgramFactory::createMany(26, ['project' => $project]);
+        $client->loginUser(UserFactory::createOne());
+        $path = sprintf('/projects/%d', $project->getId());
+
+        $crawler = $client->request('GET', $path);
+
+        self::assertCount(25, $crawler->filter('[data-project-programs] tbody tr'));
+        self::assertSelectorTextContains('[data-project-programs] [data-pagination-bar]', 'Showing 1–25 of 26');
+
+        $crawler = $client->request('GET', $path . '?programsPage=2');
+
+        self::assertCount(1, $crawler->filter('[data-project-programs] tbody tr'));
+        self::assertSelectorTextContains('[data-project-activities]', 'Nothing logged at this project yet.');
     }
 }

@@ -9,6 +9,7 @@ use App\Entity\Branch;
 use App\Entity\Stay;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -97,6 +98,24 @@ class StayRepository extends ServiceEntityRepository
         $stays = $queryBuilder->getQuery()->getResult();
 
         return $stays;
+    }
+
+    /**
+     * Stays at $branch that haven't ended, earliest arrival first, volunteer
+     * joined (to-one, so a LIMIT holds): the branch page's "On site and
+     * arriving" list.
+     */
+    public function createNotEndedAtBranchQueryBuilder(Branch $branch, \DateTimeImmutable $today): QueryBuilder
+    {
+        return $this->createQueryBuilder('s')
+            ->addSelect('v')
+            ->join('s.volunteer', 'v')
+            ->where('s.branch = :branch')
+            ->andWhere('s.endDate >= :today')
+            ->setParameter('branch', $branch)
+            ->setParameter('today', $today, Types::DATE_IMMUTABLE)
+            ->orderBy('s.startDate', 'ASC')
+            ->addOrderBy('s.id', 'ASC');
     }
 
     /**
