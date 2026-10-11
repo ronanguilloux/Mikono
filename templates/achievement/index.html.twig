@@ -9,5 +9,29 @@
     </div>
     <p class="mb-4 text-sm text-slate-600">Each achievement belongs to a volunteer's stay: it falls on a day of that stay, at one of its branch's projects. Open the stay to add, edit or delete them.</p>
 
+    {# What achievements counted, one chart per indicator: indicators are
+       never added together (ADR 0047). #}
+    <section class="mb-6" data-impact>
+        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Impact by month</h2>
+        {% if impact is empty %}
+            <p class="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-500">
+                Nothing counted in the last 12 months. Give an achievement a number and an indicator to see it here;
+                indicators are listed under <a href="{{ path('indicator_index') }}" class="text-brand-600 hover:underline">Settings → Indicators</a>.
+            </p>
+        {% else %}
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {% for series in impact %}
+                    {% set peak = series.months|reduce((carry, m) => m.total > carry.total ? m : carry, series.months|first) %}
+                    <twig:ColumnChart
+                        :title="series.indicator"
+                        summary="{{ series.total|number_format }} in {{ series.months|length }} months · peak {{ peak.total|number_format }} in {{ peak.month|date('M') }}"
+                        :columns="series.months|map(m => {label: m.month|date('M'), title: m.month|date('F Y'), value: m.total})"
+                        class="break-inside-avoid"
+                    />
+                {% endfor %}
+            </div>
+        {% endif %}
+    </section>
+
     <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No achievements yet — add one from a stay on a volunteer's page." />
 {% endblock %}

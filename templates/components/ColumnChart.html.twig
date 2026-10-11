@@ -1,0 +1,59 @@
+{#
+    One series as columns: `columns` is a list of {label, title, value},
+    oldest first, where `title` is the full name a tooltip and the hidden
+    table show. `summary` is the caller's line under the title: it carries
+    the scale (a total, a peak), since there is no axis and a phone has no
+    hover. An optional `limit` (a branch's capacity) is drawn as a dashed
+    line, and columns above it turn amber; say so in `summary` too, so it
+    is never colour alone.
+
+    Plain HTML and CSS, no chart library and no JavaScript (ADR 0048). The
+    bars are hidden from screen readers; the table carries the same numbers.
+    `sparseLabels` hides every other label, for labels longer than a
+    month's three letters.
+#}
+{% props title, summary, columns, limit = null, limitLabel = 'Capacity', sparseLabels = false %}
+{% set scale = max(1, limit ?? 0, max(columns|map(c => c.value))) %}
+<figure {{ attributes.defaults({class: 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm'}) }}>
+    <figcaption class="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
+        <span class="font-medium text-slate-800">{{ title }}</span>
+        <span class="text-sm text-slate-500">{{ summary }}</span>
+    </figcaption>
+    <div class="relative flex h-32 items-end gap-[2px] border-b border-slate-300" aria-hidden="true">
+        {% if limit is not null %}
+            <div class="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-slate-500" style="bottom: {{ (limit / scale * 100)|round(1) }}%" data-limit>
+                <span class="absolute right-0 bottom-0.5 rounded bg-white/90 px-1 text-[10px] text-slate-600">{{ limitLabel }} {{ limit|number_format }}</span>
+            </div>
+        {% endif %}
+        {% for c in columns %}
+            {% set height = c.value > 0 ? max(3, c.value / scale * 100) : 0 %}
+            {% set over = limit is not null and c.value > limit %}
+            <div class="group relative flex h-full min-w-0 flex-1 items-end justify-center">
+                {% if c.value > 0 %}
+                    <div class="w-full max-w-8 rounded-t {{ over ? 'bg-amber-700 group-hover:bg-amber-800' : 'bg-brand-600 group-hover:bg-brand-700' }}" style="height: {{ height|round(1) }}%"></div>
+                {% endif %}
+                {# Hit target is the whole column, not just the bar. #}
+                <div class="pointer-events-none absolute z-10 hidden -translate-y-1 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-xs text-white shadow group-hover:block" style="bottom: {{ height|round(1) }}%">
+                    {{ c.title }}: {{ c.value|number_format }}{% if over %} (over {{ limitLabel|lower }}){% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="mt-1 flex gap-[2px] text-center text-[10px] text-slate-500" aria-hidden="true">
+        {% for c in columns %}
+            {# min-w-0: a label may spill into its hidden neighbour's room, but
+               never widen the chart past its column. #}
+            <span class="min-w-0 flex-1 whitespace-nowrap{{ sparseLabels and loop.index is even ? ' invisible' }}">{{ c.label }}</span>
+        {% endfor %}
+    </div>
+    {# sr-only on the div: a table keeps its content width whatever its own
+       width says, and pushed the page sideways on a phone. #}
+    <div class="sr-only"><table>
+        <caption>{{ title }}{% if limit is not null %}, {{ limitLabel|lower }} {{ limit|number_format }}{% endif %}</caption>
+        <tbody>
+            {% for c in columns %}
+                <tr><th scope="row">{{ c.title }}</th><td>{{ c.value|number_format }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table></div>
+</figure>

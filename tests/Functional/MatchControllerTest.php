@@ -291,4 +291,29 @@ final class MatchControllerTest extends WebTestCase
         return $crawler->filter(sprintf('[data-program-matches="%d"] table tbody tr', $programId))
             ->each(static fn(Crawler $row): array => $row->filter('td')->each(static fn(Crawler $cell): string => trim(preg_replace('/\s+/', ' ', $cell->text()) ?? '')));
     }
+
+    /**
+     * Booked is anyone with an activity in the program from today on, each
+     * counted once; yesterday's doesn't count.
+     */
+    #[Test]
+    public function aProgramWithATargetSaysHowManyAreBookedAndHowManyAreLeftToFind(): void
+    {
+        $client = static::createClient();
+        $skill = SkillFactory::findOrCreate(['name' => 'Plumbing']);
+        $program = ProgramFactory::createOne(['skills' => [$skill], 'volunteersNeeded' => 3]);
+        $today = new \DateTimeImmutable('today');
+        $booked = VolunteerFactory::createOne(['skills' => [$skill]]);
+        ActivityFactory::createOne(['volunteer' => $booked, 'program' => $program, 'date' => $today]);
+        ActivityFactory::createOne(['volunteer' => $booked, 'program' => $program, 'date' => $today->modify('+1 day')]);
+        ActivityFactory::createOne(['volunteer' => VolunteerFactory::createOne(), 'program' => $program, 'date' => $today->modify('-1 day')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/matches');
+
+        self::assertSame(
+            'Needs 3 · 1 booked from today · 2 to find',
+            preg_replace('/\s+/', ' ', trim($crawler->filter(sprintf('[data-program-matches="%d"] [data-staffing]', $program->getId()))->text())),
+        );
+    }
 }

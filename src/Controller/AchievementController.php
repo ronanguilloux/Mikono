@@ -9,6 +9,7 @@ use App\Entity\Stay;
 use App\Export\ListExport;
 use App\Form\AchievementFormType;
 use App\Pagination\ListPaginator;
+use App\Report\ImpactByMonthCalculator;
 use App\Repository\AchievementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -63,6 +64,7 @@ final class AchievementController extends AbstractController
         private readonly AchievementRepository $achievements,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
+        private readonly ImpactByMonthCalculator $impact,
     ) {}
 
     #[Route('/reports/achievements', name: 'achievement_index', methods: ['GET'])]
@@ -89,6 +91,7 @@ final class AchievementController extends AbstractController
         }
 
         return $this->render('achievement/index.html.twig', [
+            'impact' => $this->impact->calculate(new \DateTimeImmutable('today')),
             'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,

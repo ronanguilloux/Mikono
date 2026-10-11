@@ -37,6 +37,28 @@ class AchievementRepository extends ServiceEntityRepository
             ->addOrderBy('ach.id', 'DESC');
     }
 
+    /**
+     * Achievements that count something (ADR 0047) dated from $from to $to,
+     * both days included, with their indicator joined in.
+     *
+     * @return list<Achievement>
+     */
+    public function findCountedBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /** @var list<Achievement> $achievements */
+        $achievements = $this->createQueryBuilder('ach')
+            ->addSelect('i')
+            ->join('ach.indicator', 'i')
+            ->where('ach.achievedOn BETWEEN :from AND :to')
+            ->andWhere('ach.quantity IS NOT NULL')
+            ->setParameter('from', $from, 'date_immutable')
+            ->setParameter('to', $to, 'date_immutable')
+            ->getQuery()
+            ->getResult();
+
+        return $achievements;
+    }
+
     /** @return list<Achievement> */
     public function findForVolunteer(Volunteer $volunteer): array
     {

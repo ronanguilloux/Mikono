@@ -45,6 +45,14 @@ class Program implements Authored
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $suggestedRoles = null;
 
+    /**
+     * How many volunteers it needs; null when nobody has said. /matches sets
+     * it against those booked from today (ADR 0049).
+     */
+    #[ORM\Column(nullable: true)]
+    #[Assert\Positive]
+    private ?int $volunteersNeeded = null;
+
     /** Counts and groups, never names — see ADR 0030. */
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $beneficiariesReached = null;
@@ -190,6 +198,18 @@ class Program implements Authored
     public function setBeneficiariesReached(?string $beneficiariesReached): static
     {
         $this->beneficiariesReached = $beneficiariesReached;
+
+        return $this;
+    }
+
+    public function getVolunteersNeeded(): ?int
+    {
+        return $this->volunteersNeeded;
+    }
+
+    public function setVolunteersNeeded(?int $volunteersNeeded): static
+    {
+        $this->volunteersNeeded = $volunteersNeeded;
 
         return $this;
     }

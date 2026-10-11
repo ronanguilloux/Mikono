@@ -46,6 +46,7 @@ final class ProgramController extends AbstractController
         ['key' => 'project', 'label' => 'Project'],
         ['key' => 'branch', 'label' => 'Branch'],
         ['key' => 'dates', 'label' => 'Dates'],
+        ['key' => 'volunteersNeeded', 'label' => 'Volunteers needed'],
         ['key' => 'activityTypes', 'label' => 'Activity types'],
         ['key' => 'skills', 'label' => 'Recommended Skills'],
         ['key' => 'beneficiaryGroups', 'label' => 'Beneficiary groups'],
@@ -177,6 +178,7 @@ final class ProgramController extends AbstractController
             'project' => $program->getProject()?->getName() ?? '—',
             'branch' => $program->getProject()?->getBranch()?->getName() ?? '—',
             'dates' => self::dates($program),
+            'volunteersNeeded' => null === $program->getVolunteersNeeded() ? '—' : (string) $program->getVolunteersNeeded(),
             'activityTypes' => implode(', ', array_map(
                 static fn(ActivityType $type) => $type->getName(),
                 $program->getActivityTypes()->toArray(),

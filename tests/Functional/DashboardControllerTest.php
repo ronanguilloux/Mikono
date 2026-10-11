@@ -18,6 +18,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
 
+use function Zenstruck\Foundry\Persistence\save;
+
 #[ResetDatabase]
 final class DashboardControllerTest extends WebTestCase
 {
@@ -291,5 +293,32 @@ final class DashboardControllerTest extends WebTestCase
             [sprintf('/volunteers/%d', $volunteer->getId()), sprintf('/projects/%d/edit', $project->getId())],
             $crawler->filter('[data-anniversary-days="0"] a')->each(static fn($a) => $a->attr('href')),
         );
+    }
+
+    #[Test]
+    public function showsEachBranchsWeeksAheadAgainstItsCapacity(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $mombasa->setCapacity(1);
+        save($mombasa);
+        foreach ([1, 2] as $ignored) {
+            StayFactory::createOne([
+                'volunteer' => VolunteerFactory::new()->withoutStay(),
+                'branch' => $mombasa,
+                'startDate' => $today,
+                'endDate' => $today->modify('+20 days'),
+            ]);
+        }
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/');
+
+        $chart = $crawler->filter('[data-occupancy] figure')->reduce(static fn($figure): bool => str_contains($figure->filter('figcaption')->text(), 'Mombasa'));
+        self::assertCount(1, $chart);
+        self::assertStringContainsString('Over capacity from the week of ' . $today->modify('monday this week')->format('j M'), $chart->text());
+        self::assertCount(1, $chart->filter('[data-limit]'));
+        self::assertSame('2', $chart->filter('table tbody tr')->first()->filter('td')->text());
     }
 }

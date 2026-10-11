@@ -168,7 +168,7 @@
             </section>
         </div>
 
-        <div class="lg:col-span-1">
+        <div class="flex flex-col gap-6 lg:col-span-1">
             {# usage-event alongside clipboard: copying the roster to WhatsApp is
                the app's most important gesture and the one the access log
                cannot see at all, since it never reaches the server. ADR 0021. #}
@@ -234,6 +234,35 @@
                     </div>
                 {% endif %}
             </section>
+            {% if occupancy is not empty %}
+                <section class="rounded-lg border border-slate-200 bg-white shadow-sm" aria-labelledby="occupancy-heading" data-occupancy>
+                    <div class="border-b border-slate-200 px-5 py-4">
+                        <h2 id="occupancy-heading" class="font-semibold">Room at each branch</h2>
+                        <p class="mt-0.5 text-xs text-slate-500">
+                            Volunteers on site over the next {{ occupancy_weeks }} weeks, each week at its busiest day — against the capacity set on the branch
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3 p-3">
+                        {% for row in occupancy %}
+                            {% set busiest = max(row.weeks|map(w => w.peak)) %}
+                            {% if row.capacity is null %}
+                                {% set summary = 'Busiest week: ' ~ busiest ~ ' on site · no capacity set' %}
+                            {% elseif row.firstOver %}
+                                {% set summary = 'Over capacity from the week of ' ~ row.firstOver|date('j M') %}
+                            {% else %}
+                                {% set summary = 'Busiest week: ' ~ busiest ~ ' of ' ~ row.capacity ~ ' places' %}
+                            {% endif %}
+                            <twig:ColumnChart
+                                :title="row.branch.name"
+                                :summary="summary"
+                                :columns="row.weeks|map(w => {label: w.start|date('j M'), title: 'Week of ' ~ w.start|date('j M'), value: w.peak})"
+                                :limit="row.capacity"
+                                :sparseLabels="true"
+                            />
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

@@ -17,6 +17,7 @@ use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -68,6 +69,11 @@ final class ProgramFormType extends AbstractType
                 // /matches links here with #skills: the row, so the label shows too.
                 'row_attr' => ['id' => 'skills', 'class' => 'scroll-mt-4'],
                 'help' => 'What the program needs. Its Matches page lists the volunteers who hold any of these.',
+            ])
+            ->add('volunteersNeeded', IntegerType::class, [
+                'required' => false,
+                'attr' => ['min' => 1],
+                'help' => 'Optional. Its Matches page shows how many are booked from today, and how many are left to find.',
             ])
             ->add('suggestedRoles', TextareaType::class, ['required' => false])
             ->add('beneficiaryGroups', EntityType::class, [

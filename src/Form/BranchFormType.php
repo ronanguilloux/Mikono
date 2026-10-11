@@ -7,6 +7,7 @@ namespace App\Form;
 use App\Entity\Branch;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -24,6 +25,11 @@ final class BranchFormType extends AbstractType
             ->add('physicalLocation', TextType::class, ['empty_data' => '', 'label' => 'Physical location'])
             ->add('projectZones', TextareaType::class, ['required' => false, 'label' => 'Project zones'])
             ->add('programFocus', TextareaType::class, ['required' => false, 'label' => 'Core program focus'])
+            ->add('capacity', IntegerType::class, [
+                'required' => false,
+                'attr' => ['min' => 1],
+                'help' => 'Optional. How many volunteers it can host at once; the home screen shows it against who is booked.',
+            ])
             ->add('isActive', CheckboxType::class, ['required' => false, 'label' => 'Active']);
     }
 

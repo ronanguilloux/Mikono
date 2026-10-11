@@ -38,6 +38,14 @@ class Branch
     #[ORM\Column]
     private bool $isActive = true;
 
+    /**
+     * How many volunteers it can host at once; null when nobody has said.
+     * The home screen's look-ahead draws it as a line (ADR 0049).
+     */
+    #[ORM\Column(nullable: true)]
+    #[Assert\Positive]
+    private ?int $capacity = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -99,6 +107,18 @@ class Branch
     public function setProgramFocus(?string $programFocus): static
     {
         $this->programFocus = $programFocus;
+
+        return $this;
+    }
+
+    public function getCapacity(): ?int
+    {
+        return $this->capacity;
+    }
+
+    public function setCapacity(?int $capacity): static
+    {
+        $this->capacity = $capacity;
 
         return $this;
     }

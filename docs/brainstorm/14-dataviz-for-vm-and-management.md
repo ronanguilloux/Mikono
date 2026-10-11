@@ -242,6 +242,8 @@ at that point.
 - [`dataviz-first-charts.md`](../project/backlog/dataviz-first-charts.md):
   charts 1, 6 and 2 on today's schema; the decision for UCESCO is which
   three charts management actually wants.
-- [`branch-capacity-and-program-staffing-targets.md`](../project/backlog/branch-capacity-and-program-staffing-targets.md):
-  schema slice B + C (A became [ADR 0047](../adr/0047-count-achievements-with-an-optional-indicator-and-quantity.md)), with the questions for UCESCO (which indicators,
-  places per branch, whether fees exist).
+- Schema slice A became
+  [ADR 0047](../adr/0047-count-achievements-with-an-optional-indicator-and-quantity.md),
+  B and C [ADR 0049](../adr/0049-record-branch-capacity-and-program-volunteers-needed-as-optional-targets.md).
+  Still for UCESCO: which indicators, places per branch, whether fees
+  exist.

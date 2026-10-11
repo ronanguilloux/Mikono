@@ -266,4 +266,44 @@ final class AchievementControllerTest extends WebTestCase
             self::exportedRows($client, '/reports/achievements/export.csv'),
         );
     }
+
+    #[Test]
+    public function theIndexChartsWhatAchievementsCountedPerIndicator(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $children = IndicatorFactory::createOne(['name' => 'Children reached']);
+        AchievementFactory::createMany(2, [
+            'stay' => StayFactory::new(['startDate' => $today, 'endDate' => $today]),
+            'achievedOn' => $today,
+            'indicator' => $children,
+            'quantity' => 600,
+        ]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/reports/achievements');
+
+        self::assertResponseIsSuccessful();
+        $chart = $crawler->filter('[data-impact] figure');
+        self::assertCount(1, $chart);
+        self::assertStringContainsString('Children reached', $chart->filter('figcaption')->text());
+        self::assertStringContainsString('1,200 in 12 months · peak 1,200 in ' . $today->format('M'), $chart->filter('figcaption')->text());
+        self::assertSame(
+            [$today->format('F Y'), '1,200'],
+            $chart->filter('table tbody tr')->last()->filter('th, td')->each(static fn($cell) => $cell->text()),
+        );
+    }
+
+    #[Test]
+    public function theIndexSaysHowToGetAChartWhenNothingIsCounted(): void
+    {
+        $client = static::createClient();
+        AchievementFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', '/reports/achievements');
+
+        self::assertSelectorNotExists('[data-impact] figure');
+        self::assertSelectorTextContains('[data-impact]', 'Nothing counted in the last 12 months.');
+    }
 }

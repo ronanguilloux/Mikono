@@ -225,4 +225,21 @@ final class BranchControllerTest extends WebTestCase
             $crawler->filter('table tbody tr')->first()->filter('[aria-disabled="true"]')->text(),
         );
     }
+
+    #[Test]
+    public function capacityIsOptionalAndPositive(): void
+    {
+        $client = static::createClient();
+        $branch = BranchFactory::createOne(['name' => 'Kisumu']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/branches/' . $branch->getId() . '/edit');
+        $client->submit($crawler->selectButton('Save')->form(['branch_form[capacity]' => '0']));
+        self::assertResponseStatusCodeSame(422);
+
+        $crawler = $client->request('GET', '/branches/' . $branch->getId() . '/edit');
+        $client->submit($crawler->selectButton('Save')->form(['branch_form[capacity]' => '12']));
+        self::assertResponseRedirects('/branches');
+        BranchFactory::assert()->exists(['name' => 'Kisumu', 'capacity' => 12]);
+    }
 }

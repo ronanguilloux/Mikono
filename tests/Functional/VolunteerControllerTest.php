@@ -8,6 +8,7 @@ use App\Entity\Volunteer;
 use App\Enum\ActivityDuration;
 use App\Enum\Gender;
 use App\Factory\ActivityFactory;
+use App\Factory\BeneficiaryGroupFactory;
 use App\Factory\BranchFactory;
 use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
@@ -400,7 +401,7 @@ final class VolunteerControllerTest extends WebTestCase
         $client = static::createClient();
         $today = new \DateTimeImmutable('today');
         $project = ProjectFactory::createOne(['name' => 'Olympic School']);
-        $reading = ProgramFactory::createOne(['name' => 'Reading', 'project' => $project, 'beneficiariesReached' => '40 pupils in grade 3']);
+        $reading = ProgramFactory::createOne(['name' => 'Reading', 'project' => $project, 'beneficiariesReached' => '40 pupils in grade 3', 'beneficiaryGroups' => [BeneficiaryGroupFactory::createOne(['name' => 'Young Adults'])]]);
         $maths = ProgramFactory::createOne(['name' => 'Maths', 'project' => $project]);
         $volunteer = VolunteerFactory::createOne();
         ActivityFactory::createMany(2, ['volunteer' => $volunteer, 'program' => $reading, 'date' => $today->modify('-3 days')]);
@@ -416,12 +417,13 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertCount(2, $programs);
         $first = $programs->first();
         self::assertStringContainsString('Olympic School — Reading', $first->text());
-        self::assertSame(['2', '1', '2', '40 pupils in grade 3'], [
+        self::assertSame(['2', '1', '2', 'Young Adults 40 pupils in grade 3'], [
             $first->filter('[data-impact-count]')->text(),
             $first->filter('[data-impact-days]')->text(),
             $first->filter('[data-impact-engaged]')->text(),
             $first->filter('[data-impact-beneficiaries]')->text(),
         ]);
+        self::assertSame('—', $programs->last()->filter('[data-impact-beneficiaries]')->text());
         $project = $crawler->filter('[data-impact-project]');
         self::assertCount(1, $project);
         self::assertSame(['3', '2', '2'], [

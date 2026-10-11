@@ -99,6 +99,27 @@ class StayRepository extends ServiceEntityRepository
         return $stays;
     }
 
+    /**
+     * Stays at active branches overlapping $from to $to, both days included.
+     *
+     * @return list<Stay>
+     */
+    public function findOverlappingAtActiveBranches(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /** @var list<Stay> $stays */
+        $stays = $this->createQueryBuilder('s')
+            ->addSelect('b')
+            ->join('s.branch', 'b')
+            ->where('s.startDate <= :to AND s.endDate >= :from')
+            ->andWhere('b.isActive = true')
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)
+            ->setParameter('to', $to, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getResult();
+
+        return $stays;
+    }
+
     /** @return list<Stay> */
     public function findStartingBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
     {

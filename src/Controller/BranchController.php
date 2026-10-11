@@ -41,6 +41,7 @@ final class BranchController extends AbstractController
     private const array COLUMNS = [
         ['key' => 'name', 'label' => 'Name'],
         ['key' => 'physicalLocation', 'label' => 'Physical location'],
+        ['key' => 'capacity', 'label' => 'Capacity'],
         ['key' => 'status', 'label' => 'Status'],
     ];
 
@@ -119,6 +120,7 @@ final class BranchController extends AbstractController
         return [
             'name' => $branch->getName(),
             'physicalLocation' => $branch->getPhysicalLocation(),
+            'capacity' => null === $branch->getCapacity() ? '—' : (string) $branch->getCapacity(),
             'status' => $branch->isActive() ? 'Active' : 'Inactive',
         ];
     }

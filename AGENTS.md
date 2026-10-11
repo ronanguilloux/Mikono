@@ -164,6 +164,12 @@ implements it.
     (`aria-disabled` span, reason in `title` and `sr-only`) — how Delete
     shows as unavailable on rows the delete-guard would block. The
     server-side guard in `delete()` stays regardless.
+- **Charts** are HTML and CSS from a Twig component, never a chart
+  library or JavaScript: `<twig:ColumnChart>` draws one series of columns, with an optional limit line. Each sits above
+  the table it summarises, which stays the export and the screen-reader
+  source. Put `sr-only` on a wrapping div, never on a `<table>`: a table
+  keeps its content width and pushes a phone page sideways
+  ([ADR 0048](docs/adr/0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md)).
 - **Every list view exports** to CSV and `.xlsx`
   ([ADR 0029](docs/adr/0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md)). A new list gets the same four pieces:
   - `COLUMNS`

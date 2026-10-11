@@ -161,7 +161,7 @@
                                     <td class="py-1.5 pr-4 text-right" data-impact-days>{{ row.days }}</td>
                                     <td class="py-1.5 pr-4 text-right" data-impact-engaged>{{ row.engaged }}</td>
                                     {% if level.key == 'programs' %}
-                                        <td class="py-1.5 whitespace-pre-line text-slate-700" data-impact-beneficiaries>{{ row.subject.beneficiariesReached ?? '—' }}</td>
+                                        <td class="py-1.5 whitespace-pre-line text-slate-700" data-impact-beneficiaries>{{ [row.subject.beneficiaryGroups|map(g => g.name)|join(', '), row.subject.beneficiariesReached]|filter(v => v)|join("\n") ?: '—' }}</td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}

@@ -54,7 +54,6 @@ each other, take them in any order or none:
 Features not yet decided:
 
 - [First charts on the reports, from today's schema](backlog/dataviz-first-charts.md) — **D**
-- [Branch capacity and program staffing targets](backlog/branch-capacity-and-program-staffing-targets.md) — **D**
 - [Geolocate usage with GeoIP](backlog/geoip-usage-location.md) — **D**
 - [A searchable photo library with metadata](backlog/photo-library-with-metadata.md) — **D**
 - [Offline field capture and sync](backlog/offline-field-capture.md) — **D**

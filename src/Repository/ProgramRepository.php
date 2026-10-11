@@ -110,6 +110,36 @@ class ProgramRepository extends ServiceEntityRepository
     }
 
     /**
+     * How many volunteers each program has an activity for from $today on,
+     * each counted once — who is booked, set against
+     * Program::$volunteersNeeded on /matches (ADR 0049).
+     *
+     * @param list<Program> $programs
+     *
+     * @return array<int, int> program id => volunteers; absent means none
+     */
+    public function countBookedVolunteers(array $programs, \DateTimeImmutable $today): array
+    {
+        if ([] === $programs) {
+            return [];
+        }
+
+        /** @var list<array{programId: int|string, total: int|string}> $rows */
+        $rows = $this->getEntityManager()
+            ->createQuery('SELECT IDENTITY(a.program) AS programId, COUNT(DISTINCT a.volunteer) AS total FROM ' . Activity::class . ' a WHERE a.program IN (:programs) AND a.date >= :today GROUP BY a.program')
+            ->setParameter('programs', $programs)
+            ->setParameter('today', $today, 'date_immutable')
+            ->getResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['programId']] = (int) $row['total'];
+        }
+
+        return $counts;
+    }
+
+    /**
      * The latest activity of each program, planned ones included, by anyone.
      *
      * @param list<Program> $programs

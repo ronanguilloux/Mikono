@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Report\AnniversaryReminderFinder;
 use App\Report\ArrivalReminderFinder;
 use App\Report\BirthdayReminderFinder;
+use App\Report\OccupancyLookAhead;
 use App\Report\QuietProjectFinder;
 use App\Report\RosterBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,6 +22,7 @@ class DashboardController extends AbstractController
         private readonly BirthdayReminderFinder $birthdays,
         private readonly ArrivalReminderFinder $arrivals,
         private readonly AnniversaryReminderFinder $anniversaries,
+        private readonly OccupancyLookAhead $occupancy,
     ) {}
 
     #[Route('/', name: 'app_home', methods: ['GET'])]
@@ -38,6 +40,8 @@ class DashboardController extends AbstractController
             'birthdays' => $this->birthdays->find($today),
             'arrivals' => $this->arrivals->find($today),
             'anniversaries' => $this->anniversaries->find($today),
+            'occupancy' => $this->occupancy->calculate($today),
+            'occupancy_weeks' => OccupancyLookAhead::WEEKS,
         ]);
     }
 

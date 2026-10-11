@@ -58,10 +58,12 @@ final class ProgramMatchFinder
 
         $booked = $this->activities->findBookedDaysOf(array_keys($staysByVolunteer), $today);
         $lastActivities = $this->programs->findLastActivityDates($programs);
+        $bookedCounts = $this->programs->countBookedVolunteers($programs, $today);
 
         $result = [];
         foreach ($programs as $open) {
-            $result[] = $this->matchesFor($open, $staysByVolunteer, $experience, $booked, $lastActivities[(int) $open->getId()] ?? null, $today);
+            $id = (int) $open->getId();
+            $result[] = $this->matchesFor($open, $staysByVolunteer, $experience, $booked, $lastActivities[$id] ?? null, $bookedCounts[$id] ?? 0, $today);
         }
 
         usort($result, static fn(ProgramMatches $a, ProgramMatches $b): int => [...self::urgency($a), $a->program->getName()] <=> [...self::urgency($b), $b->program->getName()]);
@@ -119,7 +121,7 @@ final class ProgramMatchFinder
      * @param array<int, list<array{volunteerId: int, typeId: int, programId: int, total: int, last: \DateTimeImmutable}>> $experience
      * @param array<int, list<\DateTimeImmutable>>                                                                         $booked
      */
-    private function matchesFor(Program $program, array $staysByVolunteer, array $experience, array $booked, ?\DateTimeImmutable $lastActivity, \DateTimeImmutable $today): ProgramMatches
+    private function matchesFor(Program $program, array $staysByVolunteer, array $experience, array $booked, ?\DateTimeImmutable $lastActivity, int $bookedVolunteers, \DateTimeImmutable $today): ProgramMatches
     {
         // By name, whatever order the collection was loaded in.
         $needed = array_values($program->getSkills()->toArray());
@@ -199,6 +201,7 @@ final class ProgramMatchFinder
             null !== $start && $start > $today,
             $uncovered,
             $candidates,
+            $bookedVolunteers,
         );
     }
 

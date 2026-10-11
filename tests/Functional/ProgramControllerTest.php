@@ -245,4 +245,21 @@ final class ProgramControllerTest extends WebTestCase
 
         self::assertSame("/matches?program={$program->getId()}", $crawler->filter('table')->selectLink('Matches')->attr('href'));
     }
+
+    #[Test]
+    public function volunteersNeededIsOptionalAndPositive(): void
+    {
+        $client = static::createClient();
+        $program = ProgramFactory::createOne(['name' => 'Medical camp']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/programs/' . $program->getId() . '/edit');
+        $client->submit($crawler->selectButton('Save')->form(['program_form[volunteersNeeded]' => '-1']));
+        self::assertResponseStatusCodeSame(422);
+
+        $crawler = $client->request('GET', '/programs/' . $program->getId() . '/edit');
+        $client->submit($crawler->selectButton('Save')->form(['program_form[volunteersNeeded]' => '4']));
+        self::assertResponseRedirects();
+        ProgramFactory::assert()->exists(['name' => 'Medical camp', 'volunteersNeeded' => 4]);
+    }
 }

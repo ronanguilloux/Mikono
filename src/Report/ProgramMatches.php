@@ -25,5 +25,15 @@ final readonly class ProgramMatches
         public array $uncoveredSkills,
         /** @var list<VolunteerMatch> best first */
         public array $candidates,
+        /** Volunteers with an activity in it from today on, whatever the page's filters. */
+        public int $bookedVolunteers,
     ) {}
+
+    /** How many more it needs; null when Program::$volunteersNeeded isn't set (ADR 0049). */
+    public function stillToFind(): ?int
+    {
+        $needed = $this->program->getVolunteersNeeded();
+
+        return null === $needed ? null : max(0, $needed - $this->bookedVolunteers);
+    }
 }
