@@ -27,8 +27,8 @@ test: ## Run the main test suite (Functional & Integration)
 e2e-test: ## Run End-to-End tests with Panther
 	docker compose exec php php bin/phpunit --testsuite="End-to-End Test Suite"
 
-deploy: ## Deploy the application
-	./scripts/deploy.sh
+deploy: ## Deploy production over SSH (wait for the CI image build first: gh run list)
+	ssh deploy@deploy.mikono.guilloux.org 'cd /opt/mikono && ./scripts/deploy.sh'
 
 backup: ## Perform a hot backup of the SQLite database
 	./scripts/backup-db.sh
