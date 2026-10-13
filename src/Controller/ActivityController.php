@@ -90,6 +90,7 @@ final class ActivityController extends AbstractController
         $rows = [];
         foreach ($pagination as $activity) {
             $date = $activity->getDate();
+            $volunteerId = $activity->getVolunteer()?->getId();
             $rows[] = [
                 // Extra to DataTable's own row shape, which ignores it: the
                 // mobile card list tags future-dated rows as planned, the way
@@ -97,6 +98,9 @@ final class ActivityController extends AbstractController
                 // stays exactly as it was.
                 'planned' => null !== $date && $date > $today,
                 'cells' => self::cells($activity),
+                // Only the volunteer is linked here; the project's page
+                // (project_show) could join it through this same map.
+                'links' => null === $volunteerId ? [] : ['volunteer' => $this->generateUrl('volunteer_show', ['id' => $volunteerId])],
                 'actions' => [
                     ['label' => 'Edit', 'url' => $this->generateUrl('activity_edit', ['id' => $activity->getId()])],
                     [

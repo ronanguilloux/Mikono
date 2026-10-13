@@ -6,6 +6,14 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-13 — /activities links each volunteer to their page
+
+The Volunteer cell, in the desktop table and the mobile card, links to
+`/volunteers/{id}` through DataTable's `links` map. It's the only linked
+column for now: programs, escorts and activity types have no detail page,
+and the project page (2026-10-11, below) isn't linked here yet — add
+`project` to the row's `links` to do so. The export keeps the plain name.
+
 ## 2026-10-11 — The layout is 1280px wide, not 1024px
 
 `base.html.twig`'s header and `<main>` go from `max-w-5xl` to `max-w-7xl`.

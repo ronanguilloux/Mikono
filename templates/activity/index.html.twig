@@ -158,7 +158,13 @@
                                 {{ row.cells.duration }}
                             </span>
                         </div>
-                        <div class="text-sm font-semibold">{{ row.cells.volunteer }}</div>
+                        <div class="text-sm font-semibold">
+                            {%- if row.links.volunteer is defined -%}
+                                <a href="{{ row.links.volunteer }}" class="text-brand-600 hover:underline">{{ row.cells.volunteer }}</a>
+                            {%- else -%}
+                                {{ row.cells.volunteer }}
+                            {%- endif -%}
+                        </div>
                         <p class="mt-0.5 text-xs text-slate-500">{{ row.cells.project }} — {{ row.cells.program }} · {{ row.cells.activityType }}</p>
                         {% if row.cells.escorts != '—' %}
                             <p class="mt-0.5 text-xs text-slate-500">Accompanied by {{ row.cells.escorts }}</p>

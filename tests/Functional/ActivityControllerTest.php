@@ -109,6 +109,32 @@ final class ActivityControllerTest extends WebTestCase
     }
 
     /**
+     * The volunteer is the only cell linked — in the table and in the mobile
+     * card alike. The export keeps the plain name.
+     */
+    #[Test]
+    public function theIndexLinksEachVolunteerToTheirPage(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Naomi', 'lastName' => 'Cherop']);
+        ActivityFactory::createOne(['volunteer' => $volunteer]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/activities');
+
+        $href = '/volunteers/' . $volunteer->getId();
+        $cells = $crawler->filter('table tbody tr')->first()->filter('td');
+        self::assertSame($href, $cells->eq(1)->filter('a')->attr('href'));
+        self::assertSame('Naomi Cherop', $cells->eq(1)->filter('a')->text());
+        foreach ([0, 2, 3, 4, 5, 6] as $unlinked) {
+            self::assertCount(0, $cells->eq($unlinked)->filter('a'));
+        }
+        self::assertSame($href, $crawler->filter('[data-activity-cards] > li')->first()->selectLink('Naomi Cherop')->attr('href'));
+
+        self::assertSame(['Naomi Cherop'], array_column(self::exportedRows($client, '/activities/export.csv'), 1));
+    }
+
+    /**
      * The batch form's "Who attended?" field is a group of same-named
      * checkboxes (one per volunteer) — DomCrawler's array-value form
      * shorthand can't target them by entity id (it matches by DOM
