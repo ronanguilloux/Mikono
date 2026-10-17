@@ -10,7 +10,7 @@ labels: [data, security]
 
 ## Why
 
-The legacy workbook import ([card](import-legacy-volunteer-workbook.md))
+The legacy workbook import ([`done.md`, 2026-10-17](../done.md))
 brings in all the personal data the workbook holds, as UCESCO top
 management directed. The review of that data against the Kenya Data
 Protection Act comes after the import, here.

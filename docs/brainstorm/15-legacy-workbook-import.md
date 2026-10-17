@@ -3,7 +3,7 @@
 **Date:** 2026-10-17
 **Author:** <ronan.guilloux@gmail.com>
 **Related:** [`CLAUDE.md`](../../CLAUDE.md),
-[backlog card](../project/backlog/import-legacy-volunteer-workbook.md),
+[`done.md`, 2026-10-17](../project/done.md),
 [ADR 0029](../adr/0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md),
 [ADR 0034](../adr/0034-comply-with-kenyas-data-protection-act-2019.md),
 [ADR 0044](../adr/0044-allow-syncing-production-database-to-local-development.md),

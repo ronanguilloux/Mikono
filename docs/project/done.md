@@ -6,6 +6,46 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-17 — The legacy volunteer workbook is in production
+
+UCESCO top management asked for the whole pre-Mikono Google Sheet
+("VOLUNTEER INTRODUCTION FORM (Responses)") in production, with every
+personal-data value it holds. Plan, decisions and data profile:
+[brainstorm 15](../brainstorm/15-legacy-workbook-import.md); the upload
+rules: [ADR 0044](../adr/0044-allow-syncing-production-database-to-local-development.md).
+
+- **Result:** 415 volunteers added (251 with dated stays, 163 with no dates
+  in any tab, 1 known only from the ACK tab), 11 existing ones filled,
+  252 stays and 54 ACK Clinic activities. Production went from 13 to 428
+  volunteers, 13 to 265 stays, 19 to 73 activities.
+- **Production won:** no value already in production was overwritten
+  (blanks filled only, overlapping legacy stays skipped); users, projects,
+  programs and every reference list stayed byte-identical.
+- **Schema:** fifteen optional `Volunteer` columns for the intro form's
+  other answers, plus `legacyRecord`, which keeps verbatim every value with
+  no typed home (roster lines, partial dates of birth); shown in a
+  Background card on the profile.
+- **How:** a one-off `app:import:legacy-workbook` command (OpenSpout over
+  the `.xlsx`, Doctrine entities and the Validator), reviewed through
+  `mapping.yaml`, `people.csv` and `ack.csv`, run on a local production
+  copy, replayed in full from the pristine copy, then swapped in with the
+  restore drill after a per-table fingerprint proved production unchanged
+  since the sync. The command, `src/Import/` and their test were deleted
+  once it landed; they are in git at `687725d`.
+- **Data traps found:** Sheets had read day-first dates month-first (the ACK
+  tab, some DIRECT rows), proved by weekdays and row order before swapping;
+  the 2024/2025 rosters are grouped by country, with each country's name
+  typed in the NAME column (26 rows skipped); most social-account answers
+  were "NA"/"N/A"/"-" (stored blank); same-name form re-submissions under
+  two emails were merged.
+- **Found, not fixed:** two `volunteer_skill` rows still point at deleted
+  volunteer #2 (SQLite runs without foreign keys), and two pairs of
+  production volunteers share an email.
+- The rollback copy and the uploaded file were deleted from the server the
+  same day, at the owner's request; the workbook and review files were
+  removed from the maintainer's machine. ODPC review of the imported data:
+  [its card](backlog/odpc-compliance-review-of-imported-data.md).
+
 ## 2026-10-13 — /activities links each volunteer to their page
 
 The Volunteer cell, in the desktop table and the mobile card, links to

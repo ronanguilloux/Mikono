@@ -29,7 +29,6 @@ hostname is the one that isn't ours to solve.
 4. [A production hostname that resolves](backlog/production-hostname-dns.md) — **B**
 5. [UCESCO's data-protection paperwork under the Kenya DPA](backlog/dpa-governance-for-ucesco.md) — **B**
 6. [A privacy notice and a consent record for volunteers](backlog/volunteer-privacy-notice-and-consent.md) — **G**
-7. [Import the legacy volunteer workbook into production](backlog/import-legacy-volunteer-workbook.md)
 
 ## Next
 

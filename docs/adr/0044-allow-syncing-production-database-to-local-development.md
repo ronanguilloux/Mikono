@@ -30,7 +30,7 @@ decisions:
 
 The import of UCESCO's legacy volunteer workbook
 ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md),
-[card](../project/backlog/import-legacy-volunteer-workbook.md)) needs the
+[`done.md`, 2026-10-17](../project/done.md)) needs the
 copy in the other direction too. The importer has to run against
 production's real volunteers, lists and branches, and be checked in the
 app before anything reaches production. The workbook must not travel to

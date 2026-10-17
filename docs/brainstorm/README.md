@@ -48,4 +48,4 @@ agent that drafts these.
 | [12](12-volunteer-profile-and-photo.md) | Volunteer profile and photo | [0032](../adr/0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) |
 | [13](13-matches-planning-screen.md) | Matches planning screen | [0042](../adr/0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md) |
 | [14](14-dataviz-for-vm-and-management.md) | Dataviz for the VM and UCESCO management | |
-| [15](15-legacy-workbook-import.md) | Import the legacy volunteer workbook into production | |
+| [15](15-legacy-workbook-import.md) | Import the legacy volunteer workbook into production | [0034](../adr/0034-comply-with-kenyas-data-protection-act-2019.md), [0044](../adr/0044-allow-syncing-production-database-to-local-development.md) |
