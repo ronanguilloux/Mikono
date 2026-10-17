@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Import;
 
+use App\Entity\ActivityType;
+use App\Entity\Program;
 use App\Entity\Stay;
+use App\Entity\User;
 use App\Entity\Volunteer;
+use App\Factory\ActivityTypeFactory;
+use App\Factory\ProgramFactory;
 use App\Factory\StayFactory;
+use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
+use App\Import\LegacyAck;
 use App\Import\LegacyImporter;
 use App\Import\LegacyPeopleBuilder;
 use App\Import\LegacyWorkbook;
+use App\Repository\StayRepository;
 use App\Repository\VolunteerRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
@@ -98,6 +107,60 @@ final class LegacyImportTest extends KernelTestCase
         self::assertSame(0, $second['counts']['volunteers created']);
         self::assertSame(0, $second['counts']['volunteers filled']);
         self::assertSame(0, $second['counts']['stays created']);
+    }
+
+    #[Test]
+    public function ackDatesAreSwappedBackAndASheetTheSwapDoesNotFitIsRefused(): void
+    {
+        // Sheets stored "1/9/2025" (Monday 1 September) as 9 January.
+        $days = LegacyAck::days(LegacyWorkbook::fromArray([LegacyAck::SHEET => [
+            [0 => 'Volunteer Name'],
+            [0 => 'Asha Test', 1 => new \DateTimeImmutable('2025-01-09')],
+            [0 => 'asha  test', 1 => '3/9/2025'],
+        ]]));
+        self::assertSame(['2025-09-01', '2025-09-03'], array_map(static fn(\DateTimeImmutable $d): string => $d->format('Y-m-d'), $days['asha test']['days']));
+
+        // 2025-09-06 swapped back is 9 June: fine. 2025-06-09 swapped is Saturday 6 September: refused.
+        $this->expectException(\UnexpectedValueException::class);
+        LegacyAck::days(LegacyWorkbook::fromArray([LegacyAck::SHEET => [[0 => 'Name'], [0 => 'Asha', 1 => new \DateTimeImmutable('2025-06-09')]]]));
+    }
+
+    #[Test]
+    public function aRunSpansWeekendsAndBreaksOnlyPastTheGap(): void
+    {
+        $day = static fn(string $date): \DateTimeImmutable => new \DateTimeImmutable($date);
+        // Fri 5 Sep to Mon 8 Sep: no working day between. Thu 11 to Mon 22 Sep: six.
+        $days = [$day('2025-09-05'), $day('2025-09-08'), $day('2025-09-11'), $day('2025-09-22')];
+
+        self::assertCount(2, LegacyAck::runs($days, 5));
+        self::assertCount(1, LegacyAck::runs($days, 6));
+        self::assertSame(0, LegacyAck::workingDaysBetween($day('2025-09-05'), $day('2025-09-08')));
+    }
+
+    #[Test]
+    public function anAckRunNextToAStayExtendsItAndASecondRunLogsNothing(): void
+    {
+        self::bootKernel();
+        $volunteer = VolunteerFactory::createOne(['stays' => []]);
+        $stay = StayFactory::createOne(['volunteer' => $volunteer, 'startDate' => new \DateTimeImmutable('2025-09-01'), 'endDate' => new \DateTimeImmutable('2025-09-05')]);
+        $program = ProgramFactory::createOne(['activityTypes' => [$type = ActivityTypeFactory::createOne()]]);
+        $user = UserFactory::createOne();
+        $byName = ['asha test' => ['name' => 'Asha Test', 'days' => [new \DateTimeImmutable('2025-09-04'), new \DateTimeImmutable('2025-09-09')]]];
+        $decisions = ['asha test#1' => ['volunteer' => (string) $volunteer->getId(), 'action' => 'accept']];
+        $ack = self::getContainer()->get(LegacyAck::class);
+
+        $first = $ack->apply($byName, $decisions, $program, $type, $user, 5, true);
+        self::assertSame([], $first['problems']);
+        self::assertSame(1, $first['counts']['stays extended']);
+        self::assertSame(2, $first['counts']['activities created']);
+        $reloaded = self::getContainer()->get(StayRepository::class)->find($stay->getId());
+        self::assertSame('2025-09-09', $reloaded?->getEndDate()?->format('Y-m-d'));
+
+        // apply() clears the entity manager: a second run loads its own.
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $second = $ack->apply($byName, $decisions, $em->find(Program::class, $program->getId()) ?? self::fail(), $em->find(ActivityType::class, $type->getId()) ?? self::fail(), $em->find(User::class, $user->getId()) ?? self::fail(), 5, true);
+        self::assertSame(0, $second['counts']['activities created']);
+        self::assertSame(2, $second['counts']['days already logged']);
     }
 
     private static function workbook(): LegacyWorkbook

@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Import\LegacyAck;
 use App\Import\LegacyImporter;
 use App\Import\LegacyPeopleBuilder;
 use App\Import\LegacyWorkbook;
+use App\Repository\ActivityTypeRepository;
+use App\Repository\ProgramRepository;
+use App\Repository\UserRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -34,8 +38,15 @@ final class ImportLegacyWorkbookCommand extends Command
 {
     private const array COLUMNS = ['key', 'action', 'branch', 'proposed', 'suggestion', 'exception', 'name', 'email', 'match', 'stays', 'seen_in', 'issues'];
 
-    public function __construct(private readonly LegacyImporter $importer)
-    {
+    private const array ACK_COLUMNS = ['key', 'action', 'volunteer', 'ack_name', 'candidates', 'proposal', 'start', 'end', 'days', 'issues'];
+
+    public function __construct(
+        private readonly LegacyImporter $importer,
+        private readonly LegacyAck $ack,
+        private readonly ProgramRepository $programs,
+        private readonly ActivityTypeRepository $activityTypes,
+        private readonly UserRepository $users,
+    ) {
         parent::__construct();
     }
 
@@ -47,7 +58,14 @@ final class ImportLegacyWorkbookCommand extends Command
             ->addOption('analyse', null, InputOption::VALUE_NONE, 'Write the mapping and people files; change nothing')
             ->addOption('apply', null, InputOption::VALUE_NONE, 'Write the decided people to the database')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'With --apply: roll the transaction back')
-            ->addOption('with-exceptions', null, InputOption::VALUE_NONE, 'With --apply: include people with no dates anywhere');
+            ->addOption('with-exceptions', null, InputOption::VALUE_NONE, 'With --apply: include people with no dates anywhere')
+            ->addOption('only', null, InputOption::VALUE_REQUIRED, 'With --apply: only these people.csv keys, comma-separated')
+            ->addOption('ack-analyse', null, InputOption::VALUE_NONE, 'ACK Clinic tab: write ack.csv; change nothing')
+            ->addOption('ack-apply', null, InputOption::VALUE_NONE, 'ACK Clinic tab: write the accepted runs [--dry-run]')
+            ->addOption('max-gap', null, InputOption::VALUE_REQUIRED, 'ACK: working days between two attendance days that still make one stay', '5')
+            ->addOption('logged-by', null, InputOption::VALUE_REQUIRED, 'ACK: email of the user the activities are logged by')
+            ->addOption('ack-program', null, InputOption::VALUE_REQUIRED, 'ACK: program id (default: "Clinic support" at ACK clinic)')
+            ->addOption('ack-type', null, InputOption::VALUE_REQUIRED, 'ACK: activity type name', 'Clinic support');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -63,7 +81,12 @@ final class ImportLegacyWorkbookCommand extends Command
             throw new \RuntimeException('Cannot create ' . $out);
         }
 
-        $people = (new LegacyPeopleBuilder())->build(LegacyWorkbook::open($workbook));
+        $book = LegacyWorkbook::open($workbook);
+        if ((bool) $input->getOption('ack-analyse') || (bool) $input->getOption('ack-apply')) {
+            return $this->ack($input, $io, $book, $out);
+        }
+
+        $people = (new LegacyPeopleBuilder())->build($book);
         $mapping = $this->importer->proposeMapping($people, $this->readMapping($out . '/mapping.yaml'));
         $decisions = $this->readDecisions($out . '/people.csv');
 
@@ -86,6 +109,12 @@ final class ImportLegacyWorkbookCommand extends Command
 
         if ((bool) $input->getOption('apply')) {
             $dryRun = (bool) $input->getOption('dry-run');
+            $only = $input->getOption('only');
+            if (is_string($only)) {
+                $keys = array_map(trim(...), explode(',', $only));
+                $people = array_intersect_key($people, array_flip($keys));
+                $decisions = array_intersect_key($decisions, array_flip($keys));
+            }
             $result = $this->importer->apply($people, $mapping, $decisions, (bool) $input->getOption('with-exceptions'), !$dryRun);
             $io->table(['', 'count'], array_map(null, array_keys($result['counts']), array_values($result['counts'])));
             if ([] !== $result['problems']) {
@@ -102,6 +131,82 @@ final class ImportLegacyWorkbookCommand extends Command
         $io->error('Pass --analyse or --apply.');
 
         return Command::INVALID;
+    }
+
+    private function ack(InputInterface $input, SymfonyStyle $io, LegacyWorkbook $book, string $out): int
+    {
+        $maxGap = $input->getOption('max-gap');
+        $maxGap = is_numeric($maxGap) ? (int) $maxGap : 5;
+        $programId = $input->getOption('ack-program');
+        $program = is_numeric($programId)
+            ? $this->programs->find((int) $programId)
+            : $this->programs->createQueryBuilder('p')->join('p.project', 'j')
+                ->where('j.name = :project')->andWhere('p.name = :name')
+                ->setParameters(new \Doctrine\Common\Collections\ArrayCollection([new \Doctrine\ORM\Query\Parameter('project', 'ACK clinic'), new \Doctrine\ORM\Query\Parameter('name', 'Clinic support')]))
+                ->getQuery()->getOneOrNullResult();
+        if (!$program instanceof \App\Entity\Program) {
+            $io->error('No ACK program: pass --ack-program=<id>.');
+
+            return Command::FAILURE;
+        }
+        $io->text(sprintf('Program #%d %s (%s), max gap %d working days.', $program->getId(), $program->getName(), $program->getProject()?->getName(), $maxGap));
+
+        $byName = LegacyAck::days($book);
+        $decisions = $this->readAckDecisions($out . '/ack.csv');
+        if ((bool) $input->getOption('ack-analyse')) {
+            $rows = $this->ack->plan($byName, $program, $maxGap, $decisions);
+            $handle = fopen($out . '/ack.csv', 'w');
+            if (false === $handle) {
+                throw new \RuntimeException('Cannot write ' . $out . '/ack.csv');
+            }
+            fputcsv($handle, self::ACK_COLUMNS, escape: '');
+            foreach ($rows as $row) {
+                fputcsv($handle, array_map(static fn(string $c): string => $row[$c], self::ACK_COLUMNS), escape: '');
+            }
+            fclose($handle);
+            $io->table(['run', 'action', 'volunteer', 'proposal', 'days'], array_map(static fn(array $r): array => [$r['key'], $r['action'], $r['volunteer'], $r['proposal'], $r['start'] . ' → ' . $r['end']], $rows));
+            $io->success(sprintf('Wrote %s/ack.csv: %d runs.', $out, count($rows)));
+
+            return Command::SUCCESS;
+        }
+
+        $type = $this->activityTypes->findOneBy(['name' => $input->getOption('ack-type')]);
+        $email = $input->getOption('logged-by');
+        $user = is_string($email) ? $this->users->findOneByEmail($email) : null;
+        if (null === $type || null === $user) {
+            $io->error('Pass a known --ack-type and --logged-by=<user email>.');
+
+            return Command::FAILURE;
+        }
+        $dryRun = (bool) $input->getOption('dry-run');
+        $result = $this->ack->apply($byName, $decisions, $program, $type, $user, $maxGap, !$dryRun);
+        $io->table(['', 'count'], array_map(null, array_keys($result['counts']), array_values($result['counts'])));
+        if ([] !== $result['problems']) {
+            $io->listing($result['problems']);
+            $io->error(sprintf('%d problem(s): nothing was written.', count($result['problems'])));
+
+            return Command::FAILURE;
+        }
+        $dryRun ? $io->note('Dry run: rolled back.') : $io->success('Committed.');
+
+        return Command::SUCCESS;
+    }
+
+    /** @return array<string, array{volunteer: string, action: string}> */
+    private function readAckDecisions(string $path): array
+    {
+        if (!is_file($path) || false === $handle = fopen($path, 'r')) {
+            return [];
+        }
+        $header = fgetcsv($handle, escape: '');
+        $decisions = [];
+        while (is_array($header) && false !== $row = fgetcsv($handle, escape: '')) {
+            $cells = array_combine(array_map(strval(...), $header), array_map(strval(...), array_pad($row, count($header), '')));
+            $decisions[$cells['key'] ?? ''] = ['volunteer' => trim($cells['volunteer'] ?? ''), 'action' => trim($cells['action'] ?? '')];
+        }
+        fclose($handle);
+
+        return $decisions;
     }
 
     /** @return Mapping */
