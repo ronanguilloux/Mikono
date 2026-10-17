@@ -921,6 +921,36 @@ final class VolunteerControllerTest extends WebTestCase
      * airport — so it doesn't count towards the Incomplete profile pill.
      */
     #[Test]
+    public function editSavesTheIntroFormAnswersAndTheProfileListsOnlyThoseOnFile(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['firstName' => 'Aisha']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        self::assertCount(0, $crawler->filter('[data-background]'));
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[instagram]' => '@aisha',
+            'volunteer_form[hobbies]' => 'Hiking',
+            'volunteer_form[experienceWithChildren]' => '0',
+            'volunteer_form[employer]' => '',
+        ]));
+
+        self::assertResponseRedirects('/volunteers');
+        $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
+        self::assertSame('@aisha', $volunteer->getInstagram());
+        self::assertSame('Hiking', $volunteer->getHobbies());
+        self::assertFalse($volunteer->getExperienceWithChildren());
+        self::assertNull($volunteer->getEmployer());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        $background = $crawler->filter('[data-background] dt')->each(static fn($dt): string => $dt->text());
+        self::assertSame(['Instagram', 'Previous volunteering with children', 'Hobbies'], $background);
+    }
+
+    #[Test]
     public function editSavesTheSecondSliceFieldsAndBlanksStoreNull(): void
     {
         $client = static::createClient();

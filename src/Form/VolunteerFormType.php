@@ -14,6 +14,7 @@ use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CountryType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
@@ -141,6 +142,33 @@ final class VolunteerFormType extends AbstractType
                 'label' => 'Remove the current photo',
             ]);
         }
+
+        // The intro form's other answers (brainstorm 15). Handles more often
+        // than URLs, so plain text.
+        $builder
+            ->add('instagram', TextType::class, ['required' => false])
+            ->add('facebook', TextType::class, ['required' => false])
+            ->add('twitter', TextType::class, ['required' => false, 'label' => 'Twitter / X'])
+            ->add('tiktok', TextType::class, ['required' => false, 'label' => 'TikTok'])
+            ->add('linkedin', TextType::class, ['required' => false, 'label' => 'LinkedIn'])
+            ->add('hobbies', TextareaType::class, ['required' => false])
+            ->add('freeTimeActivities', TextareaType::class, ['required' => false, 'label' => 'Free-time activities wished'])
+            ->add('motivation', TextareaType::class, ['required' => false, 'label' => 'Why UCESCO'])
+            ->add('skillsDescription', TextareaType::class, ['required' => false, 'label' => 'Skills, in their words'])
+            ->add('experienceWithChildren', ChoiceType::class, [
+                'required' => false,
+                'label' => 'Previous volunteering with children',
+                'choices' => ['Yes' => true, 'No' => false],
+                'placeholder' => '—',
+            ])
+            ->add('employer', TextType::class, ['required' => false])
+            ->add('education', TextType::class, ['required' => false, 'label' => 'School / university'])
+            ->add('favouriteFood', TextType::class, ['required' => false])
+            ->add('accommodationAddress', TextType::class, ['required' => false])
+            ->add('legacyRecord', TextareaType::class, [
+                'required' => false,
+                'help' => 'Values from the legacy volunteer workbook that have no field of their own.',
+            ]);
 
         // No Active checkbox: active is read from the volunteer's stays (ADR 0026).
         $builder->add('notes', TextareaType::class, ['required' => false]);

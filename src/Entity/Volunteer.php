@@ -122,6 +122,55 @@ class Volunteer implements Authored
     #[Assert\Url(requireTld: true)]
     private ?string $driveFolderUrl = null;
 
+    // The intro form's other answers, imported from the legacy workbook and
+    // editable since. Text, not varchar: some answers run to pages.
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $instagram = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $facebook = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $twitter = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $tiktok = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $linkedin = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $hobbies = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $freeTimeActivities = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $motivation = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $skillsDescription = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $employer = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $education = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $favouriteFood = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $accommodationAddress = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $experienceWithChildren = null;
+
+    // Every legacy-workbook value that had no typed home (roster lines, partial
+    // dates, unmatched text), kept verbatim so the import loses nothing.
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $legacyRecord = null;
+
     // Owning side, so Doctrine loads it lazily and list pages never read the
     // bytes; an inverse one-to-one would always be fetched.
     #[ORM\OneToOne(targetEntity: VolunteerPhoto::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -577,6 +626,186 @@ class Volunteer implements Authored
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    public function getInstagram(): ?string
+    {
+        return $this->instagram;
+    }
+
+    public function setInstagram(?string $instagram): static
+    {
+        $this->instagram = self::nullIfBlank($instagram);
+
+        return $this;
+    }
+
+    public function getFacebook(): ?string
+    {
+        return $this->facebook;
+    }
+
+    public function setFacebook(?string $facebook): static
+    {
+        $this->facebook = self::nullIfBlank($facebook);
+
+        return $this;
+    }
+
+    public function getTwitter(): ?string
+    {
+        return $this->twitter;
+    }
+
+    public function setTwitter(?string $twitter): static
+    {
+        $this->twitter = self::nullIfBlank($twitter);
+
+        return $this;
+    }
+
+    public function getTiktok(): ?string
+    {
+        return $this->tiktok;
+    }
+
+    public function setTiktok(?string $tiktok): static
+    {
+        $this->tiktok = self::nullIfBlank($tiktok);
+
+        return $this;
+    }
+
+    public function getLinkedin(): ?string
+    {
+        return $this->linkedin;
+    }
+
+    public function setLinkedin(?string $linkedin): static
+    {
+        $this->linkedin = self::nullIfBlank($linkedin);
+
+        return $this;
+    }
+
+    public function getHobbies(): ?string
+    {
+        return $this->hobbies;
+    }
+
+    public function setHobbies(?string $hobbies): static
+    {
+        $this->hobbies = self::nullIfBlank($hobbies);
+
+        return $this;
+    }
+
+    public function getFreeTimeActivities(): ?string
+    {
+        return $this->freeTimeActivities;
+    }
+
+    public function setFreeTimeActivities(?string $freeTimeActivities): static
+    {
+        $this->freeTimeActivities = self::nullIfBlank($freeTimeActivities);
+
+        return $this;
+    }
+
+    public function getMotivation(): ?string
+    {
+        return $this->motivation;
+    }
+
+    public function setMotivation(?string $motivation): static
+    {
+        $this->motivation = self::nullIfBlank($motivation);
+
+        return $this;
+    }
+
+    public function getSkillsDescription(): ?string
+    {
+        return $this->skillsDescription;
+    }
+
+    public function setSkillsDescription(?string $skillsDescription): static
+    {
+        $this->skillsDescription = self::nullIfBlank($skillsDescription);
+
+        return $this;
+    }
+
+    public function getEmployer(): ?string
+    {
+        return $this->employer;
+    }
+
+    public function setEmployer(?string $employer): static
+    {
+        $this->employer = self::nullIfBlank($employer);
+
+        return $this;
+    }
+
+    public function getEducation(): ?string
+    {
+        return $this->education;
+    }
+
+    public function setEducation(?string $education): static
+    {
+        $this->education = self::nullIfBlank($education);
+
+        return $this;
+    }
+
+    public function getFavouriteFood(): ?string
+    {
+        return $this->favouriteFood;
+    }
+
+    public function setFavouriteFood(?string $favouriteFood): static
+    {
+        $this->favouriteFood = self::nullIfBlank($favouriteFood);
+
+        return $this;
+    }
+
+    public function getAccommodationAddress(): ?string
+    {
+        return $this->accommodationAddress;
+    }
+
+    public function setAccommodationAddress(?string $accommodationAddress): static
+    {
+        $this->accommodationAddress = self::nullIfBlank($accommodationAddress);
+
+        return $this;
+    }
+
+    public function getLegacyRecord(): ?string
+    {
+        return $this->legacyRecord;
+    }
+
+    public function setLegacyRecord(?string $legacyRecord): static
+    {
+        $this->legacyRecord = self::nullIfBlank($legacyRecord);
+
+        return $this;
+    }
+
+    public function getExperienceWithChildren(): ?bool
+    {
+        return $this->experienceWithChildren;
+    }
+
+    public function setExperienceWithChildren(?bool $experienceWithChildren): static
+    {
+        $this->experienceWithChildren = $experienceWithChildren;
+
+        return $this;
     }
 
     public function touch(): void
