@@ -6,6 +6,20 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-17 — The "By period" tab opens on a chart
+
+With the legacy import, `/reports/volunteers?tab=month` runs to 40-odd
+months over two pages. A `ColumnChart` of "Volunteers present" now sits
+above the table (`templates/report/_period_chart.html.twig`, also on the
+print panel). It covers the whole history up to the current period:
+later months are bookings, which the table tags Planned and a column
+can't. It follows the branch and step selects. By month, only January
+carries a label, its year, because 40-odd month names don't fit a phone. Only
+"present" is drawn: arrivals and engaged stay in the table, and three
+series with no axis would not read. Days stacked by branch, the
+[dataviz card](backlog/dataviz-first-charts.md)'s proposal 1, is still
+open.
+
 ## 2026-10-17 — Programs have a page of their own
 
 `/programs/{id}`, the twin of the branch and project pages: period pill,

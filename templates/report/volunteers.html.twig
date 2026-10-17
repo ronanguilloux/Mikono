@@ -216,6 +216,7 @@
                 <button type="submit" class="sr-only">Show</button>
             </form>
             <p class="mb-2 text-xs text-slate-500" data-period-note>Each total counts a volunteer once per {{ step.value }}. Present: a stay overlaps the {{ step.value }}. New arrivals: a stay starts in it. Engaged: an activity is dated in it. "±" compares with the {{ step.value }} before{{ step.value == 'month' ? ' and the same month last year' }}.</p>
+            <div class="mb-4" data-period-chart>{{ include('report/_period_chart.html.twig') }}</div>
         {% endif %}
 
         <twig:DataTable
@@ -333,6 +334,7 @@
         <div class="mt-8">
             <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">By period</h2>
             <p class="mb-2 text-xs text-slate-500">{{ branch ? branch.name : 'Every branch' }}, by {{ step.value }}. Each total counts a volunteer once per {{ step.value }}: present, a stay overlaps it; new arrivals, a stay starts in it; engaged, an activity is dated in it.</p>
+            <div class="mb-4">{{ include('report/_period_chart.html.twig') }}</div>
             <twig:DataTable
                 :columns="periodColumns"
                 :rows="periodRows"

@@ -171,6 +171,12 @@ final class ReportController extends AbstractController
             'groupColumns' => $this->columnsFor(self::TAB_BENEFICIARY_GROUP),
             'sourceColumns' => $this->columnsFor(self::TAB_SOURCE),
             'periodColumns' => $this->periodColumns($step),
+            // The chart: oldest first, up to the current period. Later ones
+            // are bookings, which the table tags Planned and a column can't.
+            'chartPeriods' => array_reverse(array_values(array_filter(
+                $byPeriod,
+                static fn(array $row): bool => $row['period'] <= $today,
+            ))),
             // Free text, so it can't be a sortable column: printed as notes
             // under the program table instead (ADR 0030).
             'beneficiaries' => $this->programs->createOrderedQueryBuilder()

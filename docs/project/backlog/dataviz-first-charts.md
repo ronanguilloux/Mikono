@@ -51,3 +51,5 @@ What's still open is which three management actually wants first.
   and volunteers on site per week against capacity on the home screen
   ([ADR 0049](../../adr/0049-record-branch-capacity-and-program-volunteers-needed-as-optional-targets.md)) — the brainstorm's
   chart 7. Proposal 2 above, one row per volunteer, is still to do.
+  Volunteers present per period now heads `?tab=month` (`done.md`,
+  2026-10-17). Proposal 1, days stacked by branch, would replace it.

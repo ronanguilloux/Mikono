@@ -1,0 +1,12 @@
+{# The period tab's "Volunteers present" as a chart, whole history up to the
+   current period, shared by the screen and print panels. By month, only
+   January is labelled, with its year: forty-odd three-letter months don't
+   fit a phone, and an empty neighbour leaves the year room to spill into. #}
+{% set by_month = step.value == 'month' %}
+{% set peak = chartPeriods|reduce((carry, p) => p.present > carry.present ? p : carry, chartPeriods|first) %}
+<twig:ColumnChart
+    :title="'Volunteers present per ' ~ step.value ~ ', ' ~ (branch ? branch.name : 'every branch')"
+    summary="Peak {{ peak.present|number_format }} in {{ step.label(peak.period) }} · this {{ step.value }} {{ (chartPeriods|last).present|number_format }}"
+    :columns="chartPeriods|map(p => {label: not by_month or p.period|date('n') == 1 ? p.period|date('Y') : '', title: step.label(p.period), value: p.present})"
+    class="break-inside-avoid"
+/>

@@ -87,7 +87,7 @@ final class ReportControllerTest extends WebTestCase
         self::assertCount(0, $second->filter('td:first-child a'));
         self::assertSame('By escort', trim($crawler->filter('nav[aria-label="Report breakdown"] a[aria-current="page"]')->text()));
 
-        self::assertCount(9, $crawler->filter('[data-report-panel="print"] table'));
+        self::assertCount(10, $crawler->filter('[data-report-panel="print"] table')); // nine breakdowns and the period chart's hidden table
     }
 
     #[Test]
@@ -445,11 +445,12 @@ final class ReportControllerTest extends WebTestCase
 
         $screen = $crawler->filter('[data-report-panel="screen"]');
         self::assertSame('By period', trim($screen->filter('nav a[aria-current="page"]')->text()));
-        $cells = static fn(int $row): array => $screen->filter('tbody tr')->eq($row)->filter('td')->slice(1)->each(static fn($td) => trim($td->text()));
-        self::assertStringStartsWith($nextMonth->format('M Y'), trim($screen->filter('tbody tr')->eq(0)->filter('td')->first()->text()));
-        self::assertSame('Planned', trim($screen->filter('tbody tr')->eq(0)->filter('td')->first()->filter('span')->text()));
+        $rows = $screen->filter('table')->last()->filter('tbody tr');
+        $cells = static fn(int $row): array => $rows->eq($row)->filter('td')->slice(1)->each(static fn($td) => trim($td->text()));
+        self::assertStringStartsWith($nextMonth->format('M Y'), trim($rows->eq(0)->filter('td')->first()->text()));
+        self::assertSame('Planned', trim($rows->eq(0)->filter('td')->first()->filter('span')->text()));
         self::assertSame(['1', '0', '—', '0', '-1', '—', '0', '0', '—'], $cells(0));
-        self::assertSame($thisMonth->format('M Y'), trim($screen->filter('tbody tr')->eq(1)->filter('td')->first()->text()));
+        self::assertSame($thisMonth->format('M Y'), trim($rows->eq(1)->filter('td')->first()->text()));
         self::assertSame(['1', '—', '—', '1', '—', '—', '0', '—', '—'], $cells(1));
         self::assertCount(2, $crawler->filter('[data-report-panel="print"] table')->last()->filter('tbody tr'));
     }
@@ -463,7 +464,7 @@ final class ReportControllerTest extends WebTestCase
         StayFactory::createOne(['startDate' => $today, 'endDate' => $today]);
         StayFactory::createOne(['startDate' => $today, 'endDate' => $today, 'branch' => $mombasa]);
         $client->loginUser(UserFactory::createOne());
-        $presentThisMonth = static fn(Crawler $crawler): string => trim($crawler->filter('[data-report-panel="screen"] tbody tr')->first()->filter('td')->eq(1)->text());
+        $presentThisMonth = static fn(Crawler $crawler): string => trim($crawler->filter('[data-report-panel="screen"] table')->last()->filter('tbody tr')->first()->filter('td')->eq(1)->text());
 
         $crawler = $client->request('GET', "/reports/volunteers?tab=month&branch={$mombasa->getId()}");
         self::assertSame('1', $presentThisMonth($crawler));
@@ -498,13 +499,37 @@ final class ReportControllerTest extends WebTestCase
             ['Year', 'Volunteers present', '± prev. year', 'New arrivals', '± prev. year', 'Volunteers engaged', '± prev. year'],
             $screen->filter('thead th')->each(static fn($th) => trim($th->text())),
         );
-        self::assertSame([$today->format('Y'), '1', '—', '1', '—', '0', '—'], $screen->filter('tbody tr')->first()->filter('td')->each(static fn($td) => trim($td->text())));
+        self::assertSame([$today->format('Y'), '1', '—', '1', '—', '0', '—'], $screen->filter('table')->last()->filter('tbody tr')->first()->filter('td')->each(static fn($td) => trim($td->text())));
 
         foreach (['/reports/volunteers?tab=month&step[]=year', '/reports/volunteers?tab=month&step=week'] as $url) {
             $crawler = $client->request('GET', $url);
             self::assertResponseIsSuccessful();
             self::assertSame('Month', trim($crawler->filter('[data-report-panel="screen"] thead th')->first()->text()), $url);
         }
+    }
+
+    /**
+     * The chart draws "present" over the whole history, oldest first, and
+     * stops at this month: later months are bookings, tagged in the table.
+     */
+    #[Test]
+    public function thePeriodTabChartsPresentUpToThisMonth(): void
+    {
+        $client = static::createClient();
+        $thisMonth = new \DateTimeImmutable('first day of this month midnight');
+        $lastMonth = $thisMonth->modify('-1 month');
+        StayFactory::createOne(['startDate' => $lastMonth, 'endDate' => $thisMonth->modify('+1 month +4 days')]);
+        StayFactory::createOne(['startDate' => $lastMonth, 'endDate' => $lastMonth->modify('+4 days')]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/reports/volunteers?tab=month');
+        $chart = $crawler->filter('[data-period-chart] figure');
+        self::assertStringContainsString('Volunteers present per month, every branch', $chart->filter('figcaption')->text());
+        self::assertStringContainsString('Peak 2 in ' . $lastMonth->format('M Y') . ' · this month 1', $chart->filter('figcaption')->text());
+        self::assertSame(
+            [[$lastMonth->format('M Y'), '2'], [$thisMonth->format('M Y'), '1']],
+            $chart->filter('tbody tr')->each(static fn($tr) => [trim($tr->filter('th')->text()), trim($tr->filter('td')->text())]),
+        );
     }
 
     #[Test]
@@ -750,7 +775,7 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports/volunteers');
 
         $printPanel = $crawler->filter('[data-report-panel="print"]');
-        self::assertCount(9, $printPanel->filter('table'));
+        self::assertCount(10, $printPanel->filter('table')); // nine breakdowns and the period chart's hidden table
         // Project, program and volunteer tables (branch leads, group sits before volunteer): 26 rows each.
         foreach ([1, 2, 5] as $index) {
             self::assertCount(26, $printPanel->filter('table')->eq($index)->filter('tbody tr'));
@@ -1016,11 +1041,12 @@ final class ReportControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/reports/volunteers');
 
         $printTables = $crawler->filter('[data-report-panel="print"] table');
-        self::assertCount(9, $printTables);
+        self::assertCount(10, $printTables);
         // "Most recent" is the last column on every activity table. Left out:
         // the source table (index 6), which covers this year only, and a week
         // ahead falls in the next one in late December; and the month table
-        // (index 8), which tags the month itself, in its first column.
+        // (index 9, after its chart), which tags the month itself, in its
+        // first column.
         foreach ([0, 1, 2, 3, 4, 5, 7] as $index) {
             self::assertSame(
                 'Planned',
