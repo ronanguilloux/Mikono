@@ -185,8 +185,9 @@ final class ActivityController extends AbstractController
     }
 
     /**
-     * An activity as a read-only row on another screen's list (the branch and
-     * project pages): the date opens it, volunteer and project their pages,
+     * An activity as a read-only row on another screen's list (the branch,
+     * project and program pages): the date opens it, volunteer, project and
+     * program their pages,
      * and a future date is tagged Planned, as on /reports/volunteers.
      *
      * @param \Closure(string, array<string, mixed>): string $url generateUrl(...)
@@ -203,6 +204,7 @@ final class ActivityController extends AbstractController
                 'date' => $url('activity_edit', ['id' => $activity->getId()]),
                 'volunteer' => $url('volunteer_show', ['id' => $activity->getVolunteer()?->getId()]),
                 'project' => $url('project_show', ['id' => $activity->getProject()?->getId()]),
+                'program' => $url('program_show', ['id' => $activity->getProgram()?->getId()]),
             ],
             'badges' => null !== $date && $date > $today ? ['date' => 'Planned'] : [],
         ];

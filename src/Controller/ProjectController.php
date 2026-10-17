@@ -181,7 +181,7 @@ final class ProjectController extends AbstractController
                     'activities' => (string) ($activityCounts[$id] ?? 0),
                 ],
                 'links' => [
-                    'name' => $url('program_edit', ['id' => $id]),
+                    'name' => $url('program_show', ['id' => $id]),
                     'activities' => $url('activity_index', ['program' => $id]),
                 ],
             ];
@@ -216,7 +216,7 @@ final class ProjectController extends AbstractController
 
         return $this->render('project/show.html.twig', [
             'project' => $project,
-            'months' => $this->volunteersPerMonth($project, $today),
+            'months' => self::volunteersPerMonth($this->activities->findVolunteerDates(project: $project), $today),
             'programColumns' => [
                 ...self::withoutColumns(ProgramController::COLUMNS, 'project', 'branch'),
                 ['key' => 'booked', 'label' => 'Booked'],
@@ -238,29 +238,31 @@ final class ProjectController extends AbstractController
 
     /**
      * An index's columns less the ones a show page makes redundant — the
-     * project's own name, its branch.
+     * project's own name, its branch. Shared with the program page.
      *
      * @param list<array{key: string, label: string}> $columns
      *
      * @return list<array{key: string, label: string}>
      */
-    private static function withoutColumns(array $columns, string ...$keys): array
+    public static function withoutColumns(array $columns, string ...$keys): array
     {
         return array_values(array_filter($columns, static fn(array $column): bool => !\in_array($column['key'], $keys, true)));
     }
 
     /**
-     * Distinct volunteers with an activity here in each of the last twelve
-     * months, oldest first, zeros included; planned ones count, as in
-     * PeriodTotalsCalculator's "engaged".
+     * Distinct volunteers with an activity in each of the last twelve months,
+     * oldest first, zeros included; planned ones count, as in
+     * PeriodTotalsCalculator's "engaged". Shared with the program page.
+     *
+     * @param list<array{date: string, volunteerId: int|string}> $rows ActivityRepository::findVolunteerDates()
      *
      * @return list<array{month: \DateTimeImmutable, volunteers: int}>
      */
-    private function volunteersPerMonth(Project $project, \DateTimeImmutable $today): array
+    public static function volunteersPerMonth(array $rows, \DateTimeImmutable $today): array
     {
         /** @var array<string, array<int|string, true>> $seen 'Y-m' => volunteer ids */
         $seen = [];
-        foreach ($this->activities->findVolunteerDates(project: $project) as $row) {
+        foreach ($rows as $row) {
             $seen[substr($row['date'], 0, 7)][$row['volunteerId']] = true;
         }
 

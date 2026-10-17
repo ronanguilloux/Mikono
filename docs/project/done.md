@@ -6,6 +6,22 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-17 — Programs have a page of their own
+
+`/programs/{id}`, the twin of the branch and project pages: period pill,
+project and branch links, totals (activities, volunteers engaged, total
+days, last activity), the facts (booked from today against volunteers
+needed, activity types, skills, beneficiary groups, roles, reach), a
+volunteers-per-month chart, a by-activity-type table, then two lists —
+volunteers who worked on it and its activities — each paginated and sorted
+on its own (`volunteers*` / `activities*` params). The volunteers list is
+`ActivitySummaryCalculator::summarizeByVolunteer($program)` through
+`sortArray()`/`paginateArray()`, as on `/reports/volunteers`. Program names
+now open this page from the program index, the project page, every
+activity row (`ActivityController::linkedRow()`) and `/users/{id}`;
+`/matches` keeps its "tick them" links on the edit form. No achievements
+section: achievements belong to a stay and a project, not a program.
+
 ## 2026-10-17 — The legacy volunteer workbook is in production
 
 UCESCO top management asked for the whole pre-Mikono Google Sheet

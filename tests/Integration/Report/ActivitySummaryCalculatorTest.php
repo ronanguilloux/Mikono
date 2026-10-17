@@ -222,6 +222,24 @@ final class ActivitySummaryCalculatorTest extends KernelTestCase
         self::assertSame([1, 0.5, null], [$byLabel['Not recorded']['count'], $byLabel['Not recorded']['totalDays'], $byLabel['Not recorded']['id']]);
     }
 
+    #[Test]
+    public function aProgramNarrowsTheVolunteerAndTypeBreakdownsToItsOwnActivities(): void
+    {
+        self::bootKernel();
+        $program = ProgramFactory::createOne();
+        $volunteer = VolunteerFactory::createOne();
+        ActivityFactory::createMany(2, ['program' => $program, 'volunteer' => $volunteer, 'duration' => ActivityDuration::HalfDay]);
+        ActivityFactory::createOne(['volunteer' => $volunteer]);
+
+        $calculator = self::getContainer()->get(ActivitySummaryCalculator::class);
+        self::assertInstanceOf(ActivitySummaryCalculator::class, $calculator);
+
+        $byVolunteer = $calculator->summarizeByVolunteer($program);
+        self::assertSame([[$volunteer->getId(), 2, 1.0]], array_map(static fn(array $r): array => [$r['id'], $r['count'], $r['totalDays']], $byVolunteer));
+        self::assertSame(2, array_sum(array_column($calculator->summarizeByActivityType($program), 'count')));
+        self::assertSame(3, $calculator->summarizeByVolunteer()[0]['count'], 'unfiltered, every activity');
+    }
+
     /**
      * @return list<array{id: ?int, label: string, count: int, days: int, outings: int, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */

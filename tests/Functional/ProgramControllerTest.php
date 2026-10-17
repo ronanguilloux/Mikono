@@ -12,6 +12,8 @@ use App\Factory\ProgramFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\SkillFactory;
 use App\Factory\UserFactory;
+use App\Factory\VolunteerFactory;
+use App\Enum\ActivityDuration;
 use App\Repository\ProgramRepository;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -261,5 +263,75 @@ final class ProgramControllerTest extends WebTestCase
         $client->submit($crawler->selectButton('Save')->form(['program_form[volunteersNeeded]' => '4']));
         self::assertResponseRedirects();
         ProgramFactory::assert()->exists(['name' => 'Medical camp', 'volunteersNeeded' => 4]);
+    }
+
+    #[Test]
+    public function theIndexLinksEachNameToItsPage(): void
+    {
+        $client = static::createClient();
+        $program = ProgramFactory::createOne(['name' => 'Reading club']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/programs');
+
+        self::assertSame(sprintf('/programs/%d', $program->getId()), $crawler->filter('table a:contains("Reading club")')->attr('href'));
+    }
+
+    #[Test]
+    public function theShowPageGathersTheProgramsFactsTotalsAndLists(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $type = ActivityTypeFactory::createOne(['name' => 'Tutoring']);
+        $program = ProgramFactory::createOne([
+            'name' => 'Reading club',
+            'project' => ProjectFactory::createOne(['name' => 'Likoni School']),
+            'activityTypes' => [$type],
+            'skills' => [SkillFactory::createOne(['name' => 'Teaching'])],
+            'volunteersNeeded' => 3,
+            'beneficiariesReached' => '40 pupils',
+        ]);
+        $amina = VolunteerFactory::createOne(['firstName' => 'Amina', 'lastName' => 'Otieno']);
+        ActivityFactory::createOne(['program' => $program, 'activityType' => $type, 'volunteer' => $amina, 'date' => $today, 'duration' => ActivityDuration::FullDay]);
+        ActivityFactory::createOne(['program' => $program, 'activityType' => $type, 'volunteer' => $amina, 'date' => $today->modify('+2 days'), 'duration' => ActivityDuration::HalfDay]);
+        ActivityFactory::createOne(['date' => $today]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', sprintf('/programs/%d', $program->getId()));
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Reading club');
+        self::assertSelectorTextContains('h1', 'Always on');
+        self::assertSelectorTextContains('body', 'Likoni School');
+        $totals = $crawler->filter('[data-program-totals] dd')->each(static fn($dd): string => trim($dd->text()));
+        self::assertSame(['2', '1', '1.5'], \array_slice($totals, 0, 3));
+        self::assertStringContainsString('Planned', $totals[3]);
+        self::assertSelectorTextContains('[data-program-facts]', '1 volunteer of 3 needed');
+        self::assertSelectorTextContains('[data-program-facts]', 'Teaching');
+        self::assertSelectorTextContains('[data-program-facts]', '40 pupils');
+        self::assertSelectorTextContains('[data-program-types] tbody', 'Tutoring');
+        $volunteer = $crawler->filter('[data-program-volunteers] tbody tr td')->each(static fn($td): string => trim($td->text()));
+        self::assertSame(['Amina Otieno', '2', '1.5'], \array_slice($volunteer, 0, 3));
+        self::assertSame(sprintf('/volunteers/%d', $amina->getId()), $crawler->filter('[data-program-volunteers] tbody a')->attr('href'));
+        self::assertCount(2, $crawler->filter('[data-program-activities] tbody tr'), 'not another program\'s');
+        self::assertSelectorTextContains('[data-program-activities] tbody tr:first-child', 'Planned');
+        // Amina counts once this month, however many days she worked.
+        self::assertSame('1', $crawler->filter('[data-program-months] table tbody tr')->last()->filter('td')->text());
+    }
+
+    #[Test]
+    public function eachListOnTheShowPagePaginatesOnItsOwn(): void
+    {
+        $client = static::createClient();
+        $program = ProgramFactory::createOne();
+        ActivityFactory::createMany(26, ['program' => $program]);
+        $client->loginUser(UserFactory::createOne());
+        $path = sprintf('/programs/%d', $program->getId());
+
+        $crawler = $client->request('GET', $path . '?volunteersPage=2');
+
+        self::assertCount(1, $crawler->filter('[data-program-volunteers] tbody tr'));
+        self::assertCount(25, $crawler->filter('[data-program-activities] tbody tr'));
+        self::assertSelectorTextContains('[data-program-activities] [data-pagination-bar]', 'Showing 1–25 of 26');
     }
 }

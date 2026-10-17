@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Activity;
 use App\Entity\ActivityType;
 use App\Entity\BeneficiaryGroup;
 use App\Entity\Branch;
@@ -13,6 +14,8 @@ use App\Entity\Skill;
 use App\Export\ListExport;
 use App\Form\ProgramFormType;
 use App\Pagination\ListPaginator;
+use App\Report\ActivitySummaryCalculator;
+use App\Repository\ActivityRepository;
 use App\Repository\ProgramRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -52,10 +55,49 @@ final class ProgramController extends AbstractController
         ['key' => 'beneficiaryGroups', 'label' => 'Beneficiary groups'],
     ];
 
+    /**
+     * The program page's volunteers list: an in-memory breakdown, so column
+     * key => array key, sorted by ListPaginator::sortArray() (ADR 0011).
+     *
+     * @var array<string, string>
+     */
+    private const array VOLUNTEER_SORT_MAP = [
+        'label' => 'label',
+        'count' => 'count',
+        'totalDays' => 'totalDays',
+        'mostRecent' => 'mostRecent',
+    ];
+
+    /** @var list<array{key: string, label: string}> */
+    private const array VOLUNTEER_COLUMNS = [
+        ['key' => 'label', 'label' => 'Volunteer'],
+        ['key' => 'count', 'label' => 'Activities'],
+        ['key' => 'totalDays', 'label' => 'Total days'],
+        ['key' => 'mostRecent', 'label' => 'Most recent'],
+    ];
+
+    /** @var list<array{key: string, label: string}> */
+    private const array ACTIVITY_TYPE_COLUMNS = [
+        ['key' => 'label', 'label' => 'Activity type'],
+        ['key' => 'count', 'label' => 'Activities'],
+        ['key' => 'totalDays', 'label' => 'Total days'],
+        ['key' => 'volunteers', 'label' => 'Volunteers'],
+        ['key' => 'mostRecent', 'label' => 'Most recent'],
+    ];
+
+    /**
+     * The program page's two paginated lists, kept apart in the URL as on
+     * the project page (ListPaginator::param()).
+     */
+    private const string VOLUNTEERS = 'volunteers';
+    private const string ACTIVITIES = 'activities';
+
     public function __construct(
         private readonly ProgramRepository $programs,
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
+        private readonly ActivityRepository $activities,
+        private readonly ActivitySummaryCalculator $summaries,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -74,7 +116,9 @@ final class ProgramController extends AbstractController
             $activityCount = null === $id ? 0 : ($activityCounts[$id] ?? 0);
             $rows[] = [
                 'cells' => self::cells($program),
+                'links' => ['name' => $this->generateUrl('program_show', ['id' => $id])],
                 'actions' => [
+                    ['label' => 'View', 'url' => $this->generateUrl('program_show', ['id' => $id])],
                     ['label' => 'Matches', 'url' => $this->generateUrl('match_index', ['program' => $id])],
                     ['label' => 'Edit', 'url' => $this->generateUrl('program_edit', ['id' => $id])],
                     $activityCount > 0
@@ -212,6 +256,101 @@ final class ProgramController extends AbstractController
             null === $start => 'Until ' . $end,
             default => $start . ' – ' . $end,
         };
+    }
+
+    /**
+     * One program at a glance, the twin of the project page: what it offers
+     * and needs, its totals, volunteers per month, then who worked on it and
+     * its activities — each list paginated and sortable on its own. Read-only.
+     */
+    #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function show(Request $request, Program $program): Response
+    {
+        $today = new \DateTimeImmutable('today');
+        $url = $this->generateUrl(...);
+
+        // Whole list, in the calculator's total-days order: the totals are
+        // read off it before it is sorted and paged.
+        $byVolunteer = $this->summaries->summarizeByVolunteer($program);
+        $lastActivity = [] === $byVolunteer ? null : max(array_column($byVolunteer, 'mostRecent'));
+        $volunteerPagination = $this->paginator->paginateArray(
+            $this->paginator->sortArray($byVolunteer, $request, self::VOLUNTEER_SORT_MAP, self::VOLUNTEERS),
+            $request,
+            self::VOLUNTEERS,
+        );
+        $volunteerRows = [];
+        foreach ($volunteerPagination as $summary) {
+            $volunteerRows[] = self::summaryRow($summary, $today) + [
+                'links' => null === $summary['id'] ? [] : ['label' => $url('volunteer_show', ['id' => $summary['id']])],
+            ];
+        }
+
+        $typeRows = array_map(
+            static fn(array $summary): array => self::summaryRow($summary, $today) + ['links' => []],
+            $this->summaries->summarizeByActivityType($program),
+        );
+
+        $activityQuery = $this->activities->createOrderedByDateDescQueryBuilder(program: $program);
+        $this->paginator->applySort($activityQuery, $request, ActivityController::SORT_MAP, self::ACTIVITIES);
+        $activityPagination = $this->paginator->paginateQuery($activityQuery, Activity::class, $request, self::ACTIVITIES);
+        $activityRows = [];
+        foreach ($activityPagination as $activity) {
+            $activityRows[] = ActivityController::linkedRow($activity, $today, $url);
+        }
+
+        return $this->render('program/show.html.twig', [
+            'program' => $program,
+            'period' => match (true) {
+                null === $program->getStartDate() && null === $program->getEndDate() => 'Always on',
+                $program->covers($today) => 'Current',
+                null !== $program->getEndDate() && $program->getEndDate() < $today => 'Ended',
+                default => 'Upcoming',
+            },
+            'dates' => self::dates($program),
+            'booked' => $this->programs->countBookedVolunteers([$program], $today)[(int) $program->getId()] ?? 0,
+            'totals' => [
+                'activities' => array_sum(array_column($byVolunteer, 'count')),
+                'volunteers' => \count($byVolunteer),
+                'days' => array_sum(array_column($byVolunteer, 'totalDays')),
+                'last' => $lastActivity,
+            ],
+            'today' => $today,
+            'months' => ProjectController::volunteersPerMonth($this->activities->findVolunteerDates(program: $program), $today),
+            'typeColumns' => self::ACTIVITY_TYPE_COLUMNS,
+            'typeRows' => $typeRows,
+            'volunteerColumns' => self::VOLUNTEER_COLUMNS,
+            'volunteerRows' => $volunteerRows,
+            'volunteerPagination' => $volunteerPagination,
+            'volunteerSortState' => $this->paginator->sortState($request, self::VOLUNTEER_SORT_MAP, self::VOLUNTEERS),
+            'activityColumns' => ProjectController::withoutColumns(ActivityController::COLUMNS, 'project', 'program'),
+            'activityRows' => $activityRows,
+            'activityPagination' => $activityPagination,
+            'activitySortState' => $this->paginator->sortState($request, ActivityController::SORT_MAP, self::ACTIVITIES),
+        ]);
+    }
+
+    /**
+     * A breakdown row as /reports/volunteers draws it: one decimal for days,
+     * a future "Most recent" tagged Planned.
+     *
+     * @param array{count: int, totalDays: float, mostRecent: ?\DateTimeImmutable, label: string, volunteers?: int} $summary
+     *
+     * @return array{cells: array<string, string>, badges: array<string, string>}
+     */
+    private static function summaryRow(array $summary, \DateTimeImmutable $today): array
+    {
+        $mostRecent = $summary['mostRecent'];
+
+        return [
+            'cells' => [
+                'label' => $summary['label'],
+                'count' => (string) $summary['count'],
+                'totalDays' => number_format($summary['totalDays'], 1),
+                'volunteers' => (string) ($summary['volunteers'] ?? ''),
+                'mostRecent' => $mostRecent?->format('j M Y') ?? '—',
+            ],
+            'badges' => null !== $mostRecent && $mostRecent > $today ? ['mostRecent' => 'Planned'] : [],
+        ];
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Report;
 
 use App\Entity\Activity;
+use App\Entity\Program;
 use App\Repository\ActivityRepository;
 use App\Repository\SourceRepository;
 
@@ -21,12 +22,18 @@ final class ActivitySummaryCalculator
         private readonly SourceRepository $sources,
     ) {}
 
-    /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
-    public function summarizeByVolunteer(): array
+    /**
+     * A program narrows this and summarizeByActivityType() to its own
+     * activities, for the program page.
+     *
+     * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
+     */
+    public function summarizeByVolunteer(?Program $program = null): array
     {
         return $this->summarize(
             static fn(Activity $a) => $a->getVolunteer()?->getId(),
             static fn(Activity $a) => $a->getVolunteer()?->getFullName() ?? 'Unknown',
+            activities: $this->activitiesOf($program),
         );
     }
 
@@ -41,12 +48,28 @@ final class ActivitySummaryCalculator
     }
 
     /** @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}> */
-    public function summarizeByActivityType(): array
+    public function summarizeByActivityType(?Program $program = null): array
     {
         return $this->summarize(
             static fn(Activity $a) => $a->getActivityType()?->getId(),
             static fn(Activity $a) => $a->getActivityType()?->getName() ?? 'Unknown',
+            activities: $this->activitiesOf($program),
         );
+    }
+
+    /**
+     * @return Activity[]|null null meaning every activity
+     */
+    private function activitiesOf(?Program $program): ?array
+    {
+        if (null === $program) {
+            return null;
+        }
+
+        /** @var Activity[] $activities */
+        $activities = $this->activities->createOrderedByDateDescQueryBuilder(program: $program)->getQuery()->getResult();
+
+        return $activities;
     }
 
     /**
@@ -220,14 +243,16 @@ final class ActivitySummaryCalculator
      * @param callable(Activity): ?int           $idFn
      * @param callable(Activity): string         $labelFn
      * @param (callable(Activity): ?string)|null $parentFn
+     * @param Activity[]|null                    $activities
      *
      * @return list<array{id: ?int, label: string, count: int, totalDays: float, volunteers: int, parent: ?string, mostRecent: ?\DateTimeImmutable, mostRecentActivityId: ?int}>
      */
-    private function summarize(callable $idFn, callable $labelFn, ?callable $parentFn = null): array
+    private function summarize(callable $idFn, callable $labelFn, ?callable $parentFn = null, ?array $activities = null): array
     {
         return $this->summarizeMany(
             static fn(Activity $a): array => [['id' => $idFn($a), 'label' => $labelFn($a)]],
             $parentFn,
+            $activities,
         );
     }
 

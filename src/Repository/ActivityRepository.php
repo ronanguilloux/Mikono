@@ -86,7 +86,7 @@ class ActivityRepository extends ServiceEntityRepository
      *
      * @return list<array{date: string, volunteerId: int|string}>
      */
-    public function findVolunteerDates(?Branch $branch = null, ?Project $project = null): array
+    public function findVolunteerDates(?Branch $branch = null, ?Project $project = null, ?Program $program = null): array
     {
         $queryBuilder = $this->createQueryBuilder('a')
             ->select('a.date AS date', 'IDENTITY(a.volunteer) AS volunteerId');
@@ -103,6 +103,12 @@ class ActivityRepository extends ServiceEntityRepository
                 ->join('a.program', 'prg')
                 ->andWhere('prg.project = :project')
                 ->setParameter('project', $project);
+        }
+
+        if (null !== $program) {
+            $queryBuilder
+                ->andWhere('a.program = :program')
+                ->setParameter('program', $program);
         }
 
         /** @var list<array{date: string, volunteerId: int|string}> $rows */

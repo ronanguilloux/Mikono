@@ -128,7 +128,7 @@ final readonly class UserTimeline
             ],
             $subject instanceof Achievement => ['achievement', $subject->getTitle(), $this->url('achievement_edit', $subject)],
             $subject instanceof Project => ['project', $subject->getName(), $this->url('project_show', $subject)],
-            $subject instanceof Program => ['program', $subject->getName(), $this->url('program_edit', $subject)],
+            $subject instanceof Program => ['program', $subject->getName(), $this->url('program_show', $subject)],
             $subject instanceof Activity => [
                 'activity',
                 \sprintf('%s, %s', $subject->getVolunteer()?->getFullName() ?? '?', $subject->getDate()?->format('j M Y') ?? '?'),
