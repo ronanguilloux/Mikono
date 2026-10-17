@@ -99,10 +99,6 @@ class Volunteer implements Authored
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $pickupAirport = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Url(requireTld: true)]
-    private ?string $socialMediaUrl = null;
-
     // Free text until someone needs to list a supervisor's volunteers; it may
     // become a User or an Escort then. See ADR 0032.
     #[ORM\Column(length: 255, nullable: true)]
@@ -425,18 +421,6 @@ class Volunteer implements Authored
         return $this;
     }
 
-    public function getSocialMediaUrl(): ?string
-    {
-        return $this->socialMediaUrl;
-    }
-
-    public function setSocialMediaUrl(?string $socialMediaUrl): static
-    {
-        $this->socialMediaUrl = self::nullIfBlank($socialMediaUrl);
-
-        return $this;
-    }
-
     public function getSupervisor(): ?string
     {
         return $this->supervisor;
@@ -500,7 +484,7 @@ class Volunteer implements Authored
 
     /**
      * True while any profile field is still unrecorded; the profile page nudges on it.
-     * The second-slice fields (accommodation, airport, social link, supervisor,
+     * The second-slice fields (accommodation, airport, supervisor,
      * passport) are left out: they don't apply to every volunteer — a Kenyan
      * volunteer has no pickup airport — so counting them would make the pill
      * permanent.

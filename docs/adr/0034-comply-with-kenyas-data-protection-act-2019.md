@@ -31,7 +31,7 @@ These facts drive the decision:
   name, email, phone, free-text notes, nationality, country of residence,
   date of birth, profession, skills, interests, free-text emergency
   contacts (usually the names of relatives), a photo, an accommodation
-  preference, a pickup airport, a social media link, a supervisor, and a
+  preference, a pickup airport, social media handles, a supervisor, and a
   passport number and expiry
   ([ADR 0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md),
   [ADR 0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)).

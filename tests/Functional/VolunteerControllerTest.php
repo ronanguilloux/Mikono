@@ -997,7 +997,6 @@ final class VolunteerControllerTest extends WebTestCase
         $client->submit($crawler->selectButton('Save')->form([
             'volunteer_form[accommodationPreference]' => 'Host family',
             'volunteer_form[pickupAirport]' => 'JKIA, Nairobi',
-            'volunteer_form[socialMediaUrl]' => 'https://example.org/aisha',
             'volunteer_form[supervisor]' => '',
             'volunteer_form[driveFolderUrl]' => 'https://drive.google.com/drive/folders/abc123',
         ]));
@@ -1006,7 +1005,6 @@ final class VolunteerControllerTest extends WebTestCase
         $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
         self::assertSame('Host family', $volunteer->getAccommodationPreference());
         self::assertSame('JKIA, Nairobi', $volunteer->getPickupAirport());
-        self::assertSame('https://example.org/aisha', $volunteer->getSocialMediaUrl());
         self::assertNull($volunteer->getSupervisor());
         self::assertSame('https://drive.google.com/drive/folders/abc123', $volunteer->getDriveFolderUrl());
 
@@ -1014,24 +1012,6 @@ final class VolunteerControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-drive-folder] a[href="https://drive.google.com/drive/folders/abc123"][rel~="noopener"]'));
         self::assertSelectorTextContains('[data-profile]', 'Host family');
         self::assertSelectorTextContains('[data-profile]', 'JKIA, Nairobi');
-        $link = $crawler->filter('[data-profile] a[href="https://example.org/aisha"]');
-        self::assertCount(1, $link);
-        self::assertStringContainsString('noopener', (string) $link->attr('rel'));
-    }
-
-    #[Test]
-    public function aSocialMediaLinkThatIsNotAUrlIsRefused(): void
-    {
-        $client = static::createClient();
-        $volunteer = VolunteerFactory::createOne();
-        $client->loginUser(UserFactory::createOne());
-        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
-
-        $client->submit($crawler->selectButton('Save')->form([
-            'volunteer_form[socialMediaUrl]' => 'not a link',
-        ]));
-
-        self::assertResponseStatusCodeSame(422);
     }
 
     #[Test]

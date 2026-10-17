@@ -283,16 +283,6 @@
                 <dd class="mt-0.5 text-sm">{{ volunteer.pickupAirport ?? notOnFile }}</dd>
             </div>
             <div>
-                <dt class="text-xs text-slate-500">Social media</dt>
-                <dd class="mt-0.5 break-all text-sm">
-                    {% if volunteer.socialMediaUrl %}
-                        <a href="{{ volunteer.socialMediaUrl }}" target="_blank" rel="noopener noreferrer nofollow" class="text-brand-600 hover:underline">{{ volunteer.socialMediaUrl }}</a>
-                    {% else %}
-                        {{ notOnFile }}
-                    {% endif %}
-                </dd>
-            </div>
-            <div>
                 <dt class="text-xs text-slate-500">Passport</dt>
                 <dd class="mt-0.5 text-sm" data-passport>
                     {% if passportNumber or volunteer.passportExpiresOn %}

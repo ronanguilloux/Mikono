@@ -88,11 +88,6 @@ final class VolunteerFormType extends AbstractType
                 'required' => false,
                 'label' => 'Airport for pickup',
             ])
-            ->add('socialMediaUrl', UrlType::class, [
-                'required' => false,
-                'label' => 'Social media link',
-                'default_protocol' => 'https',
-            ])
             ->add('supervisor', TextType::class, ['required' => false])
             // Unmapped: the controller encrypts it into passportNumberCiphertext
             // (ADR 0033), so the plain number never reaches the entity.

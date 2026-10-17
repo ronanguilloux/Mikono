@@ -28,9 +28,9 @@ that the app stores and renders but never follows.
   ([ADR 0014](0014-make-a-volunteers-last-name-optional.md)).
 - Labelled "GDrive folder URL" on the form, after the passport fields, and
   "GDrive folder" on the profile, after Passport and before Skills. It renders
-  as a link with `target="_blank" rel="noopener noreferrer nofollow"`, like
-  `socialMediaUrl`
-  ([ADR 0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md)).
+  as a link with `target="_blank" rel="noopener noreferrer nofollow"`: the
+  opened page gets no handle on the app's window, no referrer and no
+  endorsement.
 - It does not count towards `isProfileIncomplete()`. Like the passport, not
   every volunteer has one.
 - Any valid URL is accepted; there is no `drive.google.com` host check.

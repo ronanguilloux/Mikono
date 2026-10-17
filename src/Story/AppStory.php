@@ -124,7 +124,6 @@ final class AppStory extends Story
             'emergencyContacts' => 'Some.',
             'accommodationPreference' => 'None.',
             'pickupAirport' => '3 Sept 1pm, Nairobi',
-            'socialMediaUrl' => 'https://github.com/ronanguilloux',
             'supervisor' => 'Edna',
             'passportExpiresOn' => new \DateTimeImmutable('2030-01-01'),
             'stays' => [],

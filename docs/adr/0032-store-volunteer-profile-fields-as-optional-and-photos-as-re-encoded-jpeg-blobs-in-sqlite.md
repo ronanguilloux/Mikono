@@ -62,11 +62,10 @@ and served only to signed-in staff.**
 - `accommodationPreference` and `pickupAirport`: strings, 255 characters
   at most, free text because nobody has listed the choices. An enum can
   replace either once the values recorded show what the choices are.
-- `socialMediaUrl`: string, 255 characters at most, validated with
-  `Url(requireTld: true)`. The profile renders it as a link with
-  `rel="noopener noreferrer nofollow"`: the URL is volunteer-supplied, so
-  the opened page must get no handle on the app's window, no referrer and
-  no endorsement.
+- No single social media link. Instagram, Facebook, Twitter / X, TikTok
+  and LinkedIn each have their own free-text field, from the legacy intro
+  form. A generic `socialMediaUrl` only ever repeated them word for word,
+  so it was dropped.
 - `supervisor`: free text, 255 characters at most. It may become a
   relation to `User` or `Escort` once someone needs to list a supervisor's
   volunteers; the Volunteer Manager does not consider a supervisor to be
@@ -88,7 +87,7 @@ missing value, so the gaps are visible without blocking an edit.
 **Only the first set of fields counts towards `isProfileIncomplete()`**,
 which drives the "Incomplete profile" pill: nationality, country of
 residence, date of birth, profession, skills, interests and emergency
-contacts. Accommodation, pickup airport, social media link, supervisor and
+contacts. Accommodation, pickup airport, supervisor and
 the passport are situational; counting them would keep the pill on for
 every Kenyan volunteer forever, and a pill that never clears stops being
 read.

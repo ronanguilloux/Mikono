@@ -19,6 +19,13 @@ hand, and 9 are ambiguous and stay text. Migration `Version20261017200000`
 nulls the 5 non-answers ("Yes", "I'm not on social media") and strips an
 "Instagram name:" prefix. It matches on values, never ids or handles.
 
+The generic "Social media link" field is gone (`Version20261017212439`
+drops `volunteer.social_media_url`). Of the 28 values on file, 27 repeated
+the dedicated Instagram, Facebook or LinkedIn field word for word. The
+remaining one, a GitHub link on its owner's own record, is re-entered by
+hand after the deploy. ADR 0032 now says
+social accounts live only in their dedicated fields.
+
 ## 2026-10-17 — The "By period" tab opens on a chart
 
 With the legacy import, `/reports/volunteers?tab=month` runs to 40-odd
