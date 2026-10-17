@@ -21,8 +21,8 @@ Progress tracker — tick as each step lands. Detail and reasoning:
 [brainstorm 15](../../brainstorm/15-legacy-workbook-import.md).
 
 - [x] **0.** `data-to-import/` gitignored (the workbook names real people; public repo)
-- [ ] **1a.** Personal-data limits removed from ADR 0034, 0037, 0028, 0044 and `AGENTS.md`
-- [ ] **1b.** New nullable `Volunteer` columns + form fields + profile rows, migration, tests green
+- [x] **1a.** Personal-data limits removed from ADR 0034, 0037, 0028, 0044 and `AGENTS.md`
+- [x] **1b.** New nullable `Volunteer` columns + form fields + profile rows, migration, tests green
 - [ ] **1b.** Committed, CI image built, deployed, migration logged on prod
 - [ ] **1c.** Local checkout == deployed commit, migrations in sync
 - [ ] **2.** Freeze agreed with Edna; `make db_update`; baseline fingerprint + `S0.db` kept
