@@ -47,6 +47,10 @@ final class LegacyImportTest extends KernelTestCase
         // The stay's branch is the roster's, for the stay's year.
         self::assertSame('Nairobi', $asha->stays[0]['branch']);
         self::assertSame('1997-11-15', self::field($asha->fields, 'dateOfBirth'));
+        // "N/A" and an account question's "no" are non-answers; elsewhere "No" means no.
+        self::assertArrayNotHasKey('twitter', $asha->fields);
+        self::assertArrayNotHasKey('tiktok', $asha->fields);
+        self::assertFalse($asha->fields['experienceWithChildren']);
         self::assertContains('2024 roster — branch: Nairobi; project: Peggy Lucas; activity: Childcare; source: VW; duration: 2 WEEKS', $asha->legacy);
 
         // The repeated header row is not a person; a roster-only person with
@@ -175,6 +179,9 @@ final class LegacyImportTest extends KernelTestCase
         $asha[21] = new \DateTimeImmutable('2024-08-01');
         $asha[22] = '8/24/0024';
         $asha[23] = 'Hiking';
+        $asha[15] = 'N/A';
+        $asha[16] = 'no';
+        $asha[19] = 'No';
         $cy = $form;
         $cy[0] = new \DateTimeImmutable('2025-03-01');
         $cy[1] = 'Cy New';

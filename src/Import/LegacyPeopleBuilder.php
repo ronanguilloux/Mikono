@@ -34,6 +34,14 @@ final class LegacyPeopleBuilder
         30 => 'education',
     ];
 
+    /** What respondents typed for "nothing": a non-answer, not a value (brainstorm 15). */
+    private const array NO_ANSWER = ['na', 'n a', 'none', 'nil', 'null', 'not applicable', 'nothing'];
+
+    /** And, for an account question only, "no". */
+    private const array NO_ACCOUNT = ['no', 'nope', 'dont have', 'i dont have', 'dont have one', 'i dont have one', 'no account'];
+
+    private const array SOCIAL_COLUMNS = [13, 14, 15, 16, 17];
+
     private const array LABELS = [
         'email' => 'Email', 'phone' => 'Phone', 'dateOfBirth' => 'Date of birth', 'gender' => 'Gender',
         'profession' => 'Occupation', 'interests' => 'Interests', 'emergencyContacts' => 'Emergency contact',
@@ -158,7 +166,11 @@ final class LegacyPeopleBuilder
             $this->set($person, 'interests', $interests);
         }
         foreach (self::FORM_TEXT as $column => $property) {
-            if (null !== $value = self::text($row, $column)) {
+            $value = self::text($row, $column);
+            if (null !== $value && in_array($column, self::SOCIAL_COLUMNS, true) && in_array(self::bare($value), self::NO_ACCOUNT, true)) {
+                continue;
+            }
+            if (null !== $value) {
                 $this->set($person, $property, $value);
             }
         }
@@ -481,8 +493,17 @@ final class LegacyPeopleBuilder
     private static function text(array $row, int $column): ?string
     {
         $value = $row[$column] ?? null;
+        if ($value instanceof \DateTimeImmutable) {
+            return $value->format('Y-m-d');
+        }
 
-        return $value instanceof \DateTimeImmutable ? $value->format('Y-m-d') : $value;
+        return null === $value || in_array(self::bare($value), ['', ...self::NO_ANSWER], true) ? null : $value;
+    }
+
+    /** Lower case, letters and spaces only: "N/A" is "n a", "-" is "". */
+    private static function bare(string $value): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^a-z ]/', ' ', strtolower($value))));
     }
 
     /** @param array<int, string|\DateTimeImmutable|null> $row */
