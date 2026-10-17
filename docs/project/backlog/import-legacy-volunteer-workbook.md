@@ -23,9 +23,9 @@ Progress tracker — tick as each step lands. Detail and reasoning:
 - [x] **0.** `data-to-import/` gitignored (the workbook names real people; public repo)
 - [x] **1a.** Personal-data limits removed from ADR 0034, 0037, 0028, 0044 and `AGENTS.md`
 - [x] **1b.** New nullable `Volunteer` columns + form fields + profile rows, migration, tests green
-- [ ] **1b.** Committed, CI image built, deployed, migration logged on prod
-- [ ] **1c.** Local checkout == deployed commit, migrations in sync
-- [ ] **2.** Freeze agreed with Edna; `make db_update`; baseline fingerprint + `S0.db` kept
+- [x] **1b.** Committed, CI image built, deployed, migration logged on prod
+- [x] **1c.** Local checkout == deployed commit, migrations in sync
+- [x] **2.** `make db_update` (2026-10-17 15:37Z); baseline `scripts/db-fingerprint.sh` + `S0.db` kept — freeze with Edna assumed (weekend)
 - [ ] **3.** `app:import:legacy-workbook` command + integration test
 - [ ] **4.** Main pass (form + rosters + DIRECT): mapping and people reviewed, dry-run clean, applied → `S1.db`
 - [ ] **5.** ACK pass: dates swapped and checked, names reconciled, inferred stays accepted, activities applied → `S2.db`
