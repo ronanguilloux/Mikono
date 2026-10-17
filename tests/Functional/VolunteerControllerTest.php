@@ -642,9 +642,13 @@ final class VolunteerControllerTest extends WebTestCase
             'Cannot delete Aisha Njoroge — 1 activity references them.',
             $note->text(),
         );
+        // The link sits by the title, not in the note.
+        self::assertCount(0, $note->filter('a'));
+        $link = $crawler->selectLink('See in Activities →');
+        self::assertCount(1, $link);
         self::assertSame(
             '/activities?volunteer=' . $volunteer->getId(),
-            $note->filter('a')->attr('href'),
+            $link->attr('href'),
         );
     }
 
