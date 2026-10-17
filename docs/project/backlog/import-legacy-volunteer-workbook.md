@@ -27,7 +27,7 @@ Progress tracker — tick as each step lands. Detail and reasoning:
 - [x] **1c.** Local checkout == deployed commit, migrations in sync
 - [x] **2.** `make db_update` (2026-10-17 15:37Z); baseline `scripts/db-fingerprint.sh` + `S0.db` kept — freeze with Edna assumed (weekend)
 - [x] **3.** `app:import:legacy-workbook` command + integration test (idempotency and "prod wins" also proven on the real copy)
-- [ ] **4.** Main pass (form + rosters + DIRECT): mapping and people reviewed, dry-run clean, applied → `S1.db`
+- [x] **4.** Main pass (form + rosters + DIRECT): mapping and people reviewed, dry-run clean, applied locally → `S1.db` (251 created, 9 filled, 251 stays)
 - [ ] **5.** ACK pass: dates swapped and checked, names reconciled, inferred stays accepted, activities applied → `S2.db`
 - [ ] **6.** Exceptions pass (no dates anywhere) reviewed by hand → `S3.db`
 - [ ] **7.** Local verification gate passed (integrity, deltas, invariants, tests, browser)

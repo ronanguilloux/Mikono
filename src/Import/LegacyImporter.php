@@ -442,17 +442,26 @@ final class LegacyImporter
 
     private static function merge(LegacyPerson $from, LegacyPerson $into): void
     {
-        $into->legacy = [...$into->legacy, ...$from->legacy];
-        $into->notes = [...$into->notes, ...$from->notes];
+        $into->legacy = [...$into->legacy, ...$from->legacy, 'Merged from: ' . $from->fullName()];
         $into->fields += $from->fields;
         $into->lastName ??= $from->lastName;
         $into->countries = [...$into->countries, ...$from->countries];
         $into->activities = [...$into->activities, ...$from->activities];
         $into->sources = [...$into->sources, ...$from->sources];
+        $into->seenIn = [...$into->seenIn, ...$from->seenIn];
+        $into->rosterBranches += $from->rosterBranches;
+        $into->directBranch ??= $from->directBranch;
         // An overlapping stay of the merged person is skipped at write time.
         $into->stays = [...$into->stays, ...$from->stays];
-        $into->seenIn = [...$into->seenIn, ...$from->seenIn];
         $from->stays = [];
+        // The branch a form stay lacked may come from the other half's roster.
+        foreach ($into->stays as $i => $stay) {
+            $into->stays[$i]['branch'] ??= $into->rosterBranches[(int) $stay['start']->format('Y')]
+                ?? $into->rosterBranches[(int) $stay['end']->format('Y')]
+                ?? $into->directBranch;
+        }
+        // Roster durations stand in for dates only when there are none.
+        $into->notes = $into->hasDates() ? [] : array_values(array_unique([...$into->notes, ...$from->notes]));
     }
 
     /**
