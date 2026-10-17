@@ -29,7 +29,7 @@ Progress tracker — tick as each step lands. Detail and reasoning:
 - [x] **3.** `app:import:legacy-workbook` command + integration test (idempotency and "prod wins" also proven on the real copy)
 - [x] **4.** Main pass (form + rosters + DIRECT): mapping and people reviewed, dry-run clean, applied locally → `S1.db` (251 created, 9 filled, 251 stays)
 - [x] **5.** ACK pass (`--max-gap=6`): dates swapped and checked, names reconciled, 1 inferred stay, 54 activities applied locally → `S2.db`
-- [ ] **6.** Exceptions pass (no dates anywhere) reviewed by hand → `S3.db`
+- [x] **6.** Exceptions pass reviewed: 163 created with no stay, 26 country-label rows skipped, 2 spelling variants filled → `S3.db`
 - [ ] **7.** Local verification gate passed (integrity, deltas, invariants, tests, browser)
 - [ ] **8.** Production swapped under freeze (fingerprint unchanged, B1 kept), checked on prod
 - [ ] **9.** Clean-up: prod key removed locally, `make fixtures`, `data-to-import/` deleted, ADR 0044 updated, `done.md` entry, importer deleted, this card deleted

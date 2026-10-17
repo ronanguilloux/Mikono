@@ -338,7 +338,6 @@ final class LegacyImporter
         }
 
         $changed = self::appendLines($volunteer->getLegacyRecord(), $person->legacy, $volunteer->setLegacyRecord(...)) || $changed;
-        $changed = self::appendLines($volunteer->getNotes(), $person->notes, $volunteer->setNotes(...)) || $changed;
 
         foreach (array_unique(array_merge(...array_map(static fn(string $raw): array => $mapping['skills'][$raw] ?? [], $person->activities))) as $name) {
             $skill = $this->skills->findOneBy(['name' => $name]);
@@ -383,6 +382,11 @@ final class LegacyImporter
             foreach ($this->validator->validate($stay) as $violation) {
                 $problems[] = sprintf('%s: stay %s: %s', $person->key, $violation->getPropertyPath(), $violation->getMessage());
             }
+        }
+
+        // A roster duration stands in for dates only on a volunteer with no stay.
+        if ($volunteer->getStays()->isEmpty()) {
+            $changed = self::appendLines($volunteer->getNotes(), $person->notes, $volunteer->setNotes(...)) || $changed;
         }
 
         if ($changed && null !== $volunteer->getId()) {
