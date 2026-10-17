@@ -6,6 +6,20 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-18 — A volunteer's edit form is laid out like their page
+
+`/volunteers/{id}/edit` and `/volunteers/new` now use the show page's cards:
+📌 At a glance, 🪪 Profile, 📋 Background and 📝 Notes, in the same order,
+in two columns. The edit page also has the show page's header (photo or
+initials, name, status). `FormShell` takes an optional `sections` list
+(key, emoji, title, field names). The grouping is in
+`templates/volunteer/_form.html.twig`. Text areas and checkbox lists span
+both columns. A field no section lists still renders below the cards. Each
+card's Edit link on the show page opens the matching card
+(`/edit#profile`). Save sits in a sticky bar, and saving or cancelling an
+edit returns to the volunteer's page instead of the list. Notes and Legacy
+record open six rows tall. The other `FormShell` screens are unchanged.
+
 ## 2026-10-17 — A volunteer's Instagram links to their profile
 
 On `/volunteers/{id}`, the Background card's Instagram value links to

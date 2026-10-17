@@ -162,11 +162,13 @@ final class VolunteerFormType extends AbstractType
             ->add('accommodationAddress', TextType::class, ['required' => false])
             ->add('legacyRecord', TextareaType::class, [
                 'required' => false,
+                // Often several lines; tall enough to read them without scrolling.
+                'attr' => ['rows' => 6],
                 'help' => 'Values from the legacy volunteer workbook that have no field of their own.',
             ]);
 
         // No Active checkbox: active is read from the volunteer's stays (ADR 0026).
-        $builder->add('notes', TextareaType::class, ['required' => false]);
+        $builder->add('notes', TextareaType::class, ['required' => false, 'attr' => ['rows' => 6]]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

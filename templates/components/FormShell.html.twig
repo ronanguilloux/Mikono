@@ -9,17 +9,41 @@
 
     `formAttr` is the second and only other difference: Projects pass `{}`
     because ProjectFormType sets the form's attributes itself.
+
+    `sections` (optional) groups the fields into the same emoji-headed cards
+    as the entity's show page, so switching from view to edit keeps the
+    reader's bearings: a list of {key, emoji, title, fields}, `key` becoming
+    the card's id so the show page can deep-link to it. A field the form
+    lacks is skipped; one no section lists still renders, after the cards.
+    Text areas and checkbox lists span the card's full width.
 #}
 {% props
     form,
     cancelUrl,
-    formAttr = {class: 'max-w-lg'}
+    formAttr = {class: 'max-w-lg'},
+    sections = []
 %}
 
 {{ form_start(form, {attr: formAttr}) }}
-    {{ form_widget(form) }}
+    {% if sections is empty %}
+        {{ form_widget(form) }}
+    {% else %}
+        {% for section in sections %}
+            <div id="{{ section.key }}" class="mb-6 scroll-mt-4 rounded-lg border border-slate-200 bg-white p-4">
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500"><span aria-hidden="true">{{ section.emoji }}</span> {{ section.title }}</h2>
+                <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                    {% for name in section.fields|filter(name => form.children[name] is defined) %}
+                        {% set field = form.children[name] %}
+                        {% set wide = 'textarea' in field.vars.block_prefixes or (field.vars.expanded ?? false) %}
+                        {{ form_row(field, {row_attr: wide ? {class: 'sm:col-span-2'} : {}}) }}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+        {{ form_rest(form) }}
+    {% endif %}
 
-    <div class="flex items-center gap-3">
+    <div class="{{ sections is empty ? 'flex items-center gap-3' : 'sticky bottom-0 flex items-center gap-3 border-t border-slate-200 bg-slate-50/95 py-3' }}">
         <button
             type="submit"
             class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"

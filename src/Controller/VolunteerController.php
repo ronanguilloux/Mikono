@@ -435,7 +435,8 @@ final class VolunteerController extends AbstractController
 
             $this->addFlash('success', sprintf('%s was updated.', $volunteer->getFullName()));
 
-            return $this->redirectToRoute('volunteer_index');
+            // Back to the page the reader most likely came from: view, edit, view.
+            return $this->redirectToRoute('volunteer_show', ['id' => $volunteer->getId()]);
         }
 
         // Said here rather than on the index: a reader who wants to delete one
@@ -446,6 +447,7 @@ final class VolunteerController extends AbstractController
         return $this->render('volunteer/edit.html.twig', [
             'form' => $form,
             'volunteer' => $volunteer,
+            'today' => new \DateTimeImmutable('today'),
             'deleteGuardReason' => $referencingCount > 0
                 ? $this->guardReason($volunteer, $referencingCount)
                 : null,

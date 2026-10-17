@@ -1,0 +1,26 @@
+{#
+    The volunteer form, grouped into the show page's cards in the show page's
+    order, so a reader switching from view to edit finds each field where
+    they last saw it. The keys are the anchors show.html.twig's Edit links
+    point at. A field added to VolunteerFormType but not listed here still
+    renders, below the cards.
+#}
+<twig:FormShell
+    :form="form"
+    :cancelUrl="cancelUrl"
+    :formAttr="{}"
+    :sections="[
+        {key: 'glance', emoji: '📌', title: 'At a glance', fields: ['firstName', 'lastName', 'email', 'phone', 'photo', 'removePhoto']},
+        {key: 'profile', emoji: '🪪', title: 'Profile', fields: [
+            'nationality', 'countryOfResidence', 'dateOfBirth', 'gender', 'profession', 'supervisor',
+            'accommodationPreference', 'pickupAirport', 'passportNumber', 'passportExpiresOn', 'driveFolderUrl',
+            'skills', 'sources', 'interests', 'emergencyContacts',
+        ]},
+        {key: 'background', emoji: '📋', title: 'Background', fields: [
+            'instagram', 'facebook', 'twitter', 'tiktok', 'linkedin', 'employer', 'education', 'favouriteFood',
+            'accommodationAddress', 'experienceWithChildren', 'hobbies', 'freeTimeActivities', 'skillsDescription',
+            'motivation', 'legacyRecord',
+        ]},
+        {key: 'notes', emoji: '📝', title: 'Notes', fields: ['notes']},
+    ]"
+/>

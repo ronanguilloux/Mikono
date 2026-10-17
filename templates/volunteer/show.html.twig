@@ -16,7 +16,7 @@
                 >
             {% else %}
                 <a
-                    href="{{ path('volunteer_edit', {id: volunteer.id}) }}"
+                    href="{{ path('volunteer_edit', {id: volunteer.id, _fragment: 'glance'}) }}"
                     class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-semibold text-slate-500 hover:bg-slate-200"
                     title="Add a photo"
                 >
@@ -88,7 +88,7 @@
                         {{ volunteer.phone }}
                     {% else %}
                         <span class="text-slate-400">Not on file</span>
-                        <a href="{{ path('volunteer_edit', {id: volunteer.id}) }}" class="ml-1 text-brand-600 hover:underline">+ Add</a>
+                        <a href="{{ path('volunteer_edit', {id: volunteer.id, _fragment: 'glance'}) }}" class="ml-1 text-brand-600 hover:underline">+ Add</a>
                     {% endif %}
                 </dd>
             </div>
@@ -236,11 +236,11 @@
     <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-profile>
         <div class="mb-3 flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500"><span aria-hidden="true">🪪</span> Profile</h2>
-            <a href="{{ path('volunteer_edit', {id: volunteer.id}) }}" class="text-sm text-brand-600 hover:underline">Edit</a>
+            <a href="{{ path('volunteer_edit', {id: volunteer.id, _fragment: 'profile'}) }}" class="text-sm text-brand-600 hover:underline">Edit</a>
         </div>
         {% set notOnFile %}
             <span class="text-slate-400">Not on file</span>
-            <a href="{{ path('volunteer_edit', {id: volunteer.id}) }}" class="ml-1 text-brand-600 hover:underline">+ Add</a>
+            <a href="{{ path('volunteer_edit', {id: volunteer.id, _fragment: 'profile'}) }}" class="ml-1 text-brand-600 hover:underline">+ Add</a>
         {% endset %}
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
@@ -350,7 +350,7 @@
         <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-background>
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500"><span aria-hidden="true">📋</span> Background</h2>
-                <a href="{{ path('volunteer_edit', {id: volunteer.id}) }}" class="text-sm text-brand-600 hover:underline">Edit</a>
+                <a href="{{ path('volunteer_edit', {id: volunteer.id, _fragment: 'background'}) }}" class="text-sm text-brand-600 hover:underline">Edit</a>
             </div>
             <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {% for field in background %}
@@ -372,7 +372,7 @@
     <div class="mb-6 rounded-lg border border-slate-200 bg-white p-4">
         <div class="mb-3 flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500"><span aria-hidden="true">📝</span> Notes</h2>
-            <a href="{{ path('volunteer_edit', {id: volunteer.id}) }}" class="text-sm text-brand-600 hover:underline">Edit</a>
+            <a href="{{ path('volunteer_edit', {id: volunteer.id, _fragment: 'notes'}) }}" class="text-sm text-brand-600 hover:underline">Edit</a>
         </div>
         {% if volunteer.notes %}
             <p class="whitespace-pre-line text-sm text-slate-700">{{ volunteer.notes }}</p>

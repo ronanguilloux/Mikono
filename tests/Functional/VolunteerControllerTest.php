@@ -503,7 +503,7 @@ final class VolunteerControllerTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/volunteers');
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
         $client->followRedirect();
         self::assertSelectorTextContains('body', '+254711111111');
     }
@@ -622,6 +622,27 @@ final class VolunteerControllerTest extends WebTestCase
         $links = $crawler->filter('[data-stays] a')->extract(['href']);
         self::assertContains('/volunteers/' . $volunteer->getId() . '/stays/new', $links);
         self::assertContains('/stays/' . $stay->getId() . '/edit', $links);
+    }
+
+    /**
+     * The form is grouped into the show page's cards, and each card's Edit
+     * link on the show page lands on its counterpart.
+     */
+    #[Test]
+    public function theEditFormIsGroupedLikeTheShowPage(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['hobbies' => 'Chess']); // Background is listed only when something is on file.
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+        $editLinks = $crawler->filter('a[href*="/edit#"]')->extract(['href']);
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
+        foreach (['glance' => 'phone', 'profile' => 'nationality', 'background' => 'hobbies', 'notes' => 'notes'] as $section => $field) {
+            self::assertCount(1, $crawler->filter("#{$section} [name=\"volunteer_form[{$field}]\"]"), $section);
+            self::assertContains("/volunteers/{$volunteer->getId()}/edit#{$section}", $editLinks);
+        }
     }
 
     #[Test]
@@ -849,7 +870,7 @@ final class VolunteerControllerTest extends WebTestCase
         }
         $client->submit($form);
 
-        self::assertResponseRedirects('/volunteers');
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
         $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
         self::assertSame(['TikTok', 'Volunteer World'], $volunteer->getSources()->map(static fn($source): string => $source->getName())->getValues());
 
@@ -886,7 +907,7 @@ final class VolunteerControllerTest extends WebTestCase
         }
         $client->submit($form);
 
-        self::assertResponseRedirects('/volunteers');
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
         $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
         self::assertSame('DE', $volunteer->getNationality());
         self::assertSame('KE', $volunteer->getCountryOfResidence());
@@ -943,7 +964,7 @@ final class VolunteerControllerTest extends WebTestCase
             'volunteer_form[employer]' => '',
         ]));
 
-        self::assertResponseRedirects('/volunteers');
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
         $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
         self::assertSame('@aisha', $volunteer->getInstagram());
         self::assertSame('Hiking', $volunteer->getHobbies());
@@ -1005,7 +1026,7 @@ final class VolunteerControllerTest extends WebTestCase
             'volunteer_form[driveFolderUrl]' => 'https://drive.google.com/drive/folders/abc123',
         ]));
 
-        self::assertResponseRedirects('/volunteers');
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
         $volunteer = self::reloadVolunteer($client, (int) $volunteer->getId());
         self::assertSame('Host family', $volunteer->getAccommodationPreference());
         self::assertSame('JKIA, Nairobi', $volunteer->getPickupAirport());
@@ -1052,7 +1073,7 @@ final class VolunteerControllerTest extends WebTestCase
             'volunteer_form[passportExpiresOn]' => (new \DateTimeImmutable('+2 years'))->format('Y-m-d'),
         ]));
 
-        self::assertResponseRedirects('/volunteers');
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
         $stored = self::getContainer()->get('doctrine.dbal.default_connection')
             ->fetchOne('SELECT passport_number_ciphertext FROM volunteer WHERE id = ?', [$id]);
         self::assertIsString($stored);
@@ -1134,7 +1155,7 @@ final class VolunteerControllerTest extends WebTestCase
 
         self::submitPhoto($client, (int) $volunteer->getId(), $upload);
 
-        self::assertResponseRedirects('/volunteers');
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
         $client->request('GET', "/volunteers/{$volunteer->getId()}/photo");
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'image/jpeg');
@@ -1180,7 +1201,7 @@ final class VolunteerControllerTest extends WebTestCase
         $checkbox->tick();
         $client->submit($form);
 
-        self::assertResponseRedirects('/volunteers');
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
         self::assertSame(0, self::photoRows());
         $client->request('GET', "/volunteers/{$volunteer->getId()}/photo");
         self::assertResponseStatusCodeSame(404);
