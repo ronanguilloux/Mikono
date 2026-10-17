@@ -1,6 +1,6 @@
 # 0028. Record login attempts, with identifier and IP, for 90 days, admin-only
 
-Date: 2026-10-04
+Date: 2026-10-17
 
 ## Status
 
@@ -17,8 +17,7 @@ cannot say who signs in, or who fails to:
   so every row looks the same. The log carries no credentials either.
 - **`usage_event` is non-personal on purpose.** It has no user, IP or
   session column, and that is why it can exist without a data-protection
-  review. The `UsageEvent` docblock says that adding a user column needs
-  its own ADR.
+  review.
 - **The login throttler hides attacks.** It allows 5 attempts per 15
   minutes. Repeated failures against a real address are blocked without
   any trace an admin can see.
@@ -26,8 +25,7 @@ cannot say who signs in, or who fails to:
 Other constraints: the repo is public, the app is used by a handful of
 UCESCO colleagues, and production is to be hosted in Kenya
 ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)),
-so the table does not leave Kenya with the server. This is personal data, so it
-needs a purpose, a minimum and a retention period.
+so the table does not leave Kenya with the server. This is personal data.
 
 ## Decision
 

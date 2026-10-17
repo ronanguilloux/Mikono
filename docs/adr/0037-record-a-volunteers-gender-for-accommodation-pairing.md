@@ -1,6 +1,6 @@
 # 0037. Record a volunteer's gender for accommodation pairing
 
-Date: 2026-10-04
+Date: 2026-10-17
 
 ## Status
 
@@ -14,11 +14,8 @@ volunteer's gender. Without a field she guesses from a first name or a
 photo, or keeps the answer in `notes`.
 
 Sex is sensitive personal data under Kenya's Data Protection Act 2019
-(s.2).
-[ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md) admits a
-dedicated field for a sensitive category only under its own ADR, naming
-its s.45 ground and the consent UCESCO records for it (rule 2). It also
-keeps sensitive categories out of free text, so `notes` is not an option.
+(s.2;
+[ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md), rule 2).
 Production is to be hosted in Kenya
 ([ADR 0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md)),
 so the server needs no s.49(1) consent. Any processing of a sensitive
@@ -26,10 +23,8 @@ field outside Kenya does (ADR 0034, rule 3).
 
 ## Decision
 
-**A volunteer has an optional gender, drawn from a fixed four-value enum,
-held only to pair volunteers for shared accommodation, shown only on the
-volunteer's profile page and exported only in the admin whole-database
-zip.**
+**A volunteer has an optional gender, drawn from a fixed four-value enum
+and recorded to pair volunteers for shared accommodation.**
 
 - **Shape.** `Volunteer::$gender` is a nullable `App\Enum\Gender` (`female`,
   `male`, `other`, `prefer_not_to_say`), stored as a plain string column
@@ -43,7 +38,7 @@ zip.**
   Every answer a volunteer can give has a value.
 - **A fixed enum, not an entity.** Unlike `Skill` and `Branch`, the list
   never changes, so it has no table and no CRUD screen.
-- **Purpose: accommodation pairing only.** Nothing else reads the field.
+- **Purpose: accommodation pairing.**
 - **Ground.** The obligations limb of s.45(c): UCESCO's obligations
   towards the volunteers it places and houses. Not vital interests, which
   a room allocation does not engage, and not s.45(a), which ADR 0034
@@ -54,38 +49,26 @@ zip.**
   and 4). A withdrawal empties the field.
 - **Retention.** The same as the volunteer row (ADR 0034, rule 6): it goes
   when the volunteer is anonymised.
-- **Where it appears.** The volunteer profile page (`[data-profile]`) and
-  the edit form. The one bulk copy that carries it is the admin-only
-  whole-database zip
-  ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)),
-  a complete copy of UCESCO's records rather than a staff-facing view.
-  Deliberately excluded:
-  - the volunteer list, as a column or a filter;
-  - the per-list CSV and `.xlsx` exports
-    ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md));
-  - `/reports/volunteers`;
-  - the dev fixtures (`VolunteerFactory` leaves it null);
-  - `Volunteer::isProfileIncomplete()`, so a missing gender never nudges
-    staff to ask for it.
-
-  Adding it to any of these widens the processing beyond pairing, and
-  needs this ADR rewritten first.
+- **Where it appears.** The volunteer profile page (`[data-profile]`), the
+  edit form and the admin-only whole-database zip
+  ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)).
+  The volunteer list, its CSV and `.xlsx` exports
+  ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md))
+  and `/reports/volunteers` may carry it too, with no change to this ADR.
+- **Kept out of** the dev fixtures (`VolunteerFactory` leaves it null)
+  and `Volunteer::isProfileIncomplete()`, so a missing gender never nudges
+  staff to ask for it.
 
 ## Consequences
 
 - **Positive:**
   - The VM pairs rooms from a recorded answer instead of a guess.
-  - The field is filterable in code if a pairing screen ever needs it,
-    which free text would not be.
-  - Keeping it off lists, per-list exports and reports keeps the
-    sensitive value to the one screen that needs it, plus the admin-only
-    full copy.
+  - The field is filterable in code if a pairing screen or a list ever
+    needs it, which free text would not be.
 - **Negative / trade-offs:**
   - The privacy notice must mention the field, and if it is processed
     outside Kenya, UCESCO staff gather and keep proof of one more s.49(1)
     consent at onboarding.
-  - Staff who want gender in a list or an export can't have it without an
-    ADR change.
 - **Reversibility:** cheap. Dropping the column and the enum removes it;
   data already collected is removed with them.
 
@@ -93,9 +76,7 @@ zip.**
 
 ### 1. A free-text field
 
-**Rejected.** Free text drifts into the kind of detail `notes` must not
-hold (ADR 0034, rule 2), and "F", "female" and "woman" can't be filtered
-or paired.
+**Rejected.** "F", "female" and "woman" can't be filtered or paired.
 
 ### 2. Female and Male only
 

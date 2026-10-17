@@ -132,15 +132,12 @@ implements it.
   (`UserRepository::detachAuthorship()`), and a new `Authored` entity needs
   its label in `UserTimeline::describe()` or `/users/{id}` throws
   ([ADR 0043](docs/adr/0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md)).
-- **Personal data is admitted only under
-  [ADR 0034](docs/adr/0034-comply-with-kenyas-data-protection-act-2019.md)**
-  (Kenya's Data Protection Act 2019). A new personal-data field, store,
-  export or third-party service states its purpose, sensitivity (s.2 counts
-  family details, so emergency contacts, as sensitive), retention and
-  transfer basis in its own ADR. `Volunteer::$gender` is sensitive: profile
-  page only, never listed or in a per-list export — only the admin
-  whole-database zip carries it
-  ([ADR 0037](docs/adr/0037-record-a-volunteers-gender-for-accommodation-pairing.md)).
+- **Personal data** follows
+  [ADR 0034](docs/adr/0034-comply-with-kenyas-data-protection-act-2019.md)
+  (Kenya's Data Protection Act 2019). UCESCO top management directed on
+  2026-10-17 that all legacy volunteer data be imported and kept; the
+  ODPC review follows the import
+  ([card](docs/project/backlog/odpc-compliance-review-of-imported-data.md)).
 - `src/Enum/` — backed PHP enums (`ProjectOwnership`,
   `ActivityDuration`), mapped as plain strings — portable off SQLite.
 - `src/Controller/`, `src/Form/`, `templates/<area>/` — one set per CRUD

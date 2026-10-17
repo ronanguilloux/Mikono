@@ -1,6 +1,6 @@
 # Next steps
 
-**Last updated:** 2026-10-11
+**Last updated:** 2026-10-17
 
 An **index**, not a list of items. Every open item is a card in
 [`backlog/`](backlog/); this file holds only links to them, ordered, in
@@ -29,6 +29,7 @@ hostname is the one that isn't ours to solve.
 4. [A production hostname that resolves](backlog/production-hostname-dns.md) — **B**
 5. [UCESCO's data-protection paperwork under the Kenya DPA](backlog/dpa-governance-for-ucesco.md) — **B**
 6. [A privacy notice and a consent record for volunteers](backlog/volunteer-privacy-notice-and-consent.md) — **G**
+7. [Import the legacy volunteer workbook into production](backlog/import-legacy-volunteer-workbook.md)
 
 ## Next
 
@@ -39,6 +40,7 @@ hostname is the one that isn't ours to solve.
 5. [Answer a volunteer's access, correction and erasure requests](backlog/volunteer-data-subject-requests.md) — **G**
 6. [A time limit on every copy of personal data](backlog/personal-data-retention.md) — **D**
 7. [Decommission UAT on Gandi and destroy every copy of its test data](backlog/decommission-uat-on-gandi.md) — **B**
+8. [ODPC compliance review of the imported legacy data](backlog/odpc-compliance-review-of-imported-data.md) — **D**
 
 ## Later
 

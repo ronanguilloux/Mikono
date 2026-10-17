@@ -1,6 +1,6 @@
 # 0034. Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor
 
-Date: 2026-10-04
+Date: 2026-10-17
 
 ## Status
 
@@ -63,8 +63,17 @@ These facts drive the decision:
 ## Decision
 
 **Mikono is built and operated so that UCESCO, as data controller, can
-meet Kenya's Data Protection Act 2019: a personal-data field, store,
-export or processor is admitted only under the rules below.**
+meet Kenya's Data Protection Act 2019 under the rules below.**
+
+**Legacy data is imported whole.** On 2026-10-17 UCESCO's top management
+directed that Mikono import and keep every personal-data value held in
+UCESCO's legacy volunteer workbook: the intro-form answers (social media
+accounts, hobbies, motivation, employer, education, favourite food,
+accommodation address, experience with children, and the rest), the
+rosters from 2023 to 2026, and ACK clinic attendance. A new
+personal-data field needs no ADR of its own. The review of the imported
+data against the Act and the ODPC's guidance follows the import
+([card](../project/backlog/odpc-compliance-review-of-imported-data.md)).
 
 **Roles.** UCESCO determines the purpose and means of the processing, so
 it is the **data controller** (s.2). The maintainer, who operates the app,
@@ -77,17 +86,7 @@ processing (s.42(3)). The provider's contract carries its written
 commitment to the Act and to keeping the data in Kenya (ADR 0035). Gandi
 hosts only UAT, which holds test records only.
 
-### 1. Every field and store has a purpose, a minimum and a retention period
-
-Personal data is collected for explicit, specified and legitimate
-purposes, limited to what those purposes need, and kept in an identifying
-form no longer than they need (s.25(c), (d), (g); s.28(3)). By default,
-only the data needed for each purpose is processed (s.41(3)). Each purpose
-rests on one of the lawful grounds in s.30(1).
-
-**A new field, store, export or processor states its purpose, whether it
-is sensitive (rule 2) and its retention period (rule 6) in its own ADR.**
-A change that cannot state them does not add the data.
+### 1. The personal-data stores
 
 The existing personal-data stores, and the ADR that bounds each one:
 
@@ -114,7 +113,7 @@ A query parameter is part of the full URI, so **personal data sent in a
 GET parameter lands in the access log** and inherits its retention. The
 volunteer search's `?q=` already does.
 
-### 2. Sensitive personal data is named, ruled on, and kept out of free text
+### 2. Sensitive personal data is named and ruled on
 
 The Act's definition (s.2) is broader than the GDPR's:
 
@@ -134,11 +133,6 @@ Sensitive personal data is processed only where the s.25 principles apply
   only with a valid explanation (s.25(e)), which the privacy notice gives
   (rule 4). If the field is ever processed outside Kenya, it also needs
   each volunteer's consent under s.49(1) (rule 3).
-- **Free-text fields never hold health, belief, ethnicity or any other
-  s.2 category.** `notes`, `interests`, `supervisor`,
-  `accommodationPreference` and activity notes say so in their form help
-  text. A dietary need that reveals a religion, or an allergy, is
-  sensitive personal data.
 - **Mikono holds no health data.** Health data may be processed only by
   or under the responsibility of a health care provider, or by a person
   under a legal obligation of professional secrecy (s.46(1)). UCESCO's
@@ -146,11 +140,8 @@ Sensitive personal data is processed only where the s.25 principles apply
 - **The photo is not biometric data** while nothing processes it
   technically to characterise the person (s.2, "biometric data"). Face
   matching or recognition on it would make it biometric, and sensitive.
-- **A dedicated field for a sensitive category** (sex, marital status,
-  religion, health, and the like) needs its own ADR, naming its s.45
-  ground and the consent UCESCO records for it.
-- **`gender` is sensitive** ("sex"), held only for accommodation pairing
-  and bounded by
+- **`gender` is sensitive** ("sex"), recorded for accommodation pairing
+  under
   [ADR 0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md).
 
 ### 3. Transfer outside Kenya is proven and, for sensitive data, consented
@@ -221,7 +212,7 @@ Volunteers never log in, so it is not an in-app banner or checkbox. The
 same conversation is where UCESCO gathers and records any consent the
 processing needs, including s.49(1) consent where rule 3 requires it.
 The notice describes the data Mikono actually holds, so a new
-field (rule 1) updates the notice.
+field updates the notice.
 
 Emergency contacts are data about the relatives, collected through the
 volunteer rather than from the relatives themselves. That indirect
@@ -398,9 +389,8 @@ volunteers reopens this ADR.
 ## Consequences
 
 - **Positive:**
-  - Every future field, store, export or processor meets one checklist
-    with section numbers, instead of rediscovering the Act feature by
-    feature.
+  - The Act's duties sit in one checklist with section numbers, instead
+    of being rediscovered feature by feature.
   - The rules the app already follows (login-only, sign-ins bounded to 90
     days, EXIF stripping, passport encryption, no analytics SaaS) are
     tied to the sections that require them, so a change that undoes one
@@ -428,8 +418,8 @@ volunteers reopens this ADR.
 
 ### 1. Keep compliance scattered across feature ADRs
 
-**Rejected.** No record held a checklist a new field could be checked
-against, and that is how the s.49(1) consent requirement for emergency
+**Rejected.** No record held the Act's duties in one place, and that is
+how the s.49(1) consent requirement for emergency
 contacts processed outside Kenya went unnoticed across the hosting ADR and
 ADR 0032.
 
