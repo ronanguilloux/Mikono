@@ -633,6 +633,19 @@ class Volunteer implements Authored
         return $this->instagram;
     }
 
+    /**
+     * The handle when the value names exactly one account — bare, `@handle`
+     * or a profile URL — so the profile can link it. Anything else (two
+     * handles, a name, an email) is null and stays text.
+     */
+    public function getInstagramHandle(): ?string
+    {
+        return null !== $this->instagram
+            && 1 === preg_match('~^(?:@|(?:https?://)?(?:www\.)?instagram\.com/)?([a-z0-9._]{1,30})/?(?:\?\S*)?$~i', trim($this->instagram), $match)
+            ? $match[1]
+            : null;
+    }
+
     public function setInstagram(?string $instagram): static
     {
         $this->instagram = self::nullIfBlank($instagram);

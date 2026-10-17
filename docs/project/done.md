@@ -6,6 +6,19 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-17 — A volunteer's Instagram links to their profile
+
+On `/volunteers/{id}`, the Background card's Instagram value links to
+`https://www.instagram.com/<handle>/` when it names exactly one account:
+a bare handle, `@handle` or a profile URL (`Volunteer::getInstagramHandle()`).
+Anything else stays the text on file (two handles, a name, an email). The
+edit form keeps it free text. Before this, every legacy value was checked
+against Instagram: 145 of 178 resolve, 18 look like handles but are gone
+(renamed, deleted or mistyped) and still link, for the VM to correct by
+hand, and 9 are ambiguous and stay text. Migration `Version20261017200000`
+nulls the 5 non-answers ("Yes", "I'm not on social media") and strips an
+"Instagram name:" prefix. It matches on values, never ids or handles.
+
 ## 2026-10-17 — The "By period" tab opens on a chart
 
 With the legacy import, `/reports/volunteers?tab=month` runs to 40-odd

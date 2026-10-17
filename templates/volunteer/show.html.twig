@@ -340,7 +340,7 @@
         by hand doesn't grow fifteen "Not on file" rows.
     #}
     {% set background = [
-        {label: 'Instagram', value: volunteer.instagram},
+        {label: 'Instagram', value: volunteer.instagram, url: volunteer.instagramHandle ? 'https://www.instagram.com/' ~ volunteer.instagramHandle ~ '/', link: '@' ~ volunteer.instagramHandle},
         {label: 'Facebook', value: volunteer.facebook},
         {label: 'Twitter / X', value: volunteer.twitter},
         {label: 'TikTok', value: volunteer.tiktok},
@@ -366,7 +366,13 @@
                 {% for field in background %}
                     <div class="{{ (field.wide ?? false) ? 'sm:col-span-2 lg:col-span-3' }}">
                         <dt class="text-xs text-slate-500">{{ field.label }}</dt>
-                        <dd class="mt-0.5 whitespace-pre-line break-words text-sm text-slate-700">{{ field.value }}</dd>
+                        <dd class="mt-0.5 whitespace-pre-line break-words text-sm text-slate-700">
+                            {%- if field.url ?? null -%}
+                                <a href="{{ field.url }}" target="_blank" rel="noopener noreferrer nofollow" class="text-brand-600 hover:underline">{{ field.link }}</a>
+                            {%- else -%}
+                                {{ field.value }}
+                            {%- endif -%}
+                        </dd>
                     </div>
                 {% endfor %}
             </dl>

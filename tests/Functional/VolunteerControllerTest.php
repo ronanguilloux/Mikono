@@ -19,6 +19,7 @@ use App\Factory\SourceFactory;
 use App\Factory\VolunteerFactory;
 use App\Repository\SkillRepository;
 use App\Repository\SourceRepository;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -948,6 +949,41 @@ final class VolunteerControllerTest extends WebTestCase
         $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
         $background = $crawler->filter('[data-background] dt')->each(static fn($dt): string => $dt->text());
         self::assertSame(['Instagram', 'Previous volunteering with children', 'Hobbies'], $background);
+        self::assertSame('@aisha', $crawler->filter('[data-background] a[href="https://www.instagram.com/aisha/"]')->text());
+    }
+
+    /**
+     * One account links to its profile; anything ambiguous stays the text
+     * the VM typed, since the edit form keeps it free text.
+     *
+     * @return iterable<string, array{string, ?string}>
+     */
+    public static function instagramValues(): iterable
+    {
+        yield 'bare handle' => ['jane_doe42', 'https://www.instagram.com/jane_doe42/'];
+        yield 'profile URL with tracking' => ['https://www.instagram.com/jane.doe?igsh=abc&utm_source=qr', 'https://www.instagram.com/jane.doe/'];
+        yield 'two handles' => ['@jane.travels / @jane.cooks', null];
+        yield 'a name' => ['Jane Doe', null];
+        yield 'an email' => ['jane@example.org', null];
+    }
+
+    #[Test]
+    #[DataProvider('instagramValues')]
+    public function theProfileLinksAnInstagramValueOnlyWhenItNamesOneAccount(string $instagram, ?string $url): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::createOne(['instagram' => $instagram]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}");
+
+        $links = $crawler->filter('[data-background] a[href*="instagram.com"]');
+        if (null === $url) {
+            self::assertCount(0, $links);
+            self::assertSelectorTextContains('[data-background]', $instagram);
+        } else {
+            self::assertSame($url, $links->attr('href'));
+        }
     }
 
     #[Test]
