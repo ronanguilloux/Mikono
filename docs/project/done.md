@@ -6,6 +6,13 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-18 — Reports → Volunteers' Origins
+
+`/reports/origins`: volunteers per country of residence, as a world map
+and a bar chart with each country's share, plus an export. Decision and
+the map's one-exception status:
+[ADR 0048](../adr/0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md).
+
 ## 2026-10-18 — The WhatsApp rosters (Aug → Oct 2026) are in production
 
 The VM's evening roster posts in the volunteers' WhatsApp group, from

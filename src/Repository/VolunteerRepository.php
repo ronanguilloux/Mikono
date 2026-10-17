@@ -219,6 +219,29 @@ class VolunteerRepository extends ServiceEntityRepository
         return $volunteers;
     }
 
+    /**
+     * Volunteers per country of residence, every volunteer on file, for
+     * /reports/origins. The empty-string key counts those with none recorded.
+     *
+     * @return array<string, int> ISO 3166-1 alpha-2 code, or '' for none => volunteers
+     */
+    public function countByCountryOfResidence(): array
+    {
+        /** @var list<array{code: ?string, volunteers: int|string}> $rows */
+        $rows = $this->createQueryBuilder('v')
+            ->select('v.countryOfResidence AS code, COUNT(v.id) AS volunteers')
+            ->groupBy('v.countryOfResidence')
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['code'] ?? ''] = (int) $row['volunteers'];
+        }
+
+        return $counts;
+    }
+
     public function countReferencingActivities(Volunteer $volunteer): int
     {
         return (int) $this->getEntityManager()

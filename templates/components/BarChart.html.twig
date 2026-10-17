@@ -1,0 +1,33 @@
+{#
+    One series as horizontal bars: `rows` is a list of {label, value}, largest
+    first, each with an optional `detail` (a share) after the value. The form
+    for many named categories (forty-odd countries), where columns would leave
+    no room for their labels on a phone.
+    `summary` is the caller's line under the title, as on ColumnChart.
+
+    Plain HTML and CSS, no chart library and no JavaScript (ADR 0048). Every
+    label and value is visible text, so only the bars are hidden from screen
+    readers. The label column is min-w-0 and truncates, so a long name never
+    widens the chart past its container.
+#}
+{% props title, summary, rows %}
+{% set peak = max(1, max(rows|map(r => r.value))) %}
+<figure {{ attributes.defaults({class: 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm'}) }}>
+    <figcaption class="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
+        <span class="font-medium text-slate-800">{{ title }}</span>
+        <span class="text-sm text-slate-500">{{ summary }}</span>
+    </figcaption>
+    <ol class="space-y-[2px] text-sm">
+        {% for r in rows %}
+            <li class="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-2 sm:grid-cols-[minmax(0,12rem)_1fr_auto]">
+                <span class="truncate text-slate-700" title="{{ r.label }}">{{ r.label }}</span>
+                <span class="h-4" aria-hidden="true">
+                    <span class="block h-full rounded-r bg-brand-600" style="width: {{ max(1, r.value / peak * 100)|round(1) }}%"></span>
+                </span>
+                {# Fixed widths, not the content's: each row is its own grid, and
+                   bars only compare if every row's bar track is equally wide. #}
+                <span class="tabular-nums"><span class="inline-block w-8 text-right text-slate-700">{{ r.value|number_format }}</span>{% if r.detail is defined %} <span class="inline-block w-14 text-right text-slate-500">{{ r.detail }}</span>{% endif %}</span>
+            </li>
+        {% endfor %}
+    </ol>
+</figure>

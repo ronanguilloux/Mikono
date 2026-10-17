@@ -162,9 +162,13 @@ implements it.
     shows as unavailable on rows the delete-guard would block. The
     server-side guard in `delete()` stays regardless.
 - **Charts** are HTML and CSS from a Twig component, never a chart
-  library or JavaScript: `<twig:ColumnChart>` draws one series of columns, with an optional limit line. Each sits above
+  library or JavaScript: `<twig:ColumnChart>` draws one series of columns, with an optional limit line;
+  `<twig:BarChart>` horizontal bars with an optional share. Each sits above
   the table it summarises, which stays the export and the screen-reader
-  source. Put `sr-only` on a wrapping div, never on a `<table>`: a table
+  source — unless every label and value is already visible text, as on
+  `/reports/origins`, where the export remains. **The one exception** is
+  that page's world map, drawn by jsvectormap from a lazy Stimulus
+  controller; the server computes every fill and tooltip. Put `sr-only` on a wrapping div, never on a `<table>`: a table
   keeps its content width and pushes a phone page sideways
   ([ADR 0048](docs/adr/0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md)).
 - **Every list view exports** to CSV and `.xlsx`

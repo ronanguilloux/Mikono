@@ -53,3 +53,6 @@ What's still open is which three management actually wants first.
   chart 7. Proposal 2 above, one row per volunteer, is still to do.
   Volunteers present per period now heads `?tab=month` (`done.md`,
   2026-10-17). Proposal 1, days stacked by branch, would replace it.
+  The brainstorm's chart 4, where volunteers come from, is drawn by
+  country of residence on `/reports/origins`: a world map and a bar chart
+  of every country (`done.md`, 2026-10-18).

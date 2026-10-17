@@ -84,7 +84,7 @@ drafts and maintains these.
 | [0045](0045-adopt-a-makefile-as-the-unified-entry-point-for-developer-commands.md) | Adopt a Makefile as the unified entry point for developer commands | Accepted |
 | [0046](0046-link-each-volunteer-to-their-google-drive-folder.md) | Link each volunteer to their Google Drive folder | Accepted |
 | [0047](0047-count-achievements-with-an-optional-indicator-and-quantity.md) | Count achievements with an optional indicator and quantity | Accepted |
-| [0048](0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md) | Draw charts as server-rendered HTML and CSS from Twig components | Accepted |
+| [0048](0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md) | Draw charts as server-rendered HTML and CSS from Twig components, with one client-side world map | Accepted |
 | [0049](0049-record-branch-capacity-and-program-volunteers-needed-as-optional-targets.md) | Record branch capacity and program volunteers needed as optional targets | Accepted |
 
 Missing numbers were merged on 2026-09-13: 0015 into

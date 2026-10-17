@@ -30,4 +30,7 @@ return [
     '@symfony/stimulus-bundle' => ['path' => './vendor/symfony/stimulus-bundle/assets/dist/loader.js'],
     '@symfony/ux-live-component' => ['path' => './vendor/symfony/ux-live-component/assets/dist/live_controller.js'],
     '@hotwired/turbo' => ['version' => '8.0.23'],
+    'jsvectormap' => ['version' => '1.7.0'],
+    'jsvectormap/dist/jsvectormap.min.css' => ['version' => '1.7.0', 'type' => 'css'],
+    'jsvectormap/dist/maps/world.js' => ['version' => '1.7.0'],
 ];
