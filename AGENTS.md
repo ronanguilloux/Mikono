@@ -296,8 +296,13 @@ Never for production, which always passes its two `-f` files.
 **That local account is for AI agents, not for a human** — an agent that
 needs to log in (mainly `scripts/panther-screenshot.php`) may reset its
 password with the command above without asking, and needn't preserve the
-previous one. It is a local, dev-only SQLite account with nothing shared
-with production.
+previous one — **on a fixture database only**. The local database is
+usually a production copy (`make db_update`,
+[ADR 0044](docs/adr/0044-allow-syncing-production-database-to-local-development.md)):
+there, never create or reset a login. It could travel back on an upload,
+and resetting an existing email changes that person's production password.
+Log in with the owner's own production account, or with a throwaway
+`@example.invalid` account deleted before anything is exported.
 
 Seed the dev data — reference data (escorts, projects, programs, activity
 types) from the real August 2026 roster archive, plus one fake volunteer
@@ -508,7 +513,7 @@ in [`deployment-plan.md`](docs/project/deployment-plan.md)):
   with a database copy
   ([ADR 0033](docs/adr/0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)),
   except `make db_update`, which writes it to the gitignored `.env.dev.local`
-  for the debugging session
+  next to the production copy it decrypts
   ([ADR 0044](docs/adr/0044-allow-syncing-production-database-to-local-development.md)).
 - In `frankenphp_prod_builder`, `tailwind:build` must run **before**
   `asset-map:compile`, or the image build fails. Don't reorder or drop it.

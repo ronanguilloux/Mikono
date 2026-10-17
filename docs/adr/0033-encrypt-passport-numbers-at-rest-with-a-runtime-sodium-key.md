@@ -82,9 +82,9 @@ exception is the production-to-dev sync of
 writes it, mode 600, into the gitignored `.env.dev.local`, which Symfony
 loads over the public dev key, because a synced volunteer with a number is
 otherwise unreadable and its profile and edit pages fail. That laptop
-therefore holds readable passport numbers for the length of the debugging
-session, and falls under ADR 0044's endpoint, transfer and retention rules,
-which destroy the key file along with the database. The `v1:` prefix
+therefore holds readable passport numbers for as long as the production
+copy is its local database, and falls under ADR 0044's endpoint and
+transfer rules; the key file goes when the copy does. The `v1:` prefix
 names the key generation and leaves room for rotation; no rotation command
 exists, so rotating means writing one that decrypts under `v1` and
 re-encrypts under `v2`.

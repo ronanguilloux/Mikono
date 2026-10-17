@@ -8,7 +8,8 @@
 # the local `data_dev.db` inside the Docker volume. It also copies the
 # production PASSPORT_ENCRYPTION_KEY into the gitignored .env.dev.local, or
 # every volunteer with a passport number 500s on decrypt (ADR 0033, 0044).
-# Delete that line when the debugging session ends.
+# The copy is the standing local database; re-run this when production is
+# fresher.
 #
 # Usage:
 #   scripts/sync-prod-db.sh
@@ -59,11 +60,10 @@ docker compose restart php
 echo ""
 echo "✅ Done! The local development environment is now using the latest production database."
 echo ""
-echo "⚠️  NOTE: Your local dev accounts were overwritten by production data."
-echo "If you need a local admin account to log in, recreate/reset your test user:"
-echo "  docker compose exec php bin/console app:user:create --email=TEST_ACCOUNT@gmail.com --password=<new-password> --admin"
+echo "⚠️  Log in with your own production account. Never create or reset a login"
+echo "   in this copy: it could travel back on an upload, and resetting an existing"
+echo "   email changes that person's production password (ADR 0044)."
 echo ""
-echo "⚠️  This machine now holds readable passport numbers (prod key in .env.dev.local)."
-echo "When the debugging session ends (ADR 0044), destroy both:"
-echo "  sed -i '' '/^PASSPORT_ENCRYPTION_KEY=/d' .env.dev.local && make fixtures && docker compose restart php"
+echo "⚠️  This machine now holds production personal data and readable passport"
+echo "   numbers (prod key in .env.dev.local). Keep the disk encrypted."
 echo ""

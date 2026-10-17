@@ -8,85 +8,88 @@ Accepted
 
 ## Context
 
-Occasionally, complex bugs or data inconsistencies appear in production that
-cannot be reproduced using the sanitized fixtures generated from the WhatsApp
-roster archive ([ADR 0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
-To investigate and resolve these issues effectively, developers need the ability
-to pull a copy of the production database into their local development
-environment, where full tooling (like Xdebug) is available.
+Bugs and data inconsistencies show up in production that the fixture
+dataset built from the WhatsApp roster archive
+([ADR 0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md))
+cannot reproduce: unexpected characters, relationship anomalies, edge-case
+nulls, and the legacy volunteers imported from UCESCO's workbook. Features
+are also built and checked more reliably against the data the VM actually
+works with than against a small transcribed archive. The local environment
+is where the full tooling (Xdebug, profilers) runs.
 
-However, moving production data to a developer's machine creates friction with
-two existing decisions:
+Moving production data to a maintainer's machine meets two existing
+decisions:
 
-1. **ADR 0012** mandates that fixtures come exclusively from the sanitized
-   WhatsApp roster archive and prohibits generated or real data from being used
-   as the demo database. Its goal is to keep personal data, sponsored children,
-   and donors out of the public repository and the default local environment.
-2. **ADR 0034** enforces compliance with Kenya's Data Protection Act 2019 (DPA).
-   Production data contains sensitive personal data (e.g., emergency contacts,
-   gender, encrypted passport numbers). Moving this data to a developer's
-   machine engages rules on security (developer machine posture), retention
-   (how long the local copy lives), and potentially cross-border transfers (if
-   the developer is outside Kenya).
-
-We need a governed mechanism to allow syncing production data for debugging
-without compromising the repository's safety or UCESCO's legal compliance.
+1. **ADR 0012** keeps personal data, sponsored children and donors out of
+   the public repository: fixtures come only from the transcribed archive,
+   never generated and never from real records.
+2. **ADR 0034** applies Kenya's Data Protection Act 2019. Production holds
+   sensitive personal data (emergency contacts, gender, encrypted passport
+   numbers), so a machine holding a copy is a processing endpoint, and a
+   maintainer outside Kenya receiving it is a cross-border transfer.
 
 The import of UCESCO's legacy volunteer workbook
 ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md),
 [card](../project/backlog/import-legacy-volunteer-workbook.md)) needs the
-same copy in the other direction. The importer has to run against
+copy in the other direction too. The importer has to run against
 production's real volunteers, lists and branches, and be checked in the
 app before anything reaches production. The workbook must not travel to
 the server, and the import must not run on the live app.
 
 ## Decision
 
-**Allow syncing the production database to local development environments
-using a dedicated script, subject to explicit authorization and strict data
-protection controls.**
+**The maintainer's local development database is, by default, a copy of
+the production database, fetched by `make db_update` and refreshed with it
+whenever production is fresher.**
 
-The dedicated script (`scripts/sync-prod-db.sh`, run as `make db_update`)
-fetches the production SQLite database via SSH as the `deploy` user. It also
-reads the production `PASSPORT_ENCRYPTION_KEY` from `/opt/mikono/deploy.env`
-over the same SSH connection and writes it, mode 600, into the gitignored
-`.env.dev.local`, which Symfony loads over the public dev key in `.env.dev`.
-Without it the copy is unusable on the volunteer screens: every passport
-number in it is sealed under the production key
+The script (`scripts/sync-prod-db.sh`, run as `make db_update`) connects
+over SSH as the `deploy` user, has the server snapshot its live database
+with `scripts/backup-db.sh` (`VACUUM INTO`, no downtime), downloads that
+snapshot and puts it in place of the local `data_dev.db`. Over the same
+SSH connection it reads the production `PASSPORT_ENCRYPTION_KEY` from
+`/opt/mikono/deploy.env` and writes it, mode 600, into the gitignored
+`.env.dev.local`, which Symfony loads over the public dev key in
+`.env.dev`. Without it the copy is unusable on the volunteer screens:
+every passport number in it is sealed under the production key
 ([ADR 0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)),
-so opening or editing any volunteer who has one fails with a server error.
+so opening or editing any volunteer who has one fails with a server
+error. The script ends with `docker compose restart php`, so the
+FrankenPHP workers drop their handles on the replaced file.
 
-This is reconciled with previous decisions as follows:
+The copy and the key stay on the machine together, for as long as the
+copy is the local database. There is no end-of-session destruction step.
+The fixture dataset (`make fixtures`, ADR 0012) stays available for work
+that needs a known, shareable dataset, but it is not the default local
+database.
 
-- **Reconciliation with ADR 0012 (Fixtures):** The strict prohibition in ADR
-  0012 applies to data *committed to the repository* and the *default demo
-  dataset* built by factories. A temporarily synced production database lives
-  solely in the gitignored `var/` directory on the developer's machine. It is
-  never committed, never pushed, and never used to seed new fixtures.
-- **Data Privacy and Governance (ADR 0034):**
-  - **Authorization:** Syncing production data is not a casual developer
-    action. It requires explicit authorization from UCESCO (the data
-    controller), either incident-by-incident or as a specific clause in the
-    processor agreement for maintenance purposes.
-  - **Secure Endpoint:** Developer machines holding production data become
-    processing endpoints. They must employ full-disk encryption, strong access
-    controls, and lock automatically.
-  - **Cross-Border Transfers:** If the developer is located outside Kenya (e.g.,
-    the maintainer in France), moving the database is a cross-border transfer
-    of personal data. Under Kenya DPA s.48 and s.49(1) (ADR 0034, Rule 3),
-    transferring sensitive personal data requires the data subject's explicit
-    consent and proven safeguards. If UCESCO has not secured this consent for
-    offshore maintenance, the database **cannot** be synced to a foreign local
-    machine. Debugging must instead occur on a secure, UCESCO-owned UAT
-    instance within Kenya.
-  - **Retention and Destruction:** The synced database and the fetched key
-    are strictly temporary. Immediately after the debugging session
-    concludes, both must be destroyed, satisfying the retention bounds of
-    ADR 0034: delete `.env.dev.local` (or its
-    `PASSPORT_ENCRYPTION_KEY` line), replace the database with
-    `make fixtures`, run `docker compose restart php` so the workers drop
-    the key and the old file, and empty any trash/recycle bin that received
-    either file.
+Rules that hold for the standing copy:
+
+- **ADR 0012 still governs the repository.** Its prohibition covers what
+  is committed and what seeds fixtures. The copy lives only in the
+  gitignored `var/` (the database volume) and the key in the gitignored
+  `.env.dev.local`; workbook files live in the gitignored
+  `data-to-import/`. None of it is committed, pushed, or used to seed
+  fixtures.
+- **Authorization.** Holding production data locally needs UCESCO's
+  authorization as data controller, given as a clause in the processor
+  agreement for maintenance.
+- **Secure endpoint.** A machine holding the copy uses full-disk
+  encryption, strong access controls and an automatic lock.
+- **Cross-border transfer.** A maintainer outside Kenya (the maintainer is
+  in France) receiving the copy is a transfer under DPA s.48 and s.49(1)
+  (ADR 0034, rule 3): sensitive personal data needs the data subjects'
+  consent and proven safeguards. Without them, the copy cannot be held on
+  a machine abroad, and debugging moves to a UCESCO-controlled instance in
+  Kenya.
+- **No real person's login is created or reset in a production copy,
+  by anyone, including an agent.** Resetting an existing email changes
+  that person's production password, and the change could travel back to
+  production on an upload. Log in with the owner's own production account.
+  An agent that must sign in (a screenshot, a smoke test) may create a
+  throwaway admin on an `@example.invalid` address with a random password,
+  and deletes it, with its `login_attempt` rows, before anything is
+  exported; `scripts/db-fingerprint.sh` then shows the `user` table back to
+  its earlier hash.
 
 **The reverse direction is allowed once, for the legacy workbook import:
 a database prepared locally on a synced copy is uploaded to production as
@@ -121,52 +124,64 @@ a whole file.** Rules the upload must follow:
 7. **The stopped production file is the rollback backup.** Restoring it
    through the same path undoes the upload.
 
-The local copy and key are then destroyed as for a debugging session.
-
 ## Consequences
 
-- **Positive:** Developers can utilize their full local toolchain (Xdebug,
-  profilers) to reproduce and resolve production-only bugs accurately and
-  quickly.
-- **Negative / trade-offs:** Introduces significant operational and compliance
-  overhead. Because the key travels with the copy, the local database is not
-  protected by passport encryption: a lost or compromised developer machine
-  exposes every passport number in it. Developers must ensure their machines
-  are secure and rigorously delete data post-debugging. If the developer is
-  outside Kenya, gathering consent or provisioning a compliant Kenyan debug
-  environment is a steep prerequisite. The upload takes production offline
-  between `down` and `up -d --wait`, ends every staff session, and replaces
-  the sign-ins recorded on production between the sync and `down` with the
+- **Positive:** Development and debugging always run against real data,
+  with the full local toolchain, so production-only bugs reproduce
+  locally and features are checked against what the VM actually sees.
+- **Negative / trade-offs:** A maintainer laptop permanently holds
+  production personal data and the production passport key. Because the
+  key sits beside the copy, the local database gets no protection from
+  passport encryption: a lost or compromised machine exposes every
+  passport number in it. No retention limit is set here; the
+  [ODPC compliance review](../project/backlog/odpc-compliance-review-of-imported-data.md)
+  will look at it. Work that needs a shareable dataset (screenshots,
+  demos, monkey testing that clicks Delete) has to switch to
+  `make fixtures` first. The upload takes production offline between
+  `down` and `up -d --wait`, ends every staff session, and replaces the
+  sign-ins recorded on production between the sync and `down` with the
   copy's.
-- **Reversibility:** Easy in code (remove the sync script), but any leaked data
-  from a compromised or lost developer machine is irreversible and constitutes
-  a reportable breach. The upload is undone by restoring the stopped
-  production file.
+- **Reversibility:** Making fixtures the default again is cheap: run
+  `make fixtures`, delete the `PASSPORT_ENCRYPTION_KEY` line from
+  `.env.dev.local` (or the file), run `docker compose restart php`, and
+  empty any trash that received either file. Removing the sync is
+  deleting the script. Data leaked from a lost or compromised machine
+  cannot be recalled and is a reportable breach. The upload is undone by
+  restoring the stopped production file.
 
 ## Alternatives considered
 
 ### 1. Debug strictly in production or a remote UAT mirror
 
-**Rejected.** Debugging directly in production disrupts the VM's daily work and
-risks accidental data corruption. Provisioning a remote UAT mirror in Kenya for
-every debugging session is slow, incurs infrastructure costs, and deprives
-developers of their local IDE integrations and profiling tools. (However, this
-remains the mandatory fallback if cross-border consent is missing).
+**Rejected.** Debugging directly in production disrupts the VM's daily
+work and risks accidental data corruption. A remote UAT mirror in Kenya
+costs infrastructure, is slow to refresh, and keeps the maintainer away
+from local IDE integrations and profiling tools. It remains the
+mandatory fallback if cross-border consent is missing.
 
-### 2. Anonymize the production database during the sync process
+### 2. Anonymize the production database during the sync
 
-**Rejected.** While safer for compliance, bugs often stem from exact data
-states—unexpected characters, unique relationship anomalies, or edge-case
-nulls. Anonymization scripts alter the very data states needed to reproduce
-the issue, rendering the synced database useless for its primary purpose.
+**Rejected.** Bugs often stem from exact data states: unexpected
+characters, unique relationship anomalies, edge-case nulls.
+Anonymization alters the very states needed to reproduce them, and would
+break the legacy import, which must match real volunteers.
 
-### 3. Strictly interpret ADR 0012 and never permit local production data
+### 3. Keep fixtures as the default and sync only for a debugging session
 
-**Rejected.** The inability to reproduce and fix critical bugs stalls
-maintenance. Prolonged bugs harm the system's reliability and UCESCO's
-operations more than a tightly governed, temporary data sync.
+**Rejected.** Each session paid for a sync, then a destroy-and-reseed
+step, and work in between ran against a dataset that no longer looks
+like production since the legacy import. The owner chose real data as
+the standing default and leaves the retention question to the ODPC
+review.
 
-### 4. Run the legacy import on the production server
+### 4. Strictly interpret ADR 0012 and never permit local production data
+
+**Rejected.** Bugs that only production data reproduces would stay
+unfixed, and the legacy import could not be checked before reaching
+production. That harms the system's reliability and UCESCO's operations
+more than a governed copy on an encrypted machine.
+
+### 5. Run the legacy import on the production server
 
 **Rejected.** The workbook would have to travel to the server, and the
 import would run against the live app with no chance to check its result
