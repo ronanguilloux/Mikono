@@ -32,7 +32,7 @@ Progress tracker — tick as each step lands. Detail and reasoning:
 - [x] **6.** Exceptions pass reviewed: 163 created with no stay, 26 country-label rows skipped, 2 spelling variants filled → `S3.db`
 - [x] **7.** Local verification gate passed on a full replay from S0 (integrity, deltas, invariants, prod rows untouched, 537 tests, every screen 200) → `S3.db`
 - [x] **8.** Production swapped 2026-10-17 under freeze: fingerprint unchanged, B1 kept on the server, sha256 identical end to end, entrypoint "Already at the latest version", counts equal to local
-- [ ] **9.** Clean-up: prod key removed locally, `make fixtures`, `data-to-import/` deleted, ADR 0044 updated, `done.md` entry, importer deleted, this card deleted
+- [ ] **9.** Clean-up: `data-to-import/` deleted, server `backups/` import files deleted after a week, `done.md` entry, importer deleted, this card deleted (ADR 0044 already updated; the local DB stays a production copy)
 
 ## Notes & links
 
