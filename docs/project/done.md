@@ -6,6 +6,45 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-18 — The WhatsApp rosters (Aug → Oct 2026) are in production
+
+The VM's evening roster posts in the volunteers' WhatsApp group, from
+the app's own "Export chat" file, are now activities. Source choice,
+parser shapes, matching rules and the owner's decisions:
+[brainstorm 16](../brainstorm/16-whatsapp-roster-import.md); the upload
+rules: [ADR 0044](../adr/0044-allow-syncing-production-database-to-local-development.md).
+
+- **Result:** 46 roster posts, 240 lines covering 04/08 → 15/10/2026.
+  220 activities created, 11 already logged by the VM (skipped), 2 had
+  their blank escort filled, 2 travel days skipped. Production went from
+  73 to 293 activities.
+- **Clashes:** 5 lines differed from an activity already logged — one on
+  04/08, four on 13–15/10. The owner chose the roster: each activity was
+  changed in place, its notes keeping what it was ("Changed to the
+  WhatsApp roster posted …, was …").
+- **Created beyond activities, each approved row by row:** 12 projects
+  and 13 programs (an Orientation program at Office (Mombasa) among
+  them), 2 escorts, 2 volunteers known only by a first name. No branch,
+  no activity type.
+- **Stays:** 3 created, 2 extended by a day or two, 3 moved from Nairobi
+  to Mombasa where the rosters placed them, 1 split around a Samburu
+  trip. Two duplicate pairs of volunteers were merged as the same person,
+  one pair's two overlapping stays becoming one.
+- **How:** a one-off `app:import:whatsapp-rosters` command, never
+  committed: one transaction per run, rolled back on `--analyse`, with
+  the app's own activity and stay checks, a report and a decisions file
+  the owner approved. Run on a fresh production copy, which every table
+  fingerprint showed unchanged in production at swap time, then swapped
+  in through the restore drill. The live file was checked against the
+  verified copy afterwards.
+- **Not imported:** July 2026. The exporting account joined the group
+  on 03/08, and WhatsApp gives no earlier history. Nor were days with no
+  roster post filled in (01–07/10, 09–11/10).
+- **Open with the VM:** the inferred stays, sites and mappings —
+  [her questions card](backlog/roster-archive-open-questions.md).
+- The export, the working files and the rollback copy were deleted the
+  same day, at the owner's request.
+
 ## 2026-10-18 — A volunteer's edit form is laid out like their page
 
 `/volunteers/{id}/edit` and `/volunteers/new` now use the show page's cards:

@@ -49,3 +49,4 @@ agent that drafts these.
 | [13](13-matches-planning-screen.md) | Matches planning screen | [0042](../adr/0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md) |
 | [14](14-dataviz-for-vm-and-management.md) | Dataviz for the VM and UCESCO management | |
 | [15](15-legacy-workbook-import.md) | Import the legacy volunteer workbook into production | [0034](../adr/0034-comply-with-kenyas-data-protection-act-2019.md), [0044](../adr/0044-allow-syncing-production-database-to-local-development.md) |
+| [16](16-whatsapp-roster-import.md) | Import the WhatsApp roster posts as activities | |

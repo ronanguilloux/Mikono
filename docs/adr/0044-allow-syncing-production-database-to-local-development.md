@@ -1,6 +1,6 @@
 # 0044. Allow syncing the production database to local development environments using a dedicated script
 
-Date: 2026-10-17
+Date: 2026-10-18
 
 ## Status
 
@@ -28,13 +28,16 @@ decisions:
    numbers), so a machine holding a copy is a processing endpoint, and a
    maintainer outside Kenya receiving it is a cross-border transfer.
 
-The import of UCESCO's legacy volunteer workbook
-([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md),
-[`done.md`, 2026-10-17](../project/done.md)) needs the
-copy in the other direction too. The importer has to run against
-production's real volunteers, lists and branches, and be checked in the
-app before anything reaches production. The workbook must not travel to
-the server, and the import must not run on the live app.
+A one-off import of legacy data needs the copy in the other direction
+too: UCESCO's volunteer workbook
+([brainstorm 15](../brainstorm/15-legacy-workbook-import.md),
+[ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md)) and the
+WhatsApp roster exports
+([brainstorm 16](../brainstorm/16-whatsapp-roster-import.md)) are two
+such imports. The importer has to run against production's real
+volunteers, lists and branches, and be checked in the app before anything
+reaches production. The source files must not travel to the server, and
+the import must not run on the live app.
 
 ## Decision
 
@@ -67,9 +70,9 @@ Rules that hold for the standing copy:
 - **ADR 0012 still governs the repository.** Its prohibition covers what
   is committed and what seeds fixtures. The copy lives only in the
   gitignored `var/` (the database volume) and the key in the gitignored
-  `.env.dev.local`; workbook files live in the gitignored
-  `data-to-import/`. None of it is committed, pushed, or used to seed
-  fixtures.
+  `.env.dev.local`; import source files live in the gitignored
+  `data-to-import/` and `whatsapp-data-import/`. None of it is
+  committed, pushed, or used to seed fixtures.
 - **Authorization.** Holding production data locally needs UCESCO's
   authorization as data controller, given as a clause in the processor
   agreement for maintenance.
@@ -91,9 +94,9 @@ Rules that hold for the standing copy:
   exported; `scripts/db-fingerprint.sh` then shows the `user` table back to
   its earlier hash.
 
-**The reverse direction is allowed once, for the legacy workbook import:
-a database prepared locally on a synced copy is uploaded to production as
-a whole file.** Rules the upload must follow:
+**The reverse direction is allowed for a one-off legacy-data import the
+owner approves: a database prepared locally on a synced copy is uploaded
+to production as a whole file.** Each upload follows every rule below:
 
 1. **A weekend freeze.** The VM agrees not to use the app from the sync
    until the upload is done, so production has no writes in between.
@@ -118,9 +121,13 @@ a whole file.** Rules the upload must follow:
    [`deployment-plan.md`](../project/deployment-plan.md) ("Restore drill",
    "Seeding a server from a local dataset"): exported with
    `scripts/backup-db.sh`, copied into the volume with the app's own
-   image, sidecars removed, sessions dropped, `chown 33:0`, then
-   `up -d --wait`. The entrypoint must log "Already at the latest
-   version", and a profile with a passport number must open.
+   image, sidecars removed, sessions dropped, `chown 33:0` (which needs
+   `docker run --user 0`), then `up -d --wait`. The entrypoint must log
+   "Already at the latest version", and a profile with a passport number
+   must open. The image runs as `www-data` (uid 33), so a `docker run`
+   cannot write the stopped production file into the `deploy`-owned
+   `backups/`: it copies it to a temporary world-writable folder, and
+   `deploy` copies it into `backups/` from there.
 7. **The stopped production file is the rollback backup.** Restoring it
    through the same path undoes the upload.
 
@@ -181,9 +188,9 @@ unfixed, and the legacy import could not be checked before reaching
 production. That harms the system's reliability and UCESCO's operations
 more than a governed copy on an encrypted machine.
 
-### 5. Run the legacy import on the production server
+### 5. Run a legacy import on the production server
 
-**Rejected.** The workbook would have to travel to the server, and the
+**Rejected.** The source files would have to travel to the server, and the
 import would run against the live app with no chance to check its result
 in the app first. A local import on a fresh copy is checked before the
 upload, and the upload reuses the restore path already proven on this

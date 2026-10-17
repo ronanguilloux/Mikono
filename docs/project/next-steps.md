@@ -32,7 +32,7 @@ hostname is the one that isn't ours to solve.
 
 ## Next
 
-1. [Open questions for Edna about the fixture data](backlog/roster-archive-open-questions.md) — **B**
+1. [Open questions for Edna about the fixture data and the imported rosters](backlog/roster-archive-open-questions.md) — **B**
 2. [Attach documents to volunteers](backlog/volunteer-document-attachments.md) — **D**
 3. [Requirements from the UCESCO meeting, raw](backlog/ucesco-meeting-requirements-raw.md) — **D**
 4. [Record minor volunteers with a guardian's consent](backlog/minor-volunteers-with-guardian-consent.md) — **D**

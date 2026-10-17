@@ -34,6 +34,7 @@
 # importer output derived from it name real volunteers; this repository
 # is public. Kept on the maintainer's machine only.
 /data-to-import/
+/whatsapp-data-import/
 
 # Deployment env files (docs/project/deployment-plan.md §4 and §10):
 # they hold a real APP_SECRET, and this repository is public.
