@@ -116,6 +116,13 @@ if [ -n "${ADMIN_EMAIL}" ]; then
     fi
 fi
 
+# Every deploy pulls a ~500MB image and nothing else removes the old
+# ones: 44 of them filled the 25G disk on 2026-10-18 and the next
+# pre-deploy backup died with "database or disk is full". Only after a
+# healthy start, and safe for rollback, which re-pulls by tag.
+echo "==> Pruning unused images"
+docker image prune -af >/dev/null
+
 echo "==> Deployed"
 compose ps
 compose images php

@@ -6,6 +6,15 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-18 — Production disk full: deploys now prune old images
+
+`make deploy` failed in its pre-deploy backup: `VACUUM INTO` hit
+SQLITE_FULL. The 25G root disk was at 100%, 18.9GB of it from 43 GHCR
+images left behind by earlier deploys. Fixed by hand with
+`docker image prune -af`. `scripts/deploy.sh` now runs the same prune
+after every healthy start. Rollback still works because it re-pulls the
+previous SHA by tag.
+
 ## 2026-10-18 — Search the volunteer filter on /activities
 
 After the legacy import, the Volunteer filter held hundreds of names, and
