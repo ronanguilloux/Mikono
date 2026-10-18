@@ -70,7 +70,8 @@
         <select
             id="volunteer-filter"
             name="volunteer"
-            class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            class="w-80 max-w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+            data-controller="searchable-select"
             data-action="change->auto-submit#submit"
         >
             <option value="">All volunteers</option>
@@ -80,6 +81,9 @@
                 </option>
             {% endfor %}
         </select>
+
+        {# Line break: the program names are long, the row would wrap mid-filter. #}
+        <div class="basis-full" aria-hidden="true"></div>
 
         <label for="program-filter" class="sr-only">Filter by program</label>
         <span aria-hidden="true">Program</span>

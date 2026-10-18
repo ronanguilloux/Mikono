@@ -6,6 +6,18 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-18 — Search the volunteer filter on /activities
+
+After the legacy import, the Volunteer filter held hundreds of names, and
+a native select only finds them by first letters. A Stimulus controller
+(`searchable_select_controller.js`) now hides the select behind a search
+box that suggests from a `<datalist>`, so any part of a name works. It
+sets the hidden select and fires its `change`, so auto-submit and the
+"no empty `?volunteer=`" rule are unchanged; with JavaScript off the
+plain select stays. Other selects can opt in with
+`data-controller="searchable-select"`. If the browser's suggestions fall
+short, symfony/ux-autocomplete is the next step.
+
 ## 2026-10-18 — Reports → Volunteers' Origins
 
 `/reports/origins`: volunteers per country of residence, as a world map

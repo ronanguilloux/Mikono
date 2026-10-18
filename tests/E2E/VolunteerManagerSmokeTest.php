@@ -101,19 +101,21 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
         self::assertSelectorTextContains('body', 'Bright Achievers');
         self::assertSelectorTextContains('body', 'Computer lessons');
 
-        // The volunteer filter, which only exists once JavaScript runs: the
-        // picker auto-submits on change. Clearing it has to leave NO empty
-        // `?volunteer=` behind — every other control on the page carries the
-        // query string through, so an empty param would be copied into all of
-        // their links and never go away. Only a real browser can catch that.
-        $filterOn = static fn(RemoteWebDriver $driver) => str_contains($driver->getCurrentURL(), 'volunteer=');
-        (new WebDriverSelect($client->findElement(WebDriverBy::id('volunteer-filter'))))
-            ->selectByValue((string) $volunteer->getId());
+        // The volunteer filter, which only exists once JavaScript runs: a
+        // search box (searchable_select_controller) over the hidden select,
+        // auto-submitting once a full name matches. Clearing it has to leave
+        // NO empty `?volunteer=` behind — every other control on the page
+        // carries the query string through, so an empty param would be copied
+        // into all of their links and never go away. Only a real browser can
+        // catch that.
+        $filterOn = static fn(RemoteWebDriver $driver) => str_contains($driver->getCurrentURL(), 'volunteer=' . $volunteer->getId());
+        self::assertSame('input', $client->findElement(WebDriverBy::id('volunteer-filter'))->getTagName());
+        $client->findElement(WebDriverBy::id('volunteer-filter'))->sendKeys('Ronan Guilloux');
         $client->wait()->until($filterOn);
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
 
-        (new WebDriverSelect($client->findElement(WebDriverBy::id('volunteer-filter'))))->selectByValue('');
-        $client->wait()->until(static fn(RemoteWebDriver $driver) => !$filterOn($driver));
+        $client->findElement(WebDriverBy::id('volunteer-filter'))->clear();
+        $client->wait()->until(static fn(RemoteWebDriver $driver) => !str_contains($driver->getCurrentURL(), 'volunteer='));
 
         $client->request('GET', '/reports/volunteers');
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
