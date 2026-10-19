@@ -166,9 +166,11 @@ implements it.
   `<twig:BarChart>` horizontal bars with an optional share. Each sits above
   the table it summarises, which stays the export and the screen-reader
   source — unless every label and value is already visible text, as on
-  `/reports/origins`, where the export remains. **The one exception** is
-  that page's world map, drawn by jsvectormap from a lazy Stimulus
-  controller; the server computes every fill and tooltip. Put `sr-only` on a wrapping div, never on a `<table>`: a table
+  `/reports/origins`, where the export remains. **The two exceptions** are
+  that page's world map (jsvectormap) and the stay page's pies
+  (`<twig:ChartJsPie>`, Chart.js), each from a lazy Stimulus controller;
+  the server computes every fill, value and tooltip. Categorical colours
+  come from the `chart_palette` Twig global, in its fixed order. Put `sr-only` on a wrapping div, never on a `<table>`: a table
   keeps its content width and pushes a phone page sideways
   ([ADR 0048](docs/adr/0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md)).
 - **Every list view exports** to CSV and `.xlsx`
@@ -214,6 +216,11 @@ implements it.
   home screen. `QuietProjectFinder` covers projects only, never volunteers —
   deliberate and evidence-based; read its class docblock before
   "completing" it.
+  `VolunteerImpactCalculator` feeds both the volunteer page and the stay
+  page; there **every activity counts as one day whatever its duration**,
+  unlike `/reports/volunteers`, which still sums half and full days. The
+  volunteer page counts past activities only; the stay page passes
+  `withPlanned`, so an unfinished stay shows its expected outcome.
   `ProgramMatchFinder` is behind `/matches`: it pairs open programs with
   volunteers whose not-ended stay is at the program's branch, by skills held
   or by past activity types

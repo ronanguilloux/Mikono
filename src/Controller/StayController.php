@@ -9,7 +9,9 @@ use App\Entity\Stay;
 use App\Entity\Volunteer;
 use App\Form\StayFormType;
 use App\Repository\AchievementRepository;
+use App\Repository\ActivityRepository;
 use App\Repository\StayRepository;
+use App\Report\VolunteerImpactCalculator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -29,6 +31,8 @@ final class StayController extends AbstractController
         private readonly StayRepository $stays,
         private readonly AchievementRepository $achievements,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ActivityRepository $activities,
+        private readonly VolunteerImpactCalculator $impactCalculator,
     ) {}
 
     #[Route('/volunteers/{id}/stays/new', name: 'volunteer_stay_new', methods: ['GET', 'POST'])]
@@ -53,14 +57,32 @@ final class StayController extends AbstractController
 
     /**
      * The stay's own page, home of its achievements: every achievement save
-     * or delete comes back here (ADR 0038).
+     * or delete comes back here (ADR 0038). Its figures are the volunteer
+     * page's, counted over this stay's activities only.
      */
     #[Route('/stays/{id}', name: 'stay_show', methods: ['GET'])]
     public function show(Stay $stay): Response
     {
         $volunteer = $stay->getVolunteer() ?? throw $this->createNotFoundException();
 
-        return $this->render('stay/show.html.twig', ['stay' => $stay, 'volunteer' => $volunteer, 'achievements' => $this->achievementRows($stay)]);
+        $activities = $this->activities->findByStayOrderedByDateDesc($stay);
+        $today = new \DateTimeImmutable('today');
+        // Planned activities count too: a stay that hasn't ended shows its
+        // whole expected outcome, not just what is behind it.
+        $summary = $this->impactCalculator->calculate($activities, $today, withPlanned: true);
+
+        return $this->render('stay/show.html.twig', [
+            'stay' => $stay,
+            'volunteer' => $volunteer,
+            'achievements' => $this->achievementRows($stay),
+            'activities' => $activities,
+            'activityCount' => \count($activities),
+            'summary' => $summary,
+            'stayLength' => $stay->getDaysOnSite($stay->getEndDate() ?? $today),
+            'impact' => $summary->impact,
+            'impactWithPlanned' => true,
+            'today' => $today,
+        ]);
     }
 
     #[Route('/stays/{id}/edit', name: 'stay_edit', methods: ['GET', 'POST'])]

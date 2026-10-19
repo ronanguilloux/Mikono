@@ -33,4 +33,6 @@ return [
     'jsvectormap' => ['version' => '1.7.0'],
     'jsvectormap/dist/jsvectormap.min.css' => ['version' => '1.7.0', 'type' => 'css'],
     'jsvectormap/dist/maps/world.js' => ['version' => '1.7.0'],
+    'chart.js' => ['version' => '4.5.1'],
+    '@kurkle/color' => ['version' => '0.3.4'],
 ];

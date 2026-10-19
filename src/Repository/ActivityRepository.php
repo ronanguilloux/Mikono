@@ -8,6 +8,7 @@ use App\Entity\Activity;
 use App\Entity\Branch;
 use App\Entity\Program;
 use App\Entity\Project;
+use App\Entity\Stay;
 use App\Entity\Volunteer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
@@ -194,6 +195,24 @@ class ActivityRepository extends ServiceEntityRepository
         return $this->createOrderedByDateDescQueryBuilder($volunteer)
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * A stay's activities, newest first, for its page. Activity::$stay is
+     * resolved from volunteer and date on every save (ADR 0026).
+     *
+     * @return list<Activity>
+     */
+    public function findByStayOrderedByDateDesc(Stay $stay): array
+    {
+        /** @var list<Activity> $activities */
+        $activities = $this->createOrderedByDateDescQueryBuilder()
+            ->andWhere('a.stay = :stay')
+            ->setParameter('stay', $stay)
+            ->getQuery()
+            ->getResult();
+
+        return $activities;
     }
 
     /**

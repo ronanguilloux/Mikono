@@ -248,6 +248,24 @@ final class DashboardControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function remindsOfAStayEndingTodayWithALinkToTheStay(): void
+    {
+        $client = static::createClient();
+        $volunteer = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Margarita', 'lastName' => 'Garcia']);
+        $today = new \DateTimeImmutable('today');
+        $stay = StayFactory::createOne(['volunteer' => $volunteer, 'startDate' => $today->modify('-2 weeks'), 'endDate' => $today]);
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/');
+
+        self::assertSelectorTextContains('[data-departure-days="0"]', "Today is Margarita's last day at Nairobi (HQ)");
+        self::assertSame(
+            sprintf('/stays/%d', $stay->getId()),
+            $crawler->filter('[data-departure-days="0"]')->selectLink('See the stay →')->attr('href'),
+        );
+    }
+
+    #[Test]
     public function groupsArrivalsByBranchThenDaysAway(): void
     {
         $client = static::createClient();

@@ -130,6 +130,16 @@ class Stay implements Authored
             && $this->startDate <= $day && $day <= $this->endDate;
     }
 
+    /** Calendar days of this stay up to $today inclusive; 0 before it starts. */
+    public function getDaysOnSite(\DateTimeImmutable $today): int
+    {
+        if (null === $this->startDate || null === $this->endDate || $this->startDate > $today) {
+            return 0;
+        }
+
+        return min($this->endDate, $today)->diff($this->startDate)->days + 1;
+    }
+
     public function overlaps(self $other): bool
     {
         return null !== $this->startDate && null !== $this->endDate

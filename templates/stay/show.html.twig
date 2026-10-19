@@ -1,15 +1,53 @@
 {% extends 'base.html.twig' %}
 
+{% from 'report/volunteers.html.twig' import kpi_tile %}
+
 {% block title %}Stay at {{ stay.branch.name }} for {{ volunteer.fullName }} — UCESCO Volunteer Manager{% endblock %}
 
 {% block body %}
     <div class="mb-4 flex items-start justify-between gap-2">
-        <div>
+        <div class="min-w-0">
             <h1 class="mb-1 text-xl font-semibold">Stay at {{ stay.branch.name }} for <a href="{{ path('volunteer_show', {id: volunteer.id}) }}" class="text-brand-600 hover:underline">{{ volunteer.fullName }}</a></h1>
             <p class="text-sm text-slate-600">{{ stay.startDate|date('j M Y') }} – {{ stay.endDate|date('j M Y') }}</p>
         </div>
         <a href="{{ path('stay_edit', {id: stay.id}) }}" class="text-sm text-brand-600 hover:underline">Edit stay</a>
     </div>
 
+    {# The /reports/volunteers tiles, counted over this stay's activities only. #}
+    <div class="mb-6 grid grid-cols-3 gap-3" data-kpi-tiles>
+        {{ kpi_tile(
+            'Activities logged',
+            summary.activityCount,
+            summary.plannedCount > 0 ? 'incl. ' ~ summary.plannedCount ~ ' planned' : 'all logged'
+        ) }}
+        {{ kpi_tile('Days logged', summary.daysLogged, 'of ' ~ stayLength ~ ' day' ~ (stayLength == 1 ? '' : 's') ~ ' in the stay') }}
+        {{ kpi_tile('Achievements', achievements|length, 'in this stay') }}
+    </div>
+
+    <section class="mb-6" aria-labelledby="dispatch-heading" data-dispatch>
+        <h2 id="dispatch-heading" class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500"><span aria-hidden="true">🧭</span> Where the days went</h2>
+        {#
+            Every activity in the stay, planned ones included, so a stay that
+            hasn't ended shows its expected outcome. Each counts as one day
+            whatever its duration: the VM counts days given, not hours.
+        #}
+        {% set total = summary.activityCount %}
+        {% if total > 0 %}
+            {% set daysSummary = total ~ ' day' ~ (total == 1 ? '' : 's') ~ (summary.plannedCount > 0 ? ' · incl. ' ~ summary.plannedCount ~ ' planned' : '') %}
+            {% set programRows = summary.byProgram|map(r => {label: r.label, value: r.count}) %}
+            <div class="grid gap-4 lg:grid-cols-2">
+                <twig:ChartJsPie class="min-w-0" title="Days by program" :summary="daysSummary" :rows="programRows" />
+                <twig:ChartJsPie class="min-w-0" title="Days by activity type" :summary="daysSummary" :rows="summary.byActivityType|map(r => {label: r.label, value: r.count})" />
+                <twig:WaffleChart class="min-w-0 lg:col-span-2" title="Days by program" :summary="daysSummary ~ ' · ▪ = 1 day'" :rows="programRows" />
+            </div>
+        {% else %}
+            <p class="text-sm text-slate-400">No activities logged in this stay yet.</p>
+        {% endif %}
+    </section>
+
+    {{ include('volunteer/_impact.html.twig') }}
+
     {{ include('stay/_achievements.html.twig') }}
+
+    {{ include('volunteer/_activity_history.html.twig') }}
 {% endblock %}

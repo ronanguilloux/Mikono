@@ -6,6 +6,32 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-19 — Home reminds the VM of a stay about to end
+
+The home page's Reminders card now lists each stay ending soon, from two
+working days before its last day through that day ("👋 Margarita's stay
+at Nairobi (HQ) ends Thursday 22 Oct — time to prepare a personal
+thank-you."), linked to the stay page so its outcome is at hand while
+writing. Working days are Monday to Friday; Kenyan public holidays are
+not counted yet (`DepartureReminderFinder::workingDaysBefore()`). A stay
+continued straight into another, a branch move, is no departure and is
+left out.
+
+## 2026-10-19 — The stay page shows what the volunteer did there
+
+`/stays/{id}` now has three tiles (activities logged, days logged out of
+the stay's length, achievements), "Where the days went" (a pie per
+program and per activity type, and a waffle per program), and the
+volunteer page's Impact and Activity history cards, all limited to the
+stay. Planned activities count too, so a stay about to end already shows
+its outcome (groundwork for the coming end-of-stay notification). Every
+activity counts as one day whatever its duration: the VM counts days
+given, not hours. The volunteer page's figures moved into
+`VolunteerImpactCalculator` so both pages count alike. The chart forms
+were chosen from eight rendered side by side; the pies are ADR 0048's
+second client-side exception
+([ADR 0048](../adr/0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md)).
+
 ## 2026-10-18 — Production disk full: deploys now prune old images
 
 `make deploy` failed in its pre-deploy backup: `VACUUM INTO` hit

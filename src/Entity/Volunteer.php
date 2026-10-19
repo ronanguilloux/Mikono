@@ -580,12 +580,7 @@ class Volunteer implements Authored
     {
         $days = 0;
         foreach ($this->stays as $stay) {
-            $start = $stay->getStartDate();
-            $end = $stay->getEndDate();
-            if (null === $start || null === $end || $start > $today) {
-                continue;
-            }
-            $days += min($end, $today)->diff($start)->days + 1;
+            $days += $stay->getDaysOnSite($today);
         }
 
         return $days;

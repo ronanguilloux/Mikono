@@ -1,0 +1,18 @@
+{#
+    The legend of a part-to-whole chart (WaffleChart, ChartJsPie): each row's swatch, label, value and share as visible text,
+    so identity is never colour alone and screen readers need no hidden
+    table. Swatches take `chart_palette` (twig.yaml) in row order, the same
+    order the chart paints in.
+#}
+{% props rows %}
+{% set total = rows|reduce((sum, r) => sum + r.value, 0) %}
+<ul {{ attributes.defaults({class: 'space-y-1 text-sm'}) }}>
+    {% for r in rows %}
+        <li class="flex items-center gap-2">
+            <span class="size-3 shrink-0 rounded-sm" style="background-color: {{ chart_palette[loop.index0] }}" aria-hidden="true"></span>
+            <span class="min-w-0 flex-1 truncate text-slate-700" title="{{ r.label }}">{{ r.label }}</span>
+            <span class="tabular-nums text-slate-700">{{ r.value|number_format }}</span>
+            <span class="w-10 text-right tabular-nums text-slate-500">{{ total > 0 ? (r.value / total * 100)|round ~ '%' : '—' }}</span>
+        </li>
+    {% endfor %}
+</ul>

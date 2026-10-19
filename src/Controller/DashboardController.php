@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Report\AnniversaryReminderFinder;
 use App\Report\ArrivalReminderFinder;
 use App\Report\BirthdayReminderFinder;
+use App\Report\DepartureReminderFinder;
 use App\Report\OccupancyLookAhead;
 use App\Report\QuietProjectFinder;
 use App\Report\RosterBuilder;
@@ -23,6 +24,7 @@ class DashboardController extends AbstractController
         private readonly ArrivalReminderFinder $arrivals,
         private readonly AnniversaryReminderFinder $anniversaries,
         private readonly OccupancyLookAhead $occupancy,
+        private readonly DepartureReminderFinder $departures,
     ) {}
 
     #[Route('/', name: 'app_home', methods: ['GET'])]
@@ -39,6 +41,7 @@ class DashboardController extends AbstractController
             'quiet_after_days' => QuietProjectFinder::WARN_AFTER_DAYS,
             'birthdays' => $this->birthdays->find($today),
             'arrivals' => $this->arrivals->find($today),
+            'departures' => $this->departures->find($today),
             'anniversaries' => $this->anniversaries->find($today),
             'occupancy' => $this->occupancy->calculate($today),
             'occupancy_weeks' => OccupancyLookAhead::WEEKS,

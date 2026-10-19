@@ -1,6 +1,6 @@
-# 0048. Draw charts as server-rendered HTML and CSS from Twig components, with one client-side world map
+# 0048. Draw charts as server-rendered HTML and CSS from Twig components, with two client-side exceptions
 
-Date: 2026-10-18
+Date: 2026-10-19
 
 ## Status
 
@@ -36,12 +36,19 @@ most of them in Europe; nationality is filled for 13. Reading Europe on a
 world map needs pan and zoom. The options weighed are in
 [`docs/brainstorm/14-dataviz-for-vm-and-management.md`](../brainstorm/14-dataviz-for-vm-and-management.md).
 
+The stay page (`/stays/{id}`) asks a part-to-whole question: where did a
+volunteer's days go, across a handful of programs or activity types?
+That needs several categories told apart by colour, so a validated
+categorical palette, and a form the owner reads at a glance; eight
+variants were rendered side by side on that page to choose one.
+
 ## Decision
 
 **Charts are drawn as server-rendered HTML and CSS from a Twig
 component, with no chart library and no JavaScript — except the world map
-on `/reports/origins`, which jsvectormap draws client-side from fills and
-tooltips the server computes.**
+on `/reports/origins` (jsvectormap) and the pies on the stay page
+(Chart.js), which a lazy Stimulus controller draws client-side from
+values the server computes, with every number also printed as text.**
 
 - **One component per chart form.** Each is an anonymous TwigComponent in
   `templates/components/`. Its classes stay literal, never assembled from
@@ -86,6 +93,20 @@ tooltips the server computes.**
   stays regardless
   ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md)).
   Charts print with the page, and each has `break-inside-avoid`.
+- **Part-to-whole charts share one legend.**
+  `<twig:ChartLegend :rows />` prints each row's swatch, label
+  (truncating), value and share as visible text, so identity is never
+  colour alone and no hidden table is needed. ChartJsPie and WaffleChart
+  both use it; `rows` is a list of `{label, value}`, largest first, and
+  swatches take `chart_palette` in row order, the order the chart paints
+  in.
+- **Waffle chart.** `<twig:WaffleChart :title summary :rows />` draws one
+  square per unit of value (on the stay page, one square is one day),
+  coloured by category, with ChartLegend below. Plain HTML and CSS; the
+  squares are `aria-hidden`.
+- **Grid cells.** A chart placed in a CSS grid cell needs `min-w-0` on the
+  cell or the component, or a long label or legend widens the page on a
+  phone.
 - **The one exception: the world map.** `/reports/origins` ("Volunteers'
   Origins", Reports menu) shows a choropleth of country of residence,
   drawn by jsvectormap 1.7.0 (MIT). Its regions are keyed by ISO 3166-1
@@ -116,6 +137,28 @@ tooltips the server computes.**
     `DRAWN` constant in `src/Controller/OriginReportController.php`.
   - The data is `VolunteerRepository::countByCountryOfResidence()` —
     residence, not nationality.
+- **The second exception: pies on the stay page.** "Where the days went"
+  on `/stays/{id}` shows two pies, days by program and days by activity
+  type, with a waffle of days by program below. A pie read best of the
+  eight forms compared for a handful of categories.
+  - **Importmap only:** `chart.js` 4.5.1 and its dependency
+    `@kurkle/color` in `importmap.php`, no Node build. The Stimulus
+    controller `assets/controllers/dispatch_pie_controller.js` is marked
+    `stimulusFetch: 'lazy'` and registers only `PieController`,
+    `ArcElement` and `Tooltip`.
+  - **The server decides, the JS only draws.**
+    `<twig:ChartJsPie :title summary :rows unit='days' />` passes labels,
+    values and colours as Stimulus values; the controller draws the pie
+    and adds a hover tooltip. `disconnect()` destroys the chart, so
+    Turbo's cached copy doesn't keep it.
+  - **Trap.** A lone slice gets no border, or Chart.js draws a white seam
+    at twelve o'clock.
+  - **Accessibility.** The canvas is `aria-hidden`; the ChartLegend beside
+    it carries every label, value and share as text.
+  - **The measure.** Every activity in the stay, planned ones included,
+    counts as one day whatever its duration, because the VM counts days
+    given, not hours spent, and a stay should show its expected outcome
+    before it ends (`App\Report\VolunteerImpactCalculator`).
 - **First use of ColumnChart: "Impact by month"** at the top of
   `/reports/achievements`. It shows one chart per indicator, never summed
   across indicators
@@ -138,19 +181,27 @@ tooltips the server computes.**
   `#00647d`, `#004a5c`, `#002129`; none → slate-200 `#e2e8f0` — which
   passed the ordinal validator: lightness falls monotonically, and the
   lightest step has 2.61:1 contrast on white. The app has no dark mode,
-  so one validated set is enough. A future multi-series chart runs the
-  validator on its categorical palette and assigns hues in a fixed
-  order. No dual axes.
+  so one validated set is enough. Categories take the Twig global
+  `chart_palette` (`config/packages/twig.yaml`): `#0085a6`, `#eb6834`,
+  `#1baf7a`, `#eda100`, `#e87ba4`, `#008300`, `#6250d6`, `#e34948` —
+  brand-600 first, then the dataviz skill's reference hues, assigned in
+  that fixed order and never cycled. It passed the categorical validator
+  on a light surface; three slots fall under 3:1 contrast, which is why
+  every chart using them prints its labels. Beyond eight categories the
+  smallest fold into "Other" (`VolunteerImpactCalculator::MAX_SHARES`).
+  No dual axes.
 
 ## Consequences
 
 - **Positive:**
-  - Every chart but the map adds no dependency, renders, navigates under
-    Turbo and prints like the rest of the page, and keeps its text size on
-    a phone.
+  - Every chart but the map and the pies adds no dependency, renders,
+    navigates under Turbo and prints like the rest of the page, and keeps
+    its text size on a phone.
   - The map gives pan and zoom where a static map leaves Europe
     unreadable, at no cost to other pages: it is lazy-loaded, and sends
     nothing to a third party.
+  - The pies follow the map's pattern, so neither exception carries a
+    number only JavaScript knows; Chart.js loads on the stay page only.
   - Charts are tested by asserting markup
     (`tests/Functional/AchievementControllerTest.php`,
     `tests/Functional/OriginReportControllerTest.php`). The numbers are
@@ -165,9 +216,11 @@ tooltips the server computes.**
     them.
   - Outside the map, interactivity is limited to a CSS hover. There is no
     zoom, brushing or toggling of series.
-  - The map is one JavaScript dependency to keep current, and it carries
-    no numbers a screen reader, a phone without hover or a printout can
-    rely on; the bar chart below it must stay.
+  - The map and Chart.js are two JavaScript dependencies to keep
+    current, and neither carries numbers a screen reader, a phone without
+    hover or a printout can rely on; the bar chart below the map and the
+    legend beside each pie must stay.
+  - A ninth category can't get its own colour; it folds into "Other".
   - A country absent from jsvectormap's world map can't be coloured; the
     `DRAWN` list must follow the library if it is upgraded.
 - **Reversibility:** cheap. A chart is one template plus its data, and
@@ -175,18 +228,22 @@ tooltips the server computes.**
   component's internals for SVG or a library leaves its callers
   unchanged. Dropping the map means deleting its controller, three
   importmap entries and a block of the template; the bar chart already
-  carries the page.
+  carries the page. Dropping the pies means deleting their controller,
+  two importmap entries and ChartJsPie; the waffle and legends already
+  carry the numbers.
 
 ## Alternatives considered
 
-### 1. `symfony/ux-chartjs`
+### 1. `symfony/ux-chartjs`, or Chart.js for every chart
 
-**Rejected.** It is a new dependency, and under `allow-contrib: false`
-it would be wired by hand
+**Rejected.** The bundle is a new dependency, and under
+`allow-contrib: false` it would be wired by hand
 ([ADR 0003](0003-adopt-docker-frankenphp-symfony-sqlite-tailwind-for-volunteer-manager.md)).
-Its canvas doesn't print well on the Reports pages. It runs JavaScript to
-draw data that never changes once the page is rendered, and its charts
-have to be set up and torn down around Turbo navigation.
+A canvas doesn't print well on the Reports pages. Chart.js runs
+JavaScript to draw data that never changes once the page is rendered,
+and its charts have to be set up and torn down around Turbo navigation.
+The stay-page pies accept those costs for one form, from the importmap
+directly, because the legend beside them carries every number.
 
 ### 2. Inline SVG with a `viewBox` for bar and column charts
 
@@ -223,3 +280,12 @@ live, is too small to read.
 staff member's IP on each view of the page. A choropleth would still need
 country geometry on top, so tiles add a third party without removing the
 work.
+
+### 7. Other forms for "where the days went"
+
+**Rejected.** Each was rendered on `/stays/{id}` beside the pie and the
+waffle, and the owner kept those two after comparing them on screen:
+horizontal bars with share (BarChart), a 100% stacked strip, a CSS
+conic-gradient donut, a Chart.js doughnut, nested project → program
+bars, a programs × activity-types heat table, and weekly columns over
+the stay.

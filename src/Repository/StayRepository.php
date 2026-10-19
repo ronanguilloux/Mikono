@@ -156,6 +156,23 @@ class StayRepository extends ServiceEntityRepository
         return $stays;
     }
 
+    /** @return list<Stay> stays whose last day falls between $from and $to, inclusive */
+    public function findEndingBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /** @var list<Stay> $stays */
+        $stays = $this->createQueryBuilder('s')
+            ->addSelect('v', 'b')
+            ->join('s.volunteer', 'v')
+            ->join('s.branch', 'b')
+            ->where('s.endDate BETWEEN :from AND :to')
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)
+            ->setParameter('to', $to, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getResult();
+
+        return $stays;
+    }
+
     /**
      * The years from the earliest stay's start to the latest stay's end, as
      * a pair, or null with no stays. Bounds /reports/volunteers' year picker.

@@ -1,0 +1,26 @@
+{#
+    A pie drawn by Chart.js from the dispatch_pie Stimulus controller, with
+    ChartLegend beside it printing every label, value and share, so the canvas
+    stays hidden from screen readers (ADR 0048). `rows` is a list of
+    {label, value}, largest first; colours are `chart_palette` in row order.
+#}
+{% props title, summary, rows, unit = 'days' %}
+<figure {{ attributes.defaults({class: 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm'}) }}>
+    <figcaption class="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
+        <span class="font-medium text-slate-800">{{ title }}</span>
+        <span class="text-sm text-slate-500">{{ summary }}</span>
+    </figcaption>
+    <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+        <div class="relative size-36 shrink-0">
+            <canvas
+                aria-hidden="true"
+                data-controller="dispatch-pie"
+                data-dispatch-pie-labels-value="{{ rows|map(r => r.label)|json_encode }}"
+                data-dispatch-pie-values-value="{{ rows|map(r => r.value)|json_encode }}"
+                data-dispatch-pie-colors-value="{{ chart_palette|slice(0, rows|length)|json_encode }}"
+                data-dispatch-pie-unit-value="{{ unit }}"
+            ></canvas>
+        </div>
+        <twig:ChartLegend :rows="rows" class="w-full min-w-0 space-y-1 text-sm" />
+    </div>
+</figure>

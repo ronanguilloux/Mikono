@@ -6,10 +6,14 @@ namespace App\Tests\Functional;
 
 use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
+use App\Factory\ActivityTypeFactory;
 use App\Factory\BranchFactory;
+use App\Factory\ProgramFactory;
+use App\Factory\ProjectFactory;
 use App\Factory\StayFactory;
 use App\Factory\UserFactory;
 use App\Factory\VolunteerFactory;
+use App\Enum\ActivityDuration;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Zenstruck\Foundry\Attribute\ResetDatabase;
@@ -239,5 +243,46 @@ final class StayControllerTest extends WebTestCase
 
         $client->request('GET', "/stays/{$stay?->getId()}/edit");
         self::assertSelectorTextContains('[data-achievements]', 'Building a library');
+    }
+
+    #[Test]
+    public function theStayPageCountsOnlyTheStaysOwnActivities(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        $volunteer = VolunteerFactory::new()->withoutStay()->create();
+        $stay = StayFactory::createOne(['volunteer' => $volunteer, 'startDate' => $today->modify('-10 days'), 'endDate' => $today->modify('+10 days')]);
+        StayFactory::createOne(['volunteer' => $volunteer, 'startDate' => $today->modify('-6 months'), 'endDate' => $today->modify('-5 months')]);
+        $project = ProjectFactory::createOne(['name' => 'Olympic School']);
+        $reading = ProgramFactory::createOne(['name' => 'Reading', 'project' => $project]);
+        $maths = ProgramFactory::createOne(['name' => 'Maths', 'project' => $project]);
+        $teaching = ActivityTypeFactory::createOne(['name' => 'Teaching']);
+        foreach ([
+            ['program' => $reading, 'date' => $today->modify('-2 days'), 'duration' => ActivityDuration::FullDay],
+            ['program' => $reading, 'date' => $today->modify('-1 day'), 'duration' => ActivityDuration::HalfDay],
+            ['program' => $maths, 'date' => $today->modify('-1 day'), 'duration' => ActivityDuration::FullDay],
+            ['program' => $maths, 'date' => $today->modify('+3 days'), 'duration' => ActivityDuration::FullDay],
+            ['program' => $maths, 'date' => $today->modify('-160 days'), 'duration' => ActivityDuration::FullDay, 'notes' => 'In the other stay'],
+        ] as $attributes) {
+            ActivityFactory::createOne(['volunteer' => $volunteer, 'activityType' => $teaching] + $attributes);
+        }
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/stays/{$stay->getId()}");
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-kpi-tiles] > div:nth-child(1)', '4');
+        self::assertSelectorTextContains('[data-kpi-tiles] > div:nth-child(1)', 'incl. 1 planned');
+        // Dates -2, -1 and the planned +3, of the 21-day stay.
+        self::assertSelectorTextContains('[data-kpi-tiles] > div:nth-child(2)', '3');
+        self::assertSelectorTextContains('[data-kpi-tiles] > div:nth-child(2)', 'of 21 days in the stay');
+        self::assertSelectorTextNotContains('body', 'In the other stay');
+        // The planned Maths day counts, so a stay shows its expected outcome.
+        self::assertSame(['2', '2'], $crawler->filter('[data-impact-program] [data-impact-count]')->each(static fn($cell) => trim($cell->text())));
+        // Every activity is a day whatever its duration: Reading's full day and
+        // half day are 2 of the 4 days, not 1.5 of 3.5.
+        $pie = $crawler->filter('[data-dispatch] figure')->first();
+        self::assertStringContainsString('4 days · incl. 1 planned', $pie->text());
+        self::assertStringContainsString('Olympic School — Reading 2 50%', $pie->text());
     }
 }
