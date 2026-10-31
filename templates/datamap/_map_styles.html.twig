@@ -1,0 +1,44 @@
+{# The drawing's colours and shapes, shared by /datamap and /connect-ai. #}
+{% verbatim %}
+<style>
+.datamap,.datamap-map{
+  --ground:#f3f7f8; --paper:#ffffff; --ink:#0f252c; --muted:#4f656d; --line:#c9d7dc;
+  --brand:#007f9f; --brand-soft:#dff3f8; --brand-ink:#005a71;
+  --green:#1f7d3a; --green-soft:#e2f2e6;
+  --warn:#9a5b00; --warn-soft:#fbf0dc;
+  --loop:#1f7d3a;
+  --shadow:0 1px 2px rgba(15,37,44,.06),0 6px 20px rgba(15,37,44,.06);
+  --mono:ui-monospace,Menlo,Consolas,monospace;
+}
+.datamap-map{color:var(--ink)}
+.datamap-map .diagram{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
+.datamap-map .diagram-scroll{overflow-x:auto}
+.datamap-map .diagram svg{display:block;width:100%;min-width:760px;height:auto}
+.datamap-map .legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:.88rem;color:var(--muted);padding-top:12px;border-top:1px solid var(--line);margin-top:12px}
+.datamap-map .legend span{display:inline-flex;align-items:center;gap:8px}
+.datamap-map .legend svg{width:38px;height:12px;min-width:0}
+.datamap-map .hint{font-size:.9rem;color:var(--muted)}
+
+.datamap-map .ent rect{fill:var(--paper);stroke:var(--line);stroke-width:1.5}
+.datamap-map .ent .t{font-weight:700;font-size:17px;fill:var(--ink)}
+.datamap-map .ent .s{font-size:13px;fill:var(--muted)}
+.datamap-map .ent .k{font-family:var(--mono);font-size:11px;fill:var(--muted);opacity:.8}
+.datamap-map .ent{cursor:pointer}
+.datamap-map .ent:focus{outline:none}
+.datamap-map .ent:focus-visible rect{stroke:var(--brand);stroke-width:3}
+.datamap-map .ent.core rect{fill:var(--brand-soft);stroke:var(--brand);stroke-width:2}
+.datamap-map .ent.minor rect{stroke-dasharray:5 4}
+.datamap-map .edge path{fill:none;stroke:var(--muted);stroke-width:1.6}
+.datamap-map .edge text{font-size:12.5px;fill:var(--muted);paint-order:stroke;stroke:var(--paper);stroke-width:5px;stroke-linejoin:round}
+.datamap-map .edge.many path{stroke-dasharray:2 4;stroke-linecap:round;stroke-width:2.2}
+.datamap-map .edge.opt path{stroke-dasharray:7 5}
+.datamap-map .edge.loop path{stroke:var(--loop);stroke-width:2.6}
+.datamap-map .edge.loop text{fill:var(--loop);font-weight:700}
+.datamap-map .arrow{fill:var(--muted)} .datamap-map .arrow-loop{fill:var(--loop)}
+.datamap-map svg.focusing .ent:not(.on){opacity:.28}
+.datamap-map svg.focusing .edge:not(.on){opacity:.12}
+.datamap-map svg.focusing .ent.sel rect{stroke:var(--brand);stroke-width:3}
+.datamap-map .ent,.datamap-map .edge{transition:opacity .18s}
+@media (prefers-reduced-motion:reduce){.datamap-map .ent,.datamap-map .edge{transition:none}}
+</style>
+{% endverbatim %}

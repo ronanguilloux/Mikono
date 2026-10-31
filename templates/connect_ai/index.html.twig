@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connect an AI — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-3xl space-y-6">
+        <div>
+            <h1 class="text-xl font-semibold">Connect an AI</h1>
+            <p class="mt-1 text-sm text-slate-600">
+                Ask an AI assistant about UCESCO's records in plain language, and get answers with links back to the
+                records here. It can only read: it cannot change anything.
+            </p>
+        </div>
+
+        <section class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900" aria-labelledby="data-heading">
+            <h2 id="data-heading" class="font-semibold">What leaves Mikono</h2>
+            <p class="mt-1">
+                What the assistant reads goes to the company behind it, outside Kenya. That can include volunteers'
+                personal data, such as emergency contacts, gender, notes and photos. Passport numbers never leave.
+                Only admins can connect, each with their own account, and every read is listed on the
+                <a href="{{ path('usage_index') }}" class="underline">Usage</a> page for 90 days.
+            </p>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="readable-link-heading">
+            <h2 id="readable-link-heading" class="font-semibold">
+                <a href="{{ path('connect_ai_readable') }}" class="text-brand-700 hover:underline">What an assistant can read</a>
+            </h2>
+            <p class="mt-1 text-sm text-slate-600">A map of every list and field an assistant can reach, and what it never can.</p>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="apps-heading">
+            <h2 id="apps-heading" class="font-semibold">AI Assistants</h2>
+            <ul class="mt-3 divide-y divide-slate-100 text-sm">
+                <li class="flex items-center justify-between gap-3 py-2">
+                    <a href="{{ path('connect_ai_claude') }}" class="font-medium text-brand-700 hover:underline">Claude</a>
+                    <twig:Pill tone="brand">Available</twig:Pill>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2">
+                    <a href="{{ path('connect_ai_chatgpt') }}" class="font-medium text-brand-700 hover:underline">ChatGPT</a>
+                    <twig:Pill tone="neutral">Not available yet</twig:Pill>
+                </li>
+                <li class="flex items-center justify-between gap-3 py-2">
+                    <a href="{{ path('connect_ai_gemini') }}" class="font-medium text-brand-700 hover:underline">Gemini</a>
+                    <twig:Pill tone="neutral">Not available yet</twig:Pill>
+                </li>
+            </ul>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="connection-heading" data-connection>
+            <h2 id="connection-heading" class="font-semibold">Your connection</h2>
+            {% if connected %}
+                <p class="mt-1 text-sm text-slate-600">
+                    Your account is connected.
+                    {% if lastRead %}Last read: {{ lastRead|date('j M Y, H:i') }}.{% else %}Nothing read yet.{% endif %}
+                </p>
+                <form method="post" action="{{ path('connect_ai_disconnect') }}" class="mt-3">
+                    <input type="hidden" name="_token" value="{{ csrf_token('connect_ai_disconnect') }}">
+                    <button type="submit" class="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50">
+                        Disconnect
+                    </button>
+                </form>
+                <p class="mt-2 text-xs text-slate-500">
+                    This takes effect at once. The assistant keeps its connector, but has to ask you to sign in again.
+                </p>
+            {% else %}
+                <p class="mt-1 text-sm text-slate-600">Your account isn't connected to an assistant.</p>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

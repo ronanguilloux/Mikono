@@ -36,11 +36,11 @@ trait UsesOAuthToken
     }
 
     /** @return array<string, string> */
-    private static function authorizeQuery(): array
+    private static function authorizeQuery(string $clientId = self::CLIENT_ID): array
     {
         return [
             'response_type' => 'code',
-            'client_id' => self::CLIENT_ID,
+            'client_id' => $clientId,
             'redirect_uri' => self::REDIRECT_URI,
             'scope' => 'read',
             'state' => 'xyz',
@@ -52,10 +52,10 @@ trait UsesOAuthToken
     /**
      * @return array{access_token: string, refresh_token: string}
      */
-    private static function obtainTokens(KernelBrowser $client, User $user): array
+    private static function obtainTokens(KernelBrowser $client, User $user, string $clientId = self::CLIENT_ID, ?string $clientSecret = self::CLIENT_SECRET): array
     {
         $client->loginUser($user);
-        $crawler = $client->request('GET', '/authorize', self::authorizeQuery());
+        $crawler = $client->request('GET', '/authorize', self::authorizeQuery($clientId));
         self::assertResponseIsSuccessful();
 
         $client->submit($crawler->selectButton('Allow')->form());
@@ -66,12 +66,11 @@ trait UsesOAuthToken
 
         $client->request('POST', '/token', [
             'grant_type' => 'authorization_code',
-            'client_id' => self::CLIENT_ID,
-            'client_secret' => self::CLIENT_SECRET,
+            'client_id' => $clientId,
             'redirect_uri' => self::REDIRECT_URI,
             'code' => $redirect['code'],
             'code_verifier' => self::VERIFIER,
-        ]);
+        ] + (null === $clientSecret ? [] : ['client_secret' => $clientSecret]));
         self::assertResponseIsSuccessful();
 
         /** @var array{access_token: string, refresh_token: string} $tokens */

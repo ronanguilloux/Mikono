@@ -1,0 +1,64 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}What an assistant can read — UCESCO Volunteer Manager{% endblock %}
+
+{% block stylesheets %}
+    {{ include('datamap/_map_styles.html.twig') }}
+    <style>
+        .field-map .ent.tone-sensitive rect { fill: var(--warn-soft); stroke: var(--warn); }
+        .field-map .ent.tone-personal rect { fill: var(--brand-soft); stroke: var(--brand); }
+        .field-map .ent.sel rect { stroke-width: 4; }
+        .field-map .diagram svg { min-width: 680px; }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-3xl space-y-6">
+        <a href="{{ path('connect_ai_index') }}" class="inline-block text-sm text-slate-600 hover:underline">← Connect an AI</a>
+
+        <h1 class="text-xl font-semibold">What an assistant can read</h1>
+
+        <section class="field-map space-y-4" data-readable-map data-controller="field-map"
+                 data-action="click->field-map#pick keydown->field-map#press">
+            <p class="text-sm text-slate-600">
+                    Each box is a list Mikono keeps, with the fields an assistant can read in it. On a computer, click a box to see them. This page is built
+                    from the same rules the connection uses, so it can't fall out of date.
+            </p>
+
+            {% set tones = {} %}
+            {% for id, box in boxes %}{% set tones = tones|merge({(id): 'tone-' ~ box.tone}) %}{% endfor %}
+            {{ include('datamap/_map.html.twig', {tones: tones, legend: false}) }}
+
+            <p class="text-xs text-slate-600">
+                Amber: includes sensitive data. Blue: about a person. White: about UCESCO's work.
+                Free-text fields such as notes can hold anything staff typed.
+            </p>
+
+            {% for id, box in boxes %}
+                <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm" data-field-map-target="panel" data-id="{{ id }}" aria-live="polite">
+                    <h3 class="font-semibold">{{ box.name }}</h3>
+                    <ul class="mt-2 flex flex-wrap gap-1.5 text-xs">
+                        {% for field in box.fields|filter(field => field.key != 'id') %}
+                            <li class="rounded-full px-2 py-0.5 {{ field.sensitive ? 'bg-amber-100 font-medium text-amber-900' : 'bg-slate-100 text-slate-700' }}">
+                                {{ field.label }}{% if field.sensitive %} (sensitive){% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% if box.hidden is not empty %}
+                        <p class="mt-2 text-xs text-slate-500">Not readable: {{ box.hidden|join(', ') }}.</p>
+                    {% endif %}
+                </article>
+            {% endfor %}
+
+            <div class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+                <h3 class="font-semibold">Reports</h3>
+                <p class="mt-1">An assistant can also read the figures on Mikono's report screens and home page, with names and links, from the same records.</p>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm" data-never-readable>
+                <h3 class="font-semibold">Never readable</h3>
+                <p class="mt-1">{{ neverReadable|join(', ') }}. And an assistant can never change anything.</p>
+            </div>
+        </section>
+    </div>
+{% endblock %}

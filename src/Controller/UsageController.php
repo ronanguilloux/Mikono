@@ -241,7 +241,7 @@ final class UsageController extends AbstractController
                     'cells' => [
                         'occurredAt' => $access->getOccurredAt()->format('j M, H:i'),
                         'account' => $access->getIdentifier(),
-                        'via' => $access->isViaMcp() ? 'Claude (MCP)' : 'API',
+                        'via' => $access->isViaMcp() ? 'AI assistant (MCP)' : 'API',
                         'path' => $access->getPath(),
                     ],
                 ],

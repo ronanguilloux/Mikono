@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Entity\Activity;
+use App\Entity\ApiAccess;
 use App\Entity\LoginAttempt;
 use App\Entity\Volunteer;
 use App\Factory\ActivityFactory;
@@ -19,6 +20,30 @@ use Zenstruck\Foundry\Attribute\ResetDatabase;
 final class UserControllerTest extends WebTestCase
 {
     use ReadsListExports;
+
+    #[Test]
+    public function theUserPageListsThatAccountsMcpReadsOnly(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+        $reader = UserFactory::createOne(['email' => 'reader@example.org']);
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new ApiAccess('READER@example.org', '/api/volunteers/7', true));
+        $entityManager->persist(new ApiAccess('reader@example.org', '/api/reports/metrics', true));
+        $entityManager->persist(new ApiAccess('reader@example.org', '/api/skills', false));
+        $entityManager->persist(new ApiAccess('other@example.org', '/api/stays/1', true));
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', "/users/{$reader->getId()}");
+
+        self::assertSelectorTextContains('[data-mcp-reads]', '2 reads in the last 90 days');
+        $text = $crawler->filter('[data-mcp-reads] tbody')->text();
+        self::assertStringContainsString('volunteers/7', $text);
+        self::assertStringContainsString('reports/metrics', $text);
+        self::assertStringNotContainsString('skills', $text);
+        self::assertStringNotContainsString('stays/1', $text);
+        self::assertSelectorExists('[data-mcp-reads] a[href="/volunteers/7"]');
+    }
 
     #[Test]
     public function onlyAnAdminCanExportTheUsers(): void

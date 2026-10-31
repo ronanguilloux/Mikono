@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Api\ApiDataMap;
 use App\Entity\ApiAccess;
 use App\Factory\AchievementFactory;
 use App\Factory\ActivityFactory;
@@ -33,6 +34,23 @@ final class ApiResourceTest extends WebTestCase
 
     private const string PASSPORT_NUMBER = 'AB1234567';
 
+    private const array RESOURCE_BOXES = [
+        'volunteers' => 'Volunteer',
+        'stays' => 'Stay',
+        'activities' => 'Activity',
+        'achievements' => 'Achievement',
+        'users' => 'User',
+        'escorts' => 'Escort',
+        'branches' => 'Branch',
+        'projects' => 'Project',
+        'programs' => 'Program',
+        'activity_types' => 'Activity type',
+        'skills' => 'Skill',
+        'sources' => 'Source',
+        'beneficiary_groups' => 'Beneficiary group',
+        'indicators' => 'Indicator',
+    ];
+
     #[Test]
     public function everyResourceAndReportAnswersAndNothingSecretLeaves(): void
     {
@@ -56,6 +74,24 @@ final class ApiResourceTest extends WebTestCase
         // Field names, not values: a key appearing at all is the failure.
         foreach (['"passportNumber"', 'iphertext', '"password"', '"bytes"', 'oauth2'] as $forbidden) {
             self::assertStringNotContainsString($forbidden, $seen);
+        }
+    }
+
+    #[Test]
+    public function theConnectAiMapListsEveryFieldTheApiReturns(): void
+    {
+        [$client, $token] = self::connected();
+        $ids = self::seedOneOfEach();
+        $map = array_column(self::getContainer()->get(ApiDataMap::class)->boxes(), 'fields', 'name');
+
+        foreach (self::RESOURCE_BOXES as $resource => $name) {
+            $client->request('GET', \sprintf('/api/%s/%d', $resource, $ids[$resource]), server: self::bearer($token));
+            self::assertResponseIsSuccessful($resource);
+            /** @var array<string, mixed> $record */
+            $record = json_decode((string) $client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+
+            $returned = array_filter(array_keys($record), static fn(string $key): bool => !str_starts_with($key, '@'));
+            self::assertSame([], array_values(array_diff($returned, array_column($map[$name], 'key'))), $resource . ' returns a field /connect-ai does not show.');
         }
     }
 

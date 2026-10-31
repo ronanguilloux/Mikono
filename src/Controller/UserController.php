@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\ApiAccess;
 use App\Entity\User;
 use App\Export\ListExport;
 use App\Form\UserFormType;
+use App\Mcp\MikonoTools;
 use App\Pagination\ListPaginator;
+use App\Repository\ApiAccessRepository;
 use App\Repository\UserRepository;
+use App\Security\ApiAccessRecorder;
 use App\Usage\UserTimeline;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -24,6 +28,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 final class UserController extends AbstractController
 {
+    private const int MCP_READS_SHOWN = 20;
+
     /**
      * Column key => DQL field(s) for the index's sortable headers; the map is
      * the whitelist. Role is absent on purpose — it's derived from the `roles`
@@ -52,6 +58,7 @@ final class UserController extends AbstractController
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ListPaginator $paginator,
         private readonly UserTimeline $timeline,
+        private readonly ApiAccessRepository $apiAccesses,
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -141,6 +148,17 @@ final class UserController extends AbstractController
         return $this->render('user/new.html.twig', ['form' => $form]);
     }
 
+    /** @return array{cells: array{at: string, read: string}, links: array<string, string>} */
+    private function mcpReadRow(ApiAccess $access): array
+    {
+        $isRecord = 1 === preg_match('#^/api/([a-z_]+)/(\d+)#', $access->getPath(), $match) && isset(MikonoTools::SCREENS[$match[1]]);
+
+        return [
+            'cells' => ['at' => $access->getOccurredAt()->format('j M Y, H:i'), 'read' => substr($access->getPath(), 5)],
+            'links' => $isRecord ? ['read' => $this->generateUrl(MikonoTools::SCREENS[$match[1]], ['id' => (int) $match[2]])] : [],
+        ];
+    }
+
     #[Route('/{id}', name: 'show', methods: ['GET'])]
     public function show(User $user): Response
     {
@@ -157,6 +175,14 @@ final class UserController extends AbstractController
         );
 
         return $this->render('user/show.html.twig', [
+            'mcpReadCount' => $this->apiAccesses->countMcpReadsBy($user->getEmail()),
+            'mcpReadLimit' => self::MCP_READS_SHOWN,
+            'mcpReadColumns' => [
+                ['key' => 'at', 'label' => 'When'],
+                ['key' => 'read', 'label' => 'Read'],
+            ],
+            'mcpReadRows' => array_map($this->mcpReadRow(...), $this->apiAccesses->findMcpReadsBy($user->getEmail(), self::MCP_READS_SHOWN)),
+            'mcpRetentionDays' => ApiAccessRecorder::RETENTION_DAYS,
             'user_account' => $user,
             'activityCount' => $this->users->countReferencingActivities($user),
             'columns' => [

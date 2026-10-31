@@ -300,44 +300,28 @@ signs in again, and nothing is lost. `DEFAULT_URI` must be the public
 address, because discovery builds the MCP URL from it, and a mismatch with
 the URL entered in Claude stops sign-in.
 
-**Connecting Claude** is once per server, after the deploy, as `deploy`.
-Create the one OAuth client and keep the secret it prints with the
-password manager's other production secrets:
+**Connecting Claude** takes nothing on the server. A migration seeds the one
+OAuth client, a public one with no secret, so any admin connects alone from
+**Admin → Connect an AI**, which holds the steps. The server must be reachable
+over public HTTPS from Anthropic's `160.79.104.0/21`.
 
-```bash
-cd /opt/mikono
-SECRET=$(openssl rand -hex 32)
-docker compose -f compose.yaml -f compose.prod.yaml --env-file deploy.env exec php \
-  bin/console league:oauth2-server:create-client "Claude" claude "$SECRET" \
-  --redirect-uri=https://claude.ai/api/mcp/auth_callback \
-  --redirect-uri=http://localhost:8765/callback \
-  --grant-type=authorization_code --grant-type=refresh_token --scope=read
-echo "$SECRET"
-```
-
-Then, with an **admin** account:
-
-- **claude.ai, Desktop and mobile:** Customize → Connectors → Add custom
-  connector, URL `https://<host>/mcp`, OAuth client **Use your own OAuth
-  client**, client ID `claude` and the secret. Connectors are shared across
-  the three. The server must be reachable over public HTTPS from Anthropic's
-  `160.79.104.0/21`.
-- **Claude Code:**
-  `claude mcp add --transport http --client-id claude --client-secret --callback-port 8765 mikono https://<host>/mcp`.
-
-The admin signs in and answers the consent screen. To cut a connection off,
-deactivate the account or remove `ROLE_ADMIN`: either takes effect on the
-next call. `/usage` shows what each account read.
+To cut a connection off, the admin clicks **Disconnect** on that page.
+Deactivating the account or removing `ROLE_ADMIN` works too, and takes effect
+on the next call. `/usage` shows what each account read.
 
 **Expired OAuth rows** keep a staff email until something removes them, and
-ADR 0034 rule 6 requires a time limit, so add this to `deploy`'s crontab the
-same idempotent way as the backup entry in §7:
+ADR 0034 rule 6 requires a time limit, so `deploy`'s crontab runs
+`app:oauth:prune`. **Never schedule the bundle's
+`league:oauth2-server:clear-expired-tokens`:** it cuts the link from a refresh
+token to its user, after which Disconnect can't reach that token
+([ADR 0050](../adr/0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md)).
+Install it the same idempotent way as the backup entry in §7:
 
 ```bash
-crontab -l 2>/dev/null | grep -v clear-expired-tokens > /tmp/mikono.cron
+crontab -l 2>/dev/null | grep -v -e clear-expired-tokens -e app:oauth:prune -e 'deleting expired OAuth tokens' > /tmp/mikono.cron
 cat >> /tmp/mikono.cron <<'CRON'
 # Daily at 03:15 Africa/Nairobi, deleting expired OAuth tokens (ADR 0034 rule 6)
-15 3 * * * cd /opt/mikono && docker compose --env-file deploy.env -f compose.yaml -f compose.prod.yaml exec -T php bin/console league:oauth2-server:clear-expired-tokens
+15 3 * * * cd /opt/mikono && docker compose --env-file deploy.env -f compose.yaml -f compose.prod.yaml exec -T php bin/console app:oauth:prune
 CRON
 crontab /tmp/mikono.cron && rm /tmp/mikono.cron && crontab -l
 ```

@@ -61,6 +61,7 @@ Features not yet decided:
 - [Offline field capture and sync](backlog/offline-field-capture.md) — **D**
 - [An "Ask UCESCO Africa" AI assistant](backlog/ask-ucesco-ai-assistant.md) — **D**
 - [Write access through the API and MCP](backlog/api-write-access.md) — **D**
+- [Connect ChatGPT or Gemini](backlog/connect-other-ai-vendors.md) — **D**
 - [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **D**
 
 Deferred behind a trigger — each card names the event that wakes it:

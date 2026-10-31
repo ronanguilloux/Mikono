@@ -29,7 +29,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 final readonly class MikonoTools
 {
     /** API collection => the screen a person opens to check a record. */
-    private const array SCREENS = [
+    public const array SCREENS = [
         'volunteers' => 'volunteer_show',
         'stays' => 'stay_show',
         'activities' => 'activity_edit',

@@ -1,4 +1,4 @@
-.PHONY: help up down db_update oauth_keys quality cs-fix rector test e2e-test deploy backup fixtures
+.PHONY: help up down db_update oauth_keys data_map_snapshot quality cs-fix rector test e2e-test deploy backup fixtures
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -19,6 +19,9 @@ oauth_keys: ## Generate local OAuth keys into the gitignored .env.dev.local
 	  echo "OAUTH_PUBLIC_KEY=$$(openssl rsa -in .oauth.pem -pubout 2>/dev/null | base64 | tr -d '\n')"; \
 	  echo "OAUTH_ENCRYPTION_KEY=$$(openssl rand -base64 32)"; } > .env.tmp.local
 	@mv .env.tmp.local .env.dev.local && rm -f .oauth.pem
+
+data_map_snapshot: ## After reviewing /datamap, accept a change to the data structure
+	docker compose exec -e UPDATE_DATA_MAP_SNAPSHOT=1 php php bin/phpunit tests/Integration/Docs/DataMapCoverageTest.php
 
 quality: ## Run code quality checks (PHPStan, PHPat, code style, security audit)
 	docker compose exec php composer quality

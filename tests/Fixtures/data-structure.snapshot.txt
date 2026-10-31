@@ -1,0 +1,18 @@
+Achievement: achievedOn, createdAt, description, id, quantity, title, updatedAt | createdBy, indicator, project, stay, updatedBy
+Activity: createdAt, date, duration, durationOther, id, notes, updatedAt | activityType, escorts, loggedBy, program, stay, updatedBy, volunteer
+ActivityType: description, id, name | 
+ApiAccess: id, identifier, occurredAt, path, viaMcp | 
+BeneficiaryGroup: description, id, name | 
+Branch: capacity, createdAt, id, isActive, name, physicalLocation, programFocus, projectZones, updatedAt | 
+Escort: id, isActive, name | 
+Indicator: description, id, name | 
+LoginAttempt: id, identifier, ip, occurredAt, succeeded | 
+Program: beneficiariesReached, createdAt, endDate, id, name, startDate, suggestedRoles, updatedAt, volunteersNeeded | activityTypes, beneficiaryGroups, createdBy, project, skills, updatedBy
+Project: createdAt, description, id, isActive, name, ownership, partnerOrganizationName, updatedAt | branch, createdBy, updatedBy
+Skill: description, id, name | 
+Source: description, id, name | 
+Stay: createdAt, endDate, id, startDate, updatedAt | achievements, branch, createdBy, updatedBy, volunteer
+UsageEvent: id, name, occurredAt | 
+User: createdAt, email, fullName, id, isActive, password, roles, updatedAt | 
+Volunteer: accommodationAddress, accommodationPreference, countryOfResidence, createdAt, dateOfBirth, driveFolderUrl, education, email, emergencyContacts, employer, experienceWithChildren, facebook, favouriteFood, firstName, freeTimeActivities, gender, hobbies, id, instagram, interests, lastName, legacyRecord, linkedin, motivation, nationality, notes, passportExpiresOn, passportNumberCiphertext, phone, pickupAirport, profession, skillsDescription, supervisor, tiktok, twitter, updatedAt | createdBy, photo, skills, sources, stays, updatedBy
+VolunteerPhoto: bytes, id, updatedAt | 

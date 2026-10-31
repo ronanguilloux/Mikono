@@ -30,14 +30,16 @@ processor contract (s.42(2)).
 - UCESCO's written authorisation is filed, and its date and signatory are
   recorded in ADR 0034.
 - The Anthropic plan and terms in use are named there, with a data processing
-  agreement in place. Consumer and commercial plans have different terms, so
-  check which applies to the account that connects.
+  agreement in place. Consumer and commercial plans have different terms, and
+  any admin can now connect, each through their own Claude account, so check
+  which applies to each account. A single UCESCO organisation account would
+  reduce this to one set of terms.
 - UCESCO's consents cover processing outside Kenya for emergency contacts and
   gender (s.49(1)), and UCESCO can produce them.
 
 ## Notes & links
 
-- Connecting and revoking: `deployment-plan.md` §4.
+- Connecting and revoking: Admin → Connect an AI.
 - A real consent record:
   [volunteer-privacy-notice-and-consent](volunteer-privacy-notice-and-consent.md).
 - [ADR 0050](../../adr/0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md).
