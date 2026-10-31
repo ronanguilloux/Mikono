@@ -6,6 +6,14 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-31 — ChatGPT connect page follows the real flow
+
+Rewrote the `/connect-ai/chatgpt` steps after connecting a Free account
+for real: the Add menu, Advanced OAuth settings staying greyed out until
+the URL is read, the expected DCR and CIMD notes, the panel opening beside
+the form, and the Connect Mikono click that can close without opening
+Mikono (retry from the plugin's page, don't re-add the server).
+
 ## 2026-10-31 — Read-only API and MCP server
 
 Decision and detail in

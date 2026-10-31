@@ -18,9 +18,10 @@
             <h2 id="account-heading" class="font-semibold">A Free or personal ChatGPT account has consumer terms</h2>
             <p class="mt-1">
                 Volunteers' data will fall under the terms of the ChatGPT account you connect, and OpenAI receives it
-                outside Kenya. Use a UCESCO work account if there is one. On a Free or personal account, first open
-                <strong>Settings</strong>, then <strong>Data controls</strong>, and turn off
-                <strong>Improve the model for everyone</strong>, so your chats aren't used for training.
+                outside Kenya. Use a UCESCO work account if there is one. On a Free or personal account, before
+                anything else open <a href="https://chatgpt.com/settings/data-controls" target="_blank" rel="noopener" class="font-medium underline">Data controls</a>
+                in ChatGPT's settings and turn off <strong>Improve the model for everyone</strong>. It's on by default,
+                and while it's on, what ChatGPT reads from Mikono may be used for training.
             </p>
         </section>
 
@@ -33,20 +34,33 @@
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="steps-heading">
             <h2 id="steps-heading" class="font-semibold">Steps</h2>
             <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
-                <li>Open <strong>chatgpt.com/plugins</strong> and choose <strong>Add custom MCP server</strong>.</li>
-                <li>Name it <strong>Mikono</strong>, keep <strong>Server URL</strong> selected, and paste the <strong>Server URL</strong>.</li>
-                <li>Keep <strong>Authentication</strong> on <strong>OAuth</strong>, and open <strong>Advanced OAuth settings</strong>.</li>
-                <li>Set <strong>Registration method</strong> to <strong>User-Defined OAuth Client</strong>, and paste the <strong>OAuth client ID</strong>.</li>
-                <li><strong>Leave the client secret empty</strong>, keep <strong>Token endpoint auth method</strong> on <strong>none</strong>, and keep the <strong>read</strong> scope ticked.</li>
-                <li>Go back, tick <strong>I understand and want to continue</strong>, and create it.</li>
-                <li>Mikono opens. Sign in if asked, read the screen, and click <strong>Allow</strong>.</li>
+                <li>Open <a href="https://chatgpt.com/plugins" target="_blank" rel="noopener" class="text-brand-700 hover:underline">chatgpt.com/plugins</a>, click <strong>Add</strong> at the top right, and choose <strong>Add custom MCP server</strong>.</li>
+                <li>Name it <strong>Mikono</strong>, leave the description and icon empty, keep <strong>Server URL</strong> selected, and paste the <strong>Server URL</strong>.</li>
+                <li>Keep <strong>Authentication</strong> on <strong>OAuth</strong>. Wait a few seconds: <strong>Advanced OAuth settings</strong> stays greyed out until ChatGPT has read the URL. Then open it. A second panel appears beside the form.</li>
+                <li>Check that <strong>Registration method</strong> says <strong>User-Defined OAuth Client</strong>, and paste the <strong>OAuth client ID</strong>. The red notes saying DCR and CIMD are unavailable are expected.</li>
+                <li><strong>Leave the client secret empty</strong>, keep <strong>Token endpoint auth method</strong> on <strong>none</strong>, and keep the <strong>read</strong> scope ticked. Scroll down inside the panel to see them.</li>
+                <li>Scroll down the form on the left, tick <strong>I understand and want to continue</strong>, and click <strong>Create as a plugin</strong>. This takes about ten seconds.</li>
+                <li>When ChatGPT asks, click <strong>Connect Mikono</strong>.</li>
+                <li>Mikono opens. Sign in if asked, read the screen, and click <strong>Allow</strong>. You land back in ChatGPT.</li>
             </ol>
+            <p class="mt-3 text-sm text-slate-600">
+                <strong>Check it worked:</strong> the
+                <a href="{{ path('connect_ai_index') }}" class="text-brand-700 hover:underline">Connect an AI Agent</a>
+                page should say your account is connected.
+            </p>
+            <p class="mt-2 text-sm text-slate-600">
+                <strong>If Mikono didn't open:</strong> the first <strong>Connect Mikono</strong> click can close the
+                dialog without going anywhere, even though the plugin was created. Don't add the server again. On
+                chatgpt.com/plugins, click the new icon under <strong>Installed</strong>, click <strong>Connect</strong>
+                next to Mikono, then <strong>Connect Mikono</strong> again.
+            </p>
         </section>
 
         <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="try-heading">
             <h2 id="try-heading" class="font-semibold">Try it</h2>
             <p class="mt-1 text-sm text-slate-600">
-                Ask ChatGPT: <em>"How many volunteers are present right now, and at which branches?"</em>
+                On the Mikono plugin page, click <strong>Try in chat</strong>, then ask:
+                <em>"How many volunteers are present right now, and at which branches?"</em>
                 Check an answer by following its links back to Mikono: ChatGPT can be wrong. Your reads then appear on
                 the <a href="{{ path('usage_index') }}" class="text-brand-700 hover:underline">Usage</a> page.
             </p>
