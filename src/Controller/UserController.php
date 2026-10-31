@@ -148,13 +148,13 @@ final class UserController extends AbstractController
         return $this->render('user/new.html.twig', ['form' => $form]);
     }
 
-    /** @return array{cells: array{at: string, read: string}, links: array<string, string>} */
+    /** @return array{cells: array{at: string, assistant: string, read: string}, links: array<string, string>} */
     private function mcpReadRow(ApiAccess $access): array
     {
         $isRecord = 1 === preg_match('#^/api/([a-z_]+)/(\d+)#', $access->getPath(), $match) && isset(MikonoTools::SCREENS[$match[1]]);
 
         return [
-            'cells' => ['at' => $access->getOccurredAt()->format('j M Y, H:i'), 'read' => substr($access->getPath(), 5)],
+            'cells' => ['at' => $access->getOccurredAt()->format('j M Y, H:i'), 'assistant' => $access->getAssistant(), 'read' => substr($access->getPath(), 5)],
             'links' => $isRecord ? ['read' => $this->generateUrl(MikonoTools::SCREENS[$match[1]], ['id' => (int) $match[2]])] : [],
         ];
     }
@@ -179,6 +179,7 @@ final class UserController extends AbstractController
             'mcpReadLimit' => self::MCP_READS_SHOWN,
             'mcpReadColumns' => [
                 ['key' => 'at', 'label' => 'When'],
+                ['key' => 'assistant', 'label' => 'Assistant'],
                 ['key' => 'read', 'label' => 'Read'],
             ],
             'mcpReadRows' => array_map($this->mcpReadRow(...), $this->apiAccesses->findMcpReadsBy($user->getEmail(), self::MCP_READS_SHOWN)),

@@ -1,33 +1,69 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}ChatGPT — UCESCO Volunteer Manager{% endblock %}
+{% block title %}Connect ChatGPT — UCESCO Volunteer Manager{% endblock %}
 
 {% block body %}
     <div class="mx-auto max-w-3xl space-y-6">
         <a href="{{ path('connect_ai_index') }}" class="inline-block text-sm text-slate-600 hover:underline">← Connect an AI Agent</a>
 
         <div>
-            <h1 class="text-xl font-semibold">ChatGPT</h1>
-            <p class="mt-1 text-sm text-slate-600"><twig:Pill tone="neutral">Not available yet</twig:Pill></p>
+            <h1 class="text-xl font-semibold">Connect ChatGPT</h1>
+            <p class="mt-1 text-sm text-slate-600">
+                Takes about three minutes, in ChatGPT in a browser. You won't need a password or secret from anyone:
+                you sign in with your own Mikono account.
+            </p>
         </div>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="why-heading">
-            <h2 id="why-heading" class="font-semibold">Why it isn't available</h2>
-            <ul class="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-700">
-                <li>
-                    <strong>UCESCO agreed to Claude, not to OpenAI.</strong> Each company that receives volunteers'
-                    data has to be agreed separately, with its own terms and data protection basis.
-                </li>
-                <li>
-                    <strong>It needs a paid workspace.</strong> Connecting a custom server to ChatGPT takes a Business or
-                    Enterprise workspace, with developer mode turned on by its admin.
-                </li>
-                <li>
-                    <strong>Mikono would need changes.</strong> ChatGPT signs in differently from Claude, so it can't
-                    connect today, even if you try.
-                </li>
-            </ul>
-            <p class="mt-3 text-sm text-slate-600">If UCESCO wants this, ask whoever maintains Mikono.</p>
+        <section class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900" aria-labelledby="account-heading">
+            <h2 id="account-heading" class="font-semibold">A Free or personal ChatGPT account has consumer terms</h2>
+            <p class="mt-1">
+                Volunteers' data will fall under the terms of the ChatGPT account you connect, and OpenAI receives it
+                outside Kenya. Use a UCESCO work account if there is one. On a Free or personal account, first open
+                <strong>Settings</strong>, then <strong>Data controls</strong>, and turn off
+                <strong>Improve the model for everyone</strong>, so your chats aren't used for training.
+            </p>
+        </section>
+
+        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="values-heading">
+            <h2 id="values-heading" class="font-semibold">The two things to paste</h2>
+            {{ include('connect_ai/_copy_field.html.twig', {id: 'mcp-url', label: 'Server URL', value: mcpUrl}) }}
+            {{ include('connect_ai/_copy_field.html.twig', {id: 'client-id', label: 'OAuth client ID', value: clientId}) }}
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="steps-heading">
+            <h2 id="steps-heading" class="font-semibold">Steps</h2>
+            <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+                <li>Open <strong>chatgpt.com/plugins</strong> and choose <strong>Add custom MCP server</strong>.</li>
+                <li>Name it <strong>Mikono</strong>, keep <strong>Server URL</strong> selected, and paste the <strong>Server URL</strong>.</li>
+                <li>Keep <strong>Authentication</strong> on <strong>OAuth</strong>, and open <strong>Advanced OAuth settings</strong>.</li>
+                <li>Set <strong>Registration method</strong> to <strong>User-Defined OAuth Client</strong>, and paste the <strong>OAuth client ID</strong>.</li>
+                <li><strong>Leave the client secret empty</strong>, keep <strong>Token endpoint auth method</strong> on <strong>none</strong>, and keep the <strong>read</strong> scope ticked.</li>
+                <li>Go back, tick <strong>I understand and want to continue</strong>, and create it.</li>
+                <li>Mikono opens. Sign in if asked, read the screen, and click <strong>Allow</strong>.</li>
+            </ol>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="try-heading">
+            <h2 id="try-heading" class="font-semibold">Try it</h2>
+            <p class="mt-1 text-sm text-slate-600">
+                Ask ChatGPT: <em>"How many volunteers are present right now, and at which branches?"</em>
+                Check an answer by following its links back to Mikono: ChatGPT can be wrong. Your reads then appear on
+                the <a href="{{ path('usage_index') }}" class="text-brand-700 hover:underline">Usage</a> page.
+            </p>
+            <p class="mt-2 text-sm text-slate-600">
+                Mikono doesn't record hours, children supported, contact history or deadlines. If ChatGPT gives a figure
+                for one of those, treat it as a guess.
+            </p>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="stop-heading">
+            <h2 id="stop-heading" class="font-semibold">To stop</h2>
+            <p class="mt-1 text-sm text-slate-600">
+                Click <strong>Disconnect</strong> on the <a href="{{ path('connect_ai_index') }}" class="text-brand-700 hover:underline">Connect an AI Agent</a>
+                page. It ends every assistant connected to your account, so reconnect any you still want. Do this
+                straight away if you lose a device signed in to ChatGPT. Losing the admin role, or having your account
+                deactivated, cuts the connection too.
+            </p>
         </section>
     </div>
 {% endblock %}

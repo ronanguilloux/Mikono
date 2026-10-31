@@ -30,6 +30,7 @@ hostname is the one that isn't ours to solve.
 5. [UCESCO's data-protection paperwork under the Kenya DPA](backlog/dpa-governance-for-ucesco.md) — **B**
 6. [A privacy notice and a consent record for volunteers](backlog/volunteer-privacy-notice-and-consent.md) — **G**
 7. [File UCESCO's authority and Anthropic's terms for the Claude connection](backlog/claude-connection-paperwork.md) — **B**
+8. [File UCESCO's authority and OpenAI's terms for the ChatGPT connection](backlog/chatgpt-connection-paperwork.md) — **B**
 
 ## Next
 
@@ -61,7 +62,7 @@ Features not yet decided:
 - [Offline field capture and sync](backlog/offline-field-capture.md) — **D**
 - [An "Ask UCESCO Africa" AI assistant](backlog/ask-ucesco-ai-assistant.md) — **D**
 - [Write access through the API and MCP](backlog/api-write-access.md) — **D**
-- [Connect ChatGPT or Gemini](backlog/connect-other-ai-vendors.md) — **D**
+- [Connect Gemini](backlog/connect-other-ai-vendors.md) — **D**
 - [Automated outbound reminders](backlog/automated-outbound-reminders.md) — **D**
 
 Deferred behind a trigger — each card names the event that wakes it:

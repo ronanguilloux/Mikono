@@ -9,7 +9,7 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 
 /**
- * Points a 401 at the discovery document. Claude starts sign-in from this
+ * Points a 401 at the discovery document. An assistant starts sign-in from this
  * header and from nothing else, see ADR 0050.
  */
 final readonly class OAuthChallengeListener

@@ -20,7 +20,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * An access token outlives its hour here for as long as a refresh token points
  * at it. That link is the only way from a refresh token back to its user, and
  * the bundle's command cuts it: revoking a user would then miss the refresh
- * token, so Claude could quietly sign itself back in after a Disconnect.
+ * token, so an assistant could quietly sign itself back in after a Disconnect.
  */
 #[AsCommand(name: 'app:oauth:prune', description: 'Delete expired OAuth tokens, keeping those a refresh token still needs')]
 final class PruneOAuthTokensCommand extends Command

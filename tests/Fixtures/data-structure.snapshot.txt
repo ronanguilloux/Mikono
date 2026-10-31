@@ -1,7 +1,7 @@
 Achievement: achievedOn, createdAt, description, id, quantity, title, updatedAt | createdBy, indicator, project, stay, updatedBy
 Activity: createdAt, date, duration, durationOther, id, notes, updatedAt | activityType, escorts, loggedBy, program, stay, updatedBy, volunteer
 ActivityType: description, id, name | 
-ApiAccess: id, identifier, occurredAt, path, viaMcp | 
+ApiAccess: client, id, identifier, occurredAt, path, viaMcp | 
 BeneficiaryGroup: description, id, name | 
 Branch: capacity, createdAt, id, isActive, name, physicalLocation, programFocus, projectZones, updatedAt | 
 Escort: id, isActive, name | 

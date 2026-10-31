@@ -16,6 +16,8 @@ final class OAuthFlowTest extends WebTestCase
 {
     use UsesOAuthToken;
 
+    private const string CHATGPT_REDIRECT = 'https://chatgpt.com/connector_platform_oauth_redirect';
+
     #[Test]
     public function aSignedInAdminCanConnectAndReadThenRefresh(): void
     {
@@ -61,6 +63,50 @@ final class OAuthFlowTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $client->request('POST', '/token', ['grant_type' => 'refresh_token', 'client_id' => 'claude', 'refresh_token' => $tokens['refresh_token']]);
         self::assertResponseStatusCodeSame(400);
+    }
+
+    #[Test]
+    public function theChatGptClientConnectsOnItsStableRedirectAndIsNamedInTheAudit(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+        $query = ['client_id' => 'chatgpt', 'redirect_uri' => self::CHATGPT_REDIRECT, 'resource' => 'https://localhost/mcp'] + self::authorizeQuery();
+
+        $crawler = $client->request('GET', '/authorize', $query);
+        self::assertSelectorTextContains('form', 'chatgpt.com');
+        $client->submit($crawler->selectButton('Allow')->form());
+
+        parse_str((string) parse_url((string) $client->getResponse()->headers->get('Location'), \PHP_URL_QUERY), $redirect);
+        self::assertSame('https://localhost', $redirect['iss']);
+
+        $client->request('POST', '/token', [
+            'grant_type' => 'authorization_code',
+            'client_id' => 'chatgpt',
+            'redirect_uri' => self::CHATGPT_REDIRECT,
+            'code' => $redirect['code'],
+            'code_verifier' => self::VERIFIER,
+            'resource' => 'https://localhost/mcp',
+        ]);
+        self::assertResponseIsSuccessful();
+        /** @var array{access_token: string} $tokens */
+        $tokens = json_decode((string) $client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+
+        $client->request('GET', '/api/skills', server: self::bearer($tokens['access_token']));
+        self::assertResponseIsSuccessful();
+        self::assertSame('chatgpt', self::getContainer()->get(Connection::class)->fetchOne('SELECT client FROM api_access'));
+    }
+
+    #[Test]
+    public function aRefusedAuthorizationNamesTheIssuerToo(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::createOne(['roles' => ['ROLE_USER']]));
+
+        $client->request('GET', '/authorize', self::authorizeQuery('claude'));
+
+        $location = (string) $client->getResponse()->headers->get('Location');
+        self::assertStringContainsString('error=access_denied', $location);
+        self::assertStringContainsString('iss=https%3A%2F%2Flocalhost', $location);
     }
 
     #[Test]
@@ -160,6 +206,7 @@ final class OAuthFlowTest extends WebTestCase
         $client->request('GET', '/authorize', self::authorizeQuery());
 
         self::assertResponseRedirects('/login');
+        self::assertStringNotContainsString('iss=', (string) $client->getResponse()->headers->get('Location'));
     }
 
     #[Test]
@@ -270,5 +317,6 @@ final class OAuthFlowTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('"S256"', (string) $client->getResponse()->getContent());
         self::assertStringContainsString('"none"', (string) $client->getResponse()->getContent());
+        self::assertStringContainsString('"authorization_response_iss_parameter_supported":true', (string) $client->getResponse()->getContent());
     }
 }

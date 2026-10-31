@@ -1,5 +1,5 @@
 ---
-title: Connect ChatGPT or Gemini
+title: Connect Gemini
 created: 2026-10-31
 source: ronan
 status: needs-decision
@@ -10,8 +10,8 @@ labels: [security, data]
 
 ## Why
 
-Admin → Connect an AI Agent has pages for ChatGPT and Gemini saying why they aren't
-available. UCESCO asked for Claude. Each other vendor is a new company receiving
+Admin → Connect an AI Agent has a page for Gemini saying why it isn't
+available. Each other vendor is a new company receiving
 volunteers' data.
 
 ## Done when
@@ -24,18 +24,10 @@ steps, and `app:oauth:prune` and Disconnect are checked against it.
 
 ## Notes & links
 
-- **ChatGPT:** custom MCP needs a Business or Enterprise workspace with developer
-  mode, S256 PKCE, and CIMD or Dynamic Client Registration. It sends a `resource`
-  parameter and expects a matching token audience, and it takes no API keys:
-  <https://developers.openai.com/plugins/build/auth>.
 - **Gemini Enterprise:** takes a client ID and secret, with redirect
   `https://vertexaisearch.cloud.google.com/oauth-redirect`:
   <https://support.google.com/g/answer/17106276?hl=en>.
 - **Gemini app:** no official documentation found on 2026-10-31. Community reports
   mention DCR and eligibility limits. Check before relying on either.
-- `api_access` records that a read came through MCP, not which client made it,
-  so with a second vendor it needs the client id
-  (`OAuth2Token::getOAuthClientId()`) for `/usage` and the user page to name
-  the vendor. Every row from before that is Claude.
 - The bundle's client id column is 32 characters, so a CIMD URL doesn't fit
   without a custom client class.

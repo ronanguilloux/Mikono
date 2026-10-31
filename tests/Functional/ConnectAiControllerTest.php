@@ -70,6 +70,20 @@ final class ConnectAiControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function theChatGptPageGivesWhatToPasteAndWarnsAboutConsumerTerms(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+
+        $client->request('GET', '/connect-ai/chatgpt');
+
+        self::assertSelectorExists('input#mcp-url[value="https://localhost/mcp"]');
+        self::assertSelectorExists('input#client-id[value="chatgpt"]');
+        self::assertSelectorTextContains('main, body', 'Leave the client secret empty');
+        self::assertSelectorTextContains('#account-heading', 'Free');
+    }
+
+    #[Test]
     public function theMapShowsWhatIsReadableAndWhatNeverIs(): void
     {
         $client = static::createClient();

@@ -233,7 +233,7 @@ final class ApiResourceTest extends WebTestCase
     {
         [$client, $token] = self::connected();
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(new ApiAccess('old@example.invalid', '/api/skills', false, new \DateTimeImmutable('-91 days')));
+        $entityManager->persist(new ApiAccess('old@example.invalid', '/api/skills', false, 'claude', new \DateTimeImmutable('-91 days')));
         $entityManager->flush();
 
         $client->request('GET', '/api/skills', server: self::bearer($token));

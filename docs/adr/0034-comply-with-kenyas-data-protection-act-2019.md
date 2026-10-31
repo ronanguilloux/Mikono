@@ -348,6 +348,10 @@ activities, staff names and emails, and sensitive personal data including
 emergency contacts and gender. Free text such as notes and the legacy
 record can carry more of it. The passport number stays out.
 
+**OpenAI is also such a processor**, through the ChatGPT connection of
+[ADR 0051](0051-connect-chatgpt-through-a-seeded-public-oauth-client.md),
+which records an accepted, open exception to this rule.
+
 More than one admin may connect, each through their own Claude account, so
 the terms that apply can differ by account.
 

@@ -27,7 +27,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/connect-ai', name: 'connect_ai_')]
 final class ConnectAiController extends AbstractController
 {
-    private const string CLIENT_ID = 'claude';
+    private const string CLAUDE_CLIENT_ID = 'claude';
+    private const string CHATGPT_CLIENT_ID = 'chatgpt';
 
     public function __construct(
         #[Autowire(env: 'DEFAULT_URI')]
@@ -59,15 +60,18 @@ final class ConnectAiController extends AbstractController
     public function claude(): Response
     {
         return $this->render('connect_ai/claude.html.twig', [
-            'mcpUrl' => rtrim($this->baseUri, '/') . '/mcp',
-            'clientId' => self::CLIENT_ID,
+            'mcpUrl' => $this->mcpUrl(),
+            'clientId' => self::CLAUDE_CLIENT_ID,
         ]);
     }
 
     #[Route('/chatgpt', name: 'chatgpt', methods: ['GET'])]
     public function chatgpt(): Response
     {
-        return $this->render('connect_ai/chatgpt.html.twig');
+        return $this->render('connect_ai/chatgpt.html.twig', [
+            'mcpUrl' => $this->mcpUrl(),
+            'clientId' => self::CHATGPT_CLIENT_ID,
+        ]);
     }
 
     #[Route('/gemini', name: 'gemini', methods: ['GET'])]
@@ -85,8 +89,13 @@ final class ConnectAiController extends AbstractController
 
         // The signed-in admin's own tokens, and nobody else's.
         $this->revoker->revokeCredentialsForUser($user);
-        $this->addFlash('success', 'Disconnected. Claude will ask you to sign in again before it can read anything.');
+        $this->addFlash('success', 'Disconnected. Your assistant will ask you to sign in again before it can read anything.');
 
         return $this->redirectToRoute('connect_ai_index');
+    }
+
+    private function mcpUrl(): string
+    {
+        return rtrim($this->baseUri, '/') . '/mcp';
     }
 }

@@ -95,11 +95,13 @@ tokens.
 - **Authorization code and refresh grants only.** Client credentials are
   off, because every token must belong to a person, to check `ROLE_ADMIN`
   against and to attribute reads to.
-- **One seeded public client, `claude`, with PKCE required**, and no
-  dynamic registration or CIMD. A migration creates it, so no console is
-  needed. It has no secret and allows `S256` only. Its redirects are
-  exactly `https://claude.ai/api/mcp/auth_callback` and, for Claude Code,
-  `http://localhost:8765/callback`. The `read` scope is the only one.
+- **One seeded public client per vendor, with PKCE required**, and no
+  dynamic registration or CIMD. A migration creates each, so no console is
+  needed. Each has no secret and allows `S256` only, and the `read` scope is
+  the only one. Claude's client is `claude`, with redirects of exactly
+  `https://claude.ai/api/mcp/auth_callback` and, for Claude Code,
+  `http://localhost:8765/callback`. ChatGPT's is in
+  [ADR 0051](0051-connect-chatgpt-through-a-seeded-public-oauth-client.md).
 - **A public client ignores any secret sent**, so a connector set up with
   the former confidential client's secret keeps working. Discovery lists
   `none` alongside `client_secret_basic` and `client_secret_post`.
@@ -117,8 +119,9 @@ tokens.
   write generated values into the committed `.env`, so a recipe run needs
   that check.
 - **Discovery comes from `DEFAULT_URI`, not the request.** `resource` must
-  equal the URL entered in Claude, and a 401 on either path points at
-  discovery through `WWW-Authenticate`, which is how Claude starts sign-in.
+  equal the URL entered in the assistant, and a 401 on either path points at
+  discovery through `WWW-Authenticate`, which is how an assistant starts
+  sign-in.
 
 **5. Admin only.** `access_control` requires `ROLE_ADMIN` and
 `ROLE_OAUTH2_READ` through `allow_if`, because a `roles:` list passes on
@@ -127,8 +130,8 @@ demotion or a deactivation ends a person's tokens at once. A browser
 session can't reach the API.
 
 **6. Audit.** Each successful read of a data route writes an `api_access`
-row: who, the path, and whether it came through MCP. It never stores the
-query string, because a search term is often someone's name. Rows are
+row: who, the path, which client, and whether it came through MCP. It never
+stores the query string, because a search term is often someone's name. Rows are
 pruned at 90 days and shown on `/usage`, and each account's reads through
 an AI assistant on its `/users/{id}` page, kept apart from Recent activity so that one
 question's many reads don't push the rest out. The row is written on the
@@ -139,8 +142,8 @@ tool's reads are sub-requests.
 [ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)
 holds the API's mechanisms for it.
 
-**8. A vision model sees the photo.** `get_volunteer_photo` hands it to
-Claude, so face matching stays out of how it's used, or the photo becomes
+**8. A vision model sees the photo.** `get_volunteer_photo` hands it to the
+assistant, so face matching stays out of how it's used, or the photo becomes
 biometric data ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md),
 rule 2).
 
@@ -149,26 +152,26 @@ rule 2).
 paste. There is no console step and no secret to hand out: the client ID
 isn't confidential, and the admin is identified by signing in.
 
-Disconnect revokes the signed-in admin's own tokens through the bundle's
-`CredentialsRevokerInterface`, and nobody else's. Claude has to ask that
-admin to sign in again before it can read anything.
+Disconnect revokes all the signed-in admin's own tokens, across every vendor,
+through the bundle's `CredentialsRevokerInterface`, and nobody else's. The
+assistant has to ask that admin to sign in again before it can read anything.
 
 **10. Expired tokens are pruned by `app:oauth:prune`, never by the bundle's
 `league:oauth2-server:clear-expired-tokens`.** The bundle's command deletes
 expired access tokens and blanks refresh tokens' link to them, and that
 link is the only way from a refresh token to its user. A user's revocation
-would then miss the refresh token, and Claude could sign itself back in. So
-an access token row stays for as long as a refresh token points at it, at
-most 30 days.
+would then miss the refresh token, and an assistant could sign itself back
+in. So an access token row stays for as long as a refresh token points at it,
+at most 30 days.
 
-**11. Claude is the only AI vendor that can connect.** ChatGPT and Gemini
-have pages under `/connect-ai` saying why they aren't available, and no
-OAuth client, so they can't connect. Each is a new processor under
+**11. Claude and ChatGPT can connect; Gemini cannot.** ChatGPT's connection
+is decided in
+[ADR 0051](0051-connect-chatgpt-through-a-seeded-public-oauth-client.md).
+Gemini has a page under `/connect-ai` saying why it isn't available, and no
+OAuth client, so it can't connect. Any further vendor is a new processor under
 [ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md) rule 8,
 needing its own ADR, terms and transfer basis.
 
-- **ChatGPT** needs a Business or Enterprise workspace, and CIMD or dynamic
-  client registration.
 - **Gemini Enterprise** needs a client secret. The Gemini app has no
   official documentation for this.
 
@@ -260,8 +263,8 @@ number. ADR 0034 carries what that choice costs.
 **Rejected.** Either would let an admin paste only a URL, which saves one
 pasted value. The bundle's client id column is 32 characters, so a URL
 doesn't fit, and they need fetching or an open registration endpoint. One
-seeded client needs neither. Other organisations' Claude workspaces
-connecting would reopen it.
+seeded client per vendor needs neither. Other organisations' Claude
+workspaces connecting would reopen it.
 
 ### 10. A client secret generated per admin
 

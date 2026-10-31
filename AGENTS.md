@@ -149,8 +149,10 @@ implements it.
   ([ADR 0023](docs/adr/0023-degrade-malformed-query-input-to-a-default.md)). `oauth2_*` tables stay out of the database export by
   prefix. The consent form keeps `data-turbo="false"`: Turbo's fetch can't
   follow the redirect to Claude. Local keys: `make oauth_keys`. Any admin
-  connects alone from `/connect-ai`, with no secret: the one OAuth client is
-  public, seeded by migration. A new AI vendor needs an ADR under ADR 0034
+  connects alone from `/connect-ai`, with no secret: each vendor has one public
+  OAuth client, seeded by migration, and `/authorize` answers carry `iss`
+  (`OAuthIssuerListener`), which ChatGPT's stable redirect depends on
+  ([ADR 0051](docs/adr/0051-connect-chatgpt-through-a-seeded-public-oauth-client.md)). A new AI vendor needs an ADR under ADR 0034
   rule 8 and its own client, not just a page. Expired tokens go through
   `app:oauth:prune`, **never the bundle's `clear-expired-tokens`**, which cuts
   the only link from a refresh token to its user and blinds Disconnect.

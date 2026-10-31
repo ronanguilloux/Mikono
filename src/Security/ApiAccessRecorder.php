@@ -7,6 +7,7 @@ namespace App\Security;
 use App\Entity\ApiAccess;
 use App\Repository\ApiAccessRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Bundle\OAuth2ServerBundle\Security\Authentication\Token\OAuth2Token;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -33,13 +34,14 @@ final readonly class ApiAccessRecorder
     {
         $request = $event->getRequest();
         $route = $request->attributes->get('_route');
-        $user = $this->security->getUser();
+        $token = $this->security->getToken();
 
-        if (null === $user || !$event->getResponse()->isSuccessful() || !\is_string($route) || !self::isDataRoute($route)) {
+        // Always an OAuth2Token on a data route: the `api` firewall takes nothing else.
+        if (!$token instanceof OAuth2Token || !$event->getResponse()->isSuccessful() || !\is_string($route) || !self::isDataRoute($route)) {
             return;
         }
 
-        $this->entityManager->persist(new ApiAccess($user->getUserIdentifier(), mb_substr($request->getPathInfo(), 0, 255), !$event->isMainRequest()));
+        $this->entityManager->persist(new ApiAccess($token->getUserIdentifier(), mb_substr($request->getPathInfo(), 0, 255), !$event->isMainRequest(), $token->getOAuthClientId()));
         $this->accesses->pruneOlderThan(new \DateTimeImmutable(\sprintf('today -%d days', self::RETENTION_DAYS)));
         $this->entityManager->flush();
     }

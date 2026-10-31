@@ -87,6 +87,7 @@ drafts and maintains these.
 | [0048](0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md) | Draw charts as server-rendered HTML and CSS from Twig components, with two client-side exceptions | Accepted |
 | [0049](0049-record-branch-capacity-and-program-volunteers-needed-as-optional-targets.md) | Record branch capacity and program volunteers needed as optional targets | Accepted |
 | [0050](0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md) | Expose a read-only API and MCP server to Claude behind OAuth, admin only | Proposed |
+| [0051](0051-connect-chatgpt-through-a-seeded-public-oauth-client.md) | Connect ChatGPT through a seeded public OAuth client | Proposed |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018

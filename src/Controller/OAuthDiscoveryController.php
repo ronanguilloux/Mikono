@@ -13,7 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * the protected resource, RFC 8414 for the authorization server. See ADR 0050.
  *
  * From DEFAULT_URI, not the request: `resource` must equal the URL entered in
- * Claude, and these answer before anyone has authenticated.
+ * the assistant, and these answer before anyone has authenticated.
  */
 final readonly class OAuthDiscoveryController
 {
@@ -48,6 +48,8 @@ final readonly class OAuthDiscoveryController
             'code_challenge_methods_supported' => ['S256'],
             'token_endpoint_auth_methods_supported' => ['none', 'client_secret_basic', 'client_secret_post'],
             'scopes_supported' => ['read'],
+            // What moves ChatGPT onto its one stable redirect: see OAuthIssuerListener.
+            'authorization_response_iss_parameter_supported' => true,
         ]);
     }
 }

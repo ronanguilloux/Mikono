@@ -28,10 +28,10 @@ final class UserControllerTest extends WebTestCase
         $client->loginUser(UserFactory::new()->admin()->create());
         $reader = UserFactory::createOne(['email' => 'reader@example.org']);
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(new ApiAccess('READER@example.org', '/api/volunteers/7', true));
-        $entityManager->persist(new ApiAccess('reader@example.org', '/api/reports/metrics', true));
-        $entityManager->persist(new ApiAccess('reader@example.org', '/api/skills', false));
-        $entityManager->persist(new ApiAccess('other@example.org', '/api/stays/1', true));
+        $entityManager->persist(new ApiAccess('READER@example.org', '/api/volunteers/7', true, 'claude'));
+        $entityManager->persist(new ApiAccess('reader@example.org', '/api/reports/metrics', true, 'claude'));
+        $entityManager->persist(new ApiAccess('reader@example.org', '/api/skills', false, 'claude'));
+        $entityManager->persist(new ApiAccess('other@example.org', '/api/stays/1', true, 'claude'));
         $entityManager->flush();
 
         $crawler = $client->request('GET', "/users/{$reader->getId()}");
