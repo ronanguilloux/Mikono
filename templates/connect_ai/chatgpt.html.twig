@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}ChatGPT — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-3xl space-y-6">
+        <a href="{{ path('connect_ai_index') }}" class="inline-block text-sm text-slate-600 hover:underline">← Connect an AI</a>
+
+        <div>
+            <h1 class="text-xl font-semibold">ChatGPT</h1>
+            <p class="mt-1 text-sm text-slate-600"><twig:Pill tone="neutral">Not available yet</twig:Pill></p>
+        </div>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="why-heading">
+            <h2 id="why-heading" class="font-semibold">Why it isn't available</h2>
+            <ul class="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-700">
+                <li>
+                    <strong>UCESCO agreed to Claude, not to OpenAI.</strong> Each company that receives volunteers'
+                    data has to be agreed separately, with its own terms and data protection basis.
+                </li>
+                <li>
+                    <strong>It needs a paid workspace.</strong> Connecting a custom server to ChatGPT takes a Business or
+                    Enterprise workspace, with developer mode turned on by its admin.
+                </li>
+                <li>
+                    <strong>Mikono would need changes.</strong> ChatGPT signs in differently from Claude, so it can't
+                    connect today, even if you try.
+                </li>
+            </ul>
+            <p class="mt-3 text-sm text-slate-600">If UCESCO wants this, ask whoever maintains Mikono.</p>
+        </section>
+    </div>
+{% endblock %}

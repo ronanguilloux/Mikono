@@ -19,6 +19,9 @@ use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
  * Only the passport's UserBadge identifier is ever read, never the
  * credentials. Throttled attempts arrive as LoginFailureEvent too, which is
  * what makes repeated failures against one address visible.
+ *
+ * The login form only: these events fire for every authenticator, so without
+ * the firewall check each /mcp token check would count as a staff sign-in.
  */
 final readonly class LoginAttemptRecorder
 {
@@ -32,12 +35,20 @@ final readonly class LoginAttemptRecorder
     #[AsEventListener]
     public function onLoginSuccess(LoginSuccessEvent $event): void
     {
+        if ('main' !== $event->getFirewallName()) {
+            return;
+        }
+
         $this->record($event->getUser()->getUserIdentifier(), true, $event->getRequest());
     }
 
     #[AsEventListener]
     public function onLoginFailure(LoginFailureEvent $event): void
     {
+        if ('main' !== $event->getFirewallName()) {
+            return;
+        }
+
         // No passport when the form was submitted with an empty email.
         $badge = $event->getPassport()?->getBadge(UserBadge::class);
         $identifier = $badge instanceof UserBadge ? $badge->getUserIdentifier() : null;

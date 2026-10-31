@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gemini — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-3xl space-y-6">
+        <a href="{{ path('connect_ai_index') }}" class="inline-block text-sm text-slate-600 hover:underline">← Connect an AI</a>
+
+        <div>
+            <h1 class="text-xl font-semibold">Gemini</h1>
+            <p class="mt-1 text-sm text-slate-600"><twig:Pill tone="neutral">Not available yet</twig:Pill></p>
+        </div>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="why-heading">
+            <h2 id="why-heading" class="font-semibold">Why it isn't available</h2>
+            <ul class="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-700">
+                <li>
+                    <strong>UCESCO agreed to Claude, not to Google.</strong> Each company that receives volunteers'
+                    data has to be agreed separately, with its own terms and data protection basis.
+                </li>
+                <li>
+                    <strong>It depends on the Gemini product.</strong> Gemini Enterprise can connect a custom server, set
+                    up by its administrator. The ordinary Gemini app has no official instructions for this.
+                </li>
+                <li><strong>Mikono would need changes</strong> for either, so it can't connect today, even if you try.</li>
+            </ul>
+            <p class="mt-3 text-sm text-slate-600">If UCESCO wants this, ask whoever maintains Mikono.</p>
+        </section>
+    </div>
+{% endblock %}

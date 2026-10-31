@@ -1,0 +1,73 @@
+{# The one drawing of the data, shared by /datamap and /connect-ai. A new entity gets a box here: tests/Integration/Docs/DataMapCoverageTest checks. #}
+  <div class="datamap-map"><div class="diagram">
+    <div class="diagram-scroll">
+    <svg id="map" viewBox="0 0 960 750" role="img" aria-labelledby="map-title map-desc" class="{{ focusing|default(false) ? 'focusing' }}">
+      <title id="map-title">Mikono data diagram</title>
+      <desc id="map-desc">An activity points to a volunteer, a stay, a program, an activity type, a user and zero or more escorts. A stay points to a volunteer and a branch. A program points to a project, which points to a branch. A program offers several activity types, needs several skills and serves several beneficiary groups. A volunteer has zero or one photo, several skills and several recruitment sources. An achievement points to a stay and to a project of the same branch, and to zero or one indicator.</desc>
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"></path></marker>
+        <marker id="ahl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-loop"></path></marker>
+      </defs>
+
+      <!-- Edges (drawn first, under boxes) -->
+      <g class="edge loop" data-a="sejour" data-b="branche"><path d="M280,180 L400,112" marker-end="url(#ahl)"></path><text x="262" y="138">in 1 branch</text></g>
+      <g class="edge loop" data-a="projet" data-b="branche"><path d="M680,180 L560,112" marker-end="url(#ahl)"></path><text x="630" y="138">in 1 branch</text></g>
+      <g class="edge loop on" data-a="activite" data-b="sejour"><path d="M420,350 L318,272" marker-end="url(#ahl)"></path><text x="378" y="300">derived from the stay</text></g>
+      <g class="edge loop on" data-a="activite" data-b="programme"><path d="M582,400 L748,400" marker-end="url(#ahl)"></path><text x="598" y="390">in 1 program</text></g>
+      <g class="edge loop" data-a="programme" data-b="projet"><path d="M850,350 L780,272" marker-end="url(#ahl)"></path><text x="826" y="306">of 1 project</text></g>
+      <g class="edge" data-a="sejour" data-b="volontaire"><path d="M190,272 L130,348" marker-end="url(#ah)"></path><text x="60" y="306">of 1 volunteer</text></g>
+      <g class="edge on" data-a="activite" data-b="volontaire"><path d="M378,410 L212,410" marker-end="url(#ah)"></path><text x="232" y="432">1 volunteer</text></g>
+      <g class="edge many" data-a="programme" data-b="type"><path d="M850,452 L850,518" marker-start="url(#ah)" marker-end="url(#ah)"></path><text x="842" y="490" text-anchor="end">offers several</text></g>
+      <g class="edge on" data-a="activite" data-b="type"><path d="M572,452 L748,548" marker-end="url(#ah)"></path><text x="662" y="488">1 type</text></g>
+      <g class="edge many on" data-a="activite" data-b="escorte"><path d="M438,452 L380,518" marker-end="url(#ah)"></path><text x="288" y="490">0, 1 or several</text></g>
+      <g class="edge on" data-a="activite" data-b="user"><path d="M520,452 L548,518" marker-end="url(#ah)"></path><text x="540" y="478">entered by</text></g>
+      <g class="edge opt" data-a="volontaire" data-b="photo"><path d="M110,452 L110,518" marker-end="url(#ah)"></path><text x="120" y="490">0 or 1</text></g>
+      <g class="edge loop" data-a="achievement" data-b="sejour"><path d="M380,227 L334,227" marker-end="url(#ahl)"></path></g>
+      <g class="edge loop" data-a="achievement" data-b="projet"><path d="M580,227 L626,227" marker-end="url(#ahl)"></path></g>
+      <g class="edge opt" data-a="achievement" data-b="indicator"><path d="M545,182 L640,114" marker-end="url(#ah)"></path></g>
+      <g class="edge many" data-a="volontaire" data-b="source"><path d="M40,348 L40,114" marker-end="url(#ah)"></path><text x="48" y="150">came through several</text></g>
+      <g class="edge many" data-a="volontaire" data-b="skill"><path d="M212,445 C236,450 230,630 246,688" marker-end="url(#ah)"></path><text x="224" y="636" text-anchor="end">has several</text></g>
+      <g class="edge many" data-a="programme" data-b="skill"><path d="M760,452 C700,478 700,622 640,624 L452,624 C438,624 428,634 422,646" marker-end="url(#ah)"></path><text x="560" y="644" text-anchor="middle">needs several</text></g>
+      <g class="edge many" data-a="programme" data-b="groupe"><path d="M770,452 C730,478 730,620 730,650 Q732,688 746,690" marker-end="url(#ah)"></path><text x="722" y="706" text-anchor="end">serves several</text></g>
+
+      <!-- Boxes -->
+      <g class="ent {{ tones.branche|default('') }}" data-id="branche" tabindex="0" role="button" aria-label="Branch"><rect x="380" y="22" width="200" height="90" rx="10"></rect>
+        <text class="t" x="396" y="50">Branch</text><text class="s" x="396" y="72">Nairobi (HQ), Mombasa…</text><text class="k" x="396" y="96">5 created by default</text></g>
+      <g class="ent on {{ tones.sejour|default('') }}" data-id="sejour" tabindex="0" role="button" aria-label="Stay"><rect x="130" y="182" width="200" height="90" rx="10"></rect>
+        <text class="t" x="146" y="210">Stay</text><text class="s" x="146" y="232">from … to …, in a branch</text><text class="k" x="146" y="256">never 2 at once</text></g>
+      <g class="ent {{ tones.projet|default('') }}" data-id="projet" tabindex="0" role="button" aria-label="Project"><rect x="630" y="182" width="200" height="90" rx="10"></rect>
+        <text class="t" x="646" y="210">Project</text><text class="s" x="646" y="232">UCESCO or partner</text><text class="k" x="646" y="256">can be switched on/off</text></g>
+      <g class="ent on {{ tones.volontaire|default('') }}" data-id="volontaire" tabindex="0" role="button" aria-label="Volunteer"><rect x="10" y="350" width="200" height="100" rx="10"></rect>
+        <text class="t" x="26" y="378">Volunteer</text><text class="s" x="26" y="400">first name required,</text><text class="s" x="26" y="418">everything else optional</text><text class="k" x="26" y="440">status = calculated</text></g>
+      <g class="ent core on sel {{ tones.activite|default('') }}" data-id="activite" tabindex="0" role="button" aria-label="Activity"><rect x="380" y="350" width="200" height="100" rx="10"></rect>
+        <text class="t" x="396" y="378">Activity</text><text class="s" x="396" y="400">1 volunteer, 1 day,</text><text class="s" x="396" y="418">1 task</text><text class="k" x="396" y="440">½ day · full day · other</text></g>
+      <g class="ent on {{ tones.programme|default('') }}" data-id="programme" tabindex="0" role="button" aria-label="Program"><rect x="750" y="350" width="200" height="100" rx="10"></rect>
+        <text class="t" x="766" y="378">Program</text><text class="s" x="766" y="400">optional dates,</text><text class="s" x="766" y="418">offered types</text><text class="k" x="766" y="440">no “active” checkbox</text></g>
+      <g class="ent minor {{ tones.photo|default('') }}" data-id="photo" tabindex="0" role="button" aria-label="Photo"><rect x="10" y="520" width="200" height="80" rx="10"></rect>
+        <text class="t" x="26" y="548">Photo</text><text class="s" x="26" y="570">resized, no GPS</text><text class="k" x="26" y="590">stored in the database</text></g>
+      <g class="ent on {{ tones.escorte|default('') }}" data-id="escorte" tabindex="0" role="button" aria-label="Escort"><rect x="250" y="520" width="190" height="80" rx="10"></rect>
+        <text class="t" x="266" y="548">Escort</text><text class="s" x="266" y="570">escort in the field</text><text class="k" x="266" y="590">unique name</text></g>
+      <g class="ent on {{ tones.user|default('') }}" data-id="user" tabindex="0" role="button" aria-label="User"><rect x="470" y="520" width="190" height="80" rx="10"></rect>
+        <text class="t" x="486" y="548">User</text><text class="s" x="486" y="570">staff member</text><text class="k" x="486" y="590">admin or not</text></g>
+      <g class="ent on {{ tones.type|default('') }}" data-id="type" tabindex="0" role="button" aria-label="Activity type"><rect x="750" y="520" width="200" height="80" rx="10"></rect>
+        <text class="t" x="766" y="548">Activity type</text><text class="s" x="766" y="570">one single shared list</text><text class="k" x="766" y="590">unique name</text></g>
+      <g class="ent minor {{ tones.achievement|default('') }}" data-id="achievement" tabindex="0" role="button" aria-label="Achievement"><rect x="380" y="182" width="200" height="90" rx="10"></rect>
+        <text class="t" x="396" y="210">Achievement</text><text class="s" x="396" y="232">a milestone in a stay</text><text class="k" x="396" y="256">at a project, same branch</text></g>
+      <g class="ent {{ tones.skill|default('') }}" data-id="skill" tabindex="0" role="button" aria-label="Skill"><rect x="250" y="650" width="190" height="80" rx="10"></rect>
+        <text class="t" x="266" y="678">Skill</text><text class="s" x="266" y="700">one single shared list</text><text class="k" x="266" y="720">created with the app</text></g>
+      <g class="ent {{ tones.source|default('') }}" data-id="source" tabindex="0" role="button" aria-label="Source"><rect x="10" y="22" width="200" height="90" rx="10"></rect>
+        <text class="t" x="26" y="50">Source</text><text class="s" x="26" y="72">a recruitment channel</text><text class="k" x="26" y="96">created with the app</text></g>
+      <g class="ent {{ tones.groupe|default('') }}" data-id="groupe" tabindex="0" role="button" aria-label="Beneficiary group"><rect x="750" y="650" width="200" height="80" rx="10"></rect>
+        <text class="t" x="766" y="678">Beneficiary group</text><text class="s" x="766" y="700">who a program serves</text><text class="k" x="766" y="720">filled in by the VM</text></g>
+      <g class="ent {{ tones.indicator|default('') }}" data-id="indicator" tabindex="0" role="button" aria-label="Indicator"><rect x="630" y="22" width="200" height="90" rx="10"></rect>
+        <text class="t" x="646" y="50">Indicator</text><text class="s" x="646" y="72">counted by achievements</text><text class="k" x="646" y="96">filled in by the VM</text></g>
+    </svg>
+    </div>
+    {% if legend ?? true %}<div class="legend">
+      <span><svg viewBox="0 0 38 12"><line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="1.6"></line><path d="M28,2 L36,6 L28,10z" fill="currentColor"></path></svg>points to exactly one record</span>
+      <span><svg viewBox="0 0 38 12"><line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="1.6" stroke-dasharray="7 5"></line><path d="M28,2 L36,6 L28,10z" fill="currentColor"></path></svg>zero or one</span>
+      <span><svg viewBox="0 0 38 12"><line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="2.2" stroke-dasharray="2 4" stroke-linecap="round"></line><path d="M28,2 L36,6 L28,10z" fill="currentColor"></path></svg>several</span>
+      <span style="color:var(--loop)"><svg viewBox="0 0 38 12"><line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="2.6"></line><path d="M28,2 L36,6 L28,10z" fill="currentColor"></path></svg>the branch loop (rule 3)</span>
+      <span>Dashed frame: depends entirely on its parent record</span>
+    </div>{% endif %}
+  </div></div>

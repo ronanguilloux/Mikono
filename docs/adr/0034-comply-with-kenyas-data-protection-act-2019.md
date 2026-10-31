@@ -276,9 +276,9 @@ purpose (s.39(1)), then deleted, erased, anonymised or pseudonymised
 code or the deployment runbook enforces it.** This includes:
 
 - **OAuth token rows.** Expiry stops a token working but leaves its row,
-  with the staff email, in the table. The bundle's
-  `league:oauth2-server:clear-expired-tokens` removes it, so the runbook
-  must schedule that command.
+  with the staff email, in the table. `app:oauth:prune` removes the row once
+  it has expired and no refresh token needs it, so at most 30 days past its
+  last refresh, and the runbook must schedule that command (ADR 0050).
 - **A volunteer's record after their last stay.** UCESCO sets the period;
   at its end the volunteer is anonymised as in rule 5.
 - **The access log.** A rotation by size alone is not a time bound: at
@@ -347,6 +347,9 @@ volunteers' identity, contact and profile data, photos, stays and
 activities, staff names and emails, and sensitive personal data including
 emergency contacts and gender. Free text such as notes and the legacy
 record can carry more of it. The passport number stays out.
+
+More than one admin may connect, each through their own Claude account, so
+the terms that apply can differ by account.
 
 The maintainer states that UCESCO has authorised this processing and holds
 the required consents. This ADR records that statement and nothing beyond

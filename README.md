@@ -109,34 +109,25 @@ fixture data unless that data is meant to be read this way.
    docker compose restart php
    ```
 
-2. Create the OAuth client and note the secret it prints:
+2. Add the server. There is no secret to create: a migration seeds the OAuth
+   client.
 
    ```bash
-   SECRET=$(openssl rand -hex 32)
-   docker compose exec php bin/console league:oauth2-server:create-client "Claude" claude "$SECRET" \
-     --redirect-uri=http://localhost:8765/callback \
-     --grant-type=authorization_code --grant-type=refresh_token --scope=read
-   echo "$SECRET"
+   claude mcp add --transport http --client-id claude --callback-port 8765 mikono https://localhost/mcp
    ```
 
-3. Add the server, pasting the secret when prompted:
-
-   ```bash
-   claude mcp add --transport http --client-id claude --client-secret --callback-port 8765 mikono https://localhost/mcp
-   ```
-
-4. Start a new Claude Code session and run `/mcp`, then authenticate `mikono`.
+3. Start a new Claude Code session and run `/mcp`, then authenticate `mikono`.
    Sign in with an admin account in the browser and click **Allow**.
 
-5. Try a few questions:
+4. Try a few questions:
 
    - "How many volunteers are present right now, and at which branches?"
    - "Show activity totals by branch, with links."
    - "What's the passport number for [a volunteer]?" Claude should say it isn't
      available.
 
-6. Open `https://localhost/usage`: the **API access** table should list those
-   reads as "Claude (MCP)".
+5. Open `https://localhost/usage`: the **API access** table should list those
+   reads as "AI assistant (MCP)".
 
 When you're done, run `claude mcp remove mikono`.
 
@@ -146,8 +137,8 @@ If Claude Code rejects the local certificate, start it with:
 NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem" claude
 ```
 
-claude.ai, Desktop and mobile need a server on public HTTPS; see
-[`docs/project/deployment-plan.md`](docs/project/deployment-plan.md) §4.
+claude.ai, Desktop and mobile need a server on public HTTPS. Any admin connects
+them from **Admin → Connect an AI** in the app.
 
 ## Contributing
 

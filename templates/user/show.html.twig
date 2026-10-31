@@ -42,4 +42,20 @@
             emptyMessage="Nothing recorded for this account yet."
         />
     </section>
+
+    <section class="mt-10" aria-labelledby="mcp-reads-heading" data-mcp-reads>
+        <h2 id="mcp-reads-heading" class="font-semibold">Read by an AI assistant</h2>
+        <p class="mb-3 mt-0.5 text-xs text-slate-500">
+            {{ mcpReadCount }} read{{ mcpReadCount == 1 ? '' : 's' }} in the last {{ mcpRetentionDays }} days, the
+            newest {{ mcpReadLimit }} below. Search terms are never recorded, and reads are matched on the current
+            email. See <span class="font-mono text-xs">ADR 0050</span>.
+        </p>
+
+        <twig:DataTable
+            :columns="mcpReadColumns"
+            :rows="mcpReadRows"
+            :withActions="false"
+            emptyMessage="Nothing read by an AI assistant."
+        />
+    </section>
 {% endblock %}

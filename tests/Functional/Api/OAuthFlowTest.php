@@ -47,6 +47,60 @@ final class OAuthFlowTest extends WebTestCase
     }
 
     #[Test]
+    public function theSeededClientConnectsAnyAdminWithNoSecret(): void
+    {
+        $client = static::createClient();
+
+        $tokens = self::obtainTokens($client, UserFactory::new()->admin()->create(), 'claude', null);
+
+        $client->request('GET', '/api/skills', server: self::bearer($tokens['access_token']));
+        self::assertResponseIsSuccessful();
+
+        // Rotated, as a public client requires.
+        $client->request('POST', '/token', ['grant_type' => 'refresh_token', 'client_id' => 'claude', 'refresh_token' => $tokens['refresh_token']]);
+        self::assertResponseIsSuccessful();
+        $client->request('POST', '/token', ['grant_type' => 'refresh_token', 'client_id' => 'claude', 'refresh_token' => $tokens['refresh_token']]);
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    #[Test]
+    public function aConnectorStillSendingTheOldSecretKeepsWorking(): void
+    {
+        $client = static::createClient();
+
+        $tokens = self::obtainTokens($client, UserFactory::new()->admin()->create(), 'claude', 'a-secret-from-before');
+
+        $client->request('POST', '/token', ['grant_type' => 'refresh_token', 'client_id' => 'claude', 'client_secret' => 'a-secret-from-before', 'refresh_token' => $tokens['refresh_token']]);
+        self::assertResponseIsSuccessful();
+    }
+
+    #[Test]
+    public function thePublicClientRefusesASignInWithoutPkce(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+        $query = self::authorizeQuery('claude');
+        unset($query['code_challenge'], $query['code_challenge_method']);
+
+        $client->request('GET', '/authorize', $query);
+
+        self::assertResponseStatusCodeSame(400);
+        self::assertStringContainsString('Code challenge must be provided', (string) $client->getResponse()->getContent());
+    }
+
+    #[Test]
+    public function thePublicClientRefusesARedirectOutsideItsList(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::new()->admin()->create());
+
+        $client->request('GET', '/authorize', ['redirect_uri' => 'https://attacker.example/callback'] + self::authorizeQuery('claude'));
+
+        self::assertResponseStatusCodeSame(401);
+        self::assertStringNotContainsString('attacker.example', (string) $client->getResponse()->headers->get('Location'));
+    }
+
+    #[Test]
     public function theConsentScreenNamesWhereTheDataGoes(): void
     {
         $client = static::createClient();
@@ -171,6 +225,21 @@ final class OAuthFlowTest extends WebTestCase
     }
 
     #[Test]
+    public function aTokenCheckIsNotASignIn(): void
+    {
+        $client = static::createClient();
+        self::createOAuthClient($client);
+        $token = self::obtainTokens($client, UserFactory::new()->admin()->create())['access_token'];
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement('DELETE FROM login_attempt');
+
+        $client->request('GET', '/api/skills', server: self::bearer($token));
+        $client->request('GET', '/api/skills', server: self::bearer('not.a.token'));
+
+        self::assertEquals(0, self::getContainer()->get(Connection::class)->fetchOne('SELECT COUNT(*) FROM login_attempt'));
+    }
+
+    #[Test]
     public function aSessionCannotReachTheApi(): void
     {
         $client = static::createClient();
@@ -200,5 +269,6 @@ final class OAuthFlowTest extends WebTestCase
         $client->request('GET', '/.well-known/oauth-authorization-server');
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('"S256"', (string) $client->getResponse()->getContent());
+        self::assertStringContainsString('"none"', (string) $client->getResponse()->getContent());
     }
 }

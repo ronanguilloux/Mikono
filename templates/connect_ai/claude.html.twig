@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connect Claude — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mx-auto max-w-3xl space-y-6">
+        <a href="{{ path('connect_ai_index') }}" class="inline-block text-sm text-slate-600 hover:underline">← Connect an AI</a>
+
+        <div>
+            <h1 class="text-xl font-semibold">Connect Claude</h1>
+            <p class="mt-1 text-sm text-slate-600">
+                Takes about two minutes. Do it once on claude.ai in a browser, and it works in the Claude desktop and
+                mobile apps too. You won't need a password or secret from anyone: you sign in with your own Mikono
+                account.
+            </p>
+        </div>
+
+        <section class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900" aria-labelledby="account-heading">
+            <h2 id="account-heading" class="font-semibold">Use the right Claude account</h2>
+            <p class="mt-1">
+                Volunteers' data will fall under the terms of the Claude account you connect. Use a UCESCO work or
+                organisation account if there is one. Don't connect a personal account unless UCESCO has agreed to it.
+            </p>
+        </section>
+
+        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="values-heading">
+            <h2 id="values-heading" class="font-semibold">The two things to paste</h2>
+            {{ include('connect_ai/_copy_field.html.twig', {id: 'mcp-url', label: 'Server URL', value: mcpUrl}) }}
+            {{ include('connect_ai/_copy_field.html.twig', {id: 'client-id', label: 'OAuth client ID', value: clientId}) }}
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="steps-heading">
+            <h2 id="steps-heading" class="font-semibold">Steps</h2>
+            <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+                <li>Open <strong>claude.ai</strong> and sign in.</li>
+                <li>Go to <strong>Customize</strong>, then <strong>Connectors</strong>, and choose <strong>Add custom connector</strong>.</li>
+                <li>Name it <strong>Mikono</strong> and paste the <strong>Server URL</strong>.</li>
+                <li>
+                    Under <strong>Advanced settings</strong>, or the <strong>OAuth client</strong> choice, select
+                    <strong>Use your own OAuth client</strong> if it's offered, and paste the
+                    <strong>OAuth client ID</strong>. If you're asked how to sign in, choose <strong>Sign in now</strong>.
+                </li>
+                <li><strong>Leave the client secret empty.</strong></li>
+                <li>Click <strong>Add</strong>, then <strong>Connect</strong>.</li>
+                <li>Mikono opens. Sign in if asked, read the screen, and click <strong>Allow</strong>.</li>
+            </ol>
+            <p class="mt-3 text-sm text-slate-600">
+                On a Team or Enterprise plan, only an Owner can add the connector, in
+                <strong>Organization settings</strong>, then <strong>Connectors</strong>. Everyone then clicks
+                <strong>Connect</strong> under <strong>Customize</strong>, <strong>Connectors</strong>.
+            </p>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="try-heading">
+            <h2 id="try-heading" class="font-semibold">Try it</h2>
+            <p class="mt-1 text-sm text-slate-600">
+                Ask Claude: <em>"How many volunteers are present right now, and at which branches?"</em>
+                Check an answer by following its links back to Mikono: Claude can be wrong. Your reads then appear on
+                the <a href="{{ path('usage_index') }}" class="text-brand-700 hover:underline">Usage</a> page.
+            </p>
+            <p class="mt-2 text-sm text-slate-600">
+                Mikono doesn't record hours, children supported, contact history or deadlines. If Claude gives a figure
+                for one of those, treat it as a guess.
+            </p>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="stop-heading">
+            <h2 id="stop-heading" class="font-semibold">To stop</h2>
+            <p class="mt-1 text-sm text-slate-600">
+                Click <strong>Disconnect</strong> on the <a href="{{ path('connect_ai_index') }}" class="text-brand-700 hover:underline">Connect an AI</a>
+                page. Do this straight away if you lose a device signed in to Claude. Losing the admin role, or having
+                your account deactivated, cuts the connection too.
+            </p>
+        </section>
+
+        <details class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <summary class="cursor-pointer font-semibold">Claude Code (for developers)</summary>
+            <p class="mt-2 text-sm text-slate-600">In a terminal, then run <code>/mcp</code> in a new session to sign in:</p>
+            <pre class="mt-2 overflow-x-auto rounded-md bg-slate-100 p-3 text-xs">claude mcp add --transport http --client-id {{ clientId }} --callback-port 8765 mikono {{ mcpUrl }}</pre>
+        </details>
+    </div>
+{% endblock %}
