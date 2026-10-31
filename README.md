@@ -90,6 +90,65 @@ Restart the browser once. Both `frankenphp/certs/` and
 lasts about two years; re-run the last `mkcert` line to renew it. Never use
 this in production, which gets a real certificate from Caddy.
 
+## Connecting Claude Code locally
+
+Claude Code can read the local app through its MCP server at `/mcp`. Access
+is read-only and needs an admin account
+([ADR 0050](docs/adr/0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md)).
+
+**Check which data you are exposing first.** After `make db_update` the local
+database is a production copy, and whatever Claude reads goes to Anthropic. Use
+fixture data unless that data is meant to be read this way.
+
+1. Generate the local OAuth keys once per checkout, and restart so the app
+   loads them. They go in the gitignored `.env.dev.local`.
+
+   ```bash
+   export COMPOSE_FILE=compose.yaml:compose.override.yaml:compose.local.yaml
+   make oauth_keys
+   docker compose restart php
+   ```
+
+2. Create the OAuth client and note the secret it prints:
+
+   ```bash
+   SECRET=$(openssl rand -hex 32)
+   docker compose exec php bin/console league:oauth2-server:create-client "Claude" claude "$SECRET" \
+     --redirect-uri=http://localhost:8765/callback \
+     --grant-type=authorization_code --grant-type=refresh_token --scope=read
+   echo "$SECRET"
+   ```
+
+3. Add the server, pasting the secret when prompted:
+
+   ```bash
+   claude mcp add --transport http --client-id claude --client-secret --callback-port 8765 mikono https://localhost/mcp
+   ```
+
+4. Start a new Claude Code session and run `/mcp`, then authenticate `mikono`.
+   Sign in with an admin account in the browser and click **Allow**.
+
+5. Try a few questions:
+
+   - "How many volunteers are present right now, and at which branches?"
+   - "Show activity totals by branch, with links."
+   - "What's the passport number for [a volunteer]?" Claude should say it isn't
+     available.
+
+6. Open `https://localhost/usage`: the **API access** table should list those
+   reads as "Claude (MCP)".
+
+When you're done, run `claude mcp remove mikono`.
+
+If Claude Code rejects the local certificate, start it with:
+
+```bash
+NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem" claude
+```
+
+claude.ai, Desktop and mobile need a server on public HTTPS; see
+[`docs/project/deployment-plan.md`](docs/project/deployment-plan.md) §4.
+
 ## Contributing
 
 ### Running tests

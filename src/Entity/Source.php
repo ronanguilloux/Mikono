@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
 use App\Repository\SourceRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -14,6 +18,13 @@ use Symfony\Component\Validator\Constraints as Assert;
  * like Skill, seeded by its migration with the VM's channels, so a new one is
  * a row, not a deploy. See ADR 0041.
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['source:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: SourceRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_source_name', fields: ['name'])]
 #[UniqueEntity('name')]
@@ -22,13 +33,16 @@ class Source
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['source:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, unique: true)]
     #[Assert\NotBlank]
+    #[Groups(['source:read', 'api:ref'])]
     private string $name = '';
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['source:read'])]
     private ?string $description = null;
 
     public function getId(): ?int

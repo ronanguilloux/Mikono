@@ -1,10 +1,10 @@
 # 0034. Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor
 
-Date: 2026-10-17
+Date: 2026-10-31
 
 ## Status
 
-Accepted
+Proposed
 
 ## Context
 
@@ -37,8 +37,8 @@ These facts drive the decision:
   [ADR 0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)).
   Stays and activities record where a volunteer was and when. Staff
   accounts hold an email, a full name, roles and a password hash.
-  Sign-ins, the Caddy access log, the error log, sessions, backups and
-  exports each hold copies of some of it.
+  Sign-ins, API reads, the Caddy access log, the error log, sessions,
+  backups and exports each hold copies of some of it.
 - **Volunteers never log in.** Only UCESCO staff do, as `ROLE_USER` or
   `ROLE_ADMIN`. Anything a volunteer must be told or asked happens
   outside the app, at onboarding.
@@ -53,6 +53,10 @@ These facts drive the decision:
   off-site backup is planned to be encrypted with `age`
   ([`docs/brainstorm/08`](../brainstorm/08-off-site-encrypted-backups.md)),
   and its destination is preferably in Kenya.
+- **Claude reads the data.** An admin can connect Claude to a read-only
+  API and MCP server
+  ([ADR 0050](0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md)), and
+  what it reads reaches Anthropic, outside Kenya, sensitive data included.
 - **The repository is public**, and the raw WhatsApp exports that name
   sponsored children and donors stay out of it
   ([ADR 0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md)).
@@ -77,10 +81,11 @@ data against the Act and the ODPC's guidance follows the import
 
 **Roles.** UCESCO determines the purpose and means of the processing, so
 it is the **data controller** (s.2). The maintainer, who operates the app,
-and the Kenyan provider that hosts production process personal data on
-UCESCO's behalf, so they are **data processors**. Each needs a written
-contract with UCESCO under which it acts only on UCESCO's instructions and
-is bound by UCESCO's obligations (s.42(2)(b)). A processor that processes
+the Kenyan provider that hosts production, and Anthropic, which receives
+what Claude reads (rule 8), process personal data on UCESCO's behalf, so
+they are **data processors**. Each needs a written contract with UCESCO
+under which it acts only on UCESCO's instructions and is bound by UCESCO's
+obligations (s.42(2)(b)). A processor that processes
 personal data other than as instructed becomes a data controller for that
 processing (s.42(3)). The provider's contract carries its written
 commitment to the Act and to keeping the data in Kenya (ADR 0035). Gandi
@@ -101,6 +106,8 @@ The existing personal-data stores, and the ADR that bounds each one:
 | `activity`, `escort` | What a volunteer did, when, with whom | [0013](0013-record-every-escort-on-an-activity.md), [0030](0030-insert-programs-between-projects-and-activities.md) |
 | `user` | Staff email, full name, roles, password hash; their id as `createdBy`/`updatedBy` on volunteers, stays, achievements, activities, projects and programs | This ADR, rule 7, [0043](0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md) |
 | `login_attempt` | Email-or-null and IP, 90 days | [0028](0028-record-login-attempts-with-identifier-and-ip-for-90-days-admin-only.md) |
+| `api_access` | Who read what through the API: staff email, path (which can carry a record id), whether through MCP; 90 days | [0050](0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md) |
+| `oauth2_*` tables | OAuth tokens: staff email as owner, scopes, expiry (access 1 hour, refresh 30 days) | [0050](0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md), rule 6 |
 | `usage_event` | None, by design | [0021](0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md) |
 | Caddy access log | IP, user agent, full URI including search terms | [0021](0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md), rule 6 |
 | Error log | Exception messages, which can carry bound SQL values | [0031](0031-show-production-errors-on-an-in-app-admin-screen-over-a-rotating-json-error-log.md) |
@@ -111,7 +118,8 @@ The existing personal-data stores, and the ADR that bounds each one:
 
 A query parameter is part of the full URI, so **personal data sent in a
 GET parameter lands in the access log** and inherits its retention. The
-volunteer search's `?q=` already does.
+volunteer search's `?q=` already does, and so does `/api/volunteers?search=`
+called directly. An MCP tool's search travels in the `POST` body and doesn't.
 
 ### 2. Sensitive personal data is named and ruled on
 
@@ -131,8 +139,8 @@ Sensitive personal data is processed only where the s.25 principles apply
   the vital interests of the volunteer in an emergency, and UCESCO's
   obligations towards the people it places. Family details are collected
   only with a valid explanation (s.25(e)), which the privacy notice gives
-  (rule 4). If the field is ever processed outside Kenya, it also needs
-  each volunteer's consent under s.49(1) (rule 3).
+  (rule 4). The API sends it outside Kenya (rule 8), so it also needs each
+  volunteer's consent under s.49(1) (rule 3).
 - **Mikono holds no health data.** Health data may be processed only by
   or under the responsibility of a health care provider, or by a person
   under a legal obligation of professional secrecy (s.46(1)). UCESCO's
@@ -140,9 +148,12 @@ Sensitive personal data is processed only where the s.25 principles apply
 - **The photo is not biometric data** while nothing processes it
   technically to characterise the person (s.2, "biometric data"). Face
   matching or recognition on it would make it biometric, and sensitive.
+  The API hands the photo to a vision model, so neither may be asked of
+  it.
 - **`gender` is sensitive** ("sex"), recorded for accommodation pairing
   under
   [ADR 0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md).
+  The API sends it outside Kenya (rule 8), so rule 3 applies to it too.
 
 ### 3. Transfer outside Kenya is proven and, for sensitive data, consented
 
@@ -183,7 +194,9 @@ What this covers:
   Kenya is preferred. Abroad, an `age`-encrypted file whose key the
   destination does not hold is the safeguard, and the destination's
   country is named in the ADR that chooses it.
-- **Any third-party service** that receives personal data (rule 8).
+- **Anthropic**, which receives personal data, sensitive data included,
+  through the API (rule 8).
+- **Any other third-party service** that receives personal data (rule 8).
 
 The Cabinet Secretary may require some processing to run on a server in
 Kenya (s.50). No such rule is known to cover this processing; hosting in
@@ -262,6 +275,10 @@ purpose (s.39(1)), then deleted, erased, anonymised or pseudonymised
 (s.34(3)). So **every store in rule 1's table has a time bound, and the
 code or the deployment runbook enforces it.** This includes:
 
+- **OAuth token rows.** Expiry stops a token working but leaves its row,
+  with the staff email, in the table. The bundle's
+  `league:oauth2-server:clear-expired-tokens` removes it, so the runbook
+  must schedule that command.
 - **A volunteer's record after their last stay.** UCESCO sets the period;
   at its end the volunteer is anonymised as in rule 5.
 - **The access log.** A rotation by size alone is not a time bound: at
@@ -301,6 +318,10 @@ measures s.41(4) lists are in place, and a change must keep them:
 - **Everyone acting for UCESCO or a processor follows these measures**
   (s.42(4)). That includes an AI coding agent with access to a production
   copy.
+- **The API and MCP server are read-only and admin-only**, behind OAuth
+  tokens that a demotion or deactivation ends at once, and reads are
+  recorded in `api_access`. The passport number never reaches them
+  (ADR 0050).
 
 A less-trusted role, such as volunteers logging in themselves, reopens
 [ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md)'s
@@ -319,6 +340,35 @@ drew for analytics and error SaaS. A controller that discloses personal
 data incompatibly with its purpose, or a processor that discloses it
 without the controller's prior authority, commits an offence (s.72(1),
 (2)).
+
+**Anthropic is such a processor.** Through the API and MCP server of
+ADR 0050, Anthropic receives, outside Kenya, what each read returns:
+volunteers' identity, contact and profile data, photos, stays and
+activities, staff names and emails, and sensitive personal data including
+emergency contacts and gender. Free text such as notes and the legacy
+record can carry more of it. The passport number stays out.
+
+The maintainer states that UCESCO has authorised this processing and holds
+the required consents. This ADR records that statement and nothing beyond
+it: it names no contract, and it makes no finding that the transfer meets
+s.48 or s.49. The rules stand. UCESCO keeps the proof of safeguards (s.48),
+bears the burden of proving consent (s.32(1)), and its transfer file must
+establish Anthropic's terms under s.42(2) and the transfer basis under
+rule 3.
+
+The other rules apply to this processing like any other:
+
+- **Withdrawal.** UCESCO handles a withdrawal under s.32(2) by hand: staff
+  clear the withdrawn fields on the volunteer's record, and the next read no
+  longer returns them. Mikono holds no per-volunteer consent record, so the
+  API can't exclude anyone by itself: any admin token reads whatever is on
+  the record.
+- **Notice.** The privacy notice names Anthropic and its safeguards
+  (rule 4, s.29(d)).
+- **Correction and erasure.** A correction or erasure is passed on to
+  Anthropic where it holds the data (rule 5, s.40(2)).
+- **Impact assessment.** UCESCO's screening covers this processing
+  (rule 11, s.31).
 
 ### 9. A breach is notified on the Act's clock
 
@@ -383,8 +433,10 @@ them:
 
 **Automated decisions and commercial use.** Mikono takes no decision based
 solely on automated processing (s.35) and makes no commercial use of
-personal data (s.37). A future AI assistant that ranks, scores or selects
-volunteers reopens this ADR.
+personal data (s.37). Claude, read through ADR 0050, answers an admin who
+decides, and it can change nothing in the app. An AI assistant that ranks,
+scores or selects volunteers, Claude used that way included, reopens this
+ADR.
 
 ## Consequences
 
@@ -401,7 +453,13 @@ volunteers reopens this ADR.
     paper or equivalent, and they must keep the proof.
   - **Sensitive data abroad depends on a signed consent.** Under s.49(1),
     without it emergency contacts or gender may not be processed outside
-    Kenya: not on a server, backup destination or service abroad.
+    Kenya: not on a server, backup destination or service abroad. The
+    Claude connection is such a service.
+  - **The app holds no per-volunteer consent record**, so a withdrawal under
+    s.32(2) rests on UCESCO's staff clearing the field by hand. Clearing it
+    removes it from the whole app, not just this processing, so a withdrawn
+    emergency contact is gone from the screens too. It doesn't reach what
+    Claude has already read.
   - **Anonymisation, restriction, per-volunteer export and time-bound
     retention cost code** that no screen needed before.
   - **The exposure is real.** An administrative fine of up to KES 5

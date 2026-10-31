@@ -55,7 +55,7 @@ final class VolunteerFormType extends AbstractType
                 'required' => false,
                 'placeholder' => '—',
                 'choice_label' => static fn(Gender $gender): string => $gender->label(),
-                'help' => 'Used only to pair volunteers for shared accommodation.',
+                'help' => 'Used to pair volunteers for shared accommodation. Admins can also read it through Claude.',
             ])
             ->add('profession', TextType::class, ['required' => false])
             ->add('skills', EntityType::class, [

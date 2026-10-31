@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use Symfony\Component\Serializer\Attribute\Groups;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -15,9 +16,11 @@ use Doctrine\ORM\Mapping as ORM;
 trait AuthoredTrait
 {
     #[ORM\ManyToOne(targetEntity: User::class)]
+    #[Groups(['volunteer:read', 'stay:read', 'achievement:read', 'project:read', 'program:read'])]
     private ?User $createdBy = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
+    #[Groups(['volunteer:read', 'stay:read', 'achievement:read', 'project:read', 'program:read'])]
     private ?User $updatedBy = null;
 
     public function getCreatedBy(): ?User

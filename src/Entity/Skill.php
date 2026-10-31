@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
 use App\Repository\SkillRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -14,6 +18,13 @@ use Symfony\Component\Validator\Constraints as Assert;
  * them, and /matches pairs the two. Seeded by its migration. See ADR 0036
  * and ADR 0042.
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['skill:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: SkillRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_skill_name', fields: ['name'])]
 #[UniqueEntity('name')]
@@ -22,13 +33,16 @@ class Skill
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['skill:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, unique: true)]
     #[Assert\NotBlank]
+    #[Groups(['skill:read', 'api:ref'])]
     private string $name = '';
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['skill:read'])]
     private ?string $description = null;
 
     public function getId(): ?int

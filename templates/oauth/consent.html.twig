@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connect {{ client_name }} — UCESCO Volunteer Manager{% endblock %}
+
+{% block body %}
+    <div class="mx-auto mt-12 max-w-md">
+        <h1 class="mb-6 text-center text-xl font-semibold">Connect {{ client_name }}?</h1>
+
+        {# The URL carries the OAuth request. No Turbo: the answer redirects off-site, which fetch can't follow. #}
+        <form method="post" action="{{ app.request.requestUri }}" data-turbo="false" class="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="text-sm text-slate-700">
+                <strong>{{ client_name }}</strong>, returning to
+                <strong class="break-all">{{ redirect_host }}</strong>, is asking to read Mikono
+                as {{ app.user.fullName }}.
+            </p>
+            <p class="text-sm text-slate-700">
+                It will be able to read every record, including volunteers' personal
+                data such as emergency contacts and notes, and send it to that service.
+                It cannot change anything. Passport numbers stay here.
+            </p>
+
+            <input type="hidden" name="_token" value="{{ csrf_token('oauth_consent') }}">
+
+            <div class="flex gap-3">
+                <button
+                    type="submit" name="decision" value="allow"
+                    class="flex-1 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                >
+                    Allow
+                </button>
+                <button
+                    type="submit" name="decision" value="deny"
+                    class="flex-1 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                    Deny
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

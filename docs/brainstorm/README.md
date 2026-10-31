@@ -50,3 +50,4 @@ agent that drafts these.
 | [14](14-dataviz-for-vm-and-management.md) | Dataviz for the VM and UCESCO management | |
 | [15](15-legacy-workbook-import.md) | Import the legacy volunteer workbook into production | [0034](../adr/0034-comply-with-kenyas-data-protection-act-2019.md), [0044](../adr/0044-allow-syncing-production-database-to-local-development.md) |
 | [16](16-whatsapp-roster-import.md) | Import the WhatsApp roster posts as activities | |
+| [17](17-read-only-api-and-mcp-server.md) | Read-only API and MCP server for asking Claude about UCESCO's data | [0050](../adr/0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md) |

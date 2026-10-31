@@ -35,7 +35,7 @@
     {% set preset_on = preset_base ~ ' bg-brand-600 text-white' %}
     {% set preset_off = preset_base ~ ' border border-slate-300 text-slate-700 hover:border-brand-500 hover:text-brand-700' %}
     {# Every table's page is dropped on purpose: a new range means a new page 1 in each. #}
-    {% set carried = app.request.query.all|filter((v, k) => k not in ['range', 'from', 'to', 'page', 'eventsPage', 'signInsPage'] and v is not iterable) %}
+    {% set carried = app.request.query.all|filter((v, k) => k not in ['range', 'from', 'to', 'page', 'eventsPage', 'signInsPage', 'apiAccessPage'] and v is not iterable) %}
 
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4 print:hidden">
         <nav class="flex flex-wrap gap-2" aria-label="Date range" data-range-presets>
@@ -189,6 +189,25 @@
             :sortState="loginSortState"
             :withActions="false"
             emptyMessage="No sign-in attempts in this date range."
+        />
+    </section>
+
+    <section class="mt-10" aria-labelledby="api-access-heading" data-api-access>
+        <h2 id="api-access-heading" class="font-semibold">API access</h2>
+        <p class="mb-3 mt-0.5 text-xs text-slate-500">
+            Every read through the API or an MCP tool, most recent first: who, and which record or list.
+            Search terms are never recorded, since they are often someone's name.
+            Rows are deleted after {{ apiRetentionDays }} days, so a longer window still shows at most that.
+            Same window as above: {{ range.label }}.
+            See <span class="font-mono text-xs">ADR 0050</span>.
+        </p>
+
+        <twig:DataTable
+            :columns="apiColumns"
+            :rows="apiRows"
+            :pagination="apiPagination"
+            :withActions="false"
+            emptyMessage="No API access in this date range."
         />
     </section>
 {% endblock %}

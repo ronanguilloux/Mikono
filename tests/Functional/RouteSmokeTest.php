@@ -35,7 +35,7 @@ final class RouteSmokeTest extends WebTestCase
      * Route-name prefix => the seeded entity whose id fills that route's
      * `{id}`. Longest first: `activity_type_` must win over `activity_`.
      */
-    private const ID_PREFIXES = ['achievement_', 'activity_type_', 'activity_', 'beneficiary_group_', 'branch_', 'escort_', 'indicator_', 'program_', 'project_', 'skill_', 'source_', 'stay_', 'user_', 'volunteer_'];
+    private const array ID_PREFIXES = ['achievement_', 'activity_type_', 'activity_', 'beneficiary_group_', 'branch_', 'escort_', 'indicator_', 'program_', 'project_', 'skill_', 'source_', 'stay_', 'user_', 'volunteer_'];
 
     #[Test]
     public function everyGetRouteRendersWithoutAServerError(): void
@@ -146,7 +146,10 @@ final class RouteSmokeTest extends WebTestCase
             // Framework and UX internals (_profiler, _wdt, ux_live_component)
             // are not this app's screens, and app_logout would end the session
             // halfway through the loop.
-            if (str_starts_with($name, '_') || str_starts_with($name, 'ux_') || 'app_logout' === $name) {
+            // /api and /mcp answer a token, not a session, and the OAuth routes
+            // answer no one: tests/Functional/Api/ walks those.
+            if (str_starts_with($name, '_') || str_starts_with($name, 'ux_') || 'app_logout' === $name
+                || str_starts_with($name, 'api_') || str_starts_with($name, 'oauth')) {
                 continue;
             }
 

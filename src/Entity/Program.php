@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
+use ApiPlatform\Metadata\QueryParameter;
+use ApiPlatform\Doctrine\Orm\Filter\ExactFilter;
+use ApiPlatform\Doctrine\Orm\Filter\PartialSearchFilter;
 use App\Repository\ProgramRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -17,6 +24,19 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * of the global activity types — several programs can offer the same one.
  * See ADR 0030.
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            order: ['name' => 'ASC'],
+            parameters: [
+                'name' => new QueryParameter(filter: new PartialSearchFilter(), property: 'name'),
+                'project' => new QueryParameter(filter: new ExactFilter(), property: 'project'),
+            ],
+        ),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['program:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: ProgramRepository::class)]
 class Program implements Authored
 {
@@ -25,24 +45,30 @@ class Program implements Authored
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['program:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
+    #[Groups(['program:read', 'api:ref'])]
     private string $name = '';
 
     #[ORM\ManyToOne(targetEntity: Project::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: 'Choose a project.')]
+    #[Groups(['program:read'])]
     private ?Project $project = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
+    #[Groups(['program:read'])]
     private ?\DateTimeImmutable $startDate = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
+    #[Groups(['program:read'])]
     private ?\DateTimeImmutable $endDate = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['program:read'])]
     private ?string $suggestedRoles = null;
 
     /**
@@ -51,10 +77,12 @@ class Program implements Authored
      */
     #[ORM\Column(nullable: true)]
     #[Assert\Positive]
+    #[Groups(['program:read'])]
     private ?int $volunteersNeeded = null;
 
     /** Counts and groups, never names — see ADR 0030. */
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['program:read'])]
     private ?string $beneficiariesReached = null;
 
     /** @var Collection<int, ActivityType> */
@@ -62,6 +90,7 @@ class Program implements Authored
     #[ORM\JoinTable(name: 'program_activity_type')]
     #[ORM\OrderBy(['name' => 'ASC'])]
     #[Assert\Count(min: 1, minMessage: 'Choose at least one activity type.')]
+    #[Groups(['program:read'])]
     private Collection $activityTypes;
 
     /**
@@ -73,6 +102,7 @@ class Program implements Authored
     #[ORM\ManyToMany(targetEntity: Skill::class)]
     #[ORM\JoinTable(name: 'program_skill')]
     #[ORM\OrderBy(['name' => 'ASC'])]
+    #[Groups(['program:read'])]
     private Collection $skills;
 
     /**
@@ -84,12 +114,15 @@ class Program implements Authored
     #[ORM\ManyToMany(targetEntity: BeneficiaryGroup::class)]
     #[ORM\JoinTable(name: 'program_beneficiary_group')]
     #[ORM\OrderBy(['name' => 'ASC'])]
+    #[Groups(['program:read'])]
     private Collection $beneficiaryGroups;
 
     #[ORM\Column]
+    #[Groups(['program:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
+    #[Groups(['program:read'])]
     private \DateTimeImmutable $updatedAt;
 
     public function __construct()

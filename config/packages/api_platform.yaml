@@ -1,0 +1,24 @@
+# See ADR 0050.
+api_platform:
+    title: Mikono API
+    version: 1.0.0
+    formats:
+        jsonld: ['application/ld+json']
+    # The entrypoint at /api negotiates against these too.
+    docs_formats:
+        jsonld: ['application/ld+json']
+        jsonopenapi: ['application/vnd.openapi+json']
+    # No browser reaches this API: the OpenAPI JSON stays behind the token.
+    enable_swagger: true
+    enable_swagger_ui: false
+    enable_re_doc: false
+    enable_entrypoint: true
+    defaults:
+        stateless: true
+        # A misspelt filter must not read as "everything" (ADR 0023).
+        strict_query_parameter_validation: true
+        pagination_items_per_page: 30
+        pagination_maximum_items_per_page: 100
+        pagination_client_items_per_page: true
+        cache_headers:
+            vary: ['Authorization']

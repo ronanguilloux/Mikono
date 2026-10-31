@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
+use ApiPlatform\Metadata\QueryParameter;
+use ApiPlatform\Doctrine\Orm\Filter\ExactFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use App\Repository\StayRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -17,6 +24,21 @@ use Symfony\Component\Validator\Constraints as Assert;
  * so a day belongs to at most one of them. Every activity is tied to the stay
  * covering its date, which is how an activity knows its branch.
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            order: ['startDate' => 'DESC'],
+            parameters: [
+                'volunteer' => new QueryParameter(filter: new ExactFilter(), property: 'volunteer'),
+                'branch' => new QueryParameter(filter: new ExactFilter(), property: 'branch'),
+                'startDate' => new QueryParameter(filter: new DateFilter(), property: 'startDate', constraints: new Assert\All(new Assert\Date())),
+                'endDate' => new QueryParameter(filter: new DateFilter(), property: 'endDate', constraints: new Assert\All(new Assert\Date())),
+            ],
+        ),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['stay:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: StayRepository::class)]
 class Stay implements Authored
 {
@@ -25,24 +47,29 @@ class Stay implements Authored
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['stay:read'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Volunteer::class, inversedBy: 'stays')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[Groups(['stay:read'])]
     private ?Volunteer $volunteer = null;
 
     #[ORM\ManyToOne(targetEntity: Branch::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: 'Choose a branch.')]
+    #[Groups(['stay:read'])]
     private ?Branch $branch = null;
 
     #[ORM\Column(type: 'date_immutable')]
     #[Assert\NotNull(message: 'Enter the first day of the stay.')]
+    #[Groups(['stay:read'])]
     private ?\DateTimeImmutable $startDate = null;
 
     #[ORM\Column(type: 'date_immutable')]
     #[Assert\NotNull(message: 'Enter the last day of the stay.')]
     #[Assert\GreaterThanOrEqual(propertyPath: 'startDate', message: 'A stay cannot end before it starts.')]
+    #[Groups(['stay:read'])]
     private ?\DateTimeImmutable $endDate = null;
 
     /**
@@ -53,12 +80,15 @@ class Stay implements Authored
      */
     #[ORM\OneToMany(targetEntity: Achievement::class, mappedBy: 'stay', cascade: ['remove'])]
     #[ORM\OrderBy(['achievedOn' => 'DESC', 'id' => 'DESC'])]
+    #[Groups(['stay:read'])]
     private Collection $achievements;
 
     #[ORM\Column]
+    #[Groups(['stay:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
+    #[Groups(['stay:read'])]
     private \DateTimeImmutable $updatedAt;
 
     public function __construct()

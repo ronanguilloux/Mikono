@@ -132,6 +132,23 @@ implements it.
   (`UserRepository::detachAuthorship()`), and a new `Authored` entity needs
   its label in `UserTimeline::describe()` or `/users/{id}` throws
   ([ADR 0043](docs/adr/0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md)).
+- **The API and MCP server** are read-only and admin-only, behind OAuth
+  ([ADR 0050](docs/adr/0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md)).
+  Exposure is **default-deny**: a field reaches `/api` and `/mcp` only with
+  its resource's `#[Groups]`, and a new resource gets its own group, never a
+  shared one, or API Platform embeds whole related records. `api:ref` is the
+  one label a relation shows. MCP tools in `src/Mcp/` are sub-requests into
+  `/api`, so anything exposed is exposed in one place. A new report goes in
+  `ApiController::report()`, `MikonoTools::REPORT_SCREENS` and the
+  `get_report` description; an entity new
+  to a report goes in `plain()`, or it comes out empty. Every read writes an
+  `api_access` row: the path, never the query string, because a search term
+  is often a name. Malformed input is refused here, not degraded: a new
+  report parameter goes in `ApiController::REPORT_PARAMETERS`, a new date
+  filter needs its `Assert\Date` constraint and a malformed-value test
+  ([ADR 0023](docs/adr/0023-degrade-malformed-query-input-to-a-default.md)). `oauth2_*` tables stay out of the database export by
+  prefix. The consent form keeps `data-turbo="false"`: Turbo's fetch can't
+  follow the redirect to Claude. Local keys: `make oauth_keys`.
 - **Personal data** follows
   [ADR 0034](docs/adr/0034-comply-with-kenyas-data-protection-act-2019.md)
   (Kenya's Data Protection Act 2019). UCESCO top management directed on
@@ -195,11 +212,11 @@ implements it.
   [ADR 0011](docs/adr/0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md).
   A sortable column is one `SORT_MAP` entry, never a flag on the column
   definition.
-- **Query parameters, app-wide:** read through `$request->query->all()`
-  guarded by `is_scalar()`, and `app.request.query.all` in Twig — never
-  `InputBag::get()`/`getInt()` or `app.request.query.get()`, which turn a
-  malformed URL into a 400 or a 500. Every parameter falls back to a
-  default
+- **Query parameters:** malformed input is a regular 4xx, on the screens as
+  on `/api` and `/mcp`, so new code needs no fallback for it. A missing
+  optional parameter uses its default. Validate against an allowlist before
+  anything reaches DQL, and never use `app.request.query.get()` in Twig,
+  which gives a 500. Existing screens degrade until changed
   ([ADR 0023](docs/adr/0023-degrade-malformed-query-input-to-a-default.md)).
 - **A link or GET form that re-renders the current route** with other
   query params (sort, page, page size, filter, tab, range) carries
@@ -256,7 +273,11 @@ implements it.
   by `tests/Integration/Fixture/RosterArchiveTest.php`. Test factories may
   still generate.
 - `tests/Functional/` — WebTestCase tests, one per controller area plus
-  `SecurityControllerTest`.
+  `SecurityControllerTest`. `tests/Functional/Api/` covers `/api`, `/mcp`
+  and OAuth, getting its token through the real login, consent and code
+  exchange. `ApiResourceTest` walks every API route for forbidden field
+  names, so a new resource is leak-checked for free, but a new report path
+  must be added to its list.
 - `tests/Integration/` — KernelTestCase tests for `src/Report/` services,
   plus `tests/Integration/Usage/`, which asserts what `/usage` claims
   against a committed sample log. Everything about the numbers is tested

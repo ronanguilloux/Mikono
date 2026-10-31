@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
+use ApiPlatform\Metadata\QueryParameter;
+use ApiPlatform\Doctrine\Orm\Filter\ExactFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use App\Repository\AchievementRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -20,6 +27,22 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  * reached" — and come as a pair: a number without its unit means nothing,
  * and a unit without its number counts nothing.
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            order: ['achievedOn' => 'DESC'],
+            parameters: [
+                'stay' => new QueryParameter(filter: new ExactFilter(), property: 'stay'),
+                'project' => new QueryParameter(filter: new ExactFilter(), property: 'project'),
+                'volunteer' => new QueryParameter(filter: new ExactFilter(), property: 'stay.volunteer'),
+                'indicator' => new QueryParameter(filter: new ExactFilter(), property: 'indicator'),
+                'achievedOn' => new QueryParameter(filter: new DateFilter(), property: 'achievedOn', constraints: new Assert\All(new Assert\Date())),
+            ],
+        ),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['achievement:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: AchievementRepository::class)]
 class Achievement implements Authored
 {
@@ -28,40 +51,50 @@ class Achievement implements Authored
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['achievement:read'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Stay::class, inversedBy: 'achievements')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[Groups(['achievement:read'])]
     private ?Stay $stay = null;
 
     #[ORM\ManyToOne(targetEntity: Project::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: 'Choose the project it was part of.')]
+    #[Groups(['achievement:read'])]
     private ?Project $project = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank(message: 'Say what was achieved.')]
     #[Assert\Length(max: 255)]
+    #[Groups(['achievement:read', 'api:ref'])]
     private string $title = '';
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['achievement:read'])]
     private ?string $description = null;
 
     #[ORM\Column(type: 'date_immutable')]
     #[Assert\NotNull(message: 'Enter the day it was achieved.')]
+    #[Groups(['achievement:read'])]
     private ?\DateTimeImmutable $achievedOn = null;
 
     #[ORM\ManyToOne(targetEntity: Indicator::class)]
+    #[Groups(['achievement:read'])]
     private ?Indicator $indicator = null;
 
     #[ORM\Column(nullable: true)]
     #[Assert\Positive]
+    #[Groups(['achievement:read'])]
     private ?int $quantity = null;
 
     #[ORM\Column]
+    #[Groups(['achievement:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
+    #[Groups(['achievement:read'])]
     private \DateTimeImmutable $updatedAt;
 
     public function __construct()
@@ -73,6 +106,12 @@ class Achievement implements Authored
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    #[Groups(['achievement:read'])]
+    public function getVolunteer(): ?Volunteer
+    {
+        return $this->stay?->getVolunteer();
     }
 
     public function getStay(): ?Stay

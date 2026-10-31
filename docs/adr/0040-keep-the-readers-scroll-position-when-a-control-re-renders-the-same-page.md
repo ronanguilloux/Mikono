@@ -1,6 +1,6 @@
 # 0040. Keep the reader's scroll position when a control re-renders the same page
 
-Date: 2026-10-03
+Date: 2026-10-31
 
 ## Status
 
@@ -13,9 +13,10 @@ parameters: the sort headers and the Activities mobile sort select
 ([ADR 0011](0011-resolve-list-sorting-in-listpaginator-rather-than-knp-sortable.md)),
 page links and the page-size form
 ([ADR 0009](0009-adopt-knppaginatorbundle-for-list-pagination.md)), the
-search and filter forms, the `/reports/volunteers` tabs and the `/usage` date range.
-State lives in the URL and is read under
-[ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)'s defaults,
+search and filter forms, the `/reports/volunteers` tabs and the `/usage` date
+range.
+State lives in the URL, where a missing parameter takes its default
+([ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)),
 so links stay shareable and every control works without JavaScript.
 
 Turbo Drive treats each of those clicks as an `advance` visit and scrolls
@@ -77,11 +78,12 @@ back to the top.**
 ## Consequences
 
 - **Positive:** sorting, paging, filtering or switching tab keeps the
-  table the reader was working on in view, on every list, `/reports/volunteers` and
-  `/usage`. No new JavaScript and no new dependency: one meta tag and one
-  attribute per control. With JavaScript off nothing changes — a full page
-  load, at the top. State stays in GET parameters, so URLs stay shareable
-  and ADR 0011 and ADR 0023 are untouched.
+  table the reader was working on in view, on every list,
+  `/reports/volunteers` and `/usage`. No new JavaScript and no new
+  dependency: one meta tag and one attribute per control. With JavaScript
+  off nothing changes — a full page load, at the top. State stays in GET
+  parameters, so URLs stay shareable and ADR 0011 and ADR 0023 are
+  untouched.
 - **Negative / trade-offs:**
   - Back no longer steps through in-page states (sort, page, page size,
     filter, tab, range): `replace` overwrites the history entry, so Back

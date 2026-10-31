@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
+use App\Api\VolunteerListProvider;
+use ApiPlatform\Metadata\QueryParameter;
 use App\Enum\Gender;
 use App\Enum\VolunteerStatus;
 use App\Repository\VolunteerRepository;
@@ -12,6 +19,22 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            provider: VolunteerListProvider::class,
+            parameters: [
+                'search' => new QueryParameter(description: 'Part of a full name or email'),
+                'status' => new QueryParameter(description: 'present, upcoming, past or none'),
+                'branch' => new QueryParameter(description: 'Branch id'),
+                'skill' => new QueryParameter(description: 'Skill id'),
+                'source' => new QueryParameter(description: 'Source id'),
+            ],
+        ),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['volunteer:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: VolunteerRepository::class)]
 class Volunteer implements Authored
 {
@@ -20,26 +43,32 @@ class Volunteer implements Authored
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['volunteer:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
+    #[Groups(['volunteer:read'])]
     private string $firstName = '';
 
     // Optional on purpose: the VM's rosters name volunteers by first name
     // only, and requiring a surname would block recording someone she has
     // just met. See ADR 0014.
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $lastName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Email]
+    #[Groups(['volunteer:read'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $phone = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $notes = null;
 
     // The profile fields below are all optional: the VM records people she
@@ -47,22 +76,27 @@ class Volunteer implements Authored
     // The profile page nudges instead. See ADR 0032.
     #[ORM\Column(length: 2, nullable: true)]
     #[Assert\Country]
+    #[Groups(['volunteer:read'])]
     private ?string $nationality = null;
 
     #[ORM\Column(length: 2, nullable: true)]
     #[Assert\Country]
+    #[Groups(['volunteer:read'])]
     private ?string $countryOfResidence = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     #[Assert\LessThan('today', message: 'A date of birth must be in the past.')]
+    #[Groups(['volunteer:read'])]
     private ?\DateTimeImmutable $dateOfBirth = null;
 
     // Sensitive (DPA s.2), for accommodation pairing only; null means not
     // recorded, unlike PreferNotToSay. See ADR 0037.
     #[ORM\Column(length: 20, nullable: true, enumType: Gender::class)]
+    #[Groups(['volunteer:read'])]
     private ?Gender $gender = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $profession = null;
 
     /**
@@ -74,6 +108,7 @@ class Volunteer implements Authored
     #[ORM\ManyToMany(targetEntity: Skill::class)]
     #[ORM\JoinTable(name: 'volunteer_skill')]
     #[ORM\OrderBy(['name' => 'ASC'])]
+    #[Groups(['volunteer:read'])]
     private Collection $skills;
 
     /**
@@ -85,23 +120,29 @@ class Volunteer implements Authored
     #[ORM\ManyToMany(targetEntity: Source::class)]
     #[ORM\JoinTable(name: 'volunteer_source')]
     #[ORM\OrderBy(['name' => 'ASC'])]
+    #[Groups(['volunteer:read'])]
     private Collection $sources;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $interests = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $emergencyContacts = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $accommodationPreference = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $pickupAirport = null;
 
     // Free text until someone needs to list a supervisor's volunteers; it may
     // become a User or an Escort then. See ADR 0032.
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $supervisor = null;
 
     // Only ever written through PassportNumberCipher, never from a form or a
@@ -110,61 +151,78 @@ class Volunteer implements Authored
     private ?string $passportNumberCiphertext = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?\DateTimeImmutable $passportExpiresOn = null;
 
     // A pointer to the folder holding their documents; the app never fetches
     // it. See ADR 0046.
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Url(requireTld: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $driveFolderUrl = null;
 
     // The intro form's other answers, imported from the legacy workbook and
     // editable since. Text, not varchar: some answers run to pages.
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $instagram = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $facebook = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $twitter = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $tiktok = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $linkedin = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $hobbies = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $freeTimeActivities = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $motivation = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $skillsDescription = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $employer = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $education = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $favouriteFood = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $accommodationAddress = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?bool $experienceWithChildren = null;
 
     // Every legacy-workbook value that had no typed home (roster lines, partial
     // dates, unmatched text), kept verbatim so the import loses nothing.
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['volunteer:read'])]
     private ?string $legacyRecord = null;
 
     // Owning side, so Doctrine loads it lazily and list pages never read the
@@ -181,12 +239,15 @@ class Volunteer implements Authored
      */
     #[ORM\OneToMany(targetEntity: Stay::class, mappedBy: 'volunteer', cascade: ['remove'])]
     #[ORM\OrderBy(['startDate' => 'DESC'])]
+    #[Groups(['volunteer:read'])]
     private Collection $stays;
 
     #[ORM\Column]
+    #[Groups(['volunteer:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
+    #[Groups(['volunteer:read'])]
     private \DateTimeImmutable $updatedAt;
 
     public function __construct()
@@ -228,6 +289,7 @@ class Volunteer implements Authored
         return $this;
     }
 
+    #[Groups(['volunteer:read', 'api:ref'])]
     public function getFullName(): string
     {
         return trim($this->firstName . ' ' . ($this->lastName ?? ''));
@@ -553,6 +615,20 @@ class Volunteer implements Authored
      * starting after it (even with past stays behind it), then any stay.
      * VolunteerRepository ranks the same rule in SQL. See ADR 0026.
      */
+    /** getStatus() as of today, for the API: a derived value, never a column. */
+    #[Groups(['volunteer:read'])]
+    #[SerializedName('status')]
+    public function getCurrentStatus(): VolunteerStatus
+    {
+        return $this->getStatus(new \DateTimeImmutable('today'));
+    }
+
+    #[Groups(['volunteer:read'])]
+    public function getHasPhoto(): bool
+    {
+        return null !== $this->photo;
+    }
+
     public function getStatus(\DateTimeImmutable $today): VolunteerStatus
     {
         if (null !== $this->getStayCovering($today)) {

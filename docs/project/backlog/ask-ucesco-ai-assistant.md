@@ -40,7 +40,10 @@ An ADR decides, before any code:
 
 ## Notes & links
 
-**In priority: explore implementing an API and / or an MCP server to that these questions would be answered using an agent.
+**The API and MCP server now exist**
+([ADR 0050](../../adr/0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md)):
+an admin can ask Claude these questions directly, and each record carries a
+link back. What remains here is an assistant for other staff.
 
 **Most of the example questions cannot be answered from today's data. That
 is the finding, not a footnote:**

@@ -6,6 +6,13 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-10-31 — Read-only API and MCP server
+
+Decision and detail in
+[ADR 0050](../adr/0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md).
+`symfony/mime` went to 8.1.10 for CVE-2026-45070, which was failing the
+audit in `composer quality`.
+
 ## 2026-10-19 — Home reminds the VM of a stay about to end
 
 The home page's Reminders card now lists each stay ending soon, from two

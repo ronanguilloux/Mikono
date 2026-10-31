@@ -55,11 +55,11 @@ drafts and maintains these.
 | [0013](0013-record-every-escort-on-an-activity.md) | Record every escort on an activity, not just one | Accepted |
 | [0014](0014-make-a-volunteers-last-name-optional.md) | Make a volunteer's last name optional | Accepted |
 | [0016](0016-admit-nodejs-as-a-test-dependency-not-as-application-code.md) | Node.js as a test dependency and ancillary tool, never as application code | Accepted |
-| [0017](0017-host-production-on-gandicloud-vps-in-france.md) | Host UAT on GandiCloud VPS in France | Accepted |
+| [0017](0017-host-production-on-gandicloud-vps-in-france.md) | Host UAT on GandiCloud VPS in France | Proposed |
 | [0020](0020-keep-sessions-on-the-database-volume-in-files.md) | Keep sessions on the database volume, in files | Accepted |
 | [0021](0021-read-usage-from-an-in-app-usage-screen-over-the-caddy-access-log.md) | Usage from the Caddy access log, read in an in-app `/usage` screen | Accepted |
 | [0022](0022-split-next-steps-into-backlog-cards-and-a-thin-index.md) | Open work as per-item backlog cards behind a thin ordered index | Accepted |
-| [0023](0023-degrade-malformed-query-input-to-a-default.md) | Degrade malformed query input to a default, never to an error | Accepted |
+| [0023](0023-degrade-malformed-query-input-to-a-default.md) | Treat malformed query input as a regular error | Accepted |
 | [0024](0024-treat-dates-as-calendar-days-in-nairobi-time.md) | Treat dates as calendar days in Nairobi time | Accepted |
 | [0025](0025-model-ucesco-branches-as-a-standalone-reference-entity-seeded-by-migration.md) | Model UCESCO branches as a standalone reference entity seeded by migration | Accepted |
 | [0026](0026-attach-volunteers-to-branches-through-dated-stays-and-derive-active-from-them.md) | Attach volunteers to branches through dated stays and derive their status from them | Accepted |
@@ -70,22 +70,23 @@ drafts and maintains these.
 | [0031](0031-show-production-errors-on-an-in-app-admin-screen-over-a-rotating-json-error-log.md) | Show production errors on an in-app admin screen over a rotating JSON error log | Proposed |
 | [0032](0032-store-volunteer-profile-fields-as-optional-and-photos-as-re-encoded-jpeg-blobs-in-sqlite.md) | Store volunteer profile fields as optional and photos as re-encoded JPEG blobs in SQLite | Accepted |
 | [0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md) | Encrypt passport numbers at rest with a runtime sodium key | Accepted |
-| [0034](0034-comply-with-kenyas-data-protection-act-2019.md) | Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor | Accepted |
-| [0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md) | Host production in Kenya, with a provider that commits in writing to the Data Protection Act 2019 | Accepted |
-| [0036](0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md) | Manage skills as a seeded list shared by volunteers and programs | Accepted |
-| [0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md) | Record a volunteer's gender for accommodation pairing | Accepted |
-| [0038](0038-record-achievements-on-a-volunteers-stay.md) | Record achievements on a volunteer's stay | Accepted |
-| [0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md) | Export the whole database as an admin-only zip of per-table CSVs | Accepted |
+| [0034](0034-comply-with-kenyas-data-protection-act-2019.md) | Comply with Kenya's Data Protection Act 2019 across every personal-data field, store and processor | Proposed |
+| [0035](0035-host-production-on-a-compute-engine-e2-small-in-johannesburg.md) | Host production in Kenya, with a provider that commits in writing to the Data Protection Act 2019 | Proposed |
+| [0036](0036-manage-skills-as-a-seeded-list-shared-by-volunteers-and-programs.md) | Manage skills as a seeded list shared by volunteers and programs | Proposed |
+| [0037](0037-record-a-volunteers-gender-for-accommodation-pairing.md) | Record a volunteer's gender for accommodation pairing | Proposed |
+| [0038](0038-record-achievements-on-a-volunteers-stay.md) | Record achievements on a volunteer's stay | Proposed |
+| [0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md) | Export the whole database as an admin-only zip of per-table CSVs | Proposed |
 | [0040](0040-keep-the-readers-scroll-position-when-a-control-re-renders-the-same-page.md) | Keep the reader's scroll position when a control re-renders the same page | Accepted |
-| [0041](0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md) | Record where each volunteer came from as a seeded list of recruitment sources | Accepted |
-| [0042](0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md) | Match available volunteers to programs by skills or past activity type at their branch | Accepted |
-| [0043](0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md) | Record who added and last edited volunteers, stays, achievements, activities, projects and programs | Accepted |
-| [0044](0044-allow-syncing-production-database-to-local-development.md) | Allow syncing the production database to local development environments using a dedicated script | Accepted |
+| [0041](0041-record-where-each-volunteer-came-from-as-a-seeded-list-of-recruitment-sources.md) | Record where each volunteer came from as a seeded list of recruitment sources | Proposed |
+| [0042](0042-match-available-volunteers-to-programs-by-skills-or-past-activity-type-at-their-branch.md) | Match available volunteers to programs by skills or past activity type at their branch | Proposed |
+| [0043](0043-record-who-added-and-last-edited-volunteers-stays-achievements-activities-projects-and-programs.md) | Record who added and last edited volunteers, stays, achievements, activities, projects and programs | Proposed |
+| [0044](0044-allow-syncing-production-database-to-local-development.md) | Allow syncing the production database to local development environments using a dedicated script | Proposed |
 | [0045](0045-adopt-a-makefile-as-the-unified-entry-point-for-developer-commands.md) | Adopt a Makefile as the unified entry point for developer commands | Accepted |
-| [0046](0046-link-each-volunteer-to-their-google-drive-folder.md) | Link each volunteer to their Google Drive folder | Accepted |
+| [0046](0046-link-each-volunteer-to-their-google-drive-folder.md) | Link each volunteer to their Google Drive folder | Proposed |
 | [0047](0047-count-achievements-with-an-optional-indicator-and-quantity.md) | Count achievements with an optional indicator and quantity | Accepted |
 | [0048](0048-draw-charts-as-server-rendered-html-and-css-from-twig-components.md) | Draw charts as server-rendered HTML and CSS from Twig components, with two client-side exceptions | Accepted |
 | [0049](0049-record-branch-capacity-and-program-volunteers-needed-as-optional-targets.md) | Record branch capacity and program volunteers needed as optional targets | Accepted |
+| [0050](0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md) | Expose a read-only API and MCP server to Claude behind OAuth, admin only | Proposed |
 
 Missing numbers were merged on 2026-09-13: 0015 into
 [0012](0012-seed-fixtures-from-the-real-whatsapp-roster-archive.md), 0018
