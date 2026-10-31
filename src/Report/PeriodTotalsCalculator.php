@@ -27,11 +27,11 @@ use App\Repository\StayRepository;
  * @phpstan-type Totals array{present: int, arrived: int, engaged: int}
  * @phpstan-type PeriodRow array{period: \DateTimeImmutable, present: int, arrived: int, engaged: int, presentVsPrevious: ?int, presentVsLastYear: ?int, arrivedVsPrevious: ?int, arrivedVsLastYear: ?int, engagedVsPrevious: ?int, engagedVsLastYear: ?int}
  */
-final class PeriodTotalsCalculator
+final readonly class PeriodTotalsCalculator
 {
     public function __construct(
-        private readonly StayRepository $stays,
-        private readonly ActivityRepository $activities,
+        private StayRepository $stays,
+        private ActivityRepository $activities,
     ) {}
 
     /**

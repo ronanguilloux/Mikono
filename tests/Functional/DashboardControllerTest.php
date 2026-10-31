@@ -50,7 +50,7 @@ final class DashboardControllerTest extends WebTestCase
     public function offersTomorrowsRosterAsACopyableWhatsAppMessage(): void
     {
         $client = static::createClient();
-        $tomorrow = (new \DateTimeImmutable('today'))->modify('+1 day');
+        $tomorrow = new \DateTimeImmutable('today')->modify('+1 day');
         ActivityFactory::createOne([
             'date' => $tomorrow,
             'volunteer' => VolunteerFactory::createOne(['firstName' => 'Grace', 'lastName' => 'Wanjiru']),
@@ -85,7 +85,7 @@ final class DashboardControllerTest extends WebTestCase
         $client = static::createClient();
         $project = ProjectFactory::createOne(['name' => 'Mtwapa Youth Centre']);
         ActivityFactory::createOne([
-            'date' => (new \DateTimeImmutable('today'))->modify('-58 days'),
+            'date' => new \DateTimeImmutable('today')->modify('-58 days'),
             'project' => $project,
         ]);
 
@@ -125,7 +125,7 @@ final class DashboardControllerTest extends WebTestCase
         // appearing has usually finished, not lapsed.
         $client = static::createClient();
         ActivityFactory::createOne([
-            'date' => (new \DateTimeImmutable('today'))->modify('-70 days'),
+            'date' => new \DateTimeImmutable('today')->modify('-70 days'),
             'volunteer' => VolunteerFactory::createOne(['firstName' => 'Long', 'lastName' => 'Gone']),
         ]);
 
@@ -197,7 +197,7 @@ final class DashboardControllerTest extends WebTestCase
         $client = static::createClient();
         $volunteer = VolunteerFactory::createOne([
             'firstName' => 'Nadia',
-            'dateOfBirth' => (new \DateTimeImmutable('today'))->modify('-30 years'),
+            'dateOfBirth' => new \DateTimeImmutable('today')->modify('-30 years'),
         ]);
 
         $client->loginUser(UserFactory::createOne());
@@ -216,7 +216,7 @@ final class DashboardControllerTest extends WebTestCase
     public function hidesTheRemindersPanelWhenNothingIsDue(): void
     {
         $client = static::createClient();
-        VolunteerFactory::createOne(['dateOfBirth' => (new \DateTimeImmutable('today'))->modify('-30 years +4 days')]);
+        VolunteerFactory::createOne(['dateOfBirth' => new \DateTimeImmutable('today')->modify('-30 years +4 days')]);
         VolunteerFactory::createOne(['dateOfBirth' => null]);
 
         $client->loginUser(UserFactory::createOne());
@@ -231,7 +231,7 @@ final class DashboardControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $volunteer = VolunteerFactory::new()->withoutStay()->create(['firstName' => 'Amani', 'lastName' => 'Otieno']);
-        $tomorrow = (new \DateTimeImmutable('today'))->modify('+1 day');
+        $tomorrow = new \DateTimeImmutable('today')->modify('+1 day');
         StayFactory::createOne(['volunteer' => $volunteer, 'startDate' => $tomorrow, 'endDate' => $tomorrow->modify('+2 weeks')]);
 
         $client->loginUser(UserFactory::createOne());
@@ -299,7 +299,7 @@ final class DashboardControllerTest extends WebTestCase
             'stay' => StayFactory::new(['volunteer' => $volunteer]),
             'project' => $project,
             'title' => 'Building a Library',
-            'achievedOn' => (new \DateTimeImmutable('today'))->modify('-1 year'),
+            'achievedOn' => new \DateTimeImmutable('today')->modify('-1 year'),
         ]);
 
         $client->loginUser(UserFactory::createOne());

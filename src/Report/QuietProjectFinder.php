@@ -22,12 +22,12 @@ use App\Repository\ProjectRepository;
  * to hide. Its `days` is only its age, for display: `createdAt` is when it was
  * entered in the app, not when the project started.
  */
-final class QuietProjectFinder
+final readonly class QuietProjectFinder
 {
     public const int WARN_AFTER_DAYS = 30;
     public const int CRITICAL_AFTER_DAYS = 50;
 
-    public function __construct(private readonly ProjectRepository $projects) {}
+    public function __construct(private ProjectRepository $projects) {}
 
     /** @return list<QuietProject> */
     public function find(\DateTimeImmutable $today): array

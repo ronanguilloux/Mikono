@@ -405,7 +405,7 @@ final class ListPaginatorTest extends KernelTestCase
         self::assertInstanceOf(PaginatorInterface::class, $knpPaginator);
 
         $queryBuilder = $volunteers->createOrderedByNameQueryBuilder();
-        (new ListPaginator($knpPaginator))->applySort($queryBuilder, new Request($query), self::SORT_MAP);
+        new ListPaginator($knpPaginator)->applySort($queryBuilder, new Request($query), self::SORT_MAP);
 
         return $queryBuilder->getDQL();
     }

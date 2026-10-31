@@ -215,7 +215,7 @@ final class ActivityControllerTest extends WebTestCase
         $this->checkVolunteers($crawler, [$volunteer]);
 
         $form = $crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'batch_activity_form[date]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'batch_activity_form[program]' => (string) $program->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'full_day',
@@ -299,7 +299,7 @@ final class ActivityControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/activities/new');
         $this->checkVolunteers($crawler, [$volunteer]);
         $form = $crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'batch_activity_form[date]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'batch_activity_form[program]' => (string) $program->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
@@ -397,7 +397,7 @@ final class ActivityControllerTest extends WebTestCase
         $this->checkVolunteers($crawler, [$volunteerA, $volunteerB]);
 
         $form = $crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'batch_activity_form[date]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'batch_activity_form[program]' => (string) $program->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
@@ -433,7 +433,7 @@ final class ActivityControllerTest extends WebTestCase
         $this->checkVolunteers($crawler, [$volunteer]);
 
         $form = $crawler->selectButton('Save and add another')->form([
-            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'batch_activity_form[date]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'batch_activity_form[program]' => (string) $program->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
@@ -454,7 +454,7 @@ final class ActivityControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/activities/new');
 
         $form = $crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'batch_activity_form[date]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'batch_activity_form[program]' => (string) $program->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
@@ -478,7 +478,7 @@ final class ActivityControllerTest extends WebTestCase
         $this->checkVolunteers($crawler, [$volunteer]);
 
         $form = $crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'batch_activity_form[date]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'batch_activity_form[program]' => (string) $program->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'other',
@@ -530,7 +530,7 @@ final class ActivityControllerTest extends WebTestCase
         $this->checkVolunteers($crawler, [$gone]);
 
         $client->submit($crawler->selectButton('Save')->form([
-            'batch_activity_form[date]' => (new \DateTimeImmutable('today'))->modify('-5 months -3 days')->format('Y-m-d'),
+            'batch_activity_form[date]' => new \DateTimeImmutable('today')->modify('-5 months -3 days')->format('Y-m-d'),
             'batch_activity_form[program]' => (string) $program->getId(),
             'batch_activity_form[activityType]' => (string) $activityType->getId(),
             'batch_activity_form[duration]' => 'half_day',
@@ -1192,7 +1192,7 @@ final class ActivityControllerTest extends WebTestCase
         $crawler = $client->request('GET', sprintf('/activities/%d/edit', $activity->getId()));
 
         $client->submit($crawler->selectButton('Save')->form([
-            'activity_form[date]' => (new \DateTimeImmutable('today'))->modify('+6 months')->format('Y-m-d'),
+            'activity_form[date]' => new \DateTimeImmutable('today')->modify('+6 months')->format('Y-m-d'),
         ]));
 
         self::assertResponseStatusCodeSame(422);

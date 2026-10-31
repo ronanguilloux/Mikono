@@ -39,7 +39,7 @@ final class AccessLogReaderTest extends KernelTestCase
         $router = self::getContainer()->get('router');
         self::assertInstanceOf(RouterInterface::class, $router);
 
-        return (new AccessLogReader($router, __DIR__ . '/' . $file))->read($range);
+        return new AccessLogReader($router, __DIR__ . '/' . $file)->read($range);
     }
 
     /** Explicit dates, never a preset: a preset-based expectation would rot by tomorrow. */

@@ -82,7 +82,7 @@ final class AchievementControllerTest extends WebTestCase
         $crawler = $client->request('GET', "/stays/{$stay->getId()}/achievements/new");
         $client->submit($crawler->selectButton('Save')->form([
             'achievement_form[title]' => 'Building a library',
-            'achievement_form[achievedOn]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'achievement_form[achievedOn]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'achievement_form[project]' => (string) $project->getId(),
         ]));
 
@@ -100,7 +100,7 @@ final class AchievementControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', "/stays/{$stay->getId()}/achievements/new");
         $client->submit($crawler->selectButton('Save')->form([
-            'achievement_form[achievedOn]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'achievement_form[achievedOn]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'achievement_form[project]' => (string) $project->getId(),
         ]));
 
@@ -120,7 +120,7 @@ final class AchievementControllerTest extends WebTestCase
         $crawler = $client->request('GET', "/stays/{$stay->getId()}/achievements/new");
         $client->submit($crawler->selectButton('Save')->form([
             'achievement_form[title]' => 'Reading club',
-            'achievement_form[achievedOn]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'achievement_form[achievedOn]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'achievement_form[project]' => (string) $project->getId(),
             'achievement_form[quantity]' => '1200',
             'achievement_form[indicator]' => (string) $children->getId(),
@@ -154,7 +154,7 @@ final class AchievementControllerTest extends WebTestCase
         $crawler = $client->request('GET', "/stays/{$stay->getId()}/achievements/new");
         $client->submit($crawler->selectButton('Save')->form([
             'achievement_form[title]' => 'Reading club',
-            'achievement_form[achievedOn]' => (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            'achievement_form[achievedOn]' => new \DateTimeImmutable('today')->format('Y-m-d'),
             'achievement_form[project]' => (string) $project->getId(),
             'achievement_form[quantity]' => $quantity,
             'achievement_form[indicator]' => null === $indicator ? '' : (string) $children->getId(),

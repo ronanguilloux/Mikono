@@ -16,13 +16,13 @@ use App\Repository\ActivityRepository;
  * Every activity counts as one day whatever its duration: the VM counts days
  * given, not hours spent, and a half day is still a day on site.
  */
-final class VolunteerImpactCalculator
+final readonly class VolunteerImpactCalculator
 {
     /** Categorical colour slots (twig.yaml's chart_palette); beyond this, the smallest fold into "Other". */
     public const int MAX_SHARES = 8;
 
     public function __construct(
-        private readonly ActivityRepository $activities,
+        private ActivityRepository $activities,
     ) {}
 
     /** @param Activity[] $activities */

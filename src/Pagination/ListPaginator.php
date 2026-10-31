@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
  * non-technical user working from bookmarked URLs — landing on the last page
  * beats a dead end, and none of these params are worth an error screen.
  */
-final class ListPaginator
+final readonly class ListPaginator
 {
     public const int DEFAULT_PER_PAGE = 25;
 
@@ -53,7 +53,7 @@ final class ListPaginator
      */
     private const array SORTING_OFF = [PaginatorInterface::SORT_FIELD_PARAMETER_NAME => null];
 
-    public function __construct(private readonly PaginatorInterface $paginator) {}
+    public function __construct(private PaginatorInterface $paginator) {}
 
     /**
      * @template T of object

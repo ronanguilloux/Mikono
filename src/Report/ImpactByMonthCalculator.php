@@ -14,12 +14,12 @@ use App\Repository\AchievementRepository;
  *
  * @phpstan-type IndicatorMonths array{indicator: string, total: int, months: list<array{month: \DateTimeImmutable, total: int}>}
  */
-final class ImpactByMonthCalculator
+final readonly class ImpactByMonthCalculator
 {
     public const int MONTHS = 12;
 
     public function __construct(
-        private readonly AchievementRepository $achievements,
+        private AchievementRepository $achievements,
     ) {}
 
     /**

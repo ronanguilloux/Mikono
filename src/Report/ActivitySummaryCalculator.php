@@ -15,11 +15,11 @@ use App\Repository\SourceRepository;
  * once, in ActivityDuration::toDays(), not duplicated as SQL that would
  * need to be kept in sync per database dialect.
  */
-final class ActivitySummaryCalculator
+final readonly class ActivitySummaryCalculator
 {
     public function __construct(
-        private readonly ActivityRepository $activities,
-        private readonly SourceRepository $sources,
+        private ActivityRepository $activities,
+        private SourceRepository $sources,
     ) {}
 
     /**

@@ -28,12 +28,12 @@ use App\Repository\StayRepository;
  * ponytail: programs × volunteers in a loop, a few hundred rows; push it into
  * DQL if it ever shows on /usage timings.
  */
-final class ProgramMatchFinder
+final readonly class ProgramMatchFinder
 {
     public function __construct(
-        private readonly ProgramRepository $programs,
-        private readonly StayRepository $stays,
-        private readonly ActivityRepository $activities,
+        private ProgramRepository $programs,
+        private StayRepository $stays,
+        private ActivityRepository $activities,
     ) {}
 
     /**
@@ -140,7 +140,7 @@ final class ProgramMatchFinder
             }
 
             $held = $volunteer->getSkills();
-            $matched = array_values(array_filter($needed, static fn(Skill $skill): bool => $held->contains($skill)));
+            $matched = array_values(array_filter($needed, $held->contains(...)));
 
             $done = [];
             $inProgram = 0;
@@ -182,15 +182,10 @@ final class ProgramMatchFinder
             count($a->matchedSkills), $a->experienceCount(), $a->present, $b->volunteer->getLastName() ?? '', $b->volunteer->getFirstName(),
         ]);
 
-        $uncovered = array_values(array_filter($needed, static function (Skill $skill) use ($candidates): bool {
-            foreach ($candidates as $candidate) {
-                if (in_array($skill, $candidate->matchedSkills, true)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }));
+        $uncovered = array_values(array_filter($needed, static fn(Skill $skill): bool => array_all(
+            $candidates,
+            static fn(VolunteerMatch $candidate): bool => !in_array($skill, $candidate->matchedSkills, true),
+        )));
 
         $start = $program->getStartDate();
 

@@ -17,13 +17,13 @@ use App\Repository\StayRepository;
  *
  * @phpstan-type BranchWeeks array{branch: Branch, capacity: ?int, weeks: list<array{start: \DateTimeImmutable, peak: int}>, firstOver: ?\DateTimeImmutable}
  */
-final class OccupancyLookAhead
+final readonly class OccupancyLookAhead
 {
     public const int WEEKS = 12;
 
     public function __construct(
-        private readonly BranchRepository $branches,
-        private readonly StayRepository $stays,
+        private BranchRepository $branches,
+        private StayRepository $stays,
     ) {}
 
     /**

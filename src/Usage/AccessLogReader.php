@@ -24,7 +24,7 @@ use Symfony\Component\Routing\RouterInterface;
  * @phpstan-type UsageRow array{path: string, method: string, views: int, rejected: int, clientErrors: int, serverErrors: int, p95: float, mobile: int, lastSeen: ?\DateTimeImmutable}
  * @phpstan-type UsageReport array{exists: bool, rows: list<UsageRow>, views: int, rejected: int, clientErrors: int, serverErrors: int, mobile: int, prefetched: int, unrouted: int, since: ?\DateTimeImmutable, until: ?\DateTimeImmutable}
  */
-final class AccessLogReader
+final readonly class AccessLogReader
 {
     /**
      * Routes that are plumbing rather than screens, so listing them would only
@@ -35,12 +35,12 @@ final class AccessLogReader
     private const array NOT_A_SCREEN = ['usage_event'];
 
     public function __construct(
-        private readonly RouterInterface $router,
+        private RouterInterface $router,
         // %kernel.logs_dir% is /app/var/log, the log_data volume compose.yaml
         // mounts. Injected as a string rather than read from a constant so the
         // integration test can point this at a fixture.
         #[Autowire('%kernel.logs_dir%/access.log')]
-        private readonly string $path,
+        private string $path,
     ) {}
 
     /**
@@ -357,7 +357,7 @@ final class AccessLogReader
             return null;
         }
 
-        return (new \DateTimeImmutable('@' . (int) $value))
+        return new \DateTimeImmutable('@' . (int) $value)
             ->setTimezone(new \DateTimeZone(date_default_timezone_get()));
     }
 

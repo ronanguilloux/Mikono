@@ -28,7 +28,7 @@ final class VolunteerStatusTest extends TestCase
     {
         $volunteer = new Volunteer();
         foreach ($stays as [$start, $end]) {
-            $volunteer->addStay((new Stay())
+            $volunteer->addStay(new Stay()
                 ->setStartDate(new \DateTimeImmutable($start))
                 ->setEndDate(new \DateTimeImmutable($end)));
         }

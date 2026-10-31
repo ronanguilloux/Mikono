@@ -13,11 +13,11 @@ use App\Repository\StayRepository;
  * volunteer's previous stay — a branch change is an arrival at the new one.
  * Sorted by branch, then days away, for the dashboard's grouping.
  */
-final class ArrivalReminderFinder
+final readonly class ArrivalReminderFinder
 {
     public const int DAYS_AHEAD = 7;
 
-    public function __construct(private readonly StayRepository $stays) {}
+    public function __construct(private StayRepository $stays) {}
 
     /** @return list<ArrivalReminder> */
     public function find(\DateTimeImmutable $today): array
