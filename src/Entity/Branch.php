@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
 use App\Repository\BranchRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -13,29 +17,42 @@ use Symfony\Component\Validator\Constraints as Assert;
  * linked to any other entity yet; the five real rows are seeded by the
  * migration that creates the table, not by the fixtures.
  */
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['branch:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: BranchRepository::class)]
 class Branch
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['branch:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
+    #[Groups(['branch:read', 'api:ref'])]
     private string $name = '';
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
+    #[Groups(['branch:read'])]
     private string $physicalLocation = '';
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['branch:read'])]
     private ?string $projectZones = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['branch:read'])]
     private ?string $programFocus = null;
 
     #[ORM\Column]
+    #[Groups(['branch:read'])]
     private bool $isActive = true;
 
     /**
@@ -44,12 +61,15 @@ class Branch
      */
     #[ORM\Column(nullable: true)]
     #[Assert\Positive]
+    #[Groups(['branch:read'])]
     private ?int $capacity = null;
 
     #[ORM\Column]
+    #[Groups(['branch:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
+    #[Groups(['branch:read'])]
     private \DateTimeImmutable $updatedAt;
 
     public function __construct()

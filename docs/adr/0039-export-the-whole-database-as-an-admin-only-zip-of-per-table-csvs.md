@@ -1,10 +1,10 @@
 # 0039. Export the whole database as an admin-only zip of per-table CSVs
 
-Date: 2026-09-28
+Date: 2026-10-31
 
 ## Status
 
-Accepted
+Proposed
 
 ## Context
 
@@ -40,15 +40,18 @@ a copy people can open in a spreadsheet.
 - **What is left out, whatever the data:**
   - the `doctrine_migration_versions` table: bookkeeping, not data;
   - the `volunteer_photo` table: uploaded files are out of scope for now;
+  - every `oauth2_*` table, by prefix: client secrets and tokens, in however
+    many tables the bundle keeps them
+    ([ADR 0050](0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md));
   - `user.password`: password hashes;
   - `volunteer.passport_number_ciphertext`: useless without the runtime
     key, which never travels with a copy
     ([ADR 0033](0033-encrypt-passport-numbers-at-rest-with-a-runtime-sodium-key.md)).
 
   Every other table and column goes in, including gender, emergency
-  contacts, `login_attempt` and `usage_event`. A new table joins the
-  archive automatically; a new secret or file column must be added to
-  `App\Export\DatabaseExport`'s drop lists in the same change.
+  contacts, `login_attempt`, `usage_event` and `api_access`. A new table
+  joins the archive automatically; a new secret or file column must be
+  added to `App\Export\DatabaseExport`'s drop lists in the same change.
 - **Format.** Raw column values, CSV only, written by OpenSpout with its
   UTF-8 BOM and the same formula guard as the per-list CSVs (a leading
   apostrophe before `=`, `+`, `-`, `@`, tab or carriage return).

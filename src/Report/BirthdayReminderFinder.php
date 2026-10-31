@@ -14,12 +14,12 @@ use App\Repository\VolunteerRepository;
  *
  * A 29 February birthday falls on 28 February in a non-leap year.
  */
-final class BirthdayReminderFinder
+final readonly class BirthdayReminderFinder
 {
     /** @var list<int> */
     public const array DAYS_AHEAD = [0, 1, 2, 3];
 
-    public function __construct(private readonly VolunteerRepository $volunteers) {}
+    public function __construct(private VolunteerRepository $volunteers) {}
 
     /** @return list<BirthdayReminder> */
     public function find(\DateTimeImmutable $today): array

@@ -1,6 +1,6 @@
 # 0029. Export every list view to CSV or XLSX with OpenSpout, open to all signed-in staff
 
-Date: 2026-09-16
+Date: 2026-10-31
 
 ## Status
 
@@ -28,8 +28,8 @@ The forces:
 - **Every account is internal staff today**: the Volunteer Manager and
   their assistants, if any. Anyone who can read a list can already copy
   it.
-- **The export URL is still a query-string URL**, so it must degrade
-  like every other one
+- **The export URL is still a query-string URL**, so malformed input
+  gets the same answer as on its list
   ([ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)).
 
 ## Decision
@@ -79,7 +79,7 @@ has a `HIDDEN` select, so they use `getResult()`. That is bounded like the
 existing `perPage=all`.
 
 **5. The export reads its parameters through the list's own readers**, so
-a malformed parameter falls back to its default exactly as on the list
+a malformed parameter gets exactly the answer it gets on the list
 ([ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)).
 
 **6. OpenSpout (`openspout/openspout` ^5.11)** writes both formats one row
@@ -102,7 +102,8 @@ can view. `/users/export` is admin-only because `UserController` carries
 `#[IsGranted('ROLE_ADMIN')]` at class level. There is no separate export
 gate.
 
-`/reports/volunteers` and `/usage` have no export: they show aggregates, not lists.
+`/reports/volunteers` and `/usage` have no export: they show aggregates, not
+lists.
 The admin-only copy of every table is a separate decision
 ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)).
 

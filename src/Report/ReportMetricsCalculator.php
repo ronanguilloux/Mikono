@@ -20,12 +20,12 @@ use App\Repository\VolunteerRepository;
  * per figure would be more code to keep mutation-tested for no gain.
  * Statuses included: findAllOrderedByName() fetches the stays they read.
  */
-final class ReportMetricsCalculator
+final readonly class ReportMetricsCalculator
 {
     public function __construct(
-        private readonly VolunteerRepository $volunteers,
-        private readonly ProjectRepository $projects,
-        private readonly ActivityRepository $activities,
+        private VolunteerRepository $volunteers,
+        private ProjectRepository $projects,
+        private ActivityRepository $activities,
     ) {}
 
     public function calculate(\DateTimeImmutable $today): ReportMetrics

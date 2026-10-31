@@ -541,7 +541,7 @@ final class ReportControllerTest extends WebTestCase
         foreach (['/reports/volunteers?tab=source&year[]=2025', '/reports/volunteers?tab=source&year=abc', '/reports/volunteers?tab=source&year=1990'] as $url) {
             $crawler = $client->request('GET', $url);
             self::assertResponseIsSuccessful();
-            self::assertSame((new \DateTimeImmutable('today'))->format('Y'), trim($crawler->filter('#report-year option[selected]')->text()), $url);
+            self::assertSame(new \DateTimeImmutable('today')->format('Y'), trim($crawler->filter('#report-year option[selected]')->text()), $url);
         }
     }
 

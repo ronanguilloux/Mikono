@@ -43,7 +43,9 @@ final readonly class DatabaseExport
         $csvPaths = [];
 
         foreach ($schema->listTableNames() as $table) {
-            if (\in_array($table, self::SKIPPED_TABLES, true)) {
+            // By prefix: client secrets and tokens, in however many tables the
+            // OAuth bundle keeps them (ADR 0050).
+            if (\in_array($table, self::SKIPPED_TABLES, true) || str_starts_with($table, 'oauth2_')) {
                 continue;
             }
 

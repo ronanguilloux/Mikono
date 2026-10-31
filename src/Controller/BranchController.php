@@ -175,10 +175,10 @@ final class BranchController extends AbstractController
         $today = new \DateTimeImmutable('today');
         $url = $this->generateUrl(...);
 
-        $occupancy = array_values(array_filter(
+        $occupancy = array_first(array_filter(
             $this->occupancy->calculate($today),
             static fn(array $row): bool => $row['branch'] === $branch,
-        ))[0] ?? null;
+        ));
 
         // Newest first and running on to the last booked stay: drop the
         // future months, then the first twelve are the last twelve.

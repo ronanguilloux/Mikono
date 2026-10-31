@@ -1,6 +1,6 @@
 # 4. Test with PHPUnit, PHPat and scoped Infection, and exercise the app with a route walk and a monkey horde
 
-Date: 2026-09-13
+Date: 2026-10-31
 
 ## Status
 
@@ -69,8 +69,8 @@ coverage and a gremlins.js horde for sequences.** Real-browser tooling is
   cost.
 - **Negative / trade-offs:** most CRUD code has no mutation or architecture
   coverage — revisit if real domain logic grows beyond `src/Report/`. The
-  route walk requests clean URLs only, so it proves screens render, not that
-  they survive malformed input
+  route walk requests clean URLs only, so it proves screens render, not how
+  they answer malformed input
   ([ADR 0023](0023-degrade-malformed-query-input-to-a-default.md)). The horde
   mutates dev data and needs a reseed after each run.
 - **Reversibility:** Pest runs on the same engine, so switching is possible;

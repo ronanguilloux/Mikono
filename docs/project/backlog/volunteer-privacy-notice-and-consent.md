@@ -34,7 +34,9 @@ rules 2–4.
 - **Notice text:** a privacy notice covering s.29(a)–(h) is agreed with
   UCESCO and handed to every volunteer at onboarding. Volunteers never log
   in, so it is not an in-app page, though a copy may live in the repo or
-  on ucesco.org.
+  on ucesco.org. It names Anthropic as a recipient and its safeguards
+  ([ADR 0034](../../adr/0034-comply-with-kenyas-data-protection-act-2019.md)
+  rule 8).
 - **Consent record:** the volunteer record shows that the notice was
   given, with the date. This is likely a nullable date field, which needs
   a migration and its own ADR per rule 1.

@@ -38,7 +38,10 @@ final class DatabaseExportControllerTest extends WebTestCase
         $tables = static::getContainer()->get(Connection::class)->createSchemaManager()->listTableNames();
         $expected = array_map(
             static fn(string $table): string => $table . '.csv',
-            array_diff($tables, ['doctrine_migration_versions', 'volunteer_photo']),
+            array_filter(
+                array_diff($tables, ['doctrine_migration_versions', 'volunteer_photo']),
+                static fn(string $table): bool => !str_starts_with($table, 'oauth2_'),
+            ),
         );
         $entries = [];
         for ($i = 0; $i < $zip->numFiles; ++$i) {
@@ -47,9 +50,11 @@ final class DatabaseExportControllerTest extends WebTestCase
         sort($expected);
         sort($entries);
         self::assertSame($expected, $entries);
-        foreach (['stay.csv', 'volunteer_skill.csv', 'login_attempt.csv', 'usage_event.csv'] as $entry) {
+        foreach (['stay.csv', 'volunteer_skill.csv', 'login_attempt.csv', 'usage_event.csv', 'api_access.csv'] as $entry) {
             self::assertContains($entry, $entries);
         }
+        self::assertContains('oauth2_client', $tables, 'The OAuth tables must exist for skipping them to mean anything.');
+        self::assertNotContains('oauth2_client.csv', $entries);
     }
 
     #[Test]

@@ -1,10 +1,10 @@
 # 0037. Record a volunteer's gender for accommodation pairing
 
-Date: 2026-10-17
+Date: 2026-10-31
 
 ## Status
 
-Accepted
+Proposed
 
 ## Context
 
@@ -24,13 +24,14 @@ field outside Kenya does (ADR 0034, rule 3).
 ## Decision
 
 **A volunteer has an optional gender, drawn from a fixed four-value enum
-and recorded to pair volunteers for shared accommodation.**
+and recorded to pair volunteers for shared accommodation. Admins can also
+read it through the API.**
 
 - **Shape.** `Volunteer::$gender` is a nullable `App\Enum\Gender` (`female`,
   `male`, `other`, `prefer_not_to_say`), stored as a plain string column
   like the app's other enums. The volunteer form offers it as an optional
-  select whose help text reads "Used only to pair volunteers for shared
-  accommodation."
+  select whose help text reads "Used to pair volunteers for shared
+  accommodation. Admins can also read it through Claude."
 - **Null is not "Prefer not to say".** Null means nobody asked or nobody
   recorded the answer; `prefer_not_to_say` means the volunteer was asked
   and declined. Don't collapse them.
@@ -38,7 +39,9 @@ and recorded to pair volunteers for shared accommodation.**
   Every answer a volunteer can give has a value.
 - **A fixed enum, not an entity.** Unlike `Skill` and `Branch`, the list
   never changes, so it has no table and no CRUD screen.
-- **Purpose: accommodation pairing.**
+- **Purpose: accommodation pairing, and answering an admin's questions
+  about volunteers through Claude**
+  ([ADR 0050](0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md)).
 - **Ground.** The obligations limb of s.45(c): UCESCO's obligations
   towards the volunteers it places and houses. Not vital interests, which
   a room allocation does not engage, and not s.45(a), which ADR 0034
@@ -50,8 +53,10 @@ and recorded to pair volunteers for shared accommodation.**
 - **Retention.** The same as the volunteer row (ADR 0034, rule 6): it goes
   when the volunteer is anonymised.
 - **Where it appears.** The volunteer profile page (`[data-profile]`), the
-  edit form and the admin-only whole-database zip
-  ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md)).
+  edit form, the admin-only whole-database zip
+  ([ADR 0039](0039-export-the-whole-database-as-an-admin-only-zip-of-per-table-csvs.md))
+  and the admin-only API and MCP tools, which send it to Anthropic outside
+  Kenya.
   The volunteer list, its CSV and `.xlsx` exports
   ([ADR 0029](0029-export-every-list-view-to-csv-or-xlsx-with-openspout-open-to-all-signed-in-staff.md))
   and `/reports/volunteers` may carry it too, with no change to this ADR.

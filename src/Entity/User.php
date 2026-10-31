@@ -4,12 +4,23 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['user:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ORM\UniqueConstraint(name: 'uniq_user_email', fields: ['email'])]
@@ -18,15 +29,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['user:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
     #[Assert\NotBlank]
     #[Assert\Email]
+    #[Groups(['user:read'])]
     private string $email = '';
 
     /** @var list<string> */
     #[ORM\Column]
+    #[Groups(['user:read'])]
     private array $roles = ['ROLE_USER'];
 
     #[ORM\Column]
@@ -34,9 +48,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
+    #[Groups(['user:read', 'api:ref'])]
     private string $fullName = '';
 
     #[ORM\Column]
+    #[Groups(['user:read'])]
     private bool $isActive = true;
 
     #[ORM\Column]
@@ -102,11 +118,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->password = $password;
 
         return $this;
-    }
-
-    public function eraseCredentials(): void
-    {
-        // No temporary sensitive data stored on this entity.
     }
 
     public function getFullName(): string

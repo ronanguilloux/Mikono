@@ -1,0 +1,25 @@
+# Issues the tokens behind /api and /mcp. See ADR 0050.
+league_oauth2_server:
+    authorization_server:
+        private_key: '%env(base64:OAUTH_PRIVATE_KEY)%'
+        encryption_key: '%env(OAUTH_ENCRYPTION_KEY)%'
+        access_token_ttl: PT1H
+        refresh_token_ttl: P30D
+        # A token always belongs to a person: a client-credentials token would
+        # have no user to check ROLE_ADMIN against or to attribute reads to.
+        enable_client_credentials_grant: false
+    resource_server:
+        public_key: '%env(base64:OAUTH_PUBLIC_KEY)%'
+    scopes:
+        available: ['read']
+        default: ['read']
+    persistence:
+        doctrine: null
+
+when@test:
+    services:
+        # Use the lowest bcrypt cost to speed up client secret hashing in tests.
+        league.oauth2_server.password_hasher:
+            class: Symfony\Component\PasswordHasher\Hasher\NativePasswordHasher
+            arguments:
+                $cost: 4 # Lowest possible value for bcrypt

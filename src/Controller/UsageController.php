@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Pagination\ListPaginator;
+use App\Entity\ApiAccess;
+use App\Repository\ApiAccessRepository;
 use App\Repository\LoginAttemptRepository;
 use App\Repository\UsageEventRepository;
+use App\Security\ApiAccessRecorder;
 use App\Security\LoginAttemptRecorder;
 use App\Usage\AccessLogReader;
 use App\Usage\UsageDateRange;
@@ -86,6 +89,7 @@ final class UsageController extends AbstractController
         private readonly AccessLogReader $reader,
         private readonly UsageEventRepository $events,
         private readonly LoginAttemptRepository $loginAttempts,
+        private readonly ApiAccessRepository $apiAccesses,
         private readonly ListPaginator $paginator,
         private readonly CacheInterface $cache,
     ) {}
@@ -139,6 +143,10 @@ final class UsageController extends AbstractController
 
         /** @var list<SignInRow> $pageOfLogins */
         $pageOfLogins = iterator_to_array($loginPagination, false);
+
+        $apiPagination = $this->paginator->paginateArray($this->apiAccesses->findInRange($range), $request, 'apiAccess');
+        /** @var list<ApiAccess> $pageOfApiAccesses */
+        $pageOfApiAccesses = iterator_to_array($apiPagination, false);
 
         $eventPagination = $this->paginator->paginateArray(
             $this->paginator->sortArray(
@@ -222,6 +230,25 @@ final class UsageController extends AbstractController
             'loginPagination' => $loginPagination,
             'loginSortState' => $this->paginator->sortState($request, self::LOGIN_SORT_MAP, self::LOGIN_PARAM_PREFIX),
             'loginRetentionDays' => LoginAttemptRecorder::RETENTION_DAYS,
+            'apiColumns' => [
+                ['key' => 'occurredAt', 'label' => 'When'],
+                ['key' => 'account', 'label' => 'Account'],
+                ['key' => 'via', 'label' => 'Through'],
+                ['key' => 'path', 'label' => 'Read'],
+            ],
+            'apiRows' => array_map(
+                static fn(ApiAccess $access): array => [
+                    'cells' => [
+                        'occurredAt' => $access->getOccurredAt()->format('j M, H:i'),
+                        'account' => $access->getIdentifier(),
+                        'via' => $access->isViaMcp() ? 'Claude (MCP)' : 'API',
+                        'path' => $access->getPath(),
+                    ],
+                ],
+                $pageOfApiAccesses,
+            ),
+            'apiPagination' => $apiPagination,
+            'apiRetentionDays' => ApiAccessRecorder::RETENTION_DAYS,
         ]);
     }
 

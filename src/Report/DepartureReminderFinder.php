@@ -14,11 +14,11 @@ use App\Repository\StayRepository;
  * straight into another (a branch move) is no departure and is left out.
  * Sorted by days away, then name.
  */
-final class DepartureReminderFinder
+final readonly class DepartureReminderFinder
 {
     public const int WORKING_DAYS = 2;
 
-    public function __construct(private readonly StayRepository $stays) {}
+    public function __construct(private StayRepository $stays) {}
 
     /** @return list<DepartureReminder> */
     public function find(\DateTimeImmutable $today): array

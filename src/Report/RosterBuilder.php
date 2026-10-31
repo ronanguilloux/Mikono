@@ -13,9 +13,9 @@ use App\Repository\ActivityRepository;
  * out here instead of being retyped by hand every evening, which is also why
  * it renders every escort on the group rather than just one (ADR 0013).
  */
-final class RosterBuilder
+final readonly class RosterBuilder
 {
-    public function __construct(private readonly ActivityRepository $activities) {}
+    public function __construct(private ActivityRepository $activities) {}
 
     public function buildFor(\DateTimeImmutable $date): Roster
     {

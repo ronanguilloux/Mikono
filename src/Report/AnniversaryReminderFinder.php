@@ -14,12 +14,12 @@ use App\Repository\AchievementRepository;
  *
  * A 29 February achievement falls on 28 February in a non-leap year.
  */
-final class AnniversaryReminderFinder
+final readonly class AnniversaryReminderFinder
 {
     /** @var list<int> */
     public const array DAYS_AHEAD = [0, 1];
 
-    public function __construct(private readonly AchievementRepository $achievements) {}
+    public function __construct(private AchievementRepository $achievements) {}
 
     /** @return list<AnniversaryReminder> */
     public function find(\DateTimeImmutable $today): array

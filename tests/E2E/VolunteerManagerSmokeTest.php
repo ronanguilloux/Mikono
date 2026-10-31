@@ -71,11 +71,11 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
         // typeahead, where WebDriver can't click them.
         $client->request('GET', '/activities/new?volunteer=' . $volunteer->getId());
         $client->executeScript(
-            sprintf("document.querySelector('input[name=\"batch_activity_form[date]\"]').value = '%s';", (new \DateTimeImmutable('today'))->format('Y-m-d')),
+            sprintf("document.querySelector('input[name=\"batch_activity_form[date]\"]').value = '%s';", new \DateTimeImmutable('today')->format('Y-m-d')),
         );
-        (new WebDriverSelect($client->findElement(WebDriverBy::name('batch_activity_form[program]'))))
+        new WebDriverSelect($client->findElement(WebDriverBy::name('batch_activity_form[program]')))
             ->selectByValue((string) $program->getId());
-        (new WebDriverSelect($client->findElement(WebDriverBy::name('batch_activity_form[activityType]'))))
+        new WebDriverSelect($client->findElement(WebDriverBy::name('batch_activity_form[activityType]')))
             ->selectByValue((string) $activityType->getId());
 
         // Reject the form once before saving it. Turbo Drive renders a 4xx

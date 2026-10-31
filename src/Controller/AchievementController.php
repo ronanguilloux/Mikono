@@ -143,7 +143,7 @@ final class AchievementController extends AbstractController
     public function new(Request $request, Stay $stay): Response
     {
         $volunteer = $stay->getVolunteer() ?? throw $this->createNotFoundException();
-        $achievement = (new Achievement())->setStay($stay);
+        $achievement = new Achievement()->setStay($stay);
         $form = $this->createForm(AchievementFormType::class, $achievement);
         $form->handleRequest($request);
 

@@ -39,7 +39,7 @@ use Zenstruck\Foundry\Story;
 final class AppStory extends Story
 {
     public function __construct(
-        #[Autowire('%kernel.project_dir%')]
+        #[Autowire(param: 'kernel.project_dir')]
         private readonly string $projectDir,
     ) {}
 

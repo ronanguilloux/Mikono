@@ -22,5 +22,9 @@ services:
       APP_SECRET: ${APP_SECRET:?set APP_SECRET in deploy.env}
       # Same rule; losing it loses every stored passport number (ADR 0033).
       PASSPORT_ENCRYPTION_KEY: ${PASSPORT_ENCRYPTION_KEY:?set PASSPORT_ENCRYPTION_KEY in deploy.env (openssl rand -base64 32)}
+      # Same rule. Losing them only signs every Claude connection out (ADR 0050).
+      OAUTH_PRIVATE_KEY: ${OAUTH_PRIVATE_KEY:?set OAUTH_PRIVATE_KEY in deploy.env (see deployment-plan.md)}
+      OAUTH_PUBLIC_KEY: ${OAUTH_PUBLIC_KEY:?set OAUTH_PUBLIC_KEY in deploy.env (see deployment-plan.md)}
+      OAUTH_ENCRYPTION_KEY: ${OAUTH_ENCRYPTION_KEY:?set OAUTH_ENCRYPTION_KEY in deploy.env (openssl rand -base64 32)}
       # Used by CLI commands that generate URLs; no HTTP request context there.
       DEFAULT_URI: ${DEFAULT_URI:-https://${SERVER_NAME:-localhost}}

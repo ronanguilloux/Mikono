@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
+use ApiPlatform\Metadata\QueryParameter;
+use ApiPlatform\Doctrine\Orm\Filter\ExactFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use App\Enum\ActivityDuration;
 use App\Repository\ActivityRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -12,21 +19,40 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            order: ['date' => 'DESC'],
+            parameters: [
+                'volunteer' => new QueryParameter(filter: new ExactFilter(), property: 'volunteer'),
+                'program' => new QueryParameter(filter: new ExactFilter(), property: 'program'),
+                'project' => new QueryParameter(filter: new ExactFilter(), property: 'program.project'),
+                'activityType' => new QueryParameter(filter: new ExactFilter(), property: 'activityType'),
+                'date' => new QueryParameter(filter: new DateFilter(), property: 'date', constraints: new Assert\All(new Assert\Date())),
+            ],
+        ),
+        new Get(),
+    ],
+    normalizationContext: ['groups' => ['activity:read', 'api:ref']],
+)]
 #[ORM\Entity(repositoryClass: ActivityRepository::class)]
 class Activity implements Authored
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['activity:read'])]
     private ?int $id = null;
 
     #[ORM\Column(type: 'date_immutable')]
     #[Assert\NotNull]
+    #[Groups(['activity:read'])]
     private ?\DateTimeImmutable $date = null;
 
     #[ORM\ManyToOne(targetEntity: Volunteer::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull]
+    #[Groups(['activity:read'])]
     private ?Volunteer $volunteer = null;
 
     /**
@@ -37,6 +63,7 @@ class Activity implements Authored
      */
     #[ORM\ManyToOne(targetEntity: Stay::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['activity:read'])]
     private ?Stay $stay = null;
 
     /**
@@ -47,29 +74,36 @@ class Activity implements Authored
     #[ORM\ManyToOne(targetEntity: Program::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: 'Choose a program.')]
+    #[Groups(['activity:read'])]
     private ?Program $program = null;
 
     #[ORM\ManyToOne(targetEntity: ActivityType::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull]
+    #[Groups(['activity:read'])]
     private ?ActivityType $activityType = null;
 
     #[ORM\Column(length: 20, enumType: ActivityDuration::class)]
     #[Assert\NotNull]
+    #[Groups(['activity:read'])]
     private ?ActivityDuration $duration = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['activity:read'])]
     private ?string $durationOther = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['activity:read'])]
     private ?string $notes = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['activity:read'])]
     private ?User $loggedBy = null;
 
     // No createdBy: loggedBy already says who added it. See ADR 0043.
     #[ORM\ManyToOne(targetEntity: User::class)]
+    #[Groups(['activity:read'])]
     private ?User $updatedBy = null;
 
     /**
@@ -82,12 +116,15 @@ class Activity implements Authored
     #[ORM\ManyToMany(targetEntity: Escort::class)]
     #[ORM\JoinTable(name: 'activity_escort')]
     #[ORM\OrderBy(['name' => 'ASC'])]
+    #[Groups(['activity:read'])]
     private Collection $escorts;
 
     #[ORM\Column]
+    #[Groups(['activity:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
+    #[Groups(['activity:read'])]
     private \DateTimeImmutable $updatedAt;
 
     public function __construct()
@@ -150,6 +187,7 @@ class Activity implements Authored
         return $this;
     }
 
+    #[Groups(['activity:read'])]
     public function getProject(): ?Project
     {
         return $this->program?->getProject();

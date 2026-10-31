@@ -18,6 +18,19 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
+        # Token endpoint and discovery documents: the client holds no session
+        # yet, and these answer before it has anything to authenticate with.
+        oauth_public:
+            pattern: ^/(token|\.well-known/)
+            security: false
+        # /authorize is deliberately not here: it stays on `main`, so a person
+        # signs in through the throttled login form. See ADR 0050.
+        api:
+            pattern: ^/(api|mcp)(/|$)
+            stateless: true
+            provider: app_user_provider
+            user_checker: App\Security\UserChecker
+            oauth2: true
         main:
             lazy: true
             provider: app_user_provider
@@ -41,6 +54,10 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
+        # allow_if, not `roles: [...]`: a roles list passes on any one of them.
+        # ROLE_ADMIN is read from the database on every request, so demoting an
+        # admin ends their tokens at once, without waiting for expiry.
+        - { path: ^/(api|mcp)(/|$), allow_if: "is_granted('ROLE_ADMIN') and is_granted('ROLE_OAUTH2_READ')" }
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 

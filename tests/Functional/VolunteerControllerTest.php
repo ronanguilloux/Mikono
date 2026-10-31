@@ -935,7 +935,7 @@ final class VolunteerControllerTest extends WebTestCase
         $crawler = $client->request('GET', "/volunteers/{$volunteer->getId()}/edit");
 
         $client->submit($crawler->selectButton('Save')->form([
-            'volunteer_form[dateOfBirth]' => (new \DateTimeImmutable('+1 day'))->format('Y-m-d'),
+            'volunteer_form[dateOfBirth]' => new \DateTimeImmutable('+1 day')->format('Y-m-d'),
         ]));
 
         self::assertResponseStatusCodeSame(422);
@@ -1070,7 +1070,7 @@ final class VolunteerControllerTest extends WebTestCase
 
         $client->submit($crawler->selectButton('Save')->form([
             'volunteer_form[passportNumber]' => 'c01x 00t47',
-            'volunteer_form[passportExpiresOn]' => (new \DateTimeImmutable('+2 years'))->format('Y-m-d'),
+            'volunteer_form[passportExpiresOn]' => new \DateTimeImmutable('+2 years')->format('Y-m-d'),
         ]));
 
         self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");

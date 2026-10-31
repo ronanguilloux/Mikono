@@ -1,0 +1,12 @@
+# See ADR 0050.
+mcp:
+    servers:
+        default:
+            name: mikono
+            version: 1.0.0
+            registry: ['App\Mcp\']
+            http:
+                path: /mcp
+                # The check protects unauthenticated localhost servers from a
+                # browser; every call here needs a token no browser page holds.
+                allowed_hosts: false

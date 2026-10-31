@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Enum;
 
 /**
- * Sensitive personal data (DPA 2019 s.2), held only to pair volunteers for
- * shared accommodation. See ADR 0037.
+ * Sensitive personal data (DPA 2019 s.2), held to pair volunteers for shared
+ * accommodation, and readable by admins through the API. See ADR 0037.
  */
 enum Gender: string
 {

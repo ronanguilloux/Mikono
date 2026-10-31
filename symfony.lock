@@ -1,4 +1,18 @@
 {
+    "api-platform/symfony": {
+        "version": "5.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "4.0",
+            "ref": "e9952e9f393c2d048f10a78f272cd35e807d972b"
+        },
+        "files": [
+            "config/packages/api_platform.yaml",
+            "config/routes/api_platform.yaml",
+            "src/ApiResource/.gitignore"
+        ]
+    },
     "dama/doctrine-test-bundle": {
         "version": "v8.6.0"
     },
@@ -52,6 +66,31 @@
     },
     "knplabs/knp-paginator-bundle": {
         "version": "v6.10.0"
+    },
+    "league/oauth2-server-bundle": {
+        "version": "2.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "2.0",
+            "ref": "3abd83ae75260df0fa3fccc7ed978224a04c2e5a"
+        },
+        "files": [
+            "config/packages/league_oauth2_server.yaml",
+            "config/routes/league_oauth2_server.yaml"
+        ]
+    },
+    "php-http/discovery": {
+        "version": "1.20",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "1.18",
+            "ref": "f45b5dd173a27873ab19f5e3180b2f661c21de02"
+        },
+        "files": [
+            "config/packages/http_discovery.yaml"
+        ]
     },
     "phpstan/phpstan": {
         "version": "2.2.9"
@@ -152,6 +191,19 @@
             "ref": "fadbfe33303a76e25cb63401050439aa9b1a9c7f"
         }
     },
+    "symfony/mcp-bundle": {
+        "version": "0.14",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "0.13",
+            "ref": "6fbd19b68290f2d5decdb926636484950d185e4b"
+        },
+        "files": [
+            "config/packages/mcp.yaml",
+            "config/routes/mcp.yaml"
+        ]
+    },
     "symfony/monolog-bundle": {
         "version": "4.0",
         "recipe": {
@@ -238,6 +290,15 @@
             "config/packages/twig.yaml",
             "templates/base.html.twig"
         ]
+    },
+    "symfony/uid": {
+        "version": "8.1",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "7.0",
+            "ref": "0df5844274d871b37fc3816c57a768ffc60a43a5"
+        }
     },
     "symfony/ux-live-component": {
         "version": "3.4",

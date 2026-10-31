@@ -174,6 +174,6 @@ final class UsageDateRangeTest extends TestCase
         );
         self::assertSame('all', self::fromQuery('range=all')->cacheKey());
         // PSR-6 reserves {}()/\@: in a key.
-        self::assertSame(1, preg_match('/^[A-Za-z0-9_.-]+$/', self::fromQuery('range=ytd')->cacheKey()));
+        self::assertMatchesRegularExpression('/^[A-Za-z0-9_.-]+$/', self::fromQuery('range=ytd')->cacheKey());
     }
 }
