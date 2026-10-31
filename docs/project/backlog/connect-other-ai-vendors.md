@@ -10,7 +10,7 @@ labels: [security, data]
 
 ## Why
 
-Admin → Connect an AI has pages for ChatGPT and Gemini saying why they aren't
+Admin → Connect an AI Agent has pages for ChatGPT and Gemini saying why they aren't
 available. UCESCO asked for Claude. Each other vendor is a new company receiving
 volunteers' data.
 

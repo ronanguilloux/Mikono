@@ -39,7 +39,7 @@ processor contract (s.42(2)).
 
 ## Notes & links
 
-- Connecting and revoking: Admin → Connect an AI.
+- Connecting and revoking: Admin → Connect an AI Agent.
 - A real consent record:
   [volunteer-privacy-notice-and-consent](volunteer-privacy-notice-and-consent.md).
 - [ADR 0050](../../adr/0050-expose-a-read-only-api-and-mcp-server-to-claude-behind-oauth.md).

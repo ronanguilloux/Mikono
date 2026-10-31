@@ -144,7 +144,7 @@ Claude, so face matching stays out of how it's used, or the photo becomes
 biometric data ([ADR 0034](0034-comply-with-kenyas-data-protection-act-2019.md),
 rule 2).
 
-**9. Any admin connects and disconnects themselves.** Admin → Connect an AI
+**9. Any admin connects and disconnects themselves.** Admin → Connect an AI Agent
 (`/connect-ai`, `ROLE_ADMIN`) shows the server URL and the client ID to
 paste. There is no console step and no secret to hand out: the client ID
 isn't confidential, and the admin is identified by signing in.

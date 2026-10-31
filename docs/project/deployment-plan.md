@@ -302,7 +302,7 @@ the URL entered in Claude stops sign-in.
 
 **Connecting Claude** takes nothing on the server. A migration seeds the one
 OAuth client, a public one with no secret, so any admin connects alone from
-**Admin → Connect an AI**, which holds the steps. The server must be reachable
+**Admin → Connect an AI Agent**, which holds the steps. The server must be reachable
 over public HTTPS from Anthropic's `160.79.104.0/21`.
 
 To cut a connection off, the admin clicks **Disconnect** on that page.

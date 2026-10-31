@@ -138,7 +138,7 @@ NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem" claude
 ```
 
 claude.ai, Desktop and mobile need a server on public HTTPS. Any admin connects
-them from **Admin → Connect an AI** in the app.
+them from **Admin → Connect an AI Agent** in the app.
 
 ## Contributing
 
