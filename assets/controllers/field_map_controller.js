@@ -33,8 +33,19 @@ export default class extends Controller {
         this.panelTargets.forEach((panel) => {
             panel.hidden = panel.dataset.id !== id;
         });
-        this.element.querySelectorAll('.ent').forEach((box) => {
-            box.classList.toggle('sel', box.dataset.id === id);
+
+        const svg = this.element.querySelector('svg');
+        const box = (name) => svg.querySelector(`.ent[data-id="${name}"]`);
+
+        svg.classList.add('focusing');
+        svg.querySelectorAll('.on, .sel').forEach((el) => el.classList.remove('on', 'sel'));
+        box(id).classList.add('on', 'sel');
+        svg.querySelectorAll('.edge').forEach((edge) => {
+            if (edge.dataset.a === id || edge.dataset.b === id) {
+                edge.classList.add('on');
+                box(edge.dataset.a).classList.add('on');
+                box(edge.dataset.b).classList.add('on');
+            }
         });
     }
 }

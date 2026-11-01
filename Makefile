@@ -1,4 +1,4 @@
-.PHONY: help up down db_update oauth_keys data_map_snapshot quality cs-fix rector test e2e-test deploy backup fixtures
+.PHONY: help up down db_update oauth_keys data_map_snapshot quality cs-fix rector test e2e-test deploy backup fixtures docker_clean
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -46,3 +46,12 @@ backup: ## Perform a hot backup of the SQLite database
 
 fixtures: ## Load development fixtures and reset the local schema
 	docker compose exec php bin/console foundry:load-fixtures --no-interaction
+
+# Machine-wide. The running-stack check protects the dev image, and `volume prune`
+# stays without --all, which would make it delete unused named volumes such as the DB.
+docker_clean: ## Remove Docker build cache, unused images and orphaned anonymous volumes (stack must be up)
+	@test -n "$$(docker compose ps --status running -q php)" || { echo "Start the stack first: make up"; exit 1; }
+	docker builder prune --all --force
+	docker image prune --all --force
+	docker volume prune --force
+	docker system df
