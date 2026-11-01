@@ -6,6 +6,14 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-11-01 — Home's project lists shortened, Projects Overview report added
+
+The home page now shows "Recently visited projects" above "Projects
+needing volunteers", ten rows each, both linking to the new
+`/reports/projects`. That report covers active projects: tiles, projects
+visited per month, places to fill, volunteer days per project and quiet
+projects per branch, above a sortable, exportable table.
+
 ## 2026-10-31 — ChatGPT connect page follows the real flow
 
 Rewrote the `/connect-ai/chatgpt` steps after connecting a Free account

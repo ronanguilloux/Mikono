@@ -32,8 +32,6 @@ final readonly class ProgramMatches
     /** How many more it needs; null when Program::$volunteersNeeded isn't set (ADR 0049). */
     public function stillToFind(): ?int
     {
-        $needed = $this->program->getVolunteersNeeded();
-
-        return null === $needed ? null : max(0, $needed - $this->bookedVolunteers);
+        return $this->program->stillToFind($this->bookedVolunteers);
     }
 }

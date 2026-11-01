@@ -251,6 +251,8 @@ implements it.
   unlike `/reports/volunteers`, which still sums half and full days. The
   volunteer page counts past activities only; the stay page passes
   `withPlanned`, so an unfinished stay shows its expected outcome.
+  `ProjectOverviewCalculator` is behind `/reports/projects`, one row per
+  active project; its quiet / recent split comes from `QuietProjectFinder`.
   `ProgramMatchFinder` is behind `/matches`: it pairs open programs with
   volunteers whose not-ended stay is at the program's branch, by skills held
   or by past activity types

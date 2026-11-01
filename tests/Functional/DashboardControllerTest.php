@@ -103,6 +103,47 @@ final class DashboardControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function capsBothProjectBlocksAtTenWithoutOverlapAndLinksToTheReport(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        for ($i = 1; $i <= 11; ++$i) {
+            ActivityFactory::createOne(['date' => $today->modify("-{$i} days"), 'project' => ProjectFactory::createOne(['name' => "Recent {$i}"])]);
+            ActivityFactory::createOne(['date' => $today->modify(sprintf('-%d days', 30 + $i)), 'project' => ProjectFactory::createOne(['name' => "Quiet {$i}"])]);
+        }
+
+        $client->loginUser(UserFactory::createOne());
+        $crawler = $client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        $names = static fn(string $heading): array => $crawler
+            ->filter(sprintf('section[aria-labelledby="%s"] li a.block', $heading))
+            ->each(static fn($link): string => $link->text());
+
+        self::assertSame(array_map(static fn(int $i): string => "Recent {$i}", range(1, 10)), $names('recent-projects-heading'));
+        // Longest quiet first, so "Quiet 11" leads and "Quiet 1" drops off.
+        self::assertSame(array_map(static fn(int $i): string => "Quiet {$i}", range(11, 2)), $names('quiet-projects-heading'));
+        self::assertSame(1, $crawler->filter('section[aria-labelledby="recent-projects-heading"] a[href="/reports/projects?sort=lastActivity&direction=desc"]')->count());
+        self::assertSame(1, $crawler->filter('section[aria-labelledby="quiet-projects-heading"] a[href="/reports/projects"]')->count());
+    }
+
+    #[Test]
+    public function tagsARecentProjectWhoseLatestActivityIsStillToCome(): void
+    {
+        $client = static::createClient();
+        ActivityFactory::createOne([
+            'date' => new \DateTimeImmutable('today')->modify('+3 days'),
+            'project' => ProjectFactory::createOne(['name' => 'Kibera Library']),
+        ]);
+
+        $client->loginUser(UserFactory::createOne());
+        $client->request('GET', '/');
+
+        self::assertSelectorTextContains('section[aria-labelledby="recent-projects-heading"] li', 'Kibera Library');
+        self::assertSelectorTextContains('section[aria-labelledby="recent-projects-heading"] li', 'Planned');
+    }
+
+    #[Test]
     public function listsAProjectNeverVisitedFromTheDayItIsAdded(): void
     {
         $client = static::createClient();

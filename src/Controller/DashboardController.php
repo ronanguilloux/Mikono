@@ -17,6 +17,9 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class DashboardController extends AbstractController
 {
+    /** Each project block on the home screen; the rest is on /reports/projects. */
+    private const int HOME_LIST_SIZE = 10;
+
     public function __construct(
         private readonly RosterBuilder $rosters,
         private readonly QuietProjectFinder $quietProjects,
@@ -37,7 +40,8 @@ class DashboardController extends AbstractController
             'today' => $today,
             'todayRoster' => $this->rosters->buildFor($today),
             'tomorrowRoster' => $this->rosters->buildFor($today->modify('+1 day')),
-            'quietProjects' => $this->quietProjects->find($today),
+            'recentProjects' => \array_slice($this->quietProjects->findRecentlyVisited($today), 0, self::HOME_LIST_SIZE),
+            'quietProjects' => \array_slice($this->quietProjects->find($today), 0, self::HOME_LIST_SIZE),
             'quiet_after_days' => QuietProjectFinder::WARN_AFTER_DAYS,
             'birthdays' => $this->birthdays->find($today),
             'arrivals' => $this->arrivals->find($today),

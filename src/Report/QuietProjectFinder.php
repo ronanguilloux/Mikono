@@ -62,6 +62,38 @@ final readonly class QuietProjectFinder
     }
 
     /**
+     * The other side of find(): active projects with activity inside the
+     * quiet threshold, latest first, so no project is ever on both lists.
+     * Planned activities count, as they do for find().
+     *
+     * @return list<RecentProject>
+     */
+    public function findRecentlyVisited(\DateTimeImmutable $today): array
+    {
+        $recent = [];
+
+        foreach ($this->projects->findActiveWithLastActivityDate() as $row) {
+            $project = $row['project'];
+            $id = $project->getId();
+            $lastActivity = $this->toDate($row['lastActivity']);
+            // A project read back from the database always has an id.
+            if (null === $id || null === $lastActivity) {
+                continue;
+            }
+
+            $days = $this->daysBetween($lastActivity, $today);
+
+            if ($days < self::WARN_AFTER_DAYS) {
+                $recent[] = new RecentProject($id, $project->getName(), $days, $lastActivity, $lastActivity > $today);
+            }
+        }
+
+        usort($recent, static fn(RecentProject $a, RecentProject $b) => [$b->lastActivity, $a->name] <=> [$a->lastActivity, $b->name]);
+
+        return $recent;
+    }
+
+    /**
      * Whole days between two dates, counting anything dated today or later as
      * zero — a visit already planned for tomorrow means nothing is stale.
      */

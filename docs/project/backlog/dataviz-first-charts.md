@@ -38,6 +38,9 @@ What's still open is which three management actually wants first.
 
 ## Notes & links
 
+Proposed chart 3 now exists on `/reports/projects`, as volunteer days per
+project without the own/partner colouring.
+
 - Ranked candidates, rejected options and the chart-library reasoning:
   [`brainstorm/14-dataviz-for-vm-and-management.md`](../../brainstorm/14-dataviz-for-vm-and-management.md).
 - No gender charts:

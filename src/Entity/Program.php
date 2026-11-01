@@ -240,6 +240,12 @@ class Program implements Authored
         return $this->volunteersNeeded;
     }
 
+    /** How many more it needs; null when no target is set (ADR 0049). */
+    public function stillToFind(int $booked): ?int
+    {
+        return null === $this->volunteersNeeded ? null : max(0, $this->volunteersNeeded - $booked);
+    }
+
     public function setVolunteersNeeded(?int $volunteersNeeded): static
     {
         $this->volunteersNeeded = $volunteersNeeded;

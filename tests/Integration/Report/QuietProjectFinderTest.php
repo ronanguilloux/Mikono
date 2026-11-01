@@ -37,6 +37,23 @@ final class QuietProjectFinderTest extends KernelTestCase
     }
 
     #[Test]
+    public function recentlyVisitedStopsWhereQuietStartsLatestFirst(): void
+    {
+        self::bootKernel();
+        $today = new \DateTimeImmutable('today');
+        ProjectFactory::createOne(['name' => 'Never']);
+        foreach (['Boundary' => '-30 days', 'Older' => '-29 days', 'Latest' => '-1 day', 'Planned' => '+2 days'] as $name => $offset) {
+            ActivityFactory::createOne(['date' => $today->modify($offset), 'project' => ProjectFactory::createOne(['name' => $name])]);
+        }
+
+        $recent = $this->finder()->findRecentlyVisited($today);
+
+        self::assertSame(['Planned', 'Latest', 'Older'], array_map(static fn($project) => $project->name, $recent));
+        self::assertSame([true, false, false], array_map(static fn($project) => $project->planned, $recent));
+        self::assertSame([0, 1, 29], array_map(static fn($project) => $project->days, $recent));
+    }
+
+    #[Test]
     public function escalatesToCriticalPastFiftyDays(): void
     {
         self::bootKernel();

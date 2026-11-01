@@ -119,6 +119,26 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * Every activity since $from, planned ones included, as the plain columns
+     * ProjectOverviewCalculator walks. Duration is the stored backing value.
+     *
+     * @return list<array{projectId: int|string, date: string, volunteerId: int|string, duration: ?string}>
+     */
+    public function findForProjectReport(\DateTimeImmutable $from): array
+    {
+        /** @var list<array{projectId: int|string, date: string, volunteerId: int|string, duration: ?string}> $rows */
+        $rows = $this->createQueryBuilder('a')
+            ->select('IDENTITY(prg.project) AS projectId', 'a.date AS date', 'IDENTITY(a.volunteer) AS volunteerId', 'a.duration AS duration')
+            ->join('a.program', 'prg')
+            ->where('a.date >= :from')
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getScalarResult();
+
+        return $rows;
+    }
+
+    /**
      * Activities dated between two days inclusive, each volunteer's sources
      * fetched in the same query, for the per-source report (ADR 0041). The
      * sources join is to-many, which is fine here: no LIMIT.

@@ -137,20 +137,26 @@ class AchievementRepository extends ServiceEntityRepository
      *
      * @return array<int, int> project id => its achievements; absent means none
      */
-    public function countForProjects(array $projects): array
+    public function countForProjects(array $projects, ?\DateTimeImmutable $since = null): array
     {
         if ([] === $projects) {
             return [];
         }
 
-        /** @var list<array{projectId: int|string, total: int|string}> $rows */
-        $rows = $this->createQueryBuilder('ach')
+        $queryBuilder = $this->createQueryBuilder('ach')
             ->select('IDENTITY(ach.project) AS projectId', 'COUNT(ach.id) AS total')
             ->where('ach.project IN (:projects)')
             ->setParameter('projects', $projects)
-            ->groupBy('ach.project')
-            ->getQuery()
-            ->getResult();
+            ->groupBy('ach.project');
+
+        if (null !== $since) {
+            $queryBuilder
+                ->andWhere('ach.achievedOn >= :since')
+                ->setParameter('since', $since, Types::DATE_IMMUTABLE);
+        }
+
+        /** @var list<array{projectId: int|string, total: int|string}> $rows */
+        $rows = $queryBuilder->getQuery()->getResult();
 
         $counts = [];
         foreach ($rows as $row) {

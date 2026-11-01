@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Projects Overview — UCESCO Volunteer Manager{% endblock %}
+
+{% macro kpi_tile(label, value, sub) %}
+    <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{{ label }}</div>
+        <div class="mt-1 text-2xl font-semibold">{{ value }}</div>
+        <div class="mt-0.5 text-xs text-slate-500">{{ sub }}</div>
+    </div>
+{% endmacro %}
+
+{% import _self as report %}
+
+{% block body %}
+    <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold">Projects Overview</h1>
+        <twig:ExportMenu route="report_projects_export" />
+    </div>
+    <p class="mb-6 text-sm text-slate-600">
+        Active projects only. Volunteers, days and achievements count from {{ from|date('j M Y') }} to today; a project is quiet after {{ quietAfterDays }} days without activity.
+    </p>
+
+    {% set visited = active - needing %}
+    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4" data-kpi-tiles>
+        {{ report.kpi_tile('Active projects', active, 'across ' ~ branches ~ (branches == 1 ? ' branch' : ' branches')) }}
+        {{ report.kpi_tile('Visited lately', visited, active > 0 ? (visited / active * 100)|round ~ '% in the last ' ~ quietAfterDays ~ ' days' : '—') }}
+        {{ report.kpi_tile('Needing volunteers', needing, neverVisited ~ ' never visited') }}
+        {{ report.kpi_tile('Places to fill', placesToFill, withTarget ~ ' of ' ~ openPrograms ~ ' open programs have a target') }}
+    </div>
+
+    <div class="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+        {% set current = months|last %}
+        <twig:ColumnChart
+            title="Projects visited per month"
+            :summary="'This month: ' ~ current.projects ~ ' of ' ~ active ~ ' active'"
+            :columns="months|map(m => {label: m.month|date('M'), title: m.month|date('F Y'), value: m.projects})"
+            :limit="active"
+            limitLabel="Active projects"
+            class="break-inside-avoid"
+        />
+        {% if placeBars is not empty %}
+            <twig:BarChart
+                title="Places to fill"
+                :summary="'Top ' ~ placeBars|length ~ ' · volunteers still needed'"
+                :rows="placeBars"
+                class="break-inside-avoid"
+            />
+        {% endif %}
+        {% if dayBars is not empty %}
+            <twig:BarChart
+                title="Volunteer days per project"
+                :summary="'Top ' ~ dayBars|length ~ ' · % of ' ~ totalDays|number_format(1) ~ ' days'"
+                :rows="dayBars"
+                class="break-inside-avoid"
+            />
+        {% endif %}
+        {% if branchBars is not empty %}
+            <twig:BarChart
+                title="Projects needing volunteers by branch"
+                summary="Quiet or never visited, of the branch's active projects"
+                :rows="branchBars"
+                class="break-inside-avoid"
+            />
+        {% endif %}
+    </div>
+
+    <twig:DataTable
+        :columns="columns"
+        :rows="rows"
+        :pagination="pagination"
+        :sortState="sortState"
+        :withActions="false"
+        emptyMessage="No active project yet."
+    />
+{% endblock %}
