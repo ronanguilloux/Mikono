@@ -130,11 +130,11 @@ compose images php
 # After the prune, so this is what the next deploy starts from. Information
 # only: the deploy has already succeeded, so nothing here may fail it. The
 # verdict answers the 2026-10-18 failure: is there room for the next image
-# (~500MB, pulled before the old one is pruned) and the next backup? The
+# (~700MB, pulled before the old one is pruned) and the next backup? The
 # history lives outside the checkout, one line per deploy, for the trend.
 DISK_HISTORY="${DISK_HISTORY:-${HOME}/mikono-disk-history.tsv}"
 DISK_MARGIN_MB=200
-IMAGE_MB=500
+IMAGE_MB=700
 
 gigabytes() { awk -v mb="$1" 'BEGIN { printf "%.1fG", mb / 1024 }'; }
 
