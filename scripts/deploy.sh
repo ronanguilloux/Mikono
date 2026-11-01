@@ -126,3 +126,74 @@ docker image prune -af >/dev/null
 echo "==> Deployed"
 compose ps
 compose images php
+
+# After the prune, so this is what the next deploy starts from. Information
+# only: the deploy has already succeeded, so nothing here may fail it. The
+# verdict answers the 2026-10-18 failure: is there room for the next image
+# (~500MB, pulled before the old one is pruned) and the next backup? The
+# history lives outside the checkout, one line per deploy, for the trend.
+DISK_HISTORY="${DISK_HISTORY:-${HOME}/mikono-disk-history.tsv}"
+DISK_MARGIN_MB=200
+IMAGE_MB=500
+
+gigabytes() { awk -v mb="$1" 'BEGIN { printf "%.1fG", mb / 1024 }'; }
+
+disk_report() {
+    local used_mb free_mb used_pct latest backup_mb backups_mb need_mb verdict now db_size log_size
+    used_mb="$(df -BM --output=used / | tail -1 | tr -dc '0-9')"
+    free_mb="$(df -BM --output=avail / | tail -1 | tr -dc '0-9')"
+    used_pct="$(df --output=pcent / | tail -1 | tr -dc '0-9')"
+
+    # By name, as backup-db.sh does: the UTC stamp sorts lexically.
+    latest="$(ls -1 backups/mikono-prod-*.db 2>/dev/null | tail -1)"
+    backup_mb=0
+    [ -n "${latest}" ] && backup_mb="$(du -m "${latest}" | cut -f1)"
+    backups_mb="$(du -sm backups 2>/dev/null | cut -f1)"
+    need_mb=$((IMAGE_MB + backup_mb + DISK_MARGIN_MB))
+
+    if [ "${free_mb}" -lt "${need_mb}" ]; then
+        verdict="ACT NOW"
+    elif [ "${used_pct}" -ge 90 ]; then
+        verdict="CRITICAL"
+    elif [ "${used_pct}" -ge 80 ]; then
+        verdict="WARNING"
+    else
+        verdict="OK"
+    fi
+    echo "==> Disk: ${verdict}, $(gigabytes "${free_mb}") free (${used_pct}% used), next deploy needs ~$(gigabytes "${need_mb}")"
+
+    if [ -n "${latest}" ]; then
+        echo "Latest backup: $(((($(date +%s) - $(stat -c '%Y' "${latest}")) / 60))) min ago, ${backup_mb}M, $(ls -1 backups/mikono-prod-*.db | wc -l) kept"
+    else
+        echo "Latest backup: NONE in backups/"
+    fi
+
+    now="$(date +%s)"
+    db_size="$(docker system df -v 2>/dev/null | awk '$1 ~ /_db_data$/ { print $3 }')"
+    log_size="$(docker system df -v 2>/dev/null | awk '$1 ~ /_log_data$/ { print $3 }')"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "${now}" "$(date -u +%F)" "${used_mb}" "${db_size:--}" "${log_size:--}" "${backups_mb:-0}" >>"${DISK_HISTORY}"
+
+    # Over the last five deploys, the same window every time.
+    tail -n 5 "${DISK_HISTORY}" | awk -F'\t' -v free="${free_mb}" '
+        NR == 1 { first_at = $1; first_mb = $3 }
+        { last_at = $1; last_mb = $3 }
+        END {
+            seconds = last_at - first_at
+            if (NR < 2 || seconds < 86400) { print "Trend: needs a day of history"; exit }
+            days = seconds / 86400
+            growth = last_mb - first_mb
+            printf "Disk used: %.1fG -> %.1fG over the last %d deploys (%d days), ", first_mb / 1024, last_mb / 1024, NR, days
+            if (growth <= 0) { print "not growing"; exit }
+            left = free * days / growth
+            if (left >= 60) { printf "full in ~%d months\n", left / 30 } else { printf "full in ~%d days\n", left }
+        }'
+}
+
+disk_report || true
+echo
+df -h / || true
+echo
+docker system df || true
+echo
+docker system df -v 2>/dev/null | sed -n '/^VOLUME NAME/,/^$/p' || true
+du -sh ./* 2>/dev/null | sort -h | tail -5 || true
