@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Achievement;
 use App\Entity\Activity;
 use App\Entity\Branch;
 use App\Entity\Stay;
@@ -96,6 +97,32 @@ class StayRepository extends ServiceEntityRepository
 
         /** @var list<Stay> $stays */
         $stays = $queryBuilder->getQuery()->getResult();
+
+        return $stays;
+    }
+
+    /**
+     * Stays covering $today with no achievement yet, by branch then
+     * volunteer: the "who to ask" list on /reports/achievements.
+     *
+     * @return list<Stay>
+     */
+    public function findPresentWithoutAchievements(\DateTimeImmutable $today): array
+    {
+        /** @var list<Stay> $stays */
+        $stays = $this->createQueryBuilder('s')
+            ->addSelect('v', 'b')
+            ->join('s.volunteer', 'v')
+            ->join('s.branch', 'b')
+            ->where('s.startDate <= :today')
+            ->andWhere('s.endDate >= :today')
+            ->andWhere(sprintf('NOT EXISTS (SELECT 1 FROM %s ach WHERE ach.stay = s)', Achievement::class))
+            ->setParameter('today', $today, Types::DATE_IMMUTABLE)
+            ->orderBy('b.name', 'ASC')
+            ->addOrderBy('v.firstName', 'ASC')
+            ->addOrderBy('v.lastName', 'ASC')
+            ->getQuery()
+            ->getResult();
 
         return $stays;
     }

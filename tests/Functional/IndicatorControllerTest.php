@@ -104,4 +104,44 @@ final class IndicatorControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Cannot delete Meals served — 1 achievement counts it.');
         self::assertNotNull(static::getContainer()->get(IndicatorRepository::class)->findOneBy(['name' => 'Meals served']));
     }
+
+    /** It once rendered the Sources templates: heading, Add and export all led to /sources. */
+    #[Test]
+    public function theIndexIsTheIndicatorsPage(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/indicators');
+
+        self::assertSelectorTextSame('main h1', 'Indicators');
+        self::assertCount(1, $crawler->filter('main a[href="/indicators/new"]'));
+        self::assertGreaterThan(0, $crawler->filter('main a[href^="/indicators/export"]')->count());
+        self::assertCount(0, $crawler->filter('main a[href^="/sources"]'));
+    }
+
+    #[Test]
+    public function theNewPageCancelsBackToIndicators(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/indicators/new');
+
+        self::assertSelectorTextSame('main h1', 'Add indicator');
+        self::assertSame('/indicators', $crawler->filter('main')->selectLink('Cancel')->attr('href'));
+    }
+
+    #[Test]
+    public function theEditPageIsAboutTheIndicator(): void
+    {
+        $client = static::createClient();
+        $indicator = IndicatorFactory::createOne(['name' => 'Meals served']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', "/indicators/{$indicator->getId()}/edit");
+
+        self::assertSelectorTextSame('main h1', 'Edit Meals served');
+        self::assertSame('/indicators', $crawler->filter('main')->selectLink('Cancel')->attr('href'));
+    }
 }

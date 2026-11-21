@@ -257,7 +257,7 @@ final class AchievementControllerTest extends WebTestCase
 
         $client->request('GET', '/reports/achievements');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('body', 'Each achievement belongs to a volunteer\'s stay');
+        self::assertSelectorTextContains('body', 'A volunteer appears here only once an achievement has been added to one of their stays.');
         self::assertSelectorTextContains('table tbody', 'Building a library');
         self::assertSelectorExists("table tbody a[href=\"/stays/{$achievement->getStay()?->getId()}\"]");
 
@@ -305,5 +305,67 @@ final class AchievementControllerTest extends WebTestCase
 
         self::assertSelectorNotExists('[data-impact] figure');
         self::assertSelectorTextContains('[data-impact]', 'Nothing counted in the last 12 months.');
+    }
+
+    #[Test]
+    public function theIndexSaysHowManyAchievementsAndVolunteers(): void
+    {
+        $client = static::createClient();
+        AchievementFactory::createMany(2, ['stay' => StayFactory::createOne()]);
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', '/reports/achievements');
+
+        self::assertSelectorTextContains('[data-achievement-totals]', '2 achievements by 1 volunteer.');
+    }
+
+    #[Test]
+    public function theIndexExplainsHowToAddAnAchievement(): void
+    {
+        $client = static::createClient();
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', '/reports/achievements');
+
+        self::assertSelectorTextContains('[data-achievement-explainer] summary', 'How to add an achievement');
+        self::assertSelectorTextContains('[data-achievement-explainer]', 'click + Achievement on the stay it happened in');
+    }
+
+    #[Test]
+    public function theIndexListsVolunteersHereNowWithNoAchievementYet(): void
+    {
+        $client = static::createClient();
+        $today = new \DateTimeImmutable('today');
+        AchievementFactory::createOne([
+            'stay' => StayFactory::new(['volunteer' => VolunteerFactory::new()->withoutStay()->with(['firstName' => 'Recorded'])]),
+        ]);
+        $waiting = StayFactory::createOne(['volunteer' => VolunteerFactory::new()->withoutStay()->with(['firstName' => 'Waiting'])]);
+        StayFactory::createOne([
+            'volunteer' => VolunteerFactory::new()->withoutStay()->with(['firstName' => 'Gone']),
+            'startDate' => $today->modify('-3 months'),
+            'endDate' => $today->modify('-2 months'),
+        ]);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/reports/achievements');
+
+        $list = $crawler->filter('[data-stays-without]');
+        self::assertStringContainsString('Waiting', $list->text());
+        self::assertStringNotContainsString('Recorded', $list->text());
+        self::assertStringNotContainsString('Gone', $list->text());
+        self::assertCount(1, $list->filter('li'));
+        self::assertCount(1, $list->filter("a[href=\"/stays/{$waiting->getId()}/achievements/new\"]"));
+    }
+
+    #[Test]
+    public function theIndexSaysWhenEveryoneHereNowHasAnAchievement(): void
+    {
+        $client = static::createClient();
+        AchievementFactory::createOne();
+        $client->loginUser(UserFactory::createOne());
+
+        $client->request('GET', '/reports/achievements');
+
+        self::assertSelectorTextContains('[data-stays-without]', 'Every volunteer here now has at least one achievement in their stay.');
     }
 }

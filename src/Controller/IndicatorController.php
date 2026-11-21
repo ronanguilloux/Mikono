@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * What achievements count, the /sources shape.
+ * What achievements count. Same shape as /sources, with its own templates.
  */
 #[Route('/indicators', name: 'indicator_')]
 final class IndicatorController extends AbstractController
@@ -76,7 +76,7 @@ final class IndicatorController extends AbstractController
             ];
         }
 
-        return $this->render('source/index.html.twig', [
+        return $this->render('indicator/index.html.twig', [
             'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
@@ -133,7 +133,7 @@ final class IndicatorController extends AbstractController
             return $this->redirectToRoute('indicator_index');
         }
 
-        return $this->render('source/new.html.twig', ['form' => $form]);
+        return $this->render('indicator/new.html.twig', ['form' => $form]);
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
@@ -150,7 +150,7 @@ final class IndicatorController extends AbstractController
             return $this->redirectToRoute('indicator_index');
         }
 
-        return $this->render('source/edit.html.twig', ['form' => $form, 'source' => $indicator]);
+        return $this->render('indicator/edit.html.twig', ['form' => $form, 'indicator' => $indicator]);
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]

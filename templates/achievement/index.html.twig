@@ -7,7 +7,26 @@
         <h1 class="text-xl font-semibold">Achievements</h1>
         <twig:ExportMenu route="achievement_export" />
     </div>
-    <p class="mb-4 text-sm text-slate-600">Each achievement belongs to a volunteer's stay: it falls on a day of that stay, at one of its branch's projects. Open the stay to add, edit or delete them.</p>
+    <p class="text-sm text-slate-600">
+        Every achievement recorded, all volunteers together, newest first.
+        A volunteer appears here only once an achievement has been added to one of their stays.
+    </p>
+    <p class="mt-1 text-sm text-slate-800" data-achievement-totals>
+        <strong>{{ totals.achievements|number_format }} achievement{{ totals.achievements == 1 ? '' : 's' }}</strong>
+        by <strong>{{ totals.volunteers|number_format }} volunteer{{ totals.volunteers == 1 ? '' : 's' }}</strong>.
+    </p>
+    <details class="mb-4 mt-1 text-sm text-slate-600" data-achievement-explainer>
+        <summary class="cursor-pointer text-brand-600 hover:underline">How to add an achievement</summary>
+        <div class="mt-2 max-w-3xl space-y-2 rounded-md border border-slate-200 bg-white px-4 py-3">
+            <ol class="list-decimal space-y-1 pl-5">
+                <li>Open <a href="{{ path('volunteer_index') }}" class="text-brand-600 hover:underline">Volunteers</a> and pick the volunteer.</li>
+                <li>Under <strong>Stays</strong>, click <strong>+ Achievement</strong> on the stay it happened in. You can also open the stay and use <strong>+ Add achievement</strong>.</li>
+                <li>Give it a title, the day (it must fall within the stay) and the project (it must be at the stay's branch). The description is optional: it shows on the volunteer's and the stay's pages, never in this list or its export.</li>
+                <li>To see it in <strong>Impact by month</strong>, also give a number and an indicator, both or neither. Indicators are listed under <a href="{{ path('indicator_index') }}" class="text-brand-600 hover:underline">Settings → Indicators</a>.</li>
+            </ol>
+            <p>To edit or delete one, use the buttons on its row below, or open its stay.</p>
+        </div>
+    </details>
 
     {# What achievements counted, one chart per indicator: indicators are
        never added together (ADR 0047). #}
@@ -33,5 +52,27 @@
         {% endif %}
     </section>
 
-    <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No achievements yet — add one from a stay on a volunteer's page." />
+    {# The to-do half of the page: who is here now with nothing recorded. #}
+    <section class="mb-6 rounded-lg border border-slate-200 bg-white p-4" data-stays-without>
+        <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Volunteers here now with no achievement yet</h2>
+        {% if staysWithout is empty %}
+            <p class="text-sm text-slate-500">Every volunteer here now has at least one achievement in their stay.</p>
+        {% else %}
+            <p class="mb-2 text-sm text-slate-600">Nothing has been recorded for their current stay. Ask them what they've achieved.</p>
+            <ul class="divide-y divide-slate-100">
+                {% for stay in staysWithout %}
+                    <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                        <div>
+                            <a href="{{ path('volunteer_show', {id: stay.volunteer.id}) }}" class="font-medium text-slate-800 hover:underline">{{ stay.volunteer.fullName }}</a>
+                            <span class="text-slate-600">· {{ stay.branch.name }} · until {{ stay.endDate|date('j M Y') }}</span>
+                        </div>
+                        <a href="{{ path('stay_achievement_new', {id: stay.id}) }}" class="text-brand-600 hover:underline">+ Achievement</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
+    <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">All achievements</h2>
+    <twig:DataTable :columns="columns" :rows="rows" :pagination="pagination" :sortState="sortState" emptyMessage="No achievements yet. Open a volunteer, then click + Achievement on one of their stays." />
 {% endblock %}

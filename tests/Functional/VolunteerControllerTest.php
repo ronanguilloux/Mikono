@@ -284,9 +284,38 @@ final class VolunteerControllerTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/volunteers');
+        // Straight on to the stay, which carries the branch, rather than back
+        // to the list where the VM had to find the volunteer again.
+        $volunteer = VolunteerFactory::find(['email' => 'grace@example.org']);
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}/stays/new");
         $client->followRedirect();
-        self::assertSelectorTextContains('body', 'Grace Wanjiru');
+        self::assertSelectorTextContains('h1', 'Add a stay for Grace Wanjiru');
+        self::assertSelectorTextContains('body', 'Grace Wanjiru was added. Now add their stay');
+    }
+
+    #[Test]
+    public function aNewVolunteerGetsTheirBranchInTheNextStep(): void
+    {
+        $client = static::createClient();
+        $mombasa = BranchFactory::find(['name' => 'Mombasa']);
+        $client->loginUser(UserFactory::createOne());
+
+        $crawler = $client->request('GET', '/volunteers/new');
+        $client->submit($crawler->selectButton('Save')->form([
+            'volunteer_form[firstName]' => 'Grace',
+            'volunteer_form[lastName]' => 'Wanjiru',
+        ]));
+        $crawler = $client->followRedirect();
+        $client->submit($crawler->selectButton('Save')->form([
+            'stay_form[branch]' => (string) $mombasa->getId(),
+            'stay_form[startDate]' => '2026-09-01',
+            'stay_form[endDate]' => '2026-09-30',
+        ]));
+
+        $volunteer = VolunteerFactory::find(['firstName' => 'Grace', 'lastName' => 'Wanjiru']);
+        self::assertResponseRedirects("/volunteers/{$volunteer->getId()}");
+        $client->followRedirect();
+        self::assertSelectorTextContains('[data-stays]', 'Mombasa');
     }
 
     #[Test]

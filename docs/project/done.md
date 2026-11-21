@@ -6,6 +6,47 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-11-21 — PHP 8.5.13 for the November security release
+
+PHP's 2026-11-19 release fixed about 17 CVEs, two of them use-after-free bugs
+found only in 8.5. The dev container was still on 8.5.10. The Dockerfile
+needed no change: `dunglas/frankenphp:1-php8.5` is a floating tag and already
+pointed at 8.5.13 (FrankenPHP 1.14.0, Caddy 2.11.9). A cached image only picks
+that up with `docker compose build --pull php`, so the tag alone never patches
+a running image. CI builds on a fresh runner and resolves the tag on every run,
+so the production image gets the new PHP on its next `build-image.yml` run,
+started by a push to main or by hand. Full suite green on 8.5.13 (631 tests).
+
+## 2026-11-21 — Achievements report says what it lists and who is missing
+
+VM question: "when I click on achievements, it's only one volunteer
+appearing?" The page lists achievements, not volunteers, and only one
+volunteer had any yet. `/reports/achievements` now says so, counts
+achievements and volunteers across the whole list, explains how to add one
+(Volunteers → a stay's + Achievement) in a fold-out, and lists the
+volunteers here now whose current stay has no achievement, each with a
++ Achievement link: the page's to-do list, like the "no skills" lists on
+`/matches`.
+
+Answering the same question showed that the empty chart's Settings →
+Indicators link landed on Sources: `IndicatorController` had kept the
+`source/` templates since it was copied, so every button there (Add,
+export, Cancel) led to Sources and no indicator could be added from the UI.
+It now renders `indicator/`, and tests check the heading and links.
+
+## 2026-11-21 — Adding a volunteer goes straight on to their stay
+
+VM feedback: after saving a new volunteer she landed back on the list and
+had to find them, open them and click Edit to add their branch. Saving now
+opens `/volunteers/{id}/stays/new`, where the branch and dates go; its
+Cancel leads to the volunteer's page, for a stay not yet known. Branch
+fields inside the volunteer form were not chosen: a second write path for
+stays would have to repeat `StayController::fits()`.
+
+The Symfony 8.1 components went to their latest patches (8.1.11 for the
+affected ones) for 18 advisories, which were failing the audit in
+`composer quality`; `composer.lock` only.
+
 ## 2026-11-01 — Home's project lists shortened, Projects Overview report added
 
 The home page now shows "Recently visited projects" above "Projects

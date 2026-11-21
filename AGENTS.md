@@ -302,7 +302,7 @@ implements it.
 
 ## Stack
 
-Docker + FrankenPHP, Symfony 8.1.5, PHP 8.5.9, SQLite, Tailwind CSS v4 +
+Docker + FrankenPHP, Symfony 8.1.5, PHP 8.5.13, SQLite, Tailwind CSS v4 +
 Symfony UX (Turbo/Stimulus/TwigComponent; LiveComponent installed, unused),
 PHPUnit 13 + Foundry v2. No host PHP/Composer — everything runs through
 Docker.

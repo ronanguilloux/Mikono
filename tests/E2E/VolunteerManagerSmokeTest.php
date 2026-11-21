@@ -55,7 +55,8 @@ final class VolunteerManagerSmokeTest extends PantherTestCase
             'volunteer_form[email]' => 'ronan.guilloux@gmail.com',
         ]);
         $client->submit($form);
-        $client->wait()->until(static fn(RemoteWebDriver $driver) => !str_contains($driver->getCurrentURL(), '/new'));
+        // Saving goes straight on to the volunteer's Add-a-stay form.
+        $client->wait()->until(static fn(RemoteWebDriver $driver) => str_contains($driver->getCurrentURL(), '/stays/new'));
         self::assertSelectorTextContains('body', 'Ronan Guilloux');
 
         $volunteerRepository = self::getContainer()->get('doctrine')->getRepository(\App\Entity\Volunteer::class);

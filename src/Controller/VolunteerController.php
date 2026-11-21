@@ -259,9 +259,12 @@ final class VolunteerController extends AbstractController
             $this->entityManager->persist($volunteer);
             $this->entityManager->flush();
 
-            $this->addFlash('success', sprintf('%s was added.', $volunteer->getFullName()));
+            $this->addFlash('success', sprintf('%s was added. Now add their stay — or Cancel to skip for now.', $volunteer->getFullName()));
 
-            return $this->redirectToRoute('volunteer_index');
+            // Straight on to the stay, which carries the branch: a new volunteer
+            // nearly always needs one, and the list made the VM hunt them down
+            // again to add it. The stay form's Cancel goes to their page.
+            return $this->redirectToRoute('volunteer_stay_new', ['id' => $volunteer->getId()]);
         }
 
         return $this->render('volunteer/new.html.twig', ['form' => $form]);

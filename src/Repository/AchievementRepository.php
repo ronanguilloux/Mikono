@@ -37,6 +37,17 @@ class AchievementRepository extends ServiceEntityRepository
             ->addOrderBy('ach.id', 'DESC');
     }
 
+    /** How many volunteers have at least one achievement, in any stay. */
+    public function countVolunteers(): int
+    {
+        return (int) $this->createQueryBuilder('ach')
+            ->select('COUNT(DISTINCT v.id)')
+            ->join('ach.stay', 's')
+            ->join('s.volunteer', 'v')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     /**
      * Achievements that count something (ADR 0047) dated from $from to $to,
      * both days included, with their indicator joined in.

@@ -11,6 +11,7 @@ use App\Form\AchievementFormType;
 use App\Pagination\ListPaginator;
 use App\Report\ImpactByMonthCalculator;
 use App\Repository\AchievementRepository;
+use App\Repository\StayRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -65,6 +66,7 @@ final class AchievementController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly ListPaginator $paginator,
         private readonly ImpactByMonthCalculator $impact,
+        private readonly StayRepository $stays,
     ) {}
 
     #[Route('/reports/achievements', name: 'achievement_index', methods: ['GET'])]
@@ -90,8 +92,14 @@ final class AchievementController extends AbstractController
             ];
         }
 
+        $today = new \DateTimeImmutable('today');
+
         return $this->render('achievement/index.html.twig', [
-            'impact' => $this->impact->calculate(new \DateTimeImmutable('today')),
+            // Whole-list counts, not this page's: the VM asked why only one
+            // volunteer showed, so the page says how many there are.
+            'totals' => ['achievements' => $pagination->getTotalItemCount(), 'volunteers' => $this->achievements->countVolunteers()],
+            'staysWithout' => $this->stays->findPresentWithoutAchievements($today),
+            'impact' => $this->impact->calculate($today),
             'columns' => self::COLUMNS,
             'rows' => $rows,
             'pagination' => $pagination,
