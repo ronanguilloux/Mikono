@@ -31,7 +31,10 @@
     {# What achievements counted, one chart per indicator: indicators are
        never added together (ADR 0047). #}
     <section class="mb-6" data-impact>
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Impact by month</h2>
+        <div class="mb-2 flex items-baseline justify-between gap-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Impact by month</h2>
+            <a href="{{ path('indicator_index') }}" class="text-sm text-brand-600 hover:underline" data-indicators-link>Manage indicators</a>
+        </div>
         {% if impact is empty %}
             <p class="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-500">
                 Nothing counted in the last 12 months. Give an achievement a number and an indicator to see it here;

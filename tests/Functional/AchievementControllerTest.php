@@ -295,6 +295,22 @@ final class AchievementControllerTest extends WebTestCase
     }
 
     #[Test]
+    public function theAchievementFormAndTheIndexLinkToTheIndicators(): void
+    {
+        $client = static::createClient();
+        $achievement = AchievementFactory::createOne();
+        $stayId = $achievement->getStay()?->getId();
+        $client->loginUser(UserFactory::createOne());
+
+        foreach (["/stays/{$stayId}/achievements/new", "/achievements/{$achievement->getId()}/edit", '/reports/achievements'] as $path) {
+            $crawler = $client->request('GET', $path);
+
+            self::assertResponseIsSuccessful();
+            self::assertCount(1, $crawler->filter('[data-indicators-link] a[href="/indicators"], a[data-indicators-link][href="/indicators"]'), $path);
+        }
+    }
+
+    #[Test]
     public function theIndexSaysHowToGetAChartWhenNothingIsCounted(): void
     {
         $client = static::createClient();

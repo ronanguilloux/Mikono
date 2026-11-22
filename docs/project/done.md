@@ -6,6 +6,25 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-11-21 — Starter list of 19 impact indicators in production
+
+ADR 0047 left the indicator list for the VM to build, and UCESCO hadn't
+named one. A starter list of 19 was drawn from ucesco.org's programs and
+the app's projects, programs and activity types, then loaded into
+production with a single `INSERT OR IGNORE` through `bin/console
+dbal:run-sql`. That is data entry, not seeding: no migration and no fixture,
+as the ADR requires. The list is a proposal for the VM to confirm. No
+achievement counts any of them yet, so renaming or deleting one is free.
+The list and the counting rules the VM needs (one achievement per event on
+the lead volunteer's stay; totals are attendances, not unique people) are in
+[brainstorm 18](../brainstorm/18-impact-indicator-shortlist.md).
+The achievement add and edit pages now link to Settings → Indicators above
+the form, and `/reports/achievements` has a Manage indicators link beside
+Impact by month, which stays visible once the chart has data.
+On the server, a `docker compose` command needs `--env-file deploy.env`
+besides the two compose files, as `scripts/deploy.sh` passes it: without it
+compose stops at interpolation, before touching the container.
+
 ## 2026-11-21 — PHP 8.5.13 for the November security release
 
 PHP's 2026-11-19 release fixed about 17 CVEs, two of them use-after-free bugs
