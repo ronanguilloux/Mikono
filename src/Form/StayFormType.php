@@ -29,6 +29,8 @@ final class StayFormType extends AbstractType
                 'choice_label' => static fn(Branch $branch) => $branch->getName() . ($branch->isActive() ? '' : ' (inactive)'),
                 'query_builder' => static fn(BranchRepository $branches): QueryBuilder => $branches->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose a branch',
+                'manage_route' => 'branch_index',
+                'manage_label' => 'branches',
             ])
             ->add('startDate', DateType::class, [
                 'widget' => 'single_text',

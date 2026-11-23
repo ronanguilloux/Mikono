@@ -31,6 +31,8 @@ final class ProjectFormType extends AbstractType
                 'choice_label' => static fn(Branch $branch) => $branch->getName() . ($branch->isActive() ? '' : ' (inactive)'),
                 'query_builder' => static fn(BranchRepository $branches): QueryBuilder => $branches->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose a branch',
+                'manage_route' => 'branch_index',
+                'manage_label' => 'branches',
             ])
             ->add('ownership', EnumType::class, [
                 'class' => ProjectOwnership::class,

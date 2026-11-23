@@ -176,6 +176,12 @@ implements it.
   `templates/components/DataTable.html.twig`) and the Tailwind form theme
   (`templates/form/tailwind_theme.html.twig`, registered globally in
   `config/packages/twig.yaml`) rather than hand-styling a new area.
+  A field that picks from a Settings list gets `'manage_route' =>
+  '<list>_index'` (plus `manage_label` when the lower-cased label isn't the
+  list's name): the theme draws "⚙ Manage" beside the `<label>`, never
+  inside it, opening a new tab, and `manage_link_controller.js` refreshes
+  the field's options when the reader comes back
+  (`App\Form\Extension\ManageLinkTypeExtension`).
   `DataTable` props:
   - `pagination` — renders the controls below the table.
   - `withActions` — set `false` for a read-only table, or it grows a

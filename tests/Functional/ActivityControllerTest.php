@@ -1346,7 +1346,7 @@ final class ActivityControllerTest extends WebTestCase
         foreach ([sprintf('/activities/%d/edit', $activity->getId()) => 'activity_form', '/activities/new' => 'batch_activity_form'] as $url => $name) {
             $crawler = $client->request('GET', $url);
 
-            self::assertCount(1, $crawler->filter("select#{$name}_program[data-controller=\"program-types\"][data-action=\"program-types#filter\"]"));
+            self::assertCount(1, $crawler->filter("select#{$name}_program[data-controller=\"program-types\"][data-action~=\"program-types#filter\"]"));
             self::assertSame(
                 $a->getId() . ' ' . $b->getId(),
                 $crawler->filter("#{$name}_activityType option[value=\"{$shared->getId()}\"]")->attr('data-programs'),

@@ -39,7 +39,11 @@ final class ActivityPickers
             },
             'query_builder' => static fn(ProgramRepository $programs): QueryBuilder => $programs->createOrderedQueryBuilder(),
             'placeholder' => 'Choose a program',
-            'attr' => ['data-controller' => 'program-types', 'data-action' => 'program-types#filter'],
+            'manage_route' => 'program_index',
+            'manage_label' => 'programs',
+            // Also after a "⚙ Manage" refresh of either list: refreshed
+            // activity types arrive unfiltered.
+            'attr' => ['data-controller' => 'program-types', 'data-action' => 'program-types#filter manage-link:refreshed@window->program-types#filter'],
         ];
     }
 
@@ -63,6 +67,8 @@ final class ActivityPickers
             'query_builder' => static fn(ActivityTypeRepository $activityTypes): QueryBuilder => $activityTypes->createOfferedOrderedByNameQueryBuilder(),
             'placeholder' => 'Choose an activity type',
             'label' => 'Activity type',
+            'manage_route' => 'activity_type_index',
+            'manage_label' => 'activity types',
         ];
     }
 }

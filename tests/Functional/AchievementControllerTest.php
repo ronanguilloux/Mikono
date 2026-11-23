@@ -302,12 +302,27 @@ final class AchievementControllerTest extends WebTestCase
         $stayId = $achievement->getStay()?->getId();
         $client->loginUser(UserFactory::createOne());
 
-        foreach (["/stays/{$stayId}/achievements/new", "/achievements/{$achievement->getId()}/edit", '/reports/achievements'] as $path) {
+        // The form: a "⚙ Manage" link on the Project and Indicator label
+        // lines, in a new tab so the typed form survives, beside the <label>
+        // rather than inside it.
+        foreach (["/stays/{$stayId}/achievements/new", "/achievements/{$achievement->getId()}/edit"] as $path) {
             $crawler = $client->request('GET', $path);
 
             self::assertResponseIsSuccessful();
-            self::assertCount(1, $crawler->filter('[data-indicators-link] a[href="/indicators"], a[data-indicators-link][href="/indicators"]'), $path);
+            foreach (['/projects' => 'achievement_form_project', '/indicators' => 'achievement_form_indicator'] as $href => $fieldId) {
+                $link = $crawler->filter(\sprintf('[data-controller~="manage-link"][data-manage-link-field-value="%s"] a[data-manage-link][href="%s"]', $fieldId, $href));
+                self::assertCount(1, $link, "{$path} {$href}");
+                self::assertSame('_blank', $link->attr('target'));
+                self::assertSame('noopener', $link->attr('rel'));
+            }
+            self::assertSelectorTextContains('a[data-manage-link][href="/indicators"] .sr-only', 'indicators (opens in a new tab)');
+            self::assertCount(0, $crawler->filter('label a[data-manage-link]'), $path);
+            self::assertCount(2, $crawler->filter('a[data-manage-link]'), $path);
         }
+
+        $crawler = $client->request('GET', '/reports/achievements');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('a[data-indicators-link][href="/indicators"]'));
     }
 
     #[Test]

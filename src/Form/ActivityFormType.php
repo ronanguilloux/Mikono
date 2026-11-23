@@ -81,6 +81,8 @@ final class ActivityFormType extends AbstractType
                 'by_reference' => false,
                 'required' => false,
                 'label' => 'Accompanied by',
+                'manage_route' => 'escort_index',
+                'manage_label' => 'escorts',
                 'help' => 'Leave every box unticked if nobody accompanied the group.',
             ])
             ->add('notes', TextareaType::class, ['required' => false]);

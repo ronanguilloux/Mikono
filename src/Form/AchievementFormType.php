@@ -44,6 +44,8 @@ final class AchievementFormType extends AbstractType
                 'choice_label' => static fn(Project $project) => sprintf('%s (%s)', $project->getName(), $project->getBranch()?->getName() ?? '—'),
                 'query_builder' => static fn(ProjectRepository $projects): QueryBuilder => $projects->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose a project',
+                'manage_route' => 'project_index',
+                'manage_label' => 'projects',
             ])
             // Optional, as a pair: Achievement::validateIndicatorAndQuantity().
             ->add('quantity', IntegerType::class, [
@@ -58,6 +60,8 @@ final class AchievementFormType extends AbstractType
                 'query_builder' => static fn(IndicatorRepository $indicators): QueryBuilder => $indicators->createOrderedByNameQueryBuilder(),
                 'required' => false,
                 'placeholder' => 'Not counted',
+                'manage_route' => 'indicator_index',
+                'manage_label' => 'indicators',
             ])
             ->add('description', TextareaType::class, [
                 'required' => false,

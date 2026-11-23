@@ -6,6 +6,59 @@ see that folder's README for the rule). Newest entries first. Add a
 dated entry here whenever an item in
 [`next-steps.md`](next-steps.md) is completed and isn't ADR-worthy.
 
+## 2026-11-22 — "⚙ Manage" links on every form that picks from a Settings list
+
+Ronan validated the achievement-form pilot (entry below), so every other
+field that picks from a Settings list now carries the link too:
+
+- Activities, batch and edit: program, activity type, escorts.
+- Volunteers: skills, sources.
+- Projects: branch.
+- Programs: project, activity types, skills, beneficiary groups.
+- Stays: branch.
+
+The branch form has none, because no field on it picks from another list.
+Program's beneficiary-groups help no longer says "Manage the list under
+Settings → Beneficiary groups": the link does that now.
+
+Two cases the pilot hadn't covered were checked in Chrome through Panther,
+on `/activities/new`:
+
+- **The activity-type list.** It is narrowed to the chosen program, but a
+  refresh brings back the server's unfiltered list. The refresh now also
+  dispatches `manage-link:refreshed`, and the program select's
+  `program-types` filter listens for it on `window`, so the list stays
+  narrowed to the program after a refresh.
+- **Checkbox groups (escorts).** A refresh brought back the missing escort
+  and kept the one that was ticked.
+
+`tests/Functional/ManageLinkTest` walks the new and edit pages and asserts
+the exact set of links on each. That includes none on the branch form, and
+that every link's row names a field the page really has.
+
+## 2026-11-21 — "⚙ Manage" link beside the achievement form's Project and Indicator
+
+The sentence above the achievement form pointing at Settings → Indicators
+(entry below) is gone. In its place, the Project and Indicator label lines
+each carry a small grey gear and the word "Manage", aligned right, linking
+to `/projects` and `/indicators`. The word is visible because a phone has no
+hover tooltip. The full name ("Manage indicators (opens in a new tab)") is in
+the tooltip and the screen-reader text. Making the label itself the link
+was rejected: a label reads as plain text, and clicking one normally focuses
+its field.
+
+The link opens a new tab, so nothing typed is lost. That tab's additions
+would otherwise never reach the form's dropdown, so once the link has been
+clicked, every return to the form tab re-fetches the page in the background
+and swaps in the field's fresh options, keeping what's selected. The
+request carries `X-Sec-Purpose: prefetch`, so `/usage` skips it like
+Turbo's hover prefetches. Checked in Chrome through Panther: a removed
+option came back, and the typed title and chosen project stayed.
+
+A form type opts a field in with `manage_route` (`ManageLinkTypeExtension`),
+and the theme's `form_row` does the rest. The other forms followed the next
+day (entry above).
+
 ## 2026-11-21 — Starter list of 19 impact indicators in production
 
 ADR 0047 left the indicator list for the VM to build, and UCESCO hadn't

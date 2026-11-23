@@ -36,6 +36,8 @@ final class ProgramFormType extends AbstractType
                 'choice_label' => static fn(Project $project) => $project->getName() . ($project->isActive() ? '' : ' (inactive)'),
                 'query_builder' => static fn(ProjectRepository $projects): QueryBuilder => $projects->createOrderedByNameQueryBuilder(),
                 'placeholder' => 'Choose a project',
+                'manage_route' => 'project_index',
+                'manage_label' => 'projects',
             ])
             ->add('startDate', DateType::class, [
                 'required' => false,
@@ -53,6 +55,8 @@ final class ProgramFormType extends AbstractType
                 'class' => ActivityType::class,
                 'choice_label' => 'name',
                 'query_builder' => static fn(ActivityTypeRepository $activityTypes): QueryBuilder => $activityTypes->createOrderedByNameQueryBuilder(),
+                'manage_route' => 'activity_type_index',
+                'manage_label' => 'activity types',
                 'multiple' => true,
                 'expanded' => true,
                 'by_reference' => false,
@@ -66,6 +70,8 @@ final class ProgramFormType extends AbstractType
                 'required' => false,
                 'by_reference' => false,
                 'label' => 'Recommended Skills',
+                'manage_route' => 'skill_index',
+                'manage_label' => 'skills',
                 // /matches links here with #skills: the row, so the label shows too.
                 'row_attr' => ['id' => 'skills', 'class' => 'scroll-mt-4'],
                 'help' => 'What the program needs. Its Matches page lists the volunteers who hold any of these.',
@@ -80,11 +86,13 @@ final class ProgramFormType extends AbstractType
                 'class' => BeneficiaryGroup::class,
                 'choice_label' => 'name',
                 'query_builder' => static fn(BeneficiaryGroupRepository $groups): QueryBuilder => $groups->createOrderedByNameQueryBuilder(),
+                'manage_route' => 'beneficiary_group_index',
+                'manage_label' => 'beneficiary groups',
                 'multiple' => true,
                 'expanded' => true,
                 'required' => false,
                 'by_reference' => false,
-                'help' => 'Who the program serves. Manage the list under Settings → Beneficiary groups.',
+                'help' => 'Who the program serves.',
             ])
             ->add('beneficiariesReached', TextareaType::class, [
                 'required' => false,

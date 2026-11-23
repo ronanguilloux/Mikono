@@ -71,6 +71,8 @@ final class BatchActivityFormType extends AbstractType
                 'expanded' => true,
                 'required' => false,
                 'label' => 'Accompanied by',
+                'manage_route' => 'escort_index',
+                'manage_label' => 'escorts',
                 'help' => 'The staff accompanying this session — applied to every volunteer logged below. Leave empty if nobody did.',
             ])
             ->add('volunteers', EntityType::class, [
