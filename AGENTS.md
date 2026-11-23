@@ -181,7 +181,9 @@ implements it.
   list's name): the theme draws "⚙ Manage" beside the `<label>`, never
   inside it, opening a new tab, and `manage_link_controller.js` refreshes
   the field's options when the reader comes back
-  (`App\Form\Extension\ManageLinkTypeExtension`).
+  (`App\Form\Extension\ManageLinkTypeExtension`). Any other link to a
+  Settings list uses the same `<twig:ManageLink>`, as `/reports/achievements`
+  does, so the look stays one.
   `DataTable` props:
   - `pagination` — renders the controls below the table.
   - `withActions` — set `false` for a read-only table, or it grows a

@@ -322,7 +322,16 @@ final class AchievementControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/reports/achievements');
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('a[data-indicators-link][href="/indicators"]'));
+        // The same ManageLink as on the forms (gear, grey, "Manage"), but in
+        // the same tab: a report has nothing typed to lose.
+        $link = $crawler->filter('a[data-indicators-link][href="/indicators"]');
+        self::assertCount(1, $link);
+        self::assertCount(1, $link->filter('svg[aria-hidden="true"]'));
+        self::assertStringContainsString('text-slate-500', (string) $link->attr('class'));
+        $hidden = $link->filter('.sr-only')->text(null, false);
+        self::assertSame("\u{a0}indicators", $hidden);
+        self::assertSame('Manage', trim(str_replace($hidden, '', $link->text(null, false))));
+        self::assertNull($link->attr('target'));
     }
 
     #[Test]
